@@ -1,0 +1,39 @@
+- When configure is run without libpcap-dev, building fails
+- Make sure libcommon is built by libnet
+
+
+
+
+TODO
+
+
+-check if working in case of timeout response
+-create queue for sending
+-check error printing (not only on DEBUG, change the DEBUG printing syustem)
+-check the actual time for timeout in execution_algorithm (if negative value, ...)
+-doc
+-add in algo_s struct and functions to manage 2 listes of probe (complete and waiting)
+-problem of adding a field that already exist and so freeing the old value
+-test when sniffer has no filter
+-check ending when packet fields missing
+-check the final free
+-test with names too short
+-manage the send of C-c to end prog (freeing data)
+-repair the non freed data problem
+-test test test
+-add transformation DNS from name adress to ip address
+-ajout TCP et IPv6
+-fonctions manquantes pour algo.c
+-change the network function so it stops by itfself
+-treatment of options in IP, tcp, ...
+
+DONE
+-add traceroute algo :D
+-short nb parameters in create_probe
+-change the probe gestion of parameters (fields instead of struct, possibility to create whatever from list of proto
+-check the source adress estimation
+-add after_filling and after_checksum for protos and call in create_packet
+-check field_s malloc'ing
+-replace names (struct in first, ...)
+-struct accesses
+-check prob when checking size of parameters string to find algo or output, etc

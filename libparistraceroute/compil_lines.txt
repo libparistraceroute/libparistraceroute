@@ -1,0 +1,19 @@
+
+#to compile the library (from the source folder)
+gcc -c *.c -Wall -fPIC -D DEBUG;
+gcc -o libpatr.so -shared *.o
+
+#using also BSD sockets and pcap for sniffing 
+gcc -c *.c -Wall -fPIC -D DEBUG -D USEPCAP -D BSDSOCKET; gcc -o libpatr.so -shared *.o
+
+#to make the library accessible for test
+ln -s ./libpatr.so /usr/lib
+
+#to compile test (from test folder)
+gcc test.c -Wall -I ../src -lpatr -o test
+
+#with additional libraries
+gcc test.c -Wall -I ../src -lpatr -lpcap -lpthread -o test
+
+#to get the right to create a raw socket without being root
+setcap cap_net_raw+ep <test_compiled_file>
