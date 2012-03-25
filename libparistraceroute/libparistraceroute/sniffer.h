@@ -33,7 +33,7 @@ typedef struct snif_packet {
  * @param params : a optional parameter for the callback function may be NULL
  * @return 1 if succedded, -1 otherwise
  */
-int init_sniffer(field_s** handles,char** protocols, int nb_proto,void (*callback) (snif_packet_s* packet, void* userparams), void* params);
+int init_sniffer(field_t** handles,char** protocols, int nb_proto,void (*callback) (snif_packet_s* packet, void* userparams), void* params);
 
 /**
  * close the handles
@@ -41,7 +41,7 @@ int init_sniffer(field_s** handles,char** protocols, int nb_proto,void (*callbac
  * @param nb_handles : the number of handles to close
  * @return 1 if succedded, -1 otherwise
  */
-int finish_sniffer(field_s** handles);
+int finish_sniffer(field_t** handles);
 
 /**
  * show the content of a received packet

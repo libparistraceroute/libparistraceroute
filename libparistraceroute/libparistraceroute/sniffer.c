@@ -1,6 +1,6 @@
 #include "sniffer.h"
 #include "network.h"
-#include "proto.h"
+#include "protocol.h"
 
 #include <unistd.h>
 #include <fcntl.h>
