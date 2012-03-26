@@ -1,17 +1,16 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <string.h>      // memcpy()
 #include <stdbool.h>
-#include <errno.h>
-#include <stddef.h> // for offsetof
+#include <errno.h>       // ERRNO, EINVAL
+#include <stddef.h>      // offsetof()
 #include <netinet/udp.h>
 #include <arpa/inet.h>
 
-#include "../protocol_field.h"
 #include "../protocol.h"
 
-#define UDP_DEFAULT_SOURCE 2828
-#define UDP_DEFAULT_DEST 2828
+#define UDP_DEFAULT_SRC_PORT 2828
+#define UDP_DEFAULT_DST_PORT 2828
 
 // XXX mandatory fields ?
 // XXX UDP parsing missing
@@ -50,8 +49,8 @@ static protocol_field_t udp_fields[] = {
 
 /* Default UDP values */
 static struct udphdr udp_default = {
-    .SRC_PORT = UDP_DEFAULT_SOURCE,
-    .DST_PORT = UDP_DEFAULT_DEST,
+    .SRC_PORT = UDP_DEFAULT_SRC_PORT,
+    .DST_PORT = UDP_DEFAULT_DST_PORT,
     .LENGTH   = 0,
     .CHECKSUM = 0
 };
@@ -88,33 +87,39 @@ void udp_write_default_header(char *data)
 
 /**
  * \brief Compute and write the checksum related to an UDP header
- * \param buf A pre-allocated UDP header
- * \param psh The pseudo header 
+ * \param udp_hdr A pre-allocated UDP header
+ * \param pseudo_hdr The pseudo header 
  * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
  * \return 0 if everything is ok, -1 otherwise
  */
 
-int udp_write_checksum(struct udphdr * buf, pseudoheader_t * psh)
+int udp_write_checksum(struct udphdr * udp_hdr, pseudoheader_t * pseudo_hdr)
 {
     unsigned char * tmp;
     unsigned int len;
     unsigned short res;
 
-    if (!psh) return EINVAL; // pseudo header required
+    if (!pseudo_hdr) return EINVAL; // pseudo header required
 
-    len = sizeof(struct udphdr) + psh->size;
+    len = sizeof(struct udphdr) + pseudo_hdr->size;
     tmp = malloc(len * sizeof(unsigned char));
     if(!tmp) return ENOMEM;
 
-    // We supposed buf contains a udp header
-    memcpy(tmp, psh->data, psh->size);
-    memcpy(tmp + psh->size, buf, sizeof(struct udphdr));
-
+    memcpy(tmp, pseudo_hdr->data, pseudo_hdr->size);
+    memcpy(tmp + pseudo_hdr->size, udp_hdr, sizeof(struct udphdr));
     res = csum(*(unsigned short**) &tmp, (len >> 1));
-    buf->check = res;
+    udp_hdr->check = res;
+
     free(tmp);
     return 0;
 }
+
+/**
+ * \brief Callback that indicates whether this protocol 
+ *   needs a pseudo header in order to compute its checksum.
+ * \sa ../protocol.h
+ * \return true iif we use a dedicated checksum function.
+ */
 
 bool udp_need_ext_checksum() {
     return true;
@@ -123,13 +128,12 @@ bool udp_need_ext_checksum() {
 static protocol_t udp = {
     .name                 = "udp",
     .get_num_fields       = udp_get_num_fields,
-    // int udp_write_checksum(struct udphdr * buf, pseudoheader_t * psh)
     .write_checksum       = CAST_WRITE_CHECKSUM udp_write_checksum,
-    //.create_pseudo_header = NULL,
+  //.create_pseudo_header = NULL,
     .fields               = udp_fields,
-    //.defaults             = udp_defaults, // XXX used when generic
+  //.defaults             = udp_defaults,             // XXX used when generic
     .write_default_header = udp_write_default_header, // TODO generic
-    //.socket_type          = NULL,
+  //.socket_type          = NULL,
     .get_header_size      = udp_get_header_size,
     .need_ext_checksum    = udp_need_ext_checksum
 };
@@ -208,6 +212,12 @@ static int set_packet_field_udp(void* value, char* name, char** datagram){//not 
 }
 */
 
+/**
+ * \brief Allocate and set a memory block with the value of a field stored in the UDP header
+ * \param name Key related to the field (for example "src_port")
+ * \param datagram
+ * \return The adress of the value, NULL otherwise
+ */
 void * get_packet_field_udp(char * name, char ** datagram){
 	if(datagram == NULL || *datagram == NULL){
 		#ifdef DEBUG
@@ -216,22 +226,26 @@ void * get_packet_field_udp(char * name, char ** datagram){
 		return NULL;
 	}
 
-	struct udphdr * udp_hed = (struct udphdr *) * datagram;
+	struct udphdr * udp_hdr = (struct udphdr *) * datagram;
 	if(strncasecmp(name, "dst_port", 8) == 0) {
 		u_int16_t * res = malloc(sizeof(u_int16_t));
-		*res = ntohs(udp_hed->DST_PORT);
+        if(!res) return NULL;
+		*res = ntohs(udp_hdr->DST_PORT);
 		return res;
 	} else if(strncasecmp(name,"src_port", 8) == 0) {
 		u_int16_t * res = malloc(sizeof(u_int16_t));
-		*res = ntohs(udp_hed->SRC_PORT);
+        if(!res) return NULL;
+		*res = ntohs(udp_hdr->SRC_PORT);
 		return res;
 	} else if(strncasecmp(name,"lenght", 6) == 0) {
 		u_int16_t * res = malloc(sizeof(u_int16_t));
-		*res = ntohs(udp_hed->LENGTH);
+        if(!res) return NULL;
+		*res = ntohs(udp_hdr->LENGTH);
 		return res;
 	} else if(strncasecmp(name,"checksum", 8) == 0) {
 		u_int16_t * res = malloc(sizeof(u_int16_t));
-		*res = ntohs(udp_hed->CHECKSUM);
+        if(!res) return NULL;
+		*res = ntohs(udp_hdr->CHECKSUM);
 		return res;
 	} else {
 		#ifdef DEBUG

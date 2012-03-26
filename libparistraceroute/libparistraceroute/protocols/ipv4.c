@@ -1,12 +1,158 @@
-//#include<stdlib.h>
-//#include<unistd.h>
-//#include<string.h>
-//#include<stdio.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h> // offsetof()
+#include <string.h> // memcpy()
+//#include <unistd.h>
 //#include <arpa/inet.h>
 //#include <netdb.h>
 //
-//#include "proto.h"
-//#include <netinet/ip.h>
+#include <netinet/ip.h>
+
+#include "../field.h"
+//#include "../protocol_field.h"
+#include "../protocol.h"
+
+#define IPV4_DEFAULT_VERSION         4 
+#define IPV4_DEFAULT_IHL             5
+#define IPV4_DEFAULT_TOS             0
+#define IPV4_DEFAULT_LENGTH          0
+#define IPV4_DEFAULT_IDENTIFICATION  1
+#define IPV4_DEFAULT_FRAGOFF         0
+#define IPV4_DEFAULT_TTL             255 
+#define IPV4_DEFAULT_PROTOCOL        17   // here TCP, http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers 
+#define IPV4_DEFAULT_CHECKSUM        0
+#define IPV4_DEFAULT_SRC_IP          0
+#define IPV4_DEFAULT_DST_IP          0
+
+/* IPv4 fields */
+static protocol_field_t ipv4_fields[] = {
+//    {
+//        .key = "version",
+//        .type = TYPE_INT4,
+//        .offset = offsetof(struct iphdr, version),
+//    }, {
+//        .key = "ihl",
+//        .type = TYPE_INT4,
+//        .offset = offsetof(struct iphdr, ihl),
+//    },
+    {
+        .key = "tos",
+        .type = TYPE_INT8,
+        .offset = offsetof(struct iphdr, tos),
+    }, {
+        .key = "length",
+        .type = TYPE_INT16,
+        .offset = offsetof(struct iphdr, tot_len),
+    }, {
+        .key = "identification",
+        .type = TYPE_INT16,
+        .offset = offsetof(struct iphdr, id),
+    }, {
+        .key = "fragment_offset",
+        .type = TYPE_INT16,
+        .offset = offsetof(struct iphdr, frag_off),
+    }, {
+        .key = "ttl",
+        .type = TYPE_INT8,
+        .offset = offsetof(struct iphdr, ttl),
+    }, {
+        .key = "protocol",
+        .type = TYPE_INT8,
+        .offset = offsetof(struct iphdr, protocol),
+    }, {
+        .key = "checksum",
+        .type = TYPE_INT16,
+        .offset = offsetof(struct iphdr, check),
+    }, {
+        .key = "src_ip",
+        .type = TYPE_INT32,
+        .offset = offsetof(struct iphdr, saddr),
+    }, {
+        .key = "dst_ip",
+        .type = TYPE_INT32,
+        .offset = offsetof(struct iphdr, daddr),
+    }
+    // options if header length > 5 (not yet implemented)
+};
+
+/* Default IPv4 values */
+static struct iphdr ipv4_default = {
+    .version  = IPV4_DEFAULT_VERSION,
+    .ihl      = IPV4_DEFAULT_IHL,
+    .tos      = IPV4_DEFAULT_TOS,
+    .tot_len  = IPV4_DEFAULT_LENGTH,
+    .id       = IPV4_DEFAULT_IDENTIFICATION,
+    .frag_off = IPV4_DEFAULT_FRAGOFF,
+    .ttl      = IPV4_DEFAULT_TTL,
+    .protocol = IPV4_DEFAULT_PROTOCOL,
+    .check    = IPV4_DEFAULT_CHECKSUM,
+    .saddr    = IPV4_DEFAULT_SRC_IP,
+    .daddr    = IPV4_DEFAULT_DST_IP
+};
+
+/**
+ * \brief Retrieve the number of fields in a UDP header
+ * \return The number of fields
+ */
+
+unsigned int ipv4_get_num_fields(void)
+{
+    return sizeof(ipv4_fields) / sizeof(protocol_field_t);
+}
+
+/**
+ * \brief Retrieve the size of an UDP header 
+ * \return The size of an UDP header
+ */
+
+unsigned int ipv4_get_header_size(void)
+{
+    return sizeof(struct iphdr);
+}
+
+/**
+ * \brief Write the default UDP header
+ * \param data The address of an allocated buffer that will store the header
+ */
+
+void ipv4_write_default_header(char *data)
+{
+    memcpy(data, &ipv4_default, sizeof(struct iphdr));
+}
+
+/**
+ * \brief Compute and write the checksum related to an UDP header
+ * \param ipv4_hdr A pre-allocated IPv4 header
+ * \param psh The pseudo header 
+ * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
+ * \return 0 if everything is ok, -1 otherwise
+ */
+
+//void set_cheksum_tot_len (char* datagram, int size){
+//	unsigned short checksum;
+//	iphdr_s *ip_hed = (iphdr_s *) datagram;
+//	ip_hed->tot_len = size;
+//	checksum = csum((unsigned short *)datagram,size >> 1 ); // TODO: >> 1 RLY?
+//	ip_hed->check = checksum;	
+//}
+
+
+static protocol_t ipv4 = {
+    .name                 = "ipv4",
+    .get_num_fields       = ipv4_get_num_fields,
+  //.write_checksum       = CAST_WRITE_CHECKSUM ipv4_write_checksum,
+  //.create_pseudo_header = NULL,
+    .fields               = ipv4_fields,
+    .write_default_header = ipv4_write_default_header, // TODO generic
+  //.socket_type          = NULL,
+    .get_header_size      = ipv4_get_header_size,
+  //.need_ext_checksum    = ipv4_need_ext_checksum
+};
+
+PROTOCOL_REGISTER(ipv4);
+
+// END
+
 //
 //#define NUMBER_FIELD_IPV4 9
 //#define NUMBER_MAND_FIELD_IPV4 3
@@ -235,7 +381,8 @@
 //	ip_hed->tot_len = size;
 //	checksum = csum((unsigned short *)datagram,size >> 1 ); // TODO: >> 1 RLY?
 //	ip_hed->check = checksum;	
-//}*/
+//}
+//*/
 //
 ///*
 //short unsigned get_checksum(char* datagram){

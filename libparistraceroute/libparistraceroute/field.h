@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 typedef enum {
+    TYPE_INT4,
     TYPE_INT8,
     TYPE_INT16,
     TYPE_INT32,
@@ -13,11 +14,12 @@ typedef enum {
 typedef struct {
     char *key;
     union {
-        void     * value;
-        uint8_t    int8_value;
-        uint16_t   int16_value;
-        uint32_t   int32_value;
-        char     * string_value;
+        void       * value;
+        unsigned int int4_value:4; 
+        uint8_t      int8_value;
+        uint16_t     int16_value;
+        uint32_t     int32_value;
+        char       * string_value;
     };
     fieldtype_t type;
 } field_t;
