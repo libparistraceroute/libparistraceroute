@@ -24,7 +24,7 @@ algorithm_t* algorithm_search(char *name)
 {
     algorithm_t *algorithm, search;
 
-    if (!name) return;
+    if (!name) return NULL;
 
     search.name = name;
     algorithm = *(algorithm_t**)tfind((const void*)&search, (void* const*)&algorithms_root,
@@ -157,7 +157,7 @@ algorithm_instance_t * pt_algorithm_add(struct pt_loop_s *loop, char *name, void
 
     /* We need to queue a new event for the algorithm: it has been started */
     algorithm_instance_add_event(instance, event_create(ALGORITHM_INIT, NULL));
-    pt_notify_algorithm_fd(loop);
+    // pt_notify_algorithm_fd(loop); /* TODO */
 
     /* Add this algorithms to the list of handled algorithms */
     pt_algorithm_instance_add(loop, instance);

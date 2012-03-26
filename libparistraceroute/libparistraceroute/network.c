@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include "network.h"
 #include "queue.h"
-#include "sniffer.h"
 
 /******************************************************************************
  * Network
@@ -32,12 +31,23 @@ network_t* network_create(void)
         free(network);
         network = NULL;
     }
+
+    /* create sniffer */
+    network->sniffer = sniffer_create();
+    if (!(network->sniffer)) {
+        queue_free(network->recvq);
+        queue_free(network->sendq);
+        socketpool_free(network->socketpool);
+        free(network);
+        network = NULL;
+    }
     
     return network;
 }
 
 void network_free(network_t *network)
 {
+    sniffer_free(network->sniffer);
     queue_free(network->sendq);
     queue_free(network->recvq);
     socketpool_free(network->socketpool);
