@@ -11,6 +11,6 @@ bin_PROGRAMS = paris-traceroute
 paris_traceroute_SOURCES =    \
                         paris-traceroute.c
                          
-# the additional libraries needed to link helloWorld
-paris_traceroute_LDADD =  $(top_builddir)/libparistraceroute/libmylib.a $(AM_LDFLAGS)
+# the additional libraries needed to link
+paris_traceroute_LDADD =  $(top_builddir)/libparistraceroute/libparistraceroute.a $(AM_LDFLAGS)
 
