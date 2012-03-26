@@ -12,66 +12,51 @@
 #define UDP_DEFAULT_SOURCE 2828
 #define UDP_DEFAULT_DEST 2828
 
-#ifdef __FAVOR_BSD
-
 // XXX mandatory fields ?
 // XXX UDP parsing missing
+#ifdef __FAVOR_BSD
+#   define SRC_PORT uh_sport
+#   define DST_PORT uh_dport
+#   define LENGTH   uh_ulen
+#   define CHECKSUM uh_sum
+#else
+#   define SRC_PORT source 
+#   define DST_PORT dest 
+#   define LENGTH   len
+#   define CHECKSUM check 
+#endif
 
 /* UDP fields */
 static protocol_field_t udp_fields[] = { {
-        .key = "src_post"
+        .key = "src_port",
         .type = TYPE_INT16,
-        .offset = offsetof(struct udphdr, uh_sport),
+        .offset = offsetof(struct udphdr, SRC_PORT),
     }, {
-        .key = "dst_post",
+        .key = "dst_port",
         .type = TYPE_INT16,
-        .offset = offsetof(struct udphdr, uh_dport),
+        .offset = offsetof(struct udphdr, DST_PORT),
+    }, {
+        .key = "length",
+        .type = TYPE_INT16,
+        .offset = offsetof(struct udphdr, LENGTH),
     }, {
         .key = "checksum",
         .type = TYPE_INT16,
-        .offset = offsetof(struct udphdr, uh_sum),
-} }
-
-/* Default UDP values */
-static struct udphdr udp_default = {
-    .uh_sport = UDP_DEFAULT_SOURCE,
-    .uh_dport = UDP_DEFAULT_DEST,
-    .uh_ulen = 0,
-    .uh_sum = 0
+        .offset = offsetof(struct udphdr, CHECKSUM),
+    }
 }
 
-#else
-
-/* UDP fields */
-static protocol_field_t udp_fields[] = {
-    {
-        .key = "src_post",
-        .type = TYPE_INT16,
-        .offset = offsetof( struct udphdr, source),
-    }, {
-        .key = "dst_post",
-        .type = TYPE_INT16,
-        .offset = offsetof( struct udphdr, dest),
-    }, {
-        .key = "checksum",
-        .type = TYPE_INT16,
-        .offset = offsetof( struct udphdr, check),
-    }
-};
-
 /* Default UDP values */
 static struct udphdr udp_default = {
-    .source = UDP_DEFAULT_SOURCE,
-    .dest = UDP_DEFAULT_DEST,
-    .len = 0,
-    .check = 0
-};
-
-#endif
+    .SRC_PORT = UDP_DEFAULT_SOURCE,
+    .DST_PORT = UDP_DEFAULT_DEST,
+    .LENGTH   = 0,
+    .CHECKSUM = 0
+}
 
 unsigned int udp_get_num_fields(void)
 {
-    return sizeof(udp_fields);
+    return sizeof(udp_fields) / sizeof(protocol_field_t);
 }
 
 unsigned int udp_get_header_size(void)
@@ -131,8 +116,8 @@ PROTOCOL_REGISTER(udp);
 //#define IPPROTO_UDP 17
 */
 /*
-char* udp_fields[NUMBER_FIELD_UDP] = {"src_port","dest_port","total_lenght","checksum","with_tag"};
-char* udp_mandatory_fields[NUMBER_MAND_FIELD_UDP]={"src_port","dest_port","total_lenght"};
+char* udp_fields[NUMBER_FIELD_UDP] = {"src_port","dest_port","lenght","checksum","with_tag"};
+char* udp_mandatory_fields[NUMBER_MAND_FIELD_UDP]={"src_port","dest_port","lenght"};
 
 static void set_default_values_udp(char** datagram){
 	struct udphdr *udp_hed = (struct udphdr *)  *datagram;
@@ -164,7 +149,7 @@ static int set_packet_field_udp(void* value, char* name, char** datagram){//not 
 		#endif
 		return 1;
 	}
-	if(strncasecmp(name,"total_lenght",12)==0){
+	if(strncasecmp(name,"lenght",12)==0){
 		#ifdef __FAVOR_BSD
 		udp_hed->uh_ulen=htons(*(( u_int16_t*)value));
 		#else
@@ -193,54 +178,34 @@ static int set_packet_field_udp(void* value, char* name, char** datagram){//not 
 }
 */
 
-void* get_packet_field_udp(char* name,char** datagram){
-	if(datagram==NULL||*datagram==NULL){
+void * get_packet_field_udp(char * name, char ** datagram){
+	if(datagram == NULL || *datagram == NULL){
 		#ifdef DEBUG
-		fprintf(stderr,"get_packet_field_udp :trying to read NULL packet\n");
+		fprintf(stderr, "get_packet_field_udp: trying to read NULL packet\n");
 		#endif
 		return NULL;
 	}
-	//void* res;
-	struct udphdr *udp_hed = (struct udphdr *)  *datagram;
-	if(strncasecmp(name,"dest_port",9)==0){
-		u_int16_t* res=malloc(sizeof(u_int16_t));
-		#ifdef __FAVOR_BSD
-		*res = ntohs(udp_hed->uh_dport);
-		#else
-		*res = ntohs(udp_hed->dest);
-		#endif
-		return res; 
-	}
-	if(strncasecmp(name,"src_port",8)==0){
-		u_int16_t* res=malloc(sizeof(u_int16_t));
-		#ifdef __FAVOR_BSD
-		*res = ntohs(udp_hed->uh_sport);
-		#else
-		*res = ntohs(udp_hed->source);
-		#endif
+
+	struct udphdr * udp_hed = (struct udphdr *) * datagram;
+	if(strncasecmp(name, "dst_port", 8) == 0) {
+		u_int16_t * res = malloc(sizeof(u_int16_t));
+		*res = ntohs(udp_hed->DST_PORT);
 		return res;
-	}
-	if(strncasecmp(name,"total_lenght",12)==0){
-		u_int16_t* res=malloc(sizeof(u_int16_t));
-		#ifdef __FAVOR_BSD
-		*res = ntohs(udp_hed->uh_ulen);
-		#else
-		*res = ntohs(udp_hed->len);
-		#endif
+	} else if(strncasecmp(name,"src_port", 8) == 0) {
+		u_int16_t * res = malloc(sizeof(u_int16_t));
+		*res = ntohs(udp_hed->SRC_PORT);
 		return res;
-	}
-	if(strncasecmp(name,"checksum",8)==0){
-		u_int16_t* res=malloc(sizeof(u_int16_t));
-		#ifdef __FAVOR_BSD
-		*res = ntohs(udp_hed->uh_sum);
-		#else
-		*res = ntohs(udp_hed->check);
-		#endif
+	} else if(strncasecmp(name,"lenght", 6) == 0) {
+		u_int16_t * res = malloc(sizeof(u_int16_t));
+		*res = ntohs(udp_hed->LENGTH);
 		return res;
-	}
-	else{
+	} else if(strncasecmp(name,"checksum", 8) == 0) {
+		u_int16_t * res = malloc(sizeof(u_int16_t));
+		*res = ntohs(udp_hed->CHECKSUM);
+		return res;
+	} else {
 		#ifdef DEBUG
-		fprintf(stderr,"get_packet_field_udp : unknown option for udp : %s \n",name);
+		fprintf(stderr, "get_packet_field_udp : unknown option for udp : %s\n", name);
 		#endif
 		return NULL;
 	}

@@ -26,6 +26,18 @@ field_t *field_create_int16(char *key, uint16_t value) {
     return field;
 }
 
+field_t *field_create_int8(char *key, uint8_t value) {
+    field_t *field;
+
+    field = (field_t*)malloc(sizeof(field_t));
+
+    field->key = strdup(key);
+    field->int16_value = value;
+    field->type = TYPE_INT8;
+
+    return field;
+}
+
 field_t *field_create_string(char *key, char *value) {
     field_t *field;
 

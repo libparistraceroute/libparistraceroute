@@ -9,6 +9,7 @@
 #include "probe.h" /* needed ? */
 #include "algorithm.h"
 #include "algorithms/mda.h"
+#include "algorithms/traceroute.h"
 
 void mda_done(pt_loop_t *pt_loop, mda_options_t *options) { 
     if (!options) {
@@ -19,11 +20,18 @@ void mda_done(pt_loop_t *pt_loop, mda_options_t *options) {
     //graph_print(options->graph); 
 }
 
+typedef enum algo_e {
+    MDA, TRACEROUTE
+} algo_t;
+
+
 int main(int argc, char **argv)
 {
-    algorithm_instance_t *instance;
-    probe_t *probe_skel;
-    pt_loop_t *loop;
+    algorithm_instance_t * instance;
+    probe_t              * probe_skel;
+    pt_loop_t            * loop;
+    mda_options_t          mda_opt;
+    traceroute_options_t   traceroute_opt;
     
     loop = pt_loop_create();
     if (!loop) {
@@ -35,23 +43,31 @@ int main(int argc, char **argv)
     char dst_ip[] = "1.1.1.2";
     // We can get algorithm options from the commandline also
 
-    /* Set basic probe constraints */
+    // Set basic probe constraints
     probe_skel = probe_create();
     probe_set_fields(probe_skel, STR("dst_ip", dst_ip));
 
-    /* We might imagine that this is done by default if given NULL */
-    //ip_graph_t *graph = ip_graph_new();
-    mda_options_t opt;
-    //= {
-        //.graph = graph,
-        //.on_done = NULL
-    //}
+    // Instanciate the algorithm
+    algo_t algo = TRACEROUTE;
+    switch(algo){
+        case MDA:
+            /* We might imagine that this is done by default if given NULL */
+            //ip_graph_t *graph = ip_graph_new();
+            //= {
+                //.graph = graph,
+                //.on_done = NULL
+            //}
 
+            instance = pt_algorithm_add(loop, "mda", &mda_opt, probe_skel);
+            break;
 
-    /* Instanciate a MDA algorithm */
-    instance = pt_algorithm_add(loop, "mda", &opt, probe_skel);
+        case TRACEROUTE:
+            instance = pt_algorithm_add(loop, "traceroute", &traceroute_opt, probe_skel);
+            break;
+    }
+
     if (!instance) {
-        printf("E: Could not add mda algorithm");
+        printf("E: cannot add algorithm");
         exit(EXIT_FAILURE);
     }
 
