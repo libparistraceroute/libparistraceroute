@@ -1,10 +1,23 @@
-####################
-## Initialisation ##
-####################
-AC_INIT([paris-traceroute], [0.99], [support@paris-traceroute.net])
-AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE
+#
+# Pre-setting for libparistraceroute configure script
+#
+# This file is part of libparistraceroute
+#
+
+# Initial information about the project
+AC_INIT([paris-traceroute], [0.1], [paris-traceroute@googlegroups.com])
+
+# AC_CANONICAL_SYSTEM
+
+# Check if the source folder is available
 AC_CONFIG_SRCDIR([paris-traceroute/paris-traceroute.c])
+
+# automake initialization (mandatory) (no check for automake version)
+AM_INIT_AUTOMAKE
+
+# Use the C compiler for the following checks
+AC_LANG([C])
+
 AC_CONFIG_HEADER([libparistraceroute/config.h])
 AC_C_BIGENDIAN([endian="big-endian"], [endian="little-endian"])
 AC_CONFIG_MACRO_DIR([m4])
@@ -57,23 +70,27 @@ fi
 #jo#AC_ARG_WITH([pcap], AC_HELP_STRING([--with-pcap=DIR], [use pcap in DIR]),
 #jo#	[pcap_prefix=$withval])
 
-#########################
-## Checks for programs ##
-#########################
+#################################################################################
+#
+# Checks for programs
+#
+
 # Determine a C compiler to use and set CC. Set GCC to yes if compiler is gcc.
 AC_PROG_CC
 AC_LANG_C
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
-##########################
-## Checks for libraries ##
-##########################
-## Check for pthread...
+#################################################################################
+#
+# Checks for libraries
+#
+
+# Check for pthread...
 AC_CHECK_LIB([pthread], [pthread_create],,
 	AC_MSG_ERROR("Pthreads not found in -lpthread"))
 
-## Check for libpcap...
+# Check for libpcap...
 PCAPCC=""
 PCAPLD=""
 #if test "x$use_pcap" = "xyes"; then
@@ -97,9 +114,11 @@ PCAPLD=""
         AC_CHECK_LIB([pcap], [pcap_open_live], [usable_pcap=yes])
 #fi
 
-#############################
-## Checks for header files ##
-#############################
+#################################################################################
+#
+# Checks for header files
+#
+
 # Check for stdlib.h, stdarg.h, string.h and float.h and defines STDC_HEADERS
 AC_HEADER_STDC(, "Standard headers missing")
 # Check other headers
@@ -117,9 +136,11 @@ AC_CHECK_HEADER([stdlib.h])
 AC_CHECK_HEADER([string.h])
 AC_CHECK_HEADER([unistd.h])
 
-#####################################
-## Checks for typedefs, structures ##
-#####################################
+#################################################################################
+#
+# Checks for typedefs, structures
+#
+
 #AC_HEADER_STDBOOL(, AC_MSG_ERROR("bool missing"))
 #AC_C_CONST(, AC_MSG_ERROR("const missing"))
 AC_HEADER_TIME(, AC_MSG_ERROR("header time missing"))
@@ -133,9 +154,11 @@ AC_CHECK_FUNC([socket])
 AC_CHECK_FUNC([strdup])
 AC_CHECK_FUNC([strerror])
 
-###########################
-## Compiles time options ##
-###########################
+#################################################################################
+#
+# Compile time options
+#
+
 # Some initialization (default implementation to use)
 #jo#sender="raw-socket"
 #jo#sniffer="raw-socket"
@@ -156,6 +179,7 @@ LDFLAGS="-lpcap $LDFLAGS"
 #jo#	route="socket"
 #jo#fi
 #jo#
+
 # OS-dependant
 case "$os" in
 	"win32")
@@ -242,7 +266,6 @@ AC_CONFIG_FILES(
 	[paris-traceroute/Makefile]
 	[man/Makefile]
 	[doc/Makefile]
-	[test/Makefile]
 )
 AC_OUTPUT
 

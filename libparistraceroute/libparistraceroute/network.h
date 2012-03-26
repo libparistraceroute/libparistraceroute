@@ -4,6 +4,7 @@
 #include "packet.h"
 #include "queue.h"
 #include "socketpool.h"
+#include "sniffer.h"
 
 /******************************************************************************
  * Network
@@ -13,6 +14,7 @@ typedef struct {
     socketpool_t *socketpool;
     queue_t *sendq;
     queue_t *recvq;
+    sniffer_t *sniffer;
 } network_t;
 
 network_t* network_create(void);
