@@ -7,6 +7,8 @@
 #include "protocol_field.h"
 #include "pseudoheader.h"
 
+#define CAST_WRITE_CHECKSUM (int (*)(unsigned char *, pseudoheader_t *))
+
 typedef struct {
     char* name;
     unsigned int (*get_num_fields)(void);

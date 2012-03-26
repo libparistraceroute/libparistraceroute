@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <stddef.h> // for offsetof
 #include <netinet/udp.h>
 #include <arpa/inet.h>
@@ -27,7 +28,8 @@
 #endif
 
 /* UDP fields */
-static protocol_field_t udp_fields[] = { {
+static protocol_field_t udp_fields[] = {
+    {
         .key = "src_port",
         .type = TYPE_INT16,
         .offset = offsetof(struct udphdr, SRC_PORT),
@@ -44,7 +46,7 @@ static protocol_field_t udp_fields[] = { {
         .type = TYPE_INT16,
         .offset = offsetof(struct udphdr, CHECKSUM),
     }
-}
+};
 
 /* Default UDP values */
 static struct udphdr udp_default = {
@@ -52,56 +54,84 @@ static struct udphdr udp_default = {
     .DST_PORT = UDP_DEFAULT_DEST,
     .LENGTH   = 0,
     .CHECKSUM = 0
-}
+};
+
+/**
+ * \brief Retrieve the number of fields in a UDP header
+ * \return The number of fields
+ */
 
 unsigned int udp_get_num_fields(void)
 {
     return sizeof(udp_fields) / sizeof(protocol_field_t);
 }
 
+/**
+ * \brief Retrieve the size of an UDP header 
+ * \return The size of an UDP header
+ */
+
 unsigned int udp_get_header_size(void)
 {
     return sizeof(struct udphdr);
 }
+
+/**
+ * \brief Write the default UDP header
+ * \param data The address of an allocated buffer that will store the header
+ */
 
 void udp_write_default_header(char *data)
 {
     memcpy(data, &udp_default, sizeof(struct udphdr));
 }
 
-int udp_write_checksum(unsigned char *buf, pseudoheader_t *psh)
+/**
+ * \brief Compute and write the checksum related to an UDP header
+ * \param buf A pre-allocated UDP header
+ * \param psh The pseudo header 
+ * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
+ * \return 0 if everything is ok, -1 otherwise
+ */
+
+int udp_write_checksum(struct udphdr * buf, pseudoheader_t * psh)
 {
     unsigned char * tmp;
     unsigned int len;
     unsigned short res;
 
-    if (!psh) return -1; // pseudo header required
+    if (!psh) return EINVAL; // pseudo header required
 
     len = sizeof(struct udphdr) + psh->size;
-    tmp = (unsigned char *)malloc(len * sizeof(unsigned char));
+    tmp = malloc(len * sizeof(unsigned char));
+    if(!tmp) return ENOMEM;
 
-    /* We supposed buf contains a udp header */
+    // We supposed buf contains a udp header
     memcpy(tmp, psh->data, psh->size);
     memcpy(tmp + psh->size, buf, sizeof(struct udphdr));
 
-    res = csum(*(unsigned short**)&tmp, (len >> 1));
-    ((struct udphdr *)buf)->check = res;
+    res = csum(*(unsigned short**) &tmp, (len >> 1));
+    buf->check = res;
+    free(tmp);
     return 0;
 }
 
-bool udp_need_ext_checksum() { return true; }
+bool udp_need_ext_checksum() {
+    return true;
+}
 
 static protocol_t udp = {
-    .name = "udp",
-    .get_num_fields = udp_get_num_fields,
-    .write_checksum = udp_write_checksum,
+    .name                 = "udp",
+    .get_num_fields       = udp_get_num_fields,
+    // int udp_write_checksum(struct udphdr * buf, pseudoheader_t * psh)
+    .write_checksum       = CAST_WRITE_CHECKSUM udp_write_checksum,
     //.create_pseudo_header = NULL,
-    .fields = udp_fields,
-    //.defaults = udp_defaults, // XXX used when generic
+    .fields               = udp_fields,
+    //.defaults             = udp_defaults, // XXX used when generic
     .write_default_header = udp_write_default_header, // TODO generic
-    //.socket_type = NULL,
-    .get_header_size = udp_get_header_size,
-    .need_ext_checksum = udp_need_ext_checksum
+    //.socket_type          = NULL,
+    .get_header_size      = udp_get_header_size,
+    .need_ext_checksum    = udp_need_ext_checksum
 };
 
 PROTOCOL_REGISTER(udp);
