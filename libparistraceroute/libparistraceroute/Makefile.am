@@ -8,19 +8,19 @@ AUTOMAKE_OPTIONS = foreign
 #
 
 # the library names to build (note we are building static libs only)
-lib_LIBRARIES = libmylib.a
+lib_LIBRARIES = libparistraceroute.a
 
 # lib_LTLIBRARIES = libparistraceroute.la 
 
 # where to install the headers on the system
-libparistraceroute_adir = $(includedir)/mylib
+libparistraceroute_adir = $(includedir)/paristraceroute
 
 # the list of header files that belong to the library (to be installed later)
 libparistraceroute_a_HEADERS =  \
 								paristraceroute.h
 
 # the sources to add to the library and to add to the source distribution
-libmylib_a_SOURCES =    \
+libparistraceroute_a_SOURCES =    \
                         $(libparistraceroute_a_HEADERS) \
 						algorithm.c \
 						algorithm.h \
