@@ -37,21 +37,21 @@ void mda_data_free(mda_data_t *mda_data)
  */
 void mda_classify(pt_loop_t *loop, mda_options_t *options, mda_data_t *data, probe_t *probe_skel, event_t events[])
 {
-    algorithm_instance_t *instance;
+    //algorithm_instance_t *instance;
     /* Process events... */
 
     /* To classify, we will suppose that the router is a PPLB with at least two
         * interfaces. We will then send enough probes to reject this hypothesis.
         * Also we need to fix the flow_id
         */
-    stat_test_options_t opt;
-    unsigned int constant_flow_id;
+    //stat_test_options_t opt;
+    //unsigned int constant_flow_id;
     //list_of_interfaces_t ifaces;
 
     //data->reject = false;
 
     /* Get an existing flow_id */
-    constant_flow_id = 28; // XXX
+    //constant_flow_id = 28; // XXX
     //probe_set_constraint(probe_skel, "flow_id", constant_flow_id);
 
     /* Prepare input for statistical test */
@@ -59,7 +59,7 @@ void mda_classify(pt_loop_t *loop, mda_options_t *options, mda_data_t *data, pro
     //opt = { .result = ifaces, .confidence = 95 };
 
     /* We need to define an hypothesis. Maybe stat_test should not be an algorithm */
-    instance = pt_algorithm_add(loop, "stat_test", (void*)&opt, probe_skel);
+    //instance = pt_algorithm_add(loop, "stat_test", (void*)&opt, probe_skel);
     //algorithm_start(a);
 
     /* We return, and wait for the statistical test to complete */
@@ -87,13 +87,13 @@ void mda_handler(pt_loop_t *loop, algorithm_instance_t *instance)
     mda_data_t *mda_data;
     unsigned int i;
     void *options;
-    probe_t *probe_skel;
+    //probe_t *probe_skel;
     void **data;
     event_t** events;
     unsigned int num_events;
 
     options = algorithm_instance_get_options(instance);
-    probe_skel = algorithm_instance_get_probe_skel(instance);
+    //probe_skel = algorithm_instance_get_probe_skel(instance);
     data = algorithm_instance_get_data(instance);
     events = algorithm_instance_get_events(instance);
     num_events = algorithm_instance_get_num_events(instance);
