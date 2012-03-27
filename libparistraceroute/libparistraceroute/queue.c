@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "queue.h"
 
 queue_t * queue_create(void)

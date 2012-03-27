@@ -62,7 +62,7 @@ int main(int argc, char **argv)
      *  - diff
      */
     
-    fprintf(stderr, "Entering main loop...");
+    printf("Entering main loop...\n");
     for(;;) {
         /* Now wait for events to arrive */
         if (pt_loop(loop, 0) < 0)

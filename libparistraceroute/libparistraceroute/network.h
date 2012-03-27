@@ -10,7 +10,7 @@
  * Network
  ******************************************************************************/
 
-typedef struct {
+typedef struct network_s {
     socketpool_t *socketpool;
     queue_t *sendq;
     queue_t *recvq;

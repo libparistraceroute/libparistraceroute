@@ -1,22 +1,32 @@
 #include <stdlib.h>
 #include "network.h"
+#include "packet.h"
 #include "queue.h"
 
 /******************************************************************************
  * Network
  ******************************************************************************/
 
+void network_sniffer_handler(network_t *network, packet_t *packet)
+{
+    queue_push_packet(network->recvq, packet);
+}
+
 network_t* network_create(void)
 {
     network_t *network;
 
     network = malloc(sizeof(network_t));
+
+    /* create a socket pool */
     network->socketpool = socketpool_create();
     if (!(network->socketpool)) {
         free(network);
         network = NULL;
         return NULL;
     }
+
+    /* create the send queue */
     network->sendq = queue_create();
     if (!(network->sendq)) {
         socketpool_free(network->socketpool);
@@ -24,6 +34,7 @@ network_t* network_create(void)
         network = NULL;
     }
 
+    /* create the receive queue */
     network->recvq = queue_create();
     if (!(network->recvq)) {
         queue_free(network->sendq);
@@ -32,8 +43,8 @@ network_t* network_create(void)
         network = NULL;
     }
 
-    /* create sniffer */
-    network->sniffer = sniffer_create();
+    /* create the sniffer */
+    network->sniffer = sniffer_create(network, network_sniffer_handler);
     if (!(network->sniffer)) {
         queue_free(network->recvq);
         queue_free(network->sendq);
@@ -66,7 +77,7 @@ int network_get_recvq_fd(network_t *network)
 }
 
 // not the right callback here
-int network_send_probe(network_t *network, probe_t *probe, void (*callback)) //(pt_loop_t *loop, probe_t *probe, probe_t *reply))
+int network_send_probe(network_t *network, probe_t *probe, void (*callback)) 
 {
     packet_t *packet;
     
@@ -84,6 +95,12 @@ int network_process_sendq(network_t *network)
     return 0;
 }
 
+/**
+ * \brief Process received packets: match them with a probe, or discard them.
+ * \param network Pointer to a network structure
+ *
+ * Received packets, typically handled by the snifferTypically, the receive queue stores all the packets received by the sniffer.
+ */
 int network_process_recvq(network_t *network)
 {
     return 0;

@@ -11,12 +11,32 @@ probe_t * probe_create(void)
 
     probe = malloc(sizeof(probe_t));
 
+    /* Create the list of fields */
     probe->fields = stackedlist_create();
+    if (!(probe->fields)) {
+        free(probe);
+        probe = NULL;
+        return NULL;
+    }
+
+    /* Create an empty packet structure related to the probe */
+    /*probe->packet = packet_create();
+    if (!(probe->packet)) {
+        stackedlist_free(probe->stackedlist);
+        free(probe);
+        probe = NULL;
+        return NULL;
+    }
+
+    probe->packet_is_dirty = false;
+    */
     return probe;
 }
 
 void probe_free(probe_t *probe)
 {
+    /*packet_free(probe->packet);*/
+    stackedlist_free(probe->fields);
     free(probe);
     probe = NULL;
 }
@@ -71,6 +91,7 @@ field_t ** probe_get_fields(probe_t *probe)
 
 unsigned char *probe_get_payload(probe_t *probe)
 {
+    // point into the packet structure
     return NULL; // TODO
 }
 

@@ -56,7 +56,8 @@ libparistraceroute_a_SOURCES =    \
 						socketpool.c \
 						socketpool.h \
 						stackedlist.c \
-						stackedlist.h
+						stackedlist.h \
+						protocols/udp.c
 
 #include_HEADERS = paristraceroute.h
 #

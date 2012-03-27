@@ -1,5 +1,6 @@
 #ifndef SNIFFER_H
 #define SNIFFER_H
+
 /**
  * \file sniffer.h
  * \brief Header file : packet sniffer
@@ -8,20 +9,23 @@
  * libpcap implementation too
  */
 
+#include "packet.h"
+
 /**
  * \struct sniffer_t
  * \brief Structure representing a packet sniffer
  */
 typedef struct {
-    int socket;     /*!< Raw socket for listening to the network */
-    void (*callback)(void*, void*); /*!< TODO */
+    int socket;                                 /*!< Raw socket for listening to the network */
+    struct network_s *network;                  /*!< Pointer to the associated network structure */
+    void (*callback)(struct network_s*, packet_t *);   /*!< callback for received packets */
 } sniffer_t;
 
 /**
  * \brief Creates a new sniffer.
  * \return Pointer to a sniffer_t structure representing a packet sniffer
  */
-sniffer_t * sniffer_create(void);
+sniffer_t * sniffer_create(struct network_s *network, void (*callback)(struct network_s *network, packet_t *packet));
 
 /**
  * \brief Free a sniffer_t structure.

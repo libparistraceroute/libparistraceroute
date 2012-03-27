@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -6,6 +7,7 @@
 #include <netpacket/packet.h>
 #include <net/ethernet.h> 
 #include <netdb.h>
+#include <arpa/inet.h>
 
 #include "socketpool.h"
 
@@ -91,4 +93,6 @@ int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
         perror ("send_data : sending error in queue ");
         return -1;
     }
+
+    return 0;
 }

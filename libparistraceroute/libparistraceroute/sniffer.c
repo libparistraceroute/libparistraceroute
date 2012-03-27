@@ -11,12 +11,17 @@
 #include <fcntl.h>
 
 #include "sniffer.h"
+#include "network.h"
 
-sniffer_t * sniffer_create(void)
+#define BUFLEN 4096
+
+sniffer_t * sniffer_create(network_t *network, void (*callback)(network_t *network, packet_t *packet))
 {
     sniffer_t *sniffer;
 
     sniffer = malloc(sizeof(sniffer_t));
+    sniffer->network = network;
+    sniffer->callback = callback;
 
     return sniffer;
 }
@@ -65,12 +70,13 @@ int sniffer_create_raw_socket(sniffer_t *sniffer)
 		return -1;
     }
 	
+    return 0;
 }
 
 void process_packets(sniffer_t *sniffer)
 {
-    uint8_t data[1024];
-	int data_len = recv(sniffer->socket, data, 1024, 0);
+    unsigned char data[BUFLEN];
+	int data_len = recv(sniffer->socket, data, BUFLEN, 0);
 	if (data_len >= 4) {
 		// We have to make some modifications on the datagram
 		// received because the raw format varies between
@@ -86,8 +92,7 @@ void process_packets(sniffer_t *sniffer)
 		writebe16(data, 2, ip_len);
 #endif
 		if (sniffer->callback != NULL)
-			sniffer->callback(data, data_len);
+			sniffer->callback(sniffer->network, NULL); // currently we return a NULL packet FIXME 
 	}
 
-    return 0;
 }

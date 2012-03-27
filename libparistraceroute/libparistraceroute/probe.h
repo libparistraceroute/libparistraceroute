@@ -1,6 +1,7 @@
 #ifndef PROBE_H
 #define PROBE_H
 
+#include <stdbool.h>
 #include "stackedlist.h"
 #include "field.h"
 
@@ -10,9 +11,14 @@
 #define END_RESP 3
 #define OTHER_RESP 4
 
+/**
+ * \struct probe_t
+ * \brief Structure representing a probe
+ */
 typedef struct {
-    unsigned int algorithm_id;
-    stackedlist_t *fields; /* fields that have not yet been attributed to a protocol */
+    stackedlist_t *fields;  /*!< Fields that have not yet been attributed to a protocol */
+    //packet_t *packet;       /*!< Packet structure associated to the current probe */
+    //bool packet_is_dirty;   /*!< Flag to tell whether the packet content need to be updated */
 } probe_t;
 
 /**
