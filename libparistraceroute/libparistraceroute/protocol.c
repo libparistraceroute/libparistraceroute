@@ -18,7 +18,7 @@ protocol_t* protocol_search(char *name)
 {
     protocol_t *protocol, search;
 
-    if (!name) return;
+    if (!name) return NULL;
 
     search.name = name;
     protocol = tfind((const void*)&search, (void* const*)&protocols_root,

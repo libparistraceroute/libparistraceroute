@@ -59,13 +59,17 @@ void field_free(field_t *field)
 size_t field_get_type_size(fieldtype_t type)
 {
     switch (type) {
-        case TYPE_INT32:
-            return sizeof(uint32_t);
+        case TYPE_INT8:
+            return sizeof(uint8_t);
         case TYPE_INT16:
             return sizeof(uint16_t);
+        case TYPE_INT32:
+            return sizeof(uint32_t);
+        case TYPE_INT4:
         case TYPE_STRING:
-            return 0;
         default:
+            perror("field_get_type_size: invalid parameter");
             break;
     }
+    return 0;
 }
