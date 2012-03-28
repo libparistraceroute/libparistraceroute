@@ -90,7 +90,8 @@ void udp_write_default_header(char *data)
  * \param udp_hdr A pre-allocated UDP header
  * \param pseudo_hdr The pseudo header 
  * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
- * \return 0 if everything is ok, -1 otherwise
+ * \return 0 if everything is ok, EINVAL if pseudo_hdr is invalid,
+ *    ENOMEM if a memory error arises
  */
 
 int udp_write_checksum(struct udphdr * udp_hdr, pseudoheader_t * pseudo_hdr)

@@ -121,20 +121,18 @@ void ipv4_write_default_header(char *data)
 }
 
 /**
- * \brief Compute and write the checksum related to an UDP header
- * \param ipv4_hdr A pre-allocated IPv4 header
- * \param psh The pseudo header 
+ * \brief Compute and write the checksum related to an IP header
+ *   according to its other fields (including tot_len).
+ * \param ipv4_hdr A pre-allocated IPv4 header filled.
  * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
- * \return 0 if everything is ok, -1 otherwise
+ * \return 0 if everything is ok, another value otherwise 
  */
 
-//void set_cheksum_tot_len (char* datagram, int size){
-//	unsigned short checksum;
-//	iphdr_s *ip_hed = (iphdr_s *) datagram;
-//	ip_hed->tot_len = size;
-//	checksum = csum((unsigned short *)datagram,size >> 1 ); // TODO: >> 1 RLY?
-//	ip_hed->check = checksum;	
-//}
+void ipv4_write_checksum (iphdr * ipv4_hdr, pseudoheader_t * /* unused */){
+	unsigned short checksum;
+	iphdr *ip_hed = (iphdr *) datagram;
+	ip_hed->check = csum((unsigned short *) ipv4_hdr, size >> 1 ); // TODO: >> 1 RLY?
+}
 
 
 static protocol_t ipv4 = {
