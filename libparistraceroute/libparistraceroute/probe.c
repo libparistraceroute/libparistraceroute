@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "probe.h"
 
+#include "probe.h"
+#include "protocol.h"
 #include "pt_loop.h"
 
 probe_t * probe_create(void)
@@ -12,31 +13,22 @@ probe_t * probe_create(void)
     probe = malloc(sizeof(probe_t));
 
     /* Create the list of fields */
-    probe->fields = stackedlist_create();
-    if (!(probe->fields)) {
-        free(probe);
-        probe = NULL;
-        return NULL;
-    }
+    probe->buffer = buffer_create();
+    if (!(probe->buffer))
+        goto error;
 
-    /* Create an empty packet structure related to the probe */
-    /*probe->packet = packet_create();
-    if (!(probe->packet)) {
-        stackedlist_free(probe->stackedlist);
-        free(probe);
-        probe = NULL;
-        return NULL;
-    }
-
-    probe->packet_is_dirty = false;
-    */
     return probe;
+
+error:
+    free(probe);
+    probe = NULL;
+
+    return NULL;
 }
 
 void probe_free(probe_t *probe)
 {
-    /*packet_free(probe->packet);*/
-    stackedlist_free(probe->fields);
+    buffer_free(buffer);
     free(probe);
     probe = NULL;
 }
@@ -70,7 +62,7 @@ void probe_iter_fields_callback(void *element, void *data) {
     d->callback((field_t*)element, d->data);
 }
 
-void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *field, void *data))
+void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *, void *))
 {
     iter_fields_data_t tmp = {
         .data = data,

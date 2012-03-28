@@ -9,8 +9,8 @@ dynarray_t* dynarray_create(void)
 {
     dynarray_t *dynarray;
 
-    dynarray = (dynarray_t*)malloc(sizeof(dynarray_t));
-    dynarray->elements = (void**)calloc(DYNARRAY_SIZE_INIT, sizeof(void*));
+    dynarray = malloc(sizeof(dynarray_t));
+    dynarray->elements = calloc(DYNARRAY_SIZE_INIT, sizeof(void*));
     memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT);
     dynarray->size = 0;
     dynarray->max_size = DYNARRAY_SIZE_INIT;
