@@ -39,6 +39,8 @@ libparistraceroute_a_SOURCES =    \
 						layer.h \
 						list.c \
 						list.h \
+						bitfield.c \
+						bitfield.h \
 						network.c \
 						network.h \
 						packet.c \

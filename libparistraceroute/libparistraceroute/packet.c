@@ -5,21 +5,25 @@
 #include "protocol.h"
 #include "probe.h"
 
-packet_t* packet_create(void)
+/**
+ * \brief Allocate a packet
+ *
+ */
+packet_t * packet_create(void)
 {
     packet_t * packet = malloc(sizeof(packet_t));
     if(packet) packet->size = 0;
     return packet;
 }
 
-packet_t* packet_create_from_probe(probe_t *probe)
+packet_t * packet_create_from_probe(probe_t * probe)
 {
     unsigned int     num_proto = probe_get_num_proto(probe);
     unsigned int     i;
-    unsigned int     payload_size;
+    size_t           payload_size;
     char           * data;
     unsigned char  * payload;
-    char          ** offsets = NULL; 
+    char          ** offsets = NULL; // Offset of each layer of the probe 
     packet_t       * packet  = NULL; 
     unsigned int     offset  = 0;
 	unsigned char  * psd_hed = NULL; 
@@ -29,11 +33,15 @@ packet_t* packet_create_from_probe(probe_t *probe)
     char           * name;
     protocol_t     * protocol;
 
-    if (!(packet  = packet_create())) goto EXIT;
-    if (!(offsets = malloc(num_proto * sizeof(char *)))) goto EXIT;
+    if (!(packet  = packet_create())) goto FAILURE;
+    if (!(offsets = malloc(num_proto * sizeof(char *)))) goto FAILURE;
 
-    // Writing packet headers
-    data = packet->data;
+    // We have to perform 3 passes
+    // 1) left to right: write each protocol header (& payload)
+    // 2)
+
+    // 1) Writing packet headers
+    data = packet->data; // beginning of the packet memory area
 	for (i = 0; i < num_proto; i++) {
         name = probe_get_protocol_by_index(i);
         protocol = protocol_search(name);
@@ -43,13 +51,14 @@ packet_t* packet_create_from_probe(probe_t *probe)
     }
 
     // Writing payload
-    payload = probe_get_payload(probe);
+    payload      = probe_get_payload(probe);
     payload_size = probe_get_payload_size(probe);
 
-    if (payload_size > MAXBUF - offset);
-        payload_size = MAXBUF - offset;
-
     if (payload) {
+        // Truncate the payload if needed
+        if (payload_size > MAXBUF - offset) {
+            payload_size = MAXBUF - offset;
+        }
 		memcpy(data, payload, payload_size);
     } else {
         // TODO
@@ -101,7 +110,7 @@ packet_t* packet_create_from_probe(probe_t *probe)
 //			tab[i]->after_checksum(&offset_data);
 //		}
 	}
-EXIT:
+FAILURE:
     if(packet)  packet_free(packet);
     if(offsets) free(offsets);
     return NULL;
