@@ -4,15 +4,6 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-// #include "bitfield.h"
-// size, offset -> bitfield découpé de taille manipulable
-// set flow id -> modif champs
-// plage de flots -> iterator
-//
-// bitfield associés à un flot kind of module
-// - flot au sens udp/ip, tcp/ip, icmp...
-//
-
 typedef struct bitfield_s {
     unsigned char * mask;         /**< A buffer that stores a bitfield */
     size_t          size_in_bits; /**< Size of the layer and its sublayers */
@@ -40,7 +31,7 @@ bitfield_t * bitfield_create(size_t size_in_bits);
 void bitfield_free(bitfield_t * bitfield);
 
 //--------------------------------------------------------------------------
-// Metafield's setter/getter 
+// Setter/getter 
 //--------------------------------------------------------------------------
 
 /**
@@ -54,14 +45,14 @@ void bitfield_free(bitfield_t * bitfield);
  * \return 0 if everything is fine, another value otherwise
  */
 
-int bitfield_set_mask_bit (
+int bitfield_set_mask_bit(
     bitfield_t * bitfield,
-    int           value,
-    size_t        offset_in_bits
+    int          value,
+    size_t       offset_in_bits
 );
 
 /**
- * \brief Define whether a block of bits belongs to a bitfield
+ * \brief Set a bloc of bits to a givent value (0 or 1) 
  * \warning This function is based on the endianess of your system.
  * \param bitfield The bitfield
  * \param value Pass 0 if each altered bit must be set to 0, pass any 
@@ -73,111 +64,53 @@ int bitfield_set_mask_bit (
 
 int bitfield_set_mask_bits(
     bitfield_t * bitfield,
-    int           value,
-    size_t        offset_in_bits,
-    size_t        num_bits
-);
-
-//--------------------------------------------------------------------------
-// Access
-//--------------------------------------------------------------------------
-
-/**
- * \brief Set a value in a bitfield. This function may fail if
- *    you pass a value that does not fit in the bitfield.
- *    Bits outside the bitfield aren't modified.
- * \param bitfield The bitfield on which we will iterate.
- * \param fixed A bitfield that covers bits that must not change.
- * \param buffer_value The value that we'll set in the bitfield.
- *    For instance it may be an integer and then you will pass
- *    its adress.
- * \param size_in_bits The size of buffer_value in bits.
- *    For instance if buffer_value is an integer, pass sizeof(int)*8.
- * \return 0 if success, another value (see <errrno.h>) otherwise.
- */
-
-int bitfield_set (
-    bitfield_t         * bitfield,
-    const bitfield_t   * fixed,
-    const unsigned char * buffer_value,
-    size_t                size_in_bits
-);
-
-size_t bitfield_size_mask (const bitfield_t * bitfield);
-
-size_t bitfield_size_covered (const bitfield_t * bitfield);
-
-size_t bitfield_size_modifiable (
-    const bitfield_t * bitfield,
-    const bitfield_t * fixed 
+    int          value,
+    size_t       offset_in_bits,
+    size_t       num_bits
 );
 
 /**
- * \brief Retrieve the value stored in a bitfield.
+ * \brief Retrieve the size of the internal buffer (in bits) 
  * \param bitfield The bitfield
- * \param value The pre-allocated target buffer.
- *      It must have at least bitfield_size_covered(*bitfield)
- *      allocated.
+ * \return the size in bits of the internal buffer
  */
 
-void bitfield_get (
-    const bitfield_t    * bitfield,
-    unsigned char       * value
-);
+size_t bitfield_get_size_in_bits(const bitfield_t * bitfield);
+
+/**
+ * \brief Count the number of bits set to 1 in a bitfield
+ * \param bitfield The bitfield
+ * \return the size in bits set to 1. 
+ */
+
+size_t  bitfield_get_num_1(const bitfield_t * bitfield);
 
 //--------------------------------------------------------------------------
-// Iteration
+// Operators 
 //--------------------------------------------------------------------------
 
 /**
- * \brief Set the first value in a bitfield on which we will iterate.
- *    Bits outside the bitfield aren't modified.
- * \param bitfield The bitfield that we set.
- * \param fixed A bitfield that covers bits that must not change.
+ * \brief Apply &= to each byte (tgt &= src)
+ * \param tgt The left operand of &= 
+ * \param src The right operand of &=
  */
 
-void bitfield_set_first (
-    bitfield_t       * bitfield,
-    const bitfield_t * fixed
-);
+void bitfield_and(bitfield_t * tgt, const bitfield_t * src);
 
 /**
- * \brief Set the previous value in a bitfield on which we iterate.
- *    Bits outside the bitfield aren't modified.
- * \param bitfield The bitfield that we set. 
- * \param fixed A bitfield that covers bits that must not change.
- * \return true if we have been able to iterate, false otherwise.
+ * \brief Apply |= to each byte (tgt |= src)
+ * \param tgt The left operand of |= 
+ * \param src The right operand of |=
  */
 
-bool bitfield_set_previous (
-     bitfield_t      * bitfield,
-    const bitfield_t * fixed
-);
+void bitfield_or(bitfield_t * tgt, const bitfield_t * src);
 
 /**
- * \brief Set the next value in a bitfield on which we iterate.
- *    Bits outside the bitfield aren't modified.
- * \param bitfield The bitfield that we set. 
- * \param fixed A bitfield that covers bits that must not change.
- * \return true if we have been able to iterate, false otherwise.
+ * \brief Apply ~ to each byte (tgt ~= tgt)
+ * \param tgt The bitfield we modify 
  */
 
-bool bitfield_set_next (
-    bitfield_t       * bitfield,
-    const bitfield_t * fixed
-);
-
-/**
- * \brief Set the last value in a bitfield on which we will iterate.
- *    Bits outside the bitfield aren't modified.
- * \param bitfield The bitfield that we set.
- * \param fixed A bitfield that covers bits that must not change.
- */
-
-void bitfield_set_last (
-    bitfield_t       * bitfield,
-    const bitfield_t * fixed
-);
+void bitfield_not(bitfield_t * tgt);
 
 #endif
 
