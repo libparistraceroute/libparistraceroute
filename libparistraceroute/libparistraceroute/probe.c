@@ -34,17 +34,39 @@ void probe_free(probe_t *probe)
     probe = NULL;
 }
 
+// What if we call directly layer_set_protocol ??
 int probe_set_protocols(probe_t *probe, char *protocol1, ...)
 {
     int res;
     va_list args;
+    size_t buflen = 0;
+    layer_t *cur_layer;
 
+    /* define the layer structure */
     va_start(args, protocol1);
     res = layer_set_protocols(probe->top_layer, protocol1, args);
-    // XXX we should allocate the buffer here !!
     va_end(args);
 
-    return res;
+    if (res < 0)
+        goto error;
+
+    /* allocate the buffer according to the layer structure */
+    for (cur_layer = probe->top_layer; cur_layer; cur_layer = cur_layer->sublayer) {
+        /* We would need to consider variable length headers */
+        buflen += cur_layer->protocol ? cur_layer->protocol->header_len : cur_layer->size;
+    }
+    buffer_resize(probe->buffer, buflen);
+
+    /* Initialize the buffer with default protocol values */
+    for (cur_layer = probe->top_layer; cur_layer; cur_layer = cur_layer->sublayer) {
+        /* We would need to consider variable length headers */
+        cur_layer->protocol->write_default_header(cur_layer->offset);
+    }
+
+    return 0;
+
+error:
+    return -1;
 }
 
 int probe_set_fields(probe_t *probe, field_t *field1, ...) {

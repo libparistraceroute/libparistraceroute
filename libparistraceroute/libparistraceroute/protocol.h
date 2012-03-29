@@ -37,6 +37,7 @@ typedef struct {
 	 * \param data Pointer to an array of bytes
 	 */
     void (*write_default_header)(unsigned char *data);
+    size_t header_len;
     //socket_type
 	/** Pointer to a function that returns the size of the protocol header */
     unsigned int (*get_header_size)(void);

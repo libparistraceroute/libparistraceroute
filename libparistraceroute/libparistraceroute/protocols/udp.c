@@ -133,6 +133,7 @@ static protocol_t udp = {
   //.create_pseudo_header = NULL,
     .fields               = udp_fields,
   //.defaults             = udp_defaults,             // XXX used when generic
+    .header_len           = sizeof(struct udphdr),
     .write_default_header = udp_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = udp_get_header_size,

@@ -23,4 +23,12 @@ buffer_t *buffer_create(void);
  */
 void buffer_free(buffer_t *buffer);
 
+/**
+ * \brief (Re)allocate the buffer to a specified size.
+ * \param buffer Pointer to a buffer_t structure to (re)allocate
+ * \param size new size of the buffer
+ * \return 0 if success, -1 otherwise
+ */
+int buffer_resize(buffer_t *buffer, size_t size);
+
 #endif
