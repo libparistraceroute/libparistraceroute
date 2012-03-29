@@ -87,8 +87,8 @@ AC_PROG_LIBTOOL
 #
 
 # Check for pthread...
-AC_CHECK_LIB([pthread], [pthread_create],,
-	AC_MSG_ERROR("Pthreads not found in -lpthread"))
+#AC_CHECK_LIB([pthread], [pthread_create],,
+#	AC_MSG_ERROR("Pthreads not found in -lpthread"))
 
 # Check for libpcap...
 PCAPCC=""
