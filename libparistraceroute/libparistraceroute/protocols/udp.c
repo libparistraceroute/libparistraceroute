@@ -80,7 +80,7 @@ unsigned int udp_get_header_size(void)
  * \param data The address of an allocated buffer that will store the header
  */
 
-void udp_write_default_header(char *data)
+void udp_write_default_header(unsigned char *data)
 {
     memcpy(data, &udp_default, sizeof(struct udphdr));
 }

@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "probe.h"
 
+#include "probe.h"
+#include "protocol.h"
 #include "pt_loop.h"
 
 probe_t * probe_create(void)
@@ -11,51 +12,50 @@ probe_t * probe_create(void)
 
     probe = malloc(sizeof(probe_t));
 
-    /* Create the list of fields */
-    probe->fields = stackedlist_create();
-    if (!(probe->fields)) {
-        free(probe);
-        probe = NULL;
-        return NULL;
-    }
+    /* Create the buffer to store the field content */
+    probe->top_layer = NULL;
+    probe->buffer = buffer_create();
+    if (!(probe->buffer))
+        goto error;
 
-    /* Create an empty packet structure related to the probe */
-    /*probe->packet = packet_create();
-    if (!(probe->packet)) {
-        stackedlist_free(probe->stackedlist);
-        free(probe);
-        probe = NULL;
-        return NULL;
-    }
-
-    probe->packet_is_dirty = false;
-    */
     return probe;
+
+error:
+    free(probe);
+    probe = NULL;
+
+    return NULL;
 }
 
 void probe_free(probe_t *probe)
 {
-    /*packet_free(probe->packet);*/
-    stackedlist_free(probe->fields);
+    buffer_free(probe->buffer);
     free(probe);
     probe = NULL;
 }
 
-void probe_add_field(probe_t *probe, field_t *field)
+int probe_set_protocols(probe_t *probe, char *protocol1, ...)
 {
-    stackedlist_add_element(probe->fields, (void*)field);
+    int res;
+    va_list args;
+
+    va_start(args, protocol1);
+    res = layer_set_protocols(probe->top_layer, protocol1, args);
+    // XXX we should allocate the buffer here !!
+    va_end(args);
+
+    return res;
 }
 
-void probe_set_fields(probe_t *probe, field_t *arg1, ...) {
-    va_list ap;
-    field_t *i;
+int probe_set_fields(probe_t *probe, field_t *field1, ...) {
+    int res;
+    va_list args;
 
-    va_start(ap, arg1);
-    for (i = arg1; i; i = va_arg(ap, field_t*)) {
-        /* What about existing fields in the same level ? */
-        probe_add_field(probe, i);
-    }
-    va_end(ap);
+    va_start(args, field1);
+    res = layer_set_fields(probe->top_layer, field1, args);
+    va_end(args);
+    
+    return res;
 }
 
 /* Iterator */
@@ -70,13 +70,16 @@ void probe_iter_fields_callback(void *element, void *data) {
     d->callback((field_t*)element, d->data);
 }
 
-void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *field, void *data))
+void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *, void *))
 {
+    /*
     iter_fields_data_t tmp = {
         .data = data,
         .callback = callback
     };
-    stackedlist_iter_elements(probe->fields, &tmp, probe_iter_fields_callback);
+    */
+    
+    // not implemented : need to iter over protocol fields of each layer
 }
 
 unsigned int probe_get_num_proto(probe_t *probe)

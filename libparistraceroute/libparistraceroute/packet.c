@@ -18,6 +18,12 @@ packet_t * packet_create(void)
 
 packet_t * packet_create_from_probe(probe_t * probe)
 {
+    // not implemented 
+    
+    return NULL;
+
+/* REDESIGNED
+ *
     unsigned int     num_proto = probe_get_num_proto(probe);
     unsigned int     i;
     size_t           payload_size;
@@ -62,7 +68,7 @@ packet_t * packet_create_from_probe(probe_t * probe)
 		memcpy(data, payload, payload_size);
     } else {
         // TODO
-        //*data = NULL; // BAD
+        // *data = NULL; // BAD
 	}
 	
     // We take them in the reverse order
@@ -114,6 +120,7 @@ FAILURE:
     if(packet)  packet_free(packet);
     if(offsets) free(offsets);
     return NULL;
+    */
 }
 
 void packet_free(packet_t *packet)

@@ -17,53 +17,53 @@ libparistraceroute_adir = $(includedir)/paristraceroute
 
 # the list of header files that belong to the library (to be installed later)
 libparistraceroute_a_HEADERS =  \
-								paristraceroute.h
+						algorithm.h \
+						algorithms/mda.h \
+						algorithms/traceroute.h \
+						buffer.h \
+						config.h \
+						dynarray.h \
+						event.h \
+						field.h \
+						layer.h \
+						list.h \
+						network.h \
+						packet.h \
+						paristraceroute.h \
+						probe.h \
+						protocol.h \
+						protocol_field.h \
+						pseudoheader.h \
+						pt_loop.h \
+						queue.h \
+						sniffer.h \
+						socketpool.h
 
 # the sources to add to the library and to add to the source distribution
 libparistraceroute_a_SOURCES =    \
                         $(libparistraceroute_a_HEADERS) \
 						algorithm.c \
-						algorithm.h \
 						algorithms/mda.c \
-						algorithms/mda.h \
 						algorithms/traceroute.c \
-						algorithms/traceroute.h \
-						config.h \
-						dynarray.c \
-						dynarray.h \
-						event.c \
-						event.h \
-						field.c \
-						field.h \
-						layer.c \
-						layer.h \
-						list.c \
-						list.h \
 						bitfield.c \
 						bitfield.h \
+						buffer.c \
+						dynarray.c \
+						event.c \
+						field.c \
+						layer.c \
+						list.c \
+						list.h \
 						network.c \
-						network.h \
 						packet.c \
-						packet.h \
 						paristraceroute.c \
-						paristraceroute.h \
 						probe.c \
-						probe.h \
 						protocol.c \
-						protocol_field.h \
-						protocol.h \
-						pseudoheader.h \
+						protocols/udp.c \
 						pt_loop.c \
-						pt_loop.h \
 						queue.c \
-						queue.h \
 						sniffer.c \
-						sniffer.h \
-						socketpool.c \
-						socketpool.h \
-						stackedlist.c \
-						stackedlist.h \
-						protocols/udp.c
+						socketpool.c
 
 #include_HEADERS = paristraceroute.h
 #

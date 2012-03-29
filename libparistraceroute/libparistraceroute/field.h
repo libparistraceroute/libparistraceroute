@@ -114,4 +114,6 @@ void      field_free(field_t *field);
  */
 #define STR(x, y) field_create_string(x, y)
 
+size_t field_get_type_size(fieldtype_t type);
+
 #endif
