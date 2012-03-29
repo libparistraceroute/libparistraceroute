@@ -24,6 +24,10 @@ libparistraceroute_a_SOURCES =    \
                         $(libparistraceroute_a_HEADERS) \
 						algorithm.c \
 						algorithm.h \
+						algorithms/mda.c \
+						algorithms/mda.h \
+						algorithms/traceroute.c \
+						algorithms/traceroute.h \
 						buffer.c \
 						buffer.h \
 						config.h \
