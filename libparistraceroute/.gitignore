@@ -23,6 +23,7 @@ install-sh
 libparistraceroute/.deps/
 libparistraceroute/config.h
 libparistraceroute/stamp-h1
+libparistraceroute/config.h.in
 libtool
 ltmain.sh
 m4/

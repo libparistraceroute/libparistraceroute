@@ -36,8 +36,6 @@ void bitfield_free(bitfield_t * bitfield) {
 // Metafield's setter/getter 
 //--------------------------------------------------------------------------
 
-// internal usage
-
 inline void bitfield_set_0(unsigned char *mask, size_t offset_in_bits) {
     mask[offset_in_bits / 8] |= 1 << (offset_in_bits % 8);
 }
@@ -50,10 +48,10 @@ inline void bitfield_set_1(unsigned char *mask, size_t offset_in_bits) {
 
 // bitfield initialization (per bit)
 
-int bitfield_set_mask_bit (
+int bitfield_set_mask_bit(
     bitfield_t * bitfield,
-    int           value,
-    size_t        offset_in_bits
+    int          value,
+    size_t       offset_in_bits
 ) {
     if (!bitfield) return EINVAL;
     if (offset_in_bits >= bitfield->size_in_bits) return EINVAL;
@@ -68,9 +66,9 @@ int bitfield_set_mask_bit (
 
 int bitfield_set_mask_bits(
     bitfield_t * bitfield,
-    int           value,
-    size_t        offset_in_bits,
-    size_t        num_bits
+    int          value,
+    size_t       offset_in_bits,
+    size_t       num_bits
 ) {
     size_t offset;
     size_t offset_end = offset_in_bits + num_bits;
@@ -80,7 +78,7 @@ int bitfield_set_mask_bits(
 
     if (num_bits) {
         // to improve to set byte per byte
-        for(offset = offset_in_bits; offset < offset_end; offset++) {
+        for (offset = offset_in_bits; offset < offset_end; offset++) {
             if (value) bitfield_set_0(bitfield->mask, offset);
             else       bitfield_set_1(bitfield->mask, offset);
         }
@@ -88,109 +86,103 @@ int bitfield_set_mask_bits(
     return 0;
 }
 
-//--------------------------------------------------------------------------
-// Access
-//--------------------------------------------------------------------------
-
-int bitfield_set (
-    bitfield_t         * bitfield,
-    const bitfield_t   * fixed,
-    const unsigned char * buffer_value,
-    size_t                size_in_bits
-) {
-    return 0;
-}
-
-// size of the allocated buffer (in bits)
-
-size_t bitfield_size_mask (const bitfield_t * bitfield) {
-    return bitfield->size_in_bits;
-}
-
-// number of bits set to 1 (in bits)
-
-size_t bitfield_size_covered (const bitfield_t * bitfield) {
+size_t bitfield_get_num_1(const bitfield_t * bitfield) {
+    typedef unsigned char cell_t;
     size_t i, j, size;
     size_t res = 0;
-    size_t size_cell = sizeof(unsigned char) * 8;
+    size_t size_cell_in_bits = sizeof(cell_t) * 8;
 
-    if (!bitfield) return 0; // :(
+    if (!bitfield) return 0; // invalid parameter 
+
     size = bitfield->size_in_bits / 8;
     for (i = 0; i < size; i++) {
-        unsigned char cur_byte = bitfield->mask[i];
-        for (j = 0; j < size_cell; j++) {
-            if (i * size_cell + j == bitfield->size_in_bits) break;
+        cell_t cur_byte = bitfield->mask[i];
+        for (j = 0; j < size_cell_in_bits; j++) {
+            if (i * size_cell_in_bits + j == bitfield->size_in_bits) break;
             if (cur_byte & (1 << j)) res++;
         } 
     }
     return res;
 }
 
-// number of alterable bits set to 1 (in bits) 
+//--------------------------------------------------------------------------
+// Operators 
+//--------------------------------------------------------------------------
 
-size_t bitfield_size_modifiable (
-    const bitfield_t * bitfield,
-    const bitfield_t * fixed 
-) {
-    size_t i, j, size;
-    size_t res = 0;
-    size_t size_cell = sizeof(unsigned char) * 8;
+static inline size_t min(size_t x, size_t y) {
+    return x < y ? x : y;
+}
 
-    if (!bitfield) return 0; // :(
-    size = bitfield->size_in_bits / 8;
-    for (i = 0; i < size; i++) {
-        unsigned char cur_byte = bitfield->mask[i];
-        for (j = 0; j < size_cell; j++) {
-            if (i * size_cell + j == bitfield->size_in_bits) break;
-            if (fixed && j < fixed->size_in_bits) {
-                unsigned char cur_fixed_byte = fixed->mask[i];
-                if (cur_byte & cur_fixed_byte & (1 << j)) res++;
-            } else {
-                if (cur_byte & (1 << j)) res++;
+/**
+ * \brief Apply &= to each byte (tgt &= src)
+ * \param tgt The left operand of &= 
+ * \param src The right operand of &=
+ */
+
+void bitfield_and(bitfield_t * tgt, const bitfield_t * src) {
+    size_t i, j, size_in_bits, size;
+    if (!tgt || !src) return;
+    size_in_bits = min(tgt->size_in_bits, src->size_in_bits);
+    size = size_in_bits / 8;
+    for (i = 0; i < size; ++i) {
+        if (i + 1 == size) {
+            for (j = 0; j < size_in_bits % 8; ++j) {
+                if (!(src->mask[i] & (1 << j))) {
+                    bitfield_set_0(tgt->mask, 8 * i + j);
+                }
             }
-        } 
+        } else {
+            tgt->mask[i] &= src->mask[i]; 
+        }
     }
-    return res;
 }
 
-void bitfield_get (
-    const bitfield_t * bitfield,
-    unsigned char    * value
-) {
-    // Not yet implemented
+/**
+ * \brief Apply |= to each byte (tgt |= src)
+ * \param tgt The left operand of |= 
+ * \param src The right operand of |=
+ */
+
+void bitfield_or(bitfield_t * tgt, const bitfield_t * src) {
+    size_t i, j, size_in_bits, size;
+    if (!tgt || !src) return;
+    size_in_bits = min(tgt->size_in_bits, src->size_in_bits);
+    size = size_in_bits / 8;
+    for (i = 0; i < size; ++i) {
+        if (i + 1 == size) {
+            for (j = 0; j < size_in_bits % 8; ++j) {
+                if (src->mask[i] & (1 << j)) {
+                    bitfield_set_1(tgt->mask, 8 * i + j);
+                }
+            }
+        } else {
+            tgt->mask[i] |= src->mask[i]; 
+        }
+    }
 }
 
-//--------------------------------------------------------------------------
-// Iteration
-//--------------------------------------------------------------------------
+/**
+ * \brief Apply ~ to each byte (tgt ~= tgt)
+ * \param tgt The bitfield we modify 
+ */
 
-void bitfield_set_first (
-    bitfield_t       * bitfield,
-    const bitfield_t * fixed
-) {
-    // Not yet implemented
-}
-
-bool bitfield_set_previous (
-    bitfield_t       * bitfield,
-    const bitfield_t * fixed
-) {
-    // Not yet implemented
-    return false;
-}
-
-bool bitfield_set_next (
-    bitfield_t       * bitfield,
-    const bitfield_t * fixed
-) {
-    // Not yet implemented
-    return false;
-}
-
-void bitfield_set_last (
-    bitfield_t       * bitfield,
-    const bitfield_t * fixed
-) {
-    // Not yet implemented
+void bitfield_not(bitfield_t * tgt) {
+    size_t i, j, size_in_bits, size, offset;
+    if (!tgt) return;
+    size_in_bits = tgt->size_in_bits;
+    size = size_in_bits / 8;
+    for (i = 0; i < size; ++i) {
+        if (i + 1 == size) {
+            for (j = 0; j < size_in_bits % 8; ++j) {
+                if (tgt->mask[i] & (1 << j)) {
+                    bitfield_set_1(tgt->mask, 8 * i + j);
+                } else {
+                    bitfield_set_0(tgt->mask, 8 * i + j);
+                }
+            }
+        } else {
+            tgt->mask[i] = ~tgt->mask[i]; 
+        }
+    }
 }
 

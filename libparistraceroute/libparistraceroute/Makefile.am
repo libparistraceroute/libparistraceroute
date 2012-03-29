@@ -20,6 +20,7 @@ libparistraceroute_a_HEADERS =  \
 						algorithm.h \
 						algorithms/mda.h \
 						algorithms/traceroute.h \
+						bitfield.h \
 						buffer.h \
 						config.h \
 						dynarray.h \
@@ -27,6 +28,7 @@ libparistraceroute_a_HEADERS =  \
 						field.h \
 						layer.h \
 						list.h \
+						metafield.h \
 						network.h \
 						packet.h \
 						paristraceroute.h \
@@ -46,14 +48,13 @@ libparistraceroute_a_SOURCES =    \
 						algorithms/mda.c \
 						algorithms/traceroute.c \
 						bitfield.c \
-						bitfield.h \
 						buffer.c \
 						dynarray.c \
 						event.c \
 						field.c \
 						layer.c \
 						list.c \
-						list.h \
+						metafield.c \
 						network.c \
 						packet.c \
 						paristraceroute.c \
