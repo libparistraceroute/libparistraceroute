@@ -68,7 +68,6 @@ size_t field_get_type_size(fieldtype_t type)
         case TYPE_INT4:
         case TYPE_STRING:
         default:
-            perror("field_get_type_size: invalid parameter");
             break;
     }
     return 0;

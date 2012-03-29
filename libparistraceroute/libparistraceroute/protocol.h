@@ -8,7 +8,6 @@
 
 #include <stdbool.h>
 
-#include "packet.h"
 #include "protocol_field.h"
 #include "pseudoheader.h"
 
@@ -37,7 +36,7 @@ typedef struct {
 	/** Pointer to a function to create a default header with the given data (?)
 	 * \param data Pointer to an array of bytes
 	 */
-    void (*write_default_header)(char *data);
+    void (*write_default_header)(unsigned char *data);
     //socket_type
 	/** Pointer to a function that returns the size of the protocol header */
     unsigned int (*get_header_size)(void);
@@ -57,15 +56,6 @@ protocol_t* protocol_search(char *name);
 void protocol_register(protocol_t *protocol);
 
 /**
- * \brief Write the protocol header
- * \param protocol Pointer to a protocol_t structure describing the protocol to register
- * \param probe Pointer to a probe_t structure that contains the probe with the field data for the header
- * \param buf Buffer. Pointer to a byte array
- * \return 0
- */
-int protocol_write_header(protocol_t *protocol, probe_t *probe, char *buf);
-
-/**
  * \brief Apply a function to every field in a protocol
  * \param protocol Pointer to a protocol_t structure describing the protocol to iterate over
  * \param data Pointer to hold the returned data (?)
@@ -74,9 +64,10 @@ int protocol_write_header(protocol_t *protocol, probe_t *probe, char *buf);
  */
 void protocol_iter_fields(protocol_t *protocol, void *data, void (*callback)(protocol_field_t *field, void *data));
 
+protocol_field_t * protocol_get_field(protocol_t *protocol, char *name);
 
 /**
- * function to calc checksums (my be multi protocol)
+ * function to calc checksums (may be multi protocol)
  * @param len the size of header in bytes 
  * @param buff the buffer
  * @return the checksum

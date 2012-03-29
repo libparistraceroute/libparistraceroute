@@ -13,7 +13,7 @@
 #include "pt_loop.h"
 
 /******************************************************************************
- * ALGORITHMS                                                                 *
+ * ALGORITHM MANAGER                                                          *
  ******************************************************************************/
 
 /**
@@ -34,7 +34,7 @@ void pt_algorithm_add(pt_loop_t *loop, char *name, void *options, probe_t *probe
 void pt_algorithm_terminate(pt_loop_t *loop, algorithm_instance_t *instance);
 
 /******************************************************************************
- * PROBES                                                                     *
+ * PROBE MANAGER                                                              *
  ******************************************************************************/
 
 /**

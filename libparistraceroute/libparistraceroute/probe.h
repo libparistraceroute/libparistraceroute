@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include "stackedlist.h"
 #include "field.h"
+#include "layer.h"
 #include "buffer.h"
 
 #define WAITING_RESP 0
@@ -23,7 +24,7 @@
  */
 typedef struct {
     /** Fields that have not yet been attributed to a protocol */
-    stackedlist_t *fields;  
+    layer_t *top_layer;
     /** Buffer that will store probe fields content */
     buffer_t * buffer;
 } probe_t;
@@ -53,9 +54,9 @@ void probe_add_field(probe_t *probe, field_t *field);
  * \brief Assigns a set of fields to a probe
  * \param probe A pointer to a probe_t structure representing the probe
  * \param arg1 The first of a list of pointers to a field_t structure representing a field to add
- * \return None
+ * \return 0 if successful,
  */
-void probe_set_fields(probe_t *probe, field_t *arg1, ...);
+int probe_set_fields(probe_t *probe, field_t *field1, ...);
 
 /**
  * \brief Iterates through the fields in a probe, passing them as the argument to a callback function

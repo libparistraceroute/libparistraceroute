@@ -44,34 +44,11 @@ void protocol_write_header_callback(field_t *field, void *data)
     memcpy(buf + protocol_field->offset, field->value, field_get_type_size(protocol_field->type));
 }
 
-int protocol_write_header(protocol_t *protocol, probe_t *probe, char *buf)
+protocol_field_t * protocol_get_field(protocol_t *protocol, char *name)
 {
-    field_t **fields;
-    unsigned int num_fields, i;
+    // not implemented
     
-    /* Initialize with default values */
-    protocol->write_default_header(buf);
-
-    probe_iter_fields(probe, buf, protocol_write_header_callback);
-}
-
-int protocol_get_field(protocol_t *protocol, char *name, packet_t *packet)
-{
-    field_t *field;
-    char *key = strdup(name);
-    protocol_field_t * protocol_field = NULL; // search
-
-    switch(protocol_field->type) {
-        case TYPE_INT16:
-            field = field_create_int16(key, (uint16_t)(*(packet->data + protocol_field->offset)));
-            break;
-        case TYPE_INT32:
-            field = field_create_int16(key, (uint32_t)(*(packet->data + protocol_field->offset)));
-            break;
-        default:
-            break;
-    }
-    field->type = protocol_field->type;
+    return NULL;
 }
 
 void protocol_iter_fields(protocol_t *protocol, void *data, void (*callback)(protocol_field_t *field, void *data))

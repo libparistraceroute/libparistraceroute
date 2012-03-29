@@ -24,6 +24,8 @@ libparistraceroute_a_SOURCES =    \
                         $(libparistraceroute_a_HEADERS) \
 						algorithm.c \
 						algorithm.h \
+						buffer.c \
+						buffer.h \
 						config.h \
 						dynarray.c \
 						dynarray.h \
@@ -44,8 +46,9 @@ libparistraceroute_a_SOURCES =    \
 						probe.c \
 						probe.h \
 						protocol.c \
-						protocol_field.h \
 						protocol.h \
+						protocols/udp.c
+						protocol_field.h \
 						pseudoheader.h \
 						pt_loop.c \
 						pt_loop.h \
@@ -54,10 +57,7 @@ libparistraceroute_a_SOURCES =    \
 						sniffer.c \
 						sniffer.h \
 						socketpool.c \
-						socketpool.h \
-						stackedlist.c \
-						stackedlist.h \
-						protocols/udp.c
+						socketpool.h
 
 #include_HEADERS = paristraceroute.h
 #
