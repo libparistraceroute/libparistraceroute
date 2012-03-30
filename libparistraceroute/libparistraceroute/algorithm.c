@@ -23,15 +23,14 @@ int algorithm_compare(const void *algorithm1, const void *algorithm2)
 
 algorithm_t* algorithm_search(char *name)
 {
-    algorithm_t *algorithm, search;
+    algorithm_t **algorithm, search;
 
     if (!name) return NULL;
 
     search.name = name;
-    algorithm = *(algorithm_t**)tfind((const void*)&search, (void* const*)&algorithms_root,
-            algorithm_compare);
+    algorithm = tfind((const void*)&search, (void* const*)&algorithms_root, algorithm_compare);
 
-    return algorithm;
+    return algorithm ? *algorithm : NULL;
 }
 
 void algorithm_register(algorithm_t *algorithm)

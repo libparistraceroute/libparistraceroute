@@ -16,7 +16,7 @@ int protocol_compare(const void *protocol1, const void *protocol2)
 
 protocol_t* protocol_search(char *name)
 {
-    protocol_t *protocol, search;
+    protocol_t **protocol, search;
 
     if (!name) return NULL;
 
@@ -24,7 +24,7 @@ protocol_t* protocol_search(char *name)
     protocol = tfind((const void*)&search, (void* const*)&protocols_root,
             protocol_compare);
 
-    return protocol;
+    return protocol ? *protocol : NULL;
 }
 
 void protocol_register(protocol_t *protocol)
