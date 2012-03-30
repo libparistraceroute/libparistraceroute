@@ -54,10 +54,10 @@ int bitfield_get_bit(const bitfield_t * bitfield, size_t i);
  *     other value if this bit must be set to 1.
  * \param offset_in_bits The position of the bit in the bitfield.
  *     This value must be less than to bitfield.size_in_bits
- * \return 0 if everything is fine, another value otherwise
+ * \return true if everithing is fine, false otherwise 
  */
 
-int bitfield_set_bit(
+bool bitfield_set_bit(
     bitfield_t * bitfield,
     int          value,
     size_t       offset_in_bits
