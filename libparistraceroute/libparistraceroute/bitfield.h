@@ -78,6 +78,20 @@ int bitfield_set_mask_bits(
 size_t bitfield_get_size_in_bits(const bitfield_t * bitfield);
 
 /**
+ * \brief Compute the next offset (in bits) related to a bit set to 1
+ *   (from the left to the right in the buffer)
+ * \param cur_offset The current position in the bitfield (in bits)
+ * \return The next offset (in bits) related to a bit set to 1 if any,
+ *    0 otherwise. Thus it returns a "none NULL" value iif we find
+ *    another offset. 
+ */
+
+size_t bitfield_find_next_1(
+    const bitfield_t * bitfield,
+    size_t             cur_offset
+);
+
+/**
  * \brief Count the number of bits set to 1 in a bitfield
  * \param bitfield The bitfield
  * \return the size in bits set to 1. 

@@ -86,6 +86,38 @@ int bitfield_set_mask_bits(
     return 0;
 }
 
+// Find the next bit set to 1 in the bitfield
+
+size_t bitfield_find_next_1(
+    const bitfield_t * bitfield,
+    size_t             cur_offset
+) {
+    /*
+    unsigned char    * cur_byte;
+    size_t             i, j, jmax, size, size_in_bits;
+    size_t             res = 0;
+
+    if (!bitfield) return 0;
+
+    size_in_bits = bitfield_get_size_in_bits(bitfield);
+    if (cur_offset > size_in_bits) return 0;
+
+    size = bitfield->size_in_bits / 8;
+    for (i = cur_offset / 8; i < size; i++) {
+        jmax = (i == size - 1) ? (size_in_bits % 8) : 8;
+        cur_byte = bitfield->mask[i];
+        for (j = 0; j < jmax; j++) {
+            if (cur_byte & (1 << j)) {
+                return i * 8 + j;
+            }
+        }
+    }
+*/
+    return 0;
+}
+
+// Count how many 1 are set in the bitfield
+
 size_t bitfield_get_num_1(const bitfield_t * bitfield) {
     typedef unsigned char cell_t;
     size_t i, j, size;
@@ -105,6 +137,7 @@ size_t bitfield_get_num_1(const bitfield_t * bitfield) {
     return res;
 }
 
+
 //--------------------------------------------------------------------------
 // Operators 
 //--------------------------------------------------------------------------
@@ -113,11 +146,7 @@ static inline size_t min(size_t x, size_t y) {
     return x < y ? x : y;
 }
 
-/**
- * \brief Apply &= to each byte (tgt &= src)
- * \param tgt The left operand of &= 
- * \param src The right operand of &=
- */
+// tgt &= src
 
 void bitfield_and(bitfield_t * tgt, const bitfield_t * src) {
     size_t i, j, size_in_bits, size;
@@ -137,11 +166,7 @@ void bitfield_and(bitfield_t * tgt, const bitfield_t * src) {
     }
 }
 
-/**
- * \brief Apply |= to each byte (tgt |= src)
- * \param tgt The left operand of |= 
- * \param src The right operand of |=
- */
+// tgt |= src
 
 void bitfield_or(bitfield_t * tgt, const bitfield_t * src) {
     size_t i, j, size_in_bits, size;
@@ -161,10 +186,7 @@ void bitfield_or(bitfield_t * tgt, const bitfield_t * src) {
     }
 }
 
-/**
- * \brief Apply ~ to each byte (tgt ~= tgt)
- * \param tgt The bitfield we modify 
- */
+// tgt = ~src
 
 void bitfield_not(bitfield_t * tgt) {
     size_t i, j, size_in_bits, size, offset;
