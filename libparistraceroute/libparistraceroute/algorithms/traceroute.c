@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h> // XXX
 #include <stdbool.h>
 #include <string.h>      // memcpy()
 
@@ -129,7 +130,7 @@ bool stopping_icmp_error(const probe_t * probe) {
 
 void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
 { 
-    traceroute_data_t    * data = algorithm_instance_get_data(instance);
+    traceroute_data_t    * data;
     unsigned int           i;
   //probe_t              * probe_skel = algorithm_instance_get_probe_skel(instance);
   //void                ** data     
@@ -145,22 +146,21 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
 
     if (!options) goto FAILURE; 
     if (!events)  goto FAILURE;
-    if (!data)    goto FAILURE;
-
-    num_probes      = options->num_probes;
-    num_sent_probes = data->num_sent_probes;
+    //if (!data)    goto FAILURE; // data is null before init
 
     // For each events, execute the appriopriate code
     for (i = 0; i < num_events; i++) {
         switch (events[i]->type) {
             case ALGORITHM_INIT:
 
+                printf("traceroute::INIT sending probe\n");
                 // Algorithm initialization
                 data = traceroute_data_create(instance);
                 if(!data) goto FAILURE;
                 algorithm_instance_set_data(instance, data);
 
                 // Create a probe with ttl = 1 and send it
+                // TODO Use probe_skel 
                 probe = probe_create();
                 probe_set_fields(probe, I8("ttl", options->min_ttl));
                 pt_probe_send(loop, probe);
@@ -168,6 +168,10 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
                 break;
 
             case REPLY_RECEIVED:
+                printf("traceroute::INIT probe reply received\n");
+
+                num_probes      = options->num_probes;
+                num_sent_probes = data->num_sent_probes;
 
                 data->probes[data->num_sent_probes] = ((reply_received_params_t *) events[i]->params)->probe;
                 data->num_sent_probes++;

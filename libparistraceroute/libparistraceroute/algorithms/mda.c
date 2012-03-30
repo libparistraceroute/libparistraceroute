@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include "stat_test.h"
 #include "../probe.h"
@@ -108,6 +109,7 @@ void mda_handler(pt_loop_t *loop, algorithm_instance_t *instance)
         switch (events[i]->type) {
             case ALGORITHM_INIT:
                 /* algorithm initialization */
+                printf("MDA INIT\n");
                 mda_data = mda_data_create();
                 algorithm_instance_set_data(instance, mda_data);
                 

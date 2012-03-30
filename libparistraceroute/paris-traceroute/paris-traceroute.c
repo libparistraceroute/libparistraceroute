@@ -48,10 +48,10 @@ int main(int argc, char **argv)
     //}
 
 
-    /* Instanciate a MDA algorithm */
-    instance = pt_algorithm_add(loop, "mda", &opt, probe_skel);
+    /* Instanciate a traceroute algorithm */
+    instance = pt_algorithm_add(loop, "traceroute", &opt, probe_skel);
     if (!instance) {
-        printf("E: Could not add mda algorithm");
+        printf("E: Could not add traceroute algorithm");
         exit(EXIT_FAILURE);
     }
 
