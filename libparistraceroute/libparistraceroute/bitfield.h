@@ -35,6 +35,18 @@ void bitfield_free(bitfield_t * bitfield);
 //--------------------------------------------------------------------------
 
 /**
+ * \brief Retrieve the i-th bit stored in a bitfield
+ * \param bitfield The bitfield
+ * \param i The offset (in bits) of the bit we consider
+ * \return A value among:
+ *   -1 : outside of the bitfield / empty or null bitfield
+ *   0  : the i-th bit is equal to 0
+ *   1  : the i-th bit is equal to 1
+ */
+
+int bitfield_get_bit(const bitfield_t * bitfield, size_t i);
+
+/**
  * \brief Define whether a bit belongs to a bitfield
  * \warning This function is based on the endianess of your system.
  * \param bitfield The bitfield
@@ -45,7 +57,7 @@ void bitfield_free(bitfield_t * bitfield);
  * \return 0 if everything is fine, another value otherwise
  */
 
-int bitfield_set_mask_bit(
+int bitfield_set_bit(
     bitfield_t * bitfield,
     int          value,
     size_t       offset_in_bits
@@ -62,7 +74,7 @@ int bitfield_set_mask_bit(
  * \return 0 if everything is fine, another value otherwise
  */
 
-int bitfield_set_mask_bits(
+int bitfield_set_bits(
     bitfield_t * bitfield,
     int          value,
     size_t       offset_in_bits,
@@ -79,16 +91,25 @@ size_t bitfield_get_size_in_bits(const bitfield_t * bitfield);
 
 /**
  * \brief Compute the next offset (in bits) related to a bit set to 1
- *   (from the left to the right in the buffer)
- * \param cur_offset The current position in the bitfield (in bits)
- * \return The next offset (in bits) related to a bit set to 1 if any,
- *    0 otherwise. Thus it returns a "none NULL" value iif we find
- *    another offset. 
+ *    (from the left to the right in the buffer).
+ * 
+ *  Typical usage:
+ *  
+ *  size_t offset = 0;
+ *  while(bitfield_find_next_1(bitfield, &offset)) {
+ *     // iterate on each bit set to 1 belonging to 'bitfield'
+ *  }
+ *
+ * \param bitfield The bitfield
+ * \param pcur_offset The address of the current position in the
+ *    bitfield (in bits). This value is altered with the next
+ *    offset related to a bit set to 1 (if found).
+ * \return true if we've found a bit, false otherwise 
  */
 
-size_t bitfield_find_next_1(
+bool bitfield_find_next_1(
     const bitfield_t * bitfield,
-    size_t             cur_offset
+    size_t           * pcur_offset
 );
 
 /**

@@ -2,18 +2,23 @@
 
 #include <stdlib.h>
 
+// internal usage
+
+static inline size_t min(size_t x, size_t y) {
+    return x < y ? x : y;
+}
+
 //--------------------------------------------------------------------------
 // Allocation
 //--------------------------------------------------------------------------
+
+// alloc
 
 inline metafield_t * metafield_create() {
     return calloc(1, sizeof(metafield_t));
 }
 
-/**
- * \brief Delete a metafield from the memory.
- * It only releases the metafield_t instance, not the pointed structures.
- */
+// free
 
 inline void metafield_free(metafield_t * metafield){
     if (metafield) free(metafield);
@@ -23,70 +28,43 @@ inline void metafield_free(metafield_t * metafield){
 // Getter / setter 
 //--------------------------------------------------------------------------
 
-inline size_t metafield_num_bits_concept(const metafield_t * metafield) {
+// |bits_concept|
+
+inline size_t metafield_num_bits(const metafield_t * metafield) {
     return bitfield_get_num_1(metafield->bits_concept); 
 }
 
-static inline size_t min(size_t x, size_t y) {
-    return x < y ? x : y;
-}
+// internal usage : seek the next read/write bit
 
-// TODO expose in .h
-size_t metafield_get_next_rw_offset(const metafield_t * metafield) {
-    // not yet implemented
-    return 0;
-}
+bool metafield_find_next_rw(
+    const metafield_t * metafield,
+    size_t            * poffset
+) {
+    if (!poffset || !metafield || !metafield->bits_concept) return false;
 
-// TODO rewrite by using get_next_rw_offset
-size_t metafield_num_bits_rw(const metafield_t * metafield) {
-    if (!metafield->bits_concept || metafield->bits_concept->mask) {
-        return 0; // invalid parameter
-    }
-    if (!metafield->bits_ro || metafield->bits_ro->mask) {
-        return metafield_num_bits_concept(metafield); 
-    }
+    size_t offset = *poffset;
 
-    // We've to compare the two bitfields manually
-    size_t i, j, res = 0;
-    size_t size_in_bits_concept = bitfield_get_size_in_bits(metafield->bits_concept);
-    size_t size_in_bits_ro      = bitfield_get_size_in_bits(metafield->bits_ro);
-    size_t size_concept         = size_in_bits_concept / 8; 
-    size_t size_ro              = size_in_bits_ro / 8;
-    size_t size_min             = min(size_concept, size_ro);
-
-    // Add the bits set to 1 in bits_concept and bits_ro
-    for(i = 0; i < size_min; i++) {
-        if(i + 1 == size_ro || i + 1 == size_concept) {
-            // Matching bit per bit
-            for(j = i * 8; j < size_in_bits_ro && j < size_in_bits_concept; j++) {
-                if((1 << (j % 8))
-                   & metafield->bits_concept->mask[i]
-                   & metafield->bits_ro->mask[i]
-                ) {
-                    ++res;
-                }
-            }
-        } else {
-            // Matching byte per byte
-            unsigned char byte = metafield->bits_concept->mask[i]
-                               & metafield->bits_ro->mask[i];
-
-            for (j = 0; j < 8; j++) {
-                if (byte & (1 << j)) ++res;
-            }
-        }        
-    }
-
-    // Add the remaining bits set to 1 in bits_concept (if any)
-    for(; i < size_concept; i++) {
-        if(i + 1 == size_concept) {
-            unsigned char byte = metafield->bits_concept->mask[i];
-            for(j = 0; j < size_in_bits_concept % 8; j++) {
-                if((1 << j) & byte) ++res;
-            }
+    while (bitfield_find_next_1(metafield->bits_concept, &offset)) {
+        switch(bitfield_get_bit(metafield->bits_ro, offset)) {
+            case -1: // outside bits_ro => this bit is rw
+            case  0: // this bit is marked as rw
+                *poffset = offset;
+                return true;
+            case  1: // this bit is marked as ro, continue to seek
+                break;
         }
     }
 
+    return false;
+}
+
+// |bits_rw| 
+
+size_t metafield_num_bits_rw(const metafield_t * metafield) {
+    size_t res    = 0;
+    size_t offset = 0;
+
+    while(metafield_find_next_rw(metafield, &offset)) res++;
     return res;
 }
 

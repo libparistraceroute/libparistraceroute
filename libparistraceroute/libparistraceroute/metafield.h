@@ -57,12 +57,14 @@ void metafield_free(metafield_t * metafield);
 
 /**
  * \brief Retrieve |bits_concept|, e.g. number of bits related to the
- *   concept of a metafield.
+ *   concept of a metafield. These bits may be either modifable or
+ *   read-only. See metafield_num_bits_rw() if you only
+ *   consider alterable bits.
  * \param metafield The metafield
  * \return The number of bits
  */
 
-size_t metafield_num_bits_concept(const metafield_t * metafield);
+size_t metafield_num_bits(const metafield_t * metafield);
 
 /**
  * \brief Retrieve |bits_rw|, e.g. the number of bits related to the
