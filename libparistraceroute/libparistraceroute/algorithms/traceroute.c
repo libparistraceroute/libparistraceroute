@@ -203,7 +203,6 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
         pt_algorithm_terminate(loop, instance);
     }
     return;
-RUNNING: // This algorithm is still running
 SUCCESS: // This algorithm has successfully ended
     return;
 FAILURE: // This algorithm has crashed

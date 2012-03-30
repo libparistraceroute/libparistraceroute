@@ -189,7 +189,7 @@ void bitfield_or(bitfield_t * tgt, const bitfield_t * src) {
 // tgt = ~src
 
 void bitfield_not(bitfield_t * tgt) {
-    size_t i, j, size_in_bits, size, offset;
+    size_t i, j, size_in_bits, size;
     if (!tgt) return;
     size_in_bits = tgt->size_in_bits;
     size = size_in_bits / 8;
@@ -208,3 +208,7 @@ void bitfield_not(bitfield_t * tgt) {
     }
 }
 
+size_t bitfield_get_size_in_bits(const bitfield_t * bitfield)
+{
+    return bitfield->size_in_bits;
+}

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h> // XXX
 #include <string.h>
 #include <search.h>
 
@@ -36,6 +37,7 @@ algorithm_t* algorithm_search(char *name)
 void algorithm_register(algorithm_t *algorithm)
 {
     /* insert the algorithm in the tree if the keys does not exist yet */
+    printf("REGISTERED %s\n", algorithm->name);
     (void) tsearch((const void *)algorithm, (void **)&algorithms_root,
             algorithm_compare);
 }

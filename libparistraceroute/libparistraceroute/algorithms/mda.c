@@ -83,7 +83,7 @@ void mda_classify(pt_loop_t *loop, mda_options_t *options, mda_data_t *data, pro
  */
 void mda_handler(pt_loop_t *loop, algorithm_instance_t *instance)
 { 
-    mda_options_t *mda_options;
+    //mda_options_t *mda_options;
     mda_data_t *mda_data;
     unsigned int i;
     void *options;
@@ -99,7 +99,7 @@ void mda_handler(pt_loop_t *loop, algorithm_instance_t *instance)
     num_events = algorithm_instance_get_num_events(instance);
 
     /* inspect the options = what results the user is interested in */
-    mda_options = options;
+    //mda_options = options;
     //if (!mda_options->graph)
     //    return NULL;    /* terminate algorithm */
     
