@@ -13,10 +13,15 @@ probe_t * probe_create(void)
     probe = malloc(sizeof(probe_t));
 
     /* Create the buffer to store the field content */
-    probe->top_layer = NULL;
     probe->buffer = buffer_create();
     if (!(probe->buffer))
         goto error;
+
+    /* Initially the probe has no top layer... */
+    probe->top_layer = NULL;
+
+    /* ... and an empty bitfield */
+    probe->bitfield = bitfield_create(0);
 
     return probe;
 
