@@ -11,6 +11,7 @@
 #include "field.h"
 #include "layer.h"
 #include "buffer.h"
+#include "bitfield.h"
 
 #define WAITING_RESP 0
 #define TTL_RESP 1
@@ -26,7 +27,9 @@ typedef struct {
     /** Fields that have not yet been attributed to a protocol */
     layer_t *top_layer;
     /** Buffer that will store probe fields content */
-    buffer_t * buffer;
+    buffer_t *buffer;
+    /** Bitfield to keep track of modified fields vs. default ones */
+    bitfield_t *bitfield;
 } probe_t;
 
 /**
