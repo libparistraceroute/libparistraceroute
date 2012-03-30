@@ -1,11 +1,13 @@
 #Build
 
 *.o
+*.lo
 .DS_Store
 *~
 *.swp
 *.so
 *.a
+*.la
 
 #Makefile
 
@@ -34,3 +36,6 @@ paris-traceroute/.deps/
 
 libparistraceroute/test
 paris-traceroute/paris-traceroute
+
+.libs
+*.pc
