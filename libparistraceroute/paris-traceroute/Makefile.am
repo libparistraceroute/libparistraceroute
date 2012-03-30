@@ -1,3 +1,6 @@
+@SET_MAKE@
+
+AUTOMAKE_OPTIONS = foreign
 
 ###############################################################################
 #
@@ -10,7 +13,8 @@ bin_PROGRAMS = paris-traceroute
 # list of sources for the paris-traceroute binary
 paris_traceroute_SOURCES =    \
                         paris-traceroute.c
-                         
-# the additional libraries needed to link
-paris_traceroute_LDADD =  $(top_builddir)/libparistraceroute/libparistraceroute.a $(AM_LDFLAGS)
+
+paris_traceroute_LDADD = -lparistraceroute-1.0
+paris_traceroute_LDFLAGS = -L../libparistraceroute
+paris_traceroute_DEPENDENCIES =
 

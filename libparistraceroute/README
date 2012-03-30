@@ -1,3 +1,3 @@
 Minimum files
 -------------
-autogen.sh  configure.in  doc  Makefile.am  src
+autogen.sh  configure.in  doc  Makefile.am  libparistraceroute paris-traceroute

@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: @PACKAGE_NAME@
+Description: libparistraceroute
+Version: @PACKAGE_VERSION@
+URL: @PACKAGE_URL@
+Libs: -L${libdir} -lparistraceroute-@API_VERSION@
+Cflags: -I${includedir}/paristraceroute-@API_VERSION@ -I${libdir}/paristraceroute-@API_VERSION@/include
+

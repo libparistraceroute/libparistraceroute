@@ -7,6 +7,14 @@
 # Initial information about the project
 AC_INIT([paris-traceroute], [0.1], [paris-traceroute@googlegroups.com])
 
+# Define these substitions here to keep all version information in one place.
+# For information on how to properly maintain the library version information,
+# refer to the libtool manual, section "Updating library version information":
+# http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
+API_VERSION=1:0:0
+AC_SUBST([LIBRARY_VERSION], [1.0])
+AC_SUBST(API_VERSION)
+
 # AC_CANONICAL_SYSTEM
 
 # Check if the source folder is available
@@ -79,6 +87,7 @@ fi
 AC_PROG_CC
 AC_LANG_C
 AC_PROG_INSTALL
+AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
 #################################################################################
@@ -169,9 +178,9 @@ AC_CHECK_FUNC([strerror])
 #jo#
 #jo## PCap
 #jo#if test "x$usable_pcap" = "xyes"; then
-AC_DEFINE([USEPCAP], [1], [Use pcap library])
+#AC_DEFINE([USEPCAP], [1], [Use pcap library])
 #jo#	SNIFFER_OBJ="sniffer.pcap.lo"
-LDFLAGS="-lpcap $LDFLAGS"
+#LDFLAGS="-lpcap $LDFLAGS"
 #jo#	#ROUTE_OBJ="route.pcap.lo"
 #jo#	ROUTE_OBJ="route.socket.lo"
 #jo#	sniffer="pcap"
@@ -260,8 +269,11 @@ esac
 #jo#fi
 
 ## Output Makefiles
+# Override the template file name of the generated .pc file, so that there
+# is no need to rename the template file when the API version changes.
 AC_CONFIG_FILES(
 	[Makefile]
+    [libparistraceroute/libparistraceroute-$LIBRARY_VERSION.pc:libparistraceroute/libparistraceroute.pc.in]
 	[libparistraceroute/Makefile]
 	[paris-traceroute/Makefile]
 	[man/Makefile]
