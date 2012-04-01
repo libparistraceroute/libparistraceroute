@@ -7,8 +7,8 @@
  */
 typedef struct {
     unsigned char *data;
-    unsigned int size;
-    unsigned int max_size;
+    size_t size;
+    size_t max_size;
 } buffer_t;
 
 /**
@@ -23,6 +23,11 @@ buffer_t *buffer_create(void);
  */
 void buffer_free(buffer_t *buffer);
 
+// Accessors
+
+unsigned char * buffer_get_data(buffer_t *buffer);
+size_t buffer_get_size(buffer_t *buffer);
+
 /**
  * \brief (Re)allocate the buffer to a specified size.
  * \param buffer Pointer to a buffer_t structure to (re)allocate
@@ -30,5 +35,6 @@ void buffer_free(buffer_t *buffer);
  * \return 0 if success, -1 otherwise
  */
 int buffer_resize(buffer_t *buffer, size_t size);
+
 
 #endif

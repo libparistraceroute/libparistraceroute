@@ -87,13 +87,13 @@ void mda_handler(pt_loop_t *loop, algorithm_instance_t *instance)
     //mda_options_t *mda_options;
     mda_data_t *mda_data;
     unsigned int i;
-    void *options;
+    //void *options;
     //probe_t *probe_skel;
     void **data;
     event_t** events;
     unsigned int num_events;
 
-    options = algorithm_instance_get_options(instance);
+    //options = algorithm_instance_get_options(instance);
     //probe_skel = algorithm_instance_get_probe_skel(instance);
     data = algorithm_instance_get_data(instance);
     events = algorithm_instance_get_events(instance);

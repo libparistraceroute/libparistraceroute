@@ -38,7 +38,6 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						metafield.h \
 						network.h \
 						packet.h \
-						paristraceroute.h \
 						probe.h \
 						protocol.h \
 						protocol_field.h \
@@ -75,10 +74,11 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						metafield.c \
 						network.c \
 						packet.c \
-						paristraceroute.c \
 						probe.c \
 						protocol.c \
 						protocols/udp.c \
+						protocols/ipv4.c \
+						protocol_field.c \
 						pt_loop.c \
 						queue.c \
 						sniffer.c \

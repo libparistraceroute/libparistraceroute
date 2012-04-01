@@ -6,6 +6,7 @@
  * \brief Header for header fields
  */
 
+#include <stddef.h> // size_t
 #include <stdint.h>
 
 /**
@@ -35,17 +36,17 @@ typedef struct {
 	/** Union of all field data */
     union {
 		/** Pointer to raw data */
-        void       * value;
+        void          * value;
 		/** Value of data as a 4 bit integer */
-        unsigned int int4_value:4; 
+        unsigned int    int4_value:4; 
 		/** Value of data as an 8 bit integer */
-        uint8_t      int8_value;
+        uint8_t         int8_value;
 		/** Value of data as a 16 bit integer */
-        uint16_t     int16_value;
+        uint16_t        int16_value;
 		/** Value of data as a 32 bit integer */
-        uint32_t     int32_value;
+        uint32_t        int32_value;
 		/** Pointer to string data */
-        char       * string_value;
+        unsigned char * string_value;
     };
     fieldtype_t type;
 } field_t;
@@ -77,7 +78,9 @@ field_t * field_create_int32 (char *key, uint32_t value);
  * \param value Value to store in the field
  * \return Structure containing the newly created field
  */
-field_t * field_create_string(char *key, char * value);
+field_t * field_create_string(char *key, unsigned char * value);
+
+field_t *field_create(fieldtype_t type, char *key, void *value);
 
 /**
  * \brief Delete a field structure
@@ -112,8 +115,12 @@ void      field_free(field_t *field);
  * \param y String to store in the field
  * \return Structure containing the newly created field
  */
-#define STR(x, y) field_create_string(x, y)
+#define STR(x, y) field_create_string(x, (unsigned char*)y)
 
 size_t field_get_type_size(fieldtype_t type);
+size_t field_get_size(field_t *field);
+
+//Dump
+void field_dump(field_t *field);
 
 #endif

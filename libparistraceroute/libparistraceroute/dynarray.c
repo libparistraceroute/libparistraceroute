@@ -2,8 +2,8 @@
 #include <string.h>
 #include "dynarray.h"
 
-#define DYNARRAY_SIZE_INIT 10
-#define DYNARRAY_SIZE_INC 10
+#define DYNARRAY_SIZE_INIT 5
+#define DYNARRAY_SIZE_INC 5
 
 dynarray_t* dynarray_create(void)
 {
@@ -60,4 +60,20 @@ unsigned int dynarray_get_size(dynarray_t *dynarray)
 void **dynarray_get_elements(dynarray_t *dynarray)
 {
     return dynarray->elements;
+}
+
+void *dynarray_get_ith_element(dynarray_t *dynarray, unsigned int i)
+{
+    if (i >= dynarray->size)
+        return NULL; // out of range
+    return dynarray->elements[i];
+}
+
+int dynarray_set_ith_element(dynarray_t *dynarray, unsigned int i, void *element)
+{
+    if (i > dynarray->size)
+        return -1; // out of range
+    dynarray->elements[i-1] = element;
+
+    return 0;
 }

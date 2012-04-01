@@ -1,11 +1,9 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <stddef.h> // offsetof()
 #include <string.h> // memcpy()
-//#include <unistd.h>
-//#include <arpa/inet.h>
+#include <unistd.h> // close()
+#include <arpa/inet.h> // inet_pton()
 //#include <netdb.h>
-//
 #include <netinet/ip.h>
 
 #include "../field.h"
@@ -23,6 +21,26 @@
 #define IPV4_DEFAULT_CHECKSUM        0
 #define IPV4_DEFAULT_SRC_IP          0
 #define IPV4_DEFAULT_DST_IP          0
+
+/*
+ * TODO
+ * it might be interesting to have a given format for interacting with the user,
+ * and a size for writing into the packet.
+ * ex. IP addresses string <-> bit representation
+ */
+
+// Setter
+int ipv4_set_dst_ip(unsigned char *buffer, field_t *field)
+{
+    int res;
+	struct iphdr *ip_hed;
+    
+    ip_hed = (struct iphdr *)buffer;
+    res = inet_pton(AF_INET, (char*)field->string_value, &ip_hed->daddr);
+    if (res != 1)
+        return -1; // Error while reading destination address
+    return 0;
+}
 
 /* IPv4 fields */
 static protocol_field_t ipv4_fields[] = {
@@ -71,7 +89,9 @@ static protocol_field_t ipv4_fields[] = {
         .key = "dst_ip",
         .type = TYPE_INT32,
         .offset = offsetof(struct iphdr, daddr),
-    }
+        .set = ipv4_set_dst_ip,
+    },
+    END_PROTOCOL_FIELDS
     // options if header length > 5 (not yet implemented)
 };
 
@@ -89,6 +109,58 @@ static struct iphdr ipv4_default = {
     .saddr    = IPV4_DEFAULT_SRC_IP,
     .daddr    = IPV4_DEFAULT_DST_IP
 };
+
+/**
+ * \brief Determine source address when it is not explicitely specified.
+ * \param dip The destination IP used to compute the source IP
+ * \return The source IP that will be used to send datagrams to the specified
+ * destination
+ *
+ * The source address is dependent on the destination, and corresponds to the
+ * interface that will be chosen. This is mainly useful for RAW sockets. We
+ * perform a connect operation for this.
+ *
+ * TODO we can generalize this to other transport protocols ?
+ */
+u_int32_t ipv4_get_default_sip(u_int32_t dip) {
+        int sock;
+        struct sockaddr_in addr, name;
+        int len = sizeof(struct sockaddr_in);
+
+        sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sock < 0)
+            return 0; // Cannot create datagram socket
+        memset(&addr, 0, len);
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = dip;
+        addr.sin_port = htons(32000); // XXX why 32000 ?
+
+        if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in)) < 0)
+            return 0; // Cannot connect socket
+
+        if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1)
+                return 0; // Cannot getsockname
+        
+        close(sock);
+
+        return name.sin_addr.s_addr;
+}
+
+/**
+ * \brief A set of actions to be done before sending the packet.
+ */
+int ipv4_before_send(char** datagram){
+
+    /* Setting source address */
+	struct iphdr *ip_hed = (struct iphdr *) *datagram;
+	if(ip_hed->saddr==0){//has to be calculated 
+		ip_hed->saddr = ipv4_get_default_sip(ip_hed->daddr);
+	}
+
+    /* Setting proper checksum ?? */
+
+	return 0;
+}
 
 /**
  * \brief Retrieve the number of fields in a UDP header
@@ -115,7 +187,7 @@ unsigned int ipv4_get_header_size(void)
  * \param data The address of an allocated buffer that will store the header
  */
 
-void ipv4_write_default_header(char *data)
+void ipv4_write_default_header(unsigned char *data)
 {
     memcpy(data, &ipv4_default, sizeof(struct iphdr));
 }
@@ -128,23 +200,26 @@ void ipv4_write_default_header(char *data)
  * \return 0 if everything is ok, another value otherwise 
  */
 
-void ipv4_write_checksum (iphdr * ipv4_hdr, pseudoheader_t * /* unused */){
-	unsigned short checksum;
-	iphdr *ip_hed = (iphdr *) datagram;
-	ip_hed->check = csum((unsigned short *) ipv4_hdr, size >> 1 ); // TODO: >> 1 RLY?
+int ipv4_write_checksum (unsigned char *buf, pseudoheader_t * psh /* unused */){
+	struct iphdr *ip_hed = (struct iphdr *) buf;
+    size_t size = sizeof(struct iphdr);
+	ip_hed->check = csum((unsigned short *) ip_hed, size >> 1 ); // TODO: >> 1 RLY?
+
+    return 0;
 }
 
 
 static protocol_t ipv4 = {
     .name                 = "ipv4",
     .get_num_fields       = ipv4_get_num_fields,
-  //.write_checksum       = CAST_WRITE_CHECKSUM ipv4_write_checksum,
+    .write_checksum       = ipv4_write_checksum,
   //.create_pseudo_header = NULL,
     .fields               = ipv4_fields,
+    .header_len           = sizeof(struct iphdr),
     .write_default_header = ipv4_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = ipv4_get_header_size,
-  //.need_ext_checksum    = ipv4_need_ext_checksum
+    .need_ext_checksum    = false
 };
 
 PROTOCOL_REGISTER(ipv4);
@@ -207,37 +282,6 @@ PROTOCOL_REGISTER(ipv4);
 //        return address;
 //}*/
 //
-//u_int32_t guess_source_adress_ipv4 (u_int32_t dest) {
-//        int sock;
-//        struct sockaddr_in addr, name;
-//        int len;
-//        sock = socket(AF_INET, SOCK_DGRAM, 0);
-//        if (sock < 0) {
-//		#ifdef DEBUG
-//                fprintf(stderr,"guess_source_adress_ipv4 : cannot create datagram socket\n");
-//		#endif
-//                return 0;
-//        }
-//        memset(&addr, 0, sizeof(struct sockaddr_in));
-//        addr.sin_family = AF_INET;
-//        addr.sin_addr.s_addr = dest;
-//        addr.sin_port = htons(32000);
-//        if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in))<0){
-//		#ifdef DEBUG
-//                fprintf(stderr,"guess_source_adress_ipv4 : cannot connect socket\n");
-//		#endif
-//                return 0;
-//        }
-//        len = sizeof(struct sockaddr_in);
-//        if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1) {
-//		#ifdef DEBUG
-//                fprintf(stderr,"guess_source_adress_ipv4 : cannot getsockname\n");
-//		#endif
-//                return 0;
-//        }
-//        close(sock);
-//        return name.sin_addr.s_addr;
-//}
 //
 //int set_packet_field_ipv4(void* value, char* name , char** datagram){
 //	if(value==NULL){

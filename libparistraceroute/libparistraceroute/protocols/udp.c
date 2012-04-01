@@ -44,7 +44,8 @@ static protocol_field_t udp_fields[] = {
         .key = "checksum",
         .type = TYPE_INT16,
         .offset = offsetof(struct udphdr, CHECKSUM),
-    }
+    },
+    END_PROTOCOL_FIELDS
 };
 
 /* Default UDP values */
@@ -94,20 +95,20 @@ void udp_write_default_header(unsigned char *data)
  *    ENOMEM if a memory error arises
  */
 
-int udp_write_checksum(struct udphdr * udp_hdr, pseudoheader_t * pseudo_hdr)
+int udp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
 {
     unsigned char * tmp;
     unsigned int len;
     unsigned short res;
+    struct udphdr *udp_hdr = (struct udphdr *)buf;
+    if (!psh) return EINVAL; // pseudo header required
 
-    if (!pseudo_hdr) return EINVAL; // pseudo header required
-
-    len = sizeof(struct udphdr) + pseudo_hdr->size;
+    len = sizeof(struct udphdr) + psh->size;
     tmp = malloc(len * sizeof(unsigned char));
     if(!tmp) return ENOMEM;
 
-    memcpy(tmp, pseudo_hdr->data, pseudo_hdr->size);
-    memcpy(tmp + pseudo_hdr->size, udp_hdr, sizeof(struct udphdr));
+    memcpy(tmp, psh->data, psh->size);
+    memcpy(tmp + psh->size, udp_hdr, sizeof(struct udphdr));
     res = csum(*(unsigned short**) &tmp, (len >> 1));
     udp_hdr->check = res;
 
@@ -115,21 +116,10 @@ int udp_write_checksum(struct udphdr * udp_hdr, pseudoheader_t * pseudo_hdr)
     return 0;
 }
 
-/**
- * \brief Callback that indicates whether this protocol 
- *   needs a pseudo header in order to compute its checksum.
- * \sa ../protocol.h
- * \return true iif we use a dedicated checksum function.
- */
-
-bool udp_need_ext_checksum() {
-    return true;
-}
-
 static protocol_t udp = {
     .name                 = "udp",
     .get_num_fields       = udp_get_num_fields,
-    .write_checksum       = CAST_WRITE_CHECKSUM udp_write_checksum,
+    .write_checksum       = udp_write_checksum,
   //.create_pseudo_header = NULL,
     .fields               = udp_fields,
   //.defaults             = udp_defaults,             // XXX used when generic
@@ -137,7 +127,7 @@ static protocol_t udp = {
     .write_default_header = udp_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = udp_get_header_size,
-    .need_ext_checksum    = udp_need_ext_checksum
+    .need_ext_checksum    = true
 };
 
 PROTOCOL_REGISTER(udp);

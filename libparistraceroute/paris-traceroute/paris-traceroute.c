@@ -8,21 +8,21 @@
 #include "pt_loop.h"
 #include "probe.h" /* needed ? */
 #include "algorithm.h"
-#include "algorithms/mda.h"
+#include "algorithms/traceroute.h"
 
-void mda_done(pt_loop_t *pt_loop, mda_options_t *options) { 
-    if (!options) {
-        printf("E: No options\n");
-        exit(EXIT_FAILURE);
-    }
-    pt_loop_stop(pt_loop);
-    //graph_print(options->graph); 
-}
+//void mda_done(pt_loop_t *pt_loop, mda_options_t *options) { 
+//    if (!options) {
+//        printf("E: No options\n");
+//        exit(EXIT_FAILURE);
+//    }
+//    pt_loop_stop(pt_loop);
+//    //graph_print(options->graph); 
+//}
 
 int main(int argc, char **argv)
 {
     algorithm_instance_t *instance;
-    probe_t *probe_skel;
+    //probe_t *probe_skel;
     pt_loop_t *loop;
     
     loop = pt_loop_create();
@@ -36,20 +36,24 @@ int main(int argc, char **argv)
     // We can get algorithm options from the commandline also
 
     /* Set basic probe constraints */
-    probe_skel = probe_create();
-    probe_set_fields(probe_skel, STR("dst_ip", dst_ip));
+    //probe_skel = probe_create();
+    //probe_set_fields(probe_skel, STR("dst_ip", dst_ip));
 
     /* We might imagine that this is done by default if given NULL */
     //ip_graph_t *graph = ip_graph_new();
-    mda_options_t opt;
+    //mda_options_t opt;
     //= {
         //.graph = graph,
         //.on_done = NULL
     //}
-
+    
+    traceroute_options_t opt = {
+        .min_ttl = 1
+    };
 
     /* Instanciate a traceroute algorithm */
-    instance = pt_algorithm_add(loop, "traceroute", &opt, probe_skel);
+    printf("Instanciate 'traceroute' algorithm\n");
+    instance = pt_algorithm_add(loop, "traceroute", &opt, NULL);
     if (!instance) {
         printf("E: Could not add traceroute algorithm");
         exit(EXIT_FAILURE);

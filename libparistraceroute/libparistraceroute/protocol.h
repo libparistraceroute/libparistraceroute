@@ -11,7 +11,8 @@
 #include "protocol_field.h"
 #include "pseudoheader.h"
 
-#define CAST_WRITE_CHECKSUM (int (*)(unsigned char *, pseudoheader_t *))
+//#define CAST_WRITE_CHECKSUM (int (*)(unsigned char *, pseudoheader_t *))
+#define END_PROTOCOL_FIELDS { .key = NULL }
 
 /**
  * \struct protocol_t
@@ -23,7 +24,7 @@ typedef struct {
 	/** Pointer to a function that will return the number of fields this protocol has */
     unsigned int (*get_num_fields)(void);
 	/** Pointer to a function that will return true if an external checksum is needed, false otherwise (?) */
-    bool (*need_ext_checksum)(void);
+    bool need_ext_checksum;
 	/** Pointer to a function to write a checksum for a pseudoheader into a buffer
 	 * \param buf Pointer to a buffer
 	 * \param psh Pointer to a pseudoheader_t structure
@@ -65,7 +66,7 @@ void protocol_register(protocol_t *protocol);
  */
 void protocol_iter_fields(protocol_t *protocol, void *data, void (*callback)(protocol_field_t *field, void *data));
 
-protocol_field_t * protocol_get_field(protocol_t *protocol, char *name);
+protocol_field_t * protocol_get_field(protocol_t *protocol, const char *name);
 
 /**
  * function to calc checksums (may be multi protocol)

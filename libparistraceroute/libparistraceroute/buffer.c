@@ -39,3 +39,13 @@ int buffer_resize(buffer_t *buffer, size_t size)
     buffer->size = size;
     return 0;
 }
+
+unsigned char * buffer_get_data(buffer_t *buffer)
+{
+    return buffer->data;
+}
+
+size_t  buffer_get_size(buffer_t *buffer)
+{
+    return buffer->size;
+}

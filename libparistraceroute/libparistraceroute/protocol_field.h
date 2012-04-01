@@ -21,7 +21,13 @@ typedef struct {
     fieldtype_t type;
 	/** Offset from start of header data */
     size_t offset;
+    /** Setter function */
+    int (*set)(unsigned char *buffer, field_t *field);
 } protocol_field_t;
+
+size_t protocol_field_get_size(protocol_field_t *pfield);
+
+int protocol_field_set(protocol_field_t *pfield, unsigned char *buffer, field_t *field);
 
 #endif
 

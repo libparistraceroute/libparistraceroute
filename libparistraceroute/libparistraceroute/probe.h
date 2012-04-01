@@ -12,6 +12,7 @@
 #include "layer.h"
 #include "buffer.h"
 #include "bitfield.h"
+#include "dynarray.h"
 
 #define WAITING_RESP 0
 #define TTL_RESP 1
@@ -24,11 +25,11 @@
  * \brief Structure representing a probe
  */
 typedef struct {
-    /** Fields that have not yet been attributed to a protocol */
-    layer_t *top_layer;
+    /** List of layers forming the packet header */
+    dynarray_t *layers;
     /** Buffer that will store probe fields content */
     buffer_t *buffer;
-    /** Bitfield to keep track of modified fields vs. default ones */
+    /** Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     bitfield_t *bitfield;
 } probe_t;
 
@@ -44,6 +45,13 @@ probe_t * probe_create(void);
  * \return None
  */
 void probe_free(probe_t *probe);
+
+// Accessors
+
+buffer_t *probe_get_buffer(probe_t *probe);
+
+// Dump
+void probe_dump(probe_t *probe);
 
 /**
  * \brief Add a field to a probe
@@ -76,6 +84,15 @@ void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *fie
  * \return NULL (NYI - Will be Array of pointers to field_t structures stored in the probe)
  */
 field_t ** probe_get_fields(probe_t *probe);
+
+/**
+ * \brief Copies a field value at the specified location.
+ * \return 0 if successful
+ *
+ * What about allocation ?
+ */
+field_t *probe_get_field(probe_t *probe, char *name);
+
 /**
  * \brief Get the payload from a probe
  * \param probe Pointer to a probe_t structure to get the payload from
@@ -130,4 +147,5 @@ void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *re
 void pt_probe_send(struct pt_loop_s *loop, probe_t *probe);
 
 
+int probe_set_protocols(probe_t *probe, char *name1, ...);
 #endif

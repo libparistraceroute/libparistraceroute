@@ -13,13 +13,12 @@
  * \struct layer_t
  * \brief Structure describing a layer
  */
-typedef struct layer_s {
+typedef struct {
 	/** Pointer to a structure describing the protocol */
     protocol_t *protocol;
-    unsigned char *offset;
-    size_t size;
-	/** Pointer to a structure describing a sublayer */
-    struct layer_s *sublayer;
+    unsigned char *buffer;
+    size_t header_size;
+    size_t buffer_size;
 } layer_t;
 
 /**
@@ -33,22 +32,14 @@ layer_t *layer_create(void);
  */
 void layer_free(layer_t *layer);
 
-/**
- * \brief Set the protocol stack starting at a given layer
- * \param protocol The first of a list of protocol names to affect to the
- * different layers, starting at the current one.
- * \return 0 if the operation succeeds, -1 otherwise. Note that sublayers are
- * reset if the function fails to keep the probe into a consistent state
- */
-int layer_set_protocols(layer_t *layer, char *name1, ...);
+// Accessors
 
 /**
  * \brief Set the protocol for a layer
  * \param layer Pointer to the layer structure to change
  * \param name Name of the protocol to use
- * \return 
  * */
-int layer_set_protocol(layer_t *layer, char *name);
+void layer_set_protocol(layer_t *layer, protocol_t *protocol);
 
 /**
  * \brief Set the sublayer for a layer
@@ -81,5 +72,15 @@ int layer_set_field(layer_t *layer, field_t *field);
  * \return 0 if successful
  */
 int layer_set_payload(layer_t *layer, buffer_t *payload);
+
+void layer_set_buffer_size(layer_t *layer, size_t buffer_size);
+void layer_set_header_size(layer_t *layer, size_t header_size);
+void layer_set_buffer(layer_t *layer, unsigned char *buffer);
+
+field_t *layer_get_field(layer_t *layer, char *name);
+
+// Dump
+
+void layer_dump(layer_t *layer, unsigned int indent);
 
 #endif

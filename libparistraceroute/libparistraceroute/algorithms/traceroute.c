@@ -84,6 +84,7 @@ traceroute_data_t *traceroute_data_create(algorithm_instance_t * instance)
     return traceroute_data;
 
 FAILURE:
+    printf("FAILURE\n");
     if(traceroute_data) traceroute_data_free(traceroute_data);
     return NULL;
 }
@@ -161,13 +162,23 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
 
                 // Create a probe with ttl = 1 and send it
                 // TODO Use probe_skel 
+                printf("Creating a probe\n");
                 probe = probe_create();
-                probe_set_fields(probe, I8("ttl", options->min_ttl));
+
+                // We should be able not to specify the protocol stack
+                printf("setting protocols\n");
+                probe_set_protocols(probe, "ipv4", "udp", NULL);
+                printf("probe layer size = %d\n", probe->layers->size);
+                printf("setting fields\n");
+                probe_set_fields(probe, I8("ttl", options->min_ttl), NULL);
+                probe_set_fields(probe, STR("dst_ip", "1.1.1.1"), NULL);
+                printf("probe send\n");
                 pt_probe_send(loop, probe);
-                probe_free(probe);
+                // probe_free(probe); // TODO we don't want to make copies
                 break;
 
             case REPLY_RECEIVED:
+                data = algorithm_instance_get_data(instance);
                 printf("traceroute::INIT probe reply received\n");
 
                 num_probes      = options->num_probes;

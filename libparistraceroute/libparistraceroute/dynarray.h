@@ -64,4 +64,6 @@ unsigned int dynarray_get_size(dynarray_t *dynarray);
  */
 void **dynarray_get_elements(dynarray_t *dynarray);
 
+void *dynarray_get_ith_element(dynarray_t *dynarray, unsigned int i);
+
 #endif

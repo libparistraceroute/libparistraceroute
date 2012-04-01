@@ -44,10 +44,15 @@ void protocol_write_header_callback(field_t *field, void *data)
     memcpy(buf + protocol_field->offset, field->value, field_get_type_size(protocol_field->type));
 }
 
-protocol_field_t * protocol_get_field(protocol_t *protocol, char *name)
+protocol_field_t * protocol_get_field(protocol_t *protocol, const char *name)
 {
-    // not implemented
+    protocol_field_t *pfield;
     
+    for(pfield = protocol->fields; pfield->key; pfield++) {
+        if (strcmp(pfield->key, name) == 0) {
+            return pfield;
+        }
+    }
     return NULL;
 }
 

@@ -8,16 +8,17 @@
 
 #include "probe.h"
 
-#define MAXBUF 10000
-
 /**
  * \struct packet_t
  * \brief Structure describing a network packet
  */
 
 typedef struct {
-    char   data[MAXBUF]; /**< Buffer to hold the packet data */
-    size_t size;         /**< Size of buffer */
+    buffer_t *buffer; /**< Buffer to hold the packet data */
+
+    /* Redundant information : temporary */
+    unsigned char *dip;
+    unsigned short dport;
 } packet_t;
 
 /**
@@ -25,7 +26,7 @@ typedef struct {
  * \return New packet_t structure
  */
 
-packet_t * packet_create(void);
+packet_t * packet_create(unsigned char *dip, unsigned short dport);
 
 /**
  * \brief Create a new packet from a probe
@@ -41,5 +42,10 @@ packet_t * packet_create_from_probe(probe_t * probe);
  */
 
 void packet_free(packet_t * packet);
+
+// Accessors
+
+buffer_t * packet_get_buffer(packet_t *packet);
+int packet_set_buffer(packet_t *packet, buffer_t *buffer);
 
 #endif

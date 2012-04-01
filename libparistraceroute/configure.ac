@@ -41,6 +41,7 @@ AC_DEFINE([BSDSOCKET], [1], [BSD socket interface])
 #jo#trpt_buggy="no"
 
 CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
+CFLAGS="-g -Wall -fno-strict-aliasing"
 # -Werror
 
 #############
