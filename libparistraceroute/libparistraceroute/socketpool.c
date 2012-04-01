@@ -63,27 +63,30 @@ void socketpool_free(socketpool_t *socketpool)
 
 int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
 {
-    char *dest_addr = "127.0.0.1"; // TODO
-    char *dest_port_char = "2828"; // TODO
-    unsigned short dest_port = 2828;
+	struct addrinfo* addrinf;
+	int get_error;
     size_t size;
+	sockaddr_u sock;
+    
+    addrinf = malloc(sizeof(struct addrinfo));
 
-	struct addrinfo* addrinf = malloc(sizeof(struct addrinfo));
-	int get_error = getaddrinfo(dest_addr, dest_port_char,NULL, &addrinf);
+    /* determine the type of IP address */
+    get_error = getaddrinfo((char*)packet->dip, NULL, NULL, &addrinf);
 	if(get_error!=0){
 		fprintf(stderr, "fill_sockaddr : getaddrinfo: %s\n", gai_strerror(get_error));
 		return -1; // XXX
 	}
-	sockaddr_u* sock = malloc(sizeof(sockaddr_u));
+
+    /* Currently only IPv4 and IPv6 are supported */
 	if(addrinf->ai_family==AF_INET){//IPv4
         printf("sending IPv4\n");
-		sock->sin.sin_family=AF_INET;
-		sock->sin.sin_port = htons(dest_port);
-		inet_pton(AF_INET, dest_addr, &sock->sin.sin_addr);
+		sock.sin.sin_family=AF_INET;
+		sock.sin.sin_port = htons(packet->dport);
+		inet_pton(AF_INET, (char*)packet->dip, &sock.sin.sin_addr);
 	} else if(addrinf->ai_family==AF_INET6){//IPv6
-		sock->sin6.sin6_family=AF_INET6;
-		sock->sin6.sin6_port = htons(dest_port);
-		inet_pton(AF_INET6, dest_addr, &sock->sin6.sin6_addr);
+		sock.sin6.sin6_family=AF_INET6;
+		sock.sin6.sin6_port = htons(packet->dport);
+		inet_pton(AF_INET6, (char*)packet->dip, &sock.sin6.sin6_addr);
 	} else {
         return -1; // error
     }
@@ -93,7 +96,8 @@ int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
 
     size = buffer_get_size(packet->buffer);
     printf("Sending packet of size : %lu\n", size);
-    if (sendto (socketpool->socket, buffer_get_data(packet->buffer), size,0,(struct sockaddr *) &sock,sizeof (sock)) < 0){
+    printf("%d\n", socketpool->socket);
+    if (sendto (socketpool->socket, buffer_get_data(packet->buffer), size, 0, (struct sockaddr *) &sock, sizeof (sock)) < 0){
         perror ("send_data : sending error in queue ");
         return -1;
     }
