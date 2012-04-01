@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <arpa/inet.h>
 #include "field.h"
 
 field_t *field_create_int32(char *key, uint32_t value) {
@@ -57,6 +58,24 @@ field_t *field_create(fieldtype_t type, char *key, void *value)
             return field_create_int16(key, *(uint16_t*)value);
         case TYPE_INT32:
             return field_create_int32(key, *(uint32_t*)value);
+        case TYPE_STRING:
+            return field_create_string(key, (unsigned char *)value);
+        case TYPE_INT4:
+        default:
+            break;
+    }
+    return 0;
+}
+
+field_t *field_create_from_network(fieldtype_t type, char *key, void *value)
+{
+    switch (type) {
+        case TYPE_INT8:
+            return field_create_int8(key, *(uint8_t*)value);
+        case TYPE_INT16:
+            return field_create_int16(key, ntohs(*(uint16_t*)value));
+        case TYPE_INT32:
+            return field_create_int32(key, ntohl(*(uint32_t*)value));
         case TYPE_STRING:
             return field_create_string(key, (unsigned char *)value);
         case TYPE_INT4:

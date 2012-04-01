@@ -89,7 +89,6 @@ packet_t *packet_create_from_probe(probe_t *probe)
     field_t *field;
     
     // XXX assert ipv4/udp/no payload (encode tag into checksum) 
-    probe_dump(probe);
     
     field = probe_get_field(probe, "dst_ip");
     if (!field)
@@ -103,12 +102,20 @@ packet_t *packet_create_from_probe(probe_t *probe)
 
     packet = packet_create(dip, dport);
     packet_set_buffer(packet, probe_get_buffer(probe));
-    
-    /* probe->buffer contains an incomplete packet being contructed :
-     * missing parts are checksums and payload
-     * NOTE: user checksum is not supported yet, since it is used to set a given
-     * checksum for tagging the packet.
-     */
+
+    size = dynarray_get_size(probe->layers);
+
+    /* Sets the payload */
+
+    /* Allow the protocol to do some processing before checksumming */
+    for (i = 0; i<size; i++) {
+        layer = dynarray_get_ith_element(probe->layers, i);
+
+        /* finalize callback */
+        if (layer->protocol->finalize)
+            layer->protocol->finalize(layer->buffer);
+
+    }
 
     // 1) Write payload (need to have enough buffer space)
     //payload      = probe_get_payload(probe);
@@ -117,10 +124,9 @@ packet_t *packet_create_from_probe(probe_t *probe)
     // 2) Go though the layers of the probe in the reverse order to write
     // checksums
     // XXX layer_t will require parent layer, and probe_t bottom_layer
-    size = dynarray_get_size(probe->layers);
     for (i = size - 1; i >= 0; i--) {
         layer = dynarray_get_ith_element(probe->layers, i);
-        printf("LAYER %d %s\n", i, layer->protocol->name);
+        printf("Checksum : layer %d %s\n", i, layer->protocol->name);
         /* Does the protocol require a pseudoheader ? */
         if (layer->protocol->need_ext_checksum) {
             //layer_t        * layer_prev;
@@ -148,6 +154,8 @@ packet_t *packet_create_from_probe(probe_t *probe)
     }
 
     // 3) swap payload and IPv4 checksum
+
+    probe_dump(probe);
 
     return packet;
 

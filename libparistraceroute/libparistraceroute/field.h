@@ -81,6 +81,7 @@ field_t * field_create_int32 (char *key, uint32_t value);
 field_t * field_create_string(char *key, unsigned char * value);
 
 field_t *field_create(fieldtype_t type, char *key, void *value);
+field_t *field_create_from_network(fieldtype_t type, char *key, void *value);
 
 /**
  * \brief Delete a field structure

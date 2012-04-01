@@ -21,6 +21,10 @@
 typedef struct {
 	/** Name of the protocol */
     char* name;
+    /** Identifier of the protocol :
+     * http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
+     */
+    unsigned int protocol;
 	/** Pointer to a function that will return the number of fields this protocol has */
     unsigned int (*get_num_fields)(void);
 	/** Pointer to a function that will return true if an external checksum is needed, false otherwise (?) */
@@ -42,6 +46,9 @@ typedef struct {
     //socket_type
 	/** Pointer to a function that returns the size of the protocol header */
     unsigned int (*get_header_size)(void);
+    /** Pointer to a function that allows the protocol to do further processing
+     * before the packet checksum is computed, and the packet is sent */
+    int (*finalize)(unsigned char *buffer);
 } protocol_t;
 
 /**

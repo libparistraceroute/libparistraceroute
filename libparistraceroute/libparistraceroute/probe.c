@@ -66,12 +66,15 @@ void probe_dump(probe_t *probe)
     unsigned int i;
 
     /* Let's loop through the layers and print all fields */
+    printf("\n\n** PROBE **\n\n");
     size = dynarray_get_size(probe->layers);
     for(i = 0; i < size; i++) {
         layer_t *layer;
         layer = dynarray_get_ith_element(probe->layers, i);
         layer_dump(layer, i);
+        printf("\n");
     }
+    printf("\n");
 }
 
 // TODO A similar function should allow hooking into the layer structure
@@ -79,9 +82,9 @@ void probe_dump(probe_t *probe)
 int probe_set_protocols(probe_t *probe, char *name1, ...)
 {
     va_list  args, args2;
-    size_t   buflen = 0;
+    size_t   buflen, offset;
     char   * i;
-    layer_t *layer;
+    layer_t *layer, *prev_layer;
 
     /* Remove the former layer structure */
     dynarray_clear(probe->layers, (void(*)(void*))layer_free);
@@ -89,29 +92,28 @@ int probe_set_protocols(probe_t *probe, char *name1, ...)
     /* Set up the new layer structure */
     va_start(args, name1);
 
+    buflen = 0;
     /* allocate the buffer according to the layer structure */
     va_copy(args2, args);
     for (i = name1; i; i = va_arg(args2, char*)) {
         protocol_t *protocol;
-        printf("searching protocol %s\n", i);
         protocol = protocol_search(i);
         if (!protocol)
             goto error;
-        printf("headerlen = %lu\n", protocol->header_len);
         buflen += protocol->header_len; 
     }
     va_end(args2);
 
-    printf("buffer resize to %lu\n", buflen);
     buffer_resize(probe->buffer, buflen);
 
-    buflen = 0;
+    offset = 0;
+    prev_layer = NULL;
     for (i = name1; i; i = va_arg(args, char*)) {
+        protocol_field_t *pfield;
         protocol_t *protocol;
 
         /* Associate protocol to the layer */
         layer = layer_create();
-        printf("searching protocol %s\n", i);
         protocol = protocol_search(i);
         if (!protocol)
             goto error;
@@ -119,16 +121,30 @@ int probe_set_protocols(probe_t *probe, char *name1, ...)
         layer_set_protocol(layer, protocol);
 
         /* Initialize the buffer with default protocol values */
-        protocol->write_default_header(buffer_get_data(probe->buffer) + buflen);
+        protocol->write_default_header(buffer_get_data(probe->buffer) + offset);
         layer_set_header_size(layer, protocol->header_len);
 
         // TODO consider variable length headers */
-        layer_set_buffer(layer, buffer_get_data(probe->buffer) + buflen);
-        // layer_set_buffer_size unknown (useful for checksum ?)
+        layer_set_buffer(layer, buffer_get_data(probe->buffer) + offset);
+        layer_set_buffer_size(layer, buflen - offset);
 
-        buflen += protocol->header_len; 
+        pfield = protocol_get_field(layer->protocol, "length");
+        if (pfield) {
+            layer_set_field(layer, I16("length", (uint16_t)(buflen - offset)));
+        }
+
+        if (prev_layer) {
+            pfield = protocol_get_field(layer->protocol, "protocol");
+            if (pfield) {
+                layer_set_field(layer, I16("protocol", (uint16_t)prev_layer->protocol->protocol));
+            }
+        }
+
+        offset += protocol->header_len; 
 
         dynarray_push_element(probe->layers, layer);
+
+        prev_layer = layer;
     }
     va_end(args);
 
@@ -150,57 +166,37 @@ error: // TODO free()
 int probe_set_fields(probe_t *probe, field_t *field1, ...) {
     va_list args;
     field_t *field;
+    int res;
 
     va_start(args, field1);
-    //res = layer_set_fields(probe->top_layer, field1, args);
+
     for (field = field1; field; field = va_arg(args, field_t*)) {
-        // XXX
         /* Going from the first layer, we set the field to the first layer that
          * possess it */
         unsigned int i;
-        protocol_field_t *pfield;
-        size_t pfield_size, size;
+        size_t size;
         layer_t *layer;
 
-        printf("setting field %s\n", field->key);
-
         /* We go through the layers until we get the required field */
+        res = 0;
         size = dynarray_get_size(probe->layers);
         for(i = 0; i < size; i++) {
-            
-            printf("looking layer %u/%lu\n", i, size);
             layer = dynarray_get_ith_element(probe->layers, i);
-            pfield = protocol_get_field(layer->protocol, field->key);
-            if (pfield)
+            
+            res = layer_set_field(layer, field);
+            /* We stop as soon as a layer succeeds */
+            if (res == 0)
                 break;
         }
 
-        /* If we reached the last layer, then the field has not been found */
-        if (i == size)
-            return -1; // field not found
-
-        /* Check we have enough room in the probe buffer */
-        pfield_size = field_get_type_size(pfield->type);
-        if (pfield->offset + pfield_size > layer->header_size) {
-            /* NOTE the allocation of the buffer might be tricky for headers with
-             * variable len (such as IPv4 with options, etc.).
-             */
-            return -2; // the allocated buffer is not sufficient
-        }
-
-        /* 
-         * Copy the field value into the buffer 
-         * If we have a setter function, we use it, otherwise write the value
-         * directly
-         */
-        if (pfield->set)
-            pfield->set(layer->buffer, field);
-        else
-            protocol_field_set(pfield, layer->buffer, field);
+        if (res < 0)
+            break; // field cannot be set in any subfield
     }
+
     va_end(args);
     
-    return 0;
+    /* 0 if all fields could be set */
+    return res;
 }
 
 /* Iterator */
@@ -248,7 +244,6 @@ field_t *probe_get_field(probe_t *probe, char *name)
     size = dynarray_get_size(probe->layers);
     for(i = 0; i < size; i++) {
         
-        printf("looking layer %u/%lu\n", i, size);
         layer = dynarray_get_ith_element(probe->layers, i);
 
         field = layer_get_field(layer, name);

@@ -50,13 +50,46 @@ void layer_set_buffer(layer_t *layer, unsigned char *buffer)
 field_t *layer_get_field(layer_t *layer, char *name)
 {
     protocol_field_t *pfield;
-    field_t *field;
 
     pfield = protocol_get_field(layer->protocol, name);
     if (!pfield)
         return NULL;
-    field = field_create(pfield->type, name, layer->buffer + pfield->offset);
-    return field;
+
+    if (pfield->get)
+        return pfield->get(layer->buffer);
+    else
+        return field_create_from_network(pfield->type, name, layer->buffer + pfield->offset);
+}
+
+int layer_set_field(layer_t *layer, field_t *field)
+{
+    protocol_field_t *pfield;
+    size_t pfield_size;
+
+    pfield = protocol_get_field(layer->protocol, field->key);
+    if (!pfield)
+        return -1; // field not found
+
+    /* Check we have enough room in the probe buffer */
+    pfield_size = field_get_type_size(pfield->type);
+    if (pfield->offset + pfield_size > layer->header_size) {
+        /* NOTE the allocation of the buffer might be tricky for headers with
+         * variable len (such as IPv4 with options, etc.).
+         */
+        return -2; // the allocated buffer is not sufficient
+    }
+
+    /* 
+     * Copy the field value into the buffer 
+     * If we have a setter function, we use it, otherwise write the value
+     * directly
+     */
+    if (pfield->set)
+        pfield->set(layer->buffer, field);
+    else
+        protocol_field_set(pfield, layer->buffer, field);
+
+    return 0;
 }
 
 void print_indent(unsigned int indent)
