@@ -76,6 +76,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						packet.c \
 						probe.c \
 						protocol.c \
+						protocols/icmp.c \
 						protocols/udp.c \
 						protocols/ipv4.c \
 						protocol_field.c \

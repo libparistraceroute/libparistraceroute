@@ -38,11 +38,13 @@ typedef struct {
 
 // Default options
 
+/*
 static traceroute_options_t traceroute_default = {
     .min_ttl    = 1,
     .max_ttl    = 30,
     .num_probes = 3,
 };
+*/
 
 /* --------------------------------------------------------------------
  * Algorithm

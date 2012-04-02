@@ -50,7 +50,7 @@ static struct icmphdr icmp_default = {
     .code           = ICMP_DEFAULT_TYPE,
     .type           = ICMP_DEFAULT_CODE,
     .checksum       = ICMP_DEFAULT_CHECKSUM,
-    .rest_of_header = ICMP_DEFAULT_REST_OF_HEADER
+    .un.gateway        = ICMP_DEFAULT_REST_OF_HEADER // XXX union type
 };
 
 /**
@@ -100,7 +100,7 @@ int icmp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
     if (psh) return EINVAL; // pseudo header not required
 
     icmp_hed = (struct icmphdr *)buf;
-    len = HEADER_SIZE_ICMP;
+    len = sizeof(struct icmphdr);
 
     icmp_hed->checksum = csum(*(unsigned short**)buf, len >> 1);
 

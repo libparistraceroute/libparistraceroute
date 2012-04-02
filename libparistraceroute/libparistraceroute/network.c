@@ -101,7 +101,7 @@ packet_t *packet_create_from_probe(probe_t *probe)
     layer_t        * layer;
     size_t           size;
     int              i;
-    unsigned char  * dip;
+    char           * dip;
     unsigned short   dport;
     packet_t *packet;
     field_t *field;

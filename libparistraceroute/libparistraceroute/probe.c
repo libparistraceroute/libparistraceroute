@@ -63,7 +63,8 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
 {
     size_t          size;
     unsigned char * data;
-    char          * pname = "ipv4"; // XXX suppose we have an IPv4 reply
+    protocol_t    * protocol;
+    uint8_t         protocol_id;
 
     probe->buffer = buffer;
 
@@ -75,6 +76,10 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
 
     /* Remove the former layer structure */
     dynarray_clear(probe->layers, (void(*)(void*))layer_free);
+
+    /* FIXME Let's suppose we have an IPv4 protocol */
+    protocol = protocol_search("ipv4");
+    protocol_id = protocol->protocol;
 
     for(;;) {
         layer_t *layer;
@@ -88,9 +93,11 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
 
         dynarray_push_element(probe->layers, layer);
 
-        protocol = protocol_search(pname);
+        protocol = protocol_search_by_id(protocol_id);
+        printf("Searching protocol of id %hhu\n", protocol_id);
         if (!protocol)
             return -1; // Cannot find matching protocol
+        printf("found: %s\n", protocol->name);
 
         layer_set_protocol(layer, protocol);
         hdrlen = protocol->header_len;
@@ -103,6 +110,7 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
          */
         field = layer_get_field(layer, "protocol");
         if (!field) {
+            printf("Protocol field not found in current layer [%s]... doing payload\n", layer->protocol->name);
             /* last field = payload */
             layer = layer_create();
             layer_set_buffer(layer, data);
@@ -113,7 +121,7 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
         } 
 
         /* continue with next layer considering this protocol */
-        pname = field->string_value;
+        protocol_id = field->int8_value;
     }
     return 0; 
 

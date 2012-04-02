@@ -57,6 +57,9 @@ typedef struct {
  * \return Pointer to a protocol_t structure containing the desired protocol or NULL if not found
  */
 protocol_t* protocol_search(char *name);
+
+protocol_t* protocol_search_by_id(uint8_t id);
+
 /**
  * \brief Register a protocol
  * \param protocol Pointer to a protocol_t structure describing the protocol to register

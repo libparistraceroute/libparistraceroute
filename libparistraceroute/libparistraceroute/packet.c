@@ -44,7 +44,7 @@ int packet_set_buffer(packet_t *packet, buffer_t *buffer)
     return 0;
 }
 
-int packet_set_dip(packet_t *packet, unsigned char *dip)
+int packet_set_dip(packet_t *packet, char *dip)
 {
     packet->dip = dip;
     return 0;

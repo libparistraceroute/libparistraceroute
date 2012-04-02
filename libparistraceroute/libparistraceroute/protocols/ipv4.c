@@ -70,7 +70,7 @@ field_t *ipv4_get_dst_ip(unsigned char *buffer)
     memset(res, 0, IPV4_STRSIZE);
     inet_ntop(AF_INET, &ip_hed->daddr, res, IPV4_STRSIZE);
 
-    return field_create_string(IPV4_FIELD_DST_IP, (unsigned char*)res);
+    return field_create_string(IPV4_FIELD_DST_IP, res);
 }
 
 int ipv4_set_src_ip(unsigned char *buffer, field_t *field)
@@ -96,7 +96,7 @@ field_t *ipv4_get_src_ip(unsigned char *buffer)
     memset(res, 0, IPV4_STRSIZE);
     inet_ntop(AF_INET, &ip_hed->saddr, res, IPV4_STRSIZE);
 
-    return field_create_string(IPV4_FIELD_SRC_IP, (unsigned char*)res);
+    return field_create_string(IPV4_FIELD_SRC_IP, res);
 }
 
 /* IPv4 fields */

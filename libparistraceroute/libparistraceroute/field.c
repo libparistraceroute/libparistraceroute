@@ -59,7 +59,7 @@ field_t *field_create(fieldtype_t type, char *key, void *value)
         case TYPE_INT32:
             return field_create_int32(key, *(uint32_t*)value);
         case TYPE_STRING:
-            return field_create_string(key, (unsigned char *)value);
+            return field_create_string(key, (char *)value);
         case TYPE_INT4:
         default:
             break;
@@ -77,7 +77,7 @@ field_t *field_create_from_network(fieldtype_t type, char *key, void *value)
         case TYPE_INT32:
             return field_create_int32(key, ntohl(*(uint32_t*)value));
         case TYPE_STRING:
-            return field_create_string(key, (unsigned char *)value);
+            return field_create_string(key, (char *)value);
         case TYPE_INT4:
         default:
             break;

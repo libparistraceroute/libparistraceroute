@@ -14,6 +14,11 @@ int protocol_compare(const void *protocol1, const void *protocol2)
             ((const protocol_t*)protocol2)->name);
 }
 
+int protocol_compare_id(const void *protocol1, const void *protocol2)
+{
+    return ((const protocol_t*)protocol1)->protocol - ((const protocol_t*)protocol2)->protocol;
+}
+
 protocol_t* protocol_search(char *name)
 {
     protocol_t **protocol, search;
@@ -25,6 +30,18 @@ protocol_t* protocol_search(char *name)
             protocol_compare);
 
     return protocol ? *protocol : NULL;
+}
+
+protocol_t* protocol_search_by_id(uint8_t id)
+{
+    protocol_t **protocol, search;
+
+    search.protocol = id;
+    protocol = tfind((const void*)&search, (void* const*)&protocols_root,
+            protocol_compare_id);
+
+    return protocol ? *protocol : NULL;
+
 }
 
 void protocol_register(protocol_t *protocol)
