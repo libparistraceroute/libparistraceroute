@@ -40,7 +40,6 @@ static protocol_field_t icmp_fields[] = {
         // optional = 0
     },
     // TODO Multiple possibilities for the last field ! 
-    // Dynamic creation of convenience fields
     // e.g. "protocol" when we repeat some packet header for example
     END_PROTOCOL_FIELDS
 };
@@ -50,7 +49,7 @@ static struct icmphdr icmp_default = {
     .code           = ICMP_DEFAULT_TYPE,
     .type           = ICMP_DEFAULT_CODE,
     .checksum       = ICMP_DEFAULT_CHECKSUM,
-    .un.gateway        = ICMP_DEFAULT_REST_OF_HEADER // XXX union type
+    .un.gateway     = ICMP_DEFAULT_REST_OF_HEADER // XXX union type
 };
 
 /**

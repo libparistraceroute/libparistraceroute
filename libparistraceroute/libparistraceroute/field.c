@@ -9,7 +9,7 @@ field_t *field_create_int32(char *key, uint32_t value) {
 
     if (field) {
         field->key = strdup(key);
-        field->int32_value = value;
+        field->value.int32 = value;
         field->type = TYPE_INT32;
     }
     return field;
@@ -20,7 +20,7 @@ field_t *field_create_int16(char *key, uint16_t value) {
 
     if (field) {
         field->key = strdup(key);
-        field->int16_value = value;
+        field->value.int16 = value;
         field->type = TYPE_INT16;
     }
     return field;
@@ -31,7 +31,7 @@ field_t *field_create_int8(char *key, uint8_t value) {
 
     if (field) {
         field->key = strdup(key);
-        field->int8_value = value;
+        field->value.int8 = value;
         field->type = TYPE_INT8;
     }
     return field;
@@ -43,7 +43,7 @@ field_t *field_create_string(char *key, char *value)
 
     if (field) {
         field->key = strdup(key);
-        field->string_value = strdup(value);
+        field->value.string = strdup(value);
         field->type = TYPE_STRING;
     }
     return field;
@@ -120,18 +120,18 @@ void field_dump(field_t *field)
 {
     switch (field->type) {
         case TYPE_INT8:
-            printf("%hhu", field->int8_value);
+            printf("%hhu", field->value.int8);
             break;
         case TYPE_INT16:
-            printf("%hu", field->int16_value);
+            printf("%hu", field->value.int16);
             break;
         case TYPE_INT32:
-            printf("%u", field->int32_value);
+            printf("%u", field->value.int32);
             break;
         case TYPE_INT4:
             break;
         case TYPE_STRING:
-            printf("%s", field->string_value);
+            printf("%s", field->value.string);
             break;
         default:
             break;

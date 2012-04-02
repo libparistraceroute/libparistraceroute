@@ -58,7 +58,7 @@ void protocol_write_header_callback(field_t *field, void *data)
 
     protocol_field = NULL; // TODO search field->key
 
-    memcpy(buf + protocol_field->offset, field->value, field_get_type_size(protocol_field->type));
+    memcpy(buf + protocol_field->offset, field->value.value, field_get_type_size(protocol_field->type));
 }
 
 protocol_field_t * protocol_get_field(protocol_t *protocol, const char *name)

@@ -64,7 +64,7 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     size_t          size;
     unsigned char * data;
     protocol_t    * protocol;
-    uint8_t         protocol_id;
+    uint8_t         protocol_id, ipv4_protocol_id;
 
     probe->buffer = buffer;
 
@@ -79,7 +79,9 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
 
     /* FIXME Let's suppose we have an IPv4 protocol */
     protocol = protocol_search("ipv4");
-    protocol_id = protocol->protocol;
+    ipv4_protocol_id = protocol->protocol;
+
+    protocol_id = ipv4_protocol_id;
 
     for(;;) {
         layer_t *layer;
@@ -110,18 +112,31 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
          */
         field = layer_get_field(layer, "protocol");
         if (!field) {
-            printf("Protocol field not found in current layer [%s]... doing payload\n", layer->protocol->name);
-            /* last field = payload */
-            layer = layer_create();
-            layer_set_buffer(layer, data);
-            layer_set_buffer_size(layer, size);
+            /* FIXME: special treatment : Do we have an ICMP header ? */
+            field = layer_get_field(layer, "type");
+            if (!field)
+                return -1; // weird icmp packet !
+            if (field->value.int8 == 11) { // TTL expired, an IP packet header is repeated !
+                // Length will be wrong !!!
+                protocol_id = ipv4_protocol_id;
+                continue;
+            } else {
+                // XXX some icmp packets do not have payload
+                // Happened with type 3 !
+                printf("Protocol field not found in current layer [%s]... doing payload\n", layer->protocol->name);
+                printf("SIZE == %lu\n", size);
+                /* last field = payload */
+                layer = layer_create();
+                layer_set_buffer(layer, data);
+                layer_set_buffer_size(layer, size);
 
-            dynarray_push_element(probe->layers, layer);
-            return 0;
+                dynarray_push_element(probe->layers, layer);
+                return 0;
+            }
         } 
 
         /* continue with next layer considering this protocol */
-        protocol_id = field->int8_value;
+        protocol_id = field->value.int8;
     }
     return 0; 
 

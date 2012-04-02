@@ -111,12 +111,12 @@ packet_t *packet_create_from_probe(probe_t *probe)
     field = probe_get_field(probe, "dst_ip");
     if (!field)
         return NULL; // missing dst ip
-    dip = field->string_value;
+    dip = field->value.string;
 
     field = probe_get_field(probe, "dst_port");
     if (!field)
         return NULL; // missing dst port
-    dport = field->int16_value;
+    dport = field->value.int16;
 
     packet = packet_create();
     packet_set_dip(packet, dip);

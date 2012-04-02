@@ -26,6 +26,21 @@ typedef enum {
     TYPE_STRING
 } fieldtype_t;
 
+typedef union {
+	/** Pointer to raw data */
+    void          * value;
+	/** Value of data as a 4 bit integer */
+    unsigned int    int4:4; 
+	/** Value of data as an 8 bit integer */
+    uint8_t         int8;
+	/** Value of data as a 16 bit integer */
+    uint16_t        int16;
+	/** Value of data as a 32 bit integer */
+    uint32_t        int32;
+	/** Pointer to string data */
+    char          * string;
+} value_t;
+
 /**
  * \struct field_t
  * \brief Structure describing a header field
@@ -34,20 +49,7 @@ typedef struct {
 	/** Pointer to a unique identifier key */
     char *key;
 	/** Union of all field data */
-    union {
-		/** Pointer to raw data */
-        void          * value;
-		/** Value of data as a 4 bit integer */
-        unsigned int    int4_value:4; 
-		/** Value of data as an 8 bit integer */
-        uint8_t         int8_value;
-		/** Value of data as a 16 bit integer */
-        uint16_t        int16_value;
-		/** Value of data as a 32 bit integer */
-        uint32_t        int32_value;
-		/** Pointer to string data */
-        char          * string_value;
-    };
+    value_t value;
     fieldtype_t type;
 } field_t;
 

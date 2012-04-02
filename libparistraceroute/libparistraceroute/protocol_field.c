@@ -10,13 +10,13 @@ int protocol_field_set(protocol_field_t *pfield, unsigned char *buffer, field_t 
 {
     switch (pfield->type) {
         case TYPE_INT8:
-            *(uint8_t*)(buffer + pfield->offset) = field->int8_value;
+            *(uint8_t*)(buffer + pfield->offset) = field->value.int8;
             break;
         case TYPE_INT16:
-            *(uint16_t*)(buffer + pfield->offset) = htons(field->int16_value);
+            *(uint16_t*)(buffer + pfield->offset) = htons(field->value.int16);
             break;
         case TYPE_INT32:
-            *(uint32_t*)(buffer + pfield->offset) = htonl(field->int32_value);
+            *(uint32_t*)(buffer + pfield->offset) = htonl(field->value.int32);
             break;
         case TYPE_INT4:
             break;
