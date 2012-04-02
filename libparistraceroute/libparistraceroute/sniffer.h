@@ -42,4 +42,6 @@ int sniffer_get_fd(sniffer_t *sniffer);
 // TODO
 int sniffer_set_callback(sniffer_t *sniffer, void (*callback)(void*, void*));
 
+void sniffer_process_packets(sniffer_t *sniffer);
+
 #endif

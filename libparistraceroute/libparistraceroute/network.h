@@ -57,12 +57,20 @@ void network_free(network_t *network);
  * \return SendQ file descriptor
  */
 int network_get_sendq_fd(network_t *network);
+
 /**
  * \brief Get file descriptor for receiving from network
  * \param network Pointer to the network to use
  * \return RecvQ file descriptor
  */
 int network_get_recvq_fd(network_t *network);
+
+/**
+ * \brief Get file description for the sniffer.
+ * \param network Pointer to the network to use
+ * \return sniffer file descriptor
+ */
+int network_get_sniffer_fd(network_t *network);
 
 /**
  * \brief Send a probe packet across a network

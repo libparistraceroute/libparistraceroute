@@ -41,11 +41,14 @@ network_t* network_create(void)
     if (!network->sniffer) 
         goto err_sniffer;
 
+    printf("success creating sniffer\n");
     return network;
 
 err_sniffer:
+    printf("ERROR creating sniffer\n");
     queue_free(network->recvq);
 err_recvq:
+    printf("ERROR creating receive queue\n");
     queue_free(network->sendq);
 err_sendq:
     socketpool_free(network->socketpool);
@@ -75,6 +78,13 @@ int network_get_recvq_fd(network_t *network)
 {
     return queue_get_fd(network->recvq);
 }
+
+int network_get_sniffer_fd(network_t *network)
+{
+    return sniffer_get_fd(network->sniffer);
+}
+
+/* TODO we need a function to return the set of fd used by the network */
 
 packet_t *packet_create_from_probe(probe_t *probe)
 {
@@ -189,5 +199,13 @@ int network_process_sendq(network_t *network)
  */
 int network_process_recvq(network_t *network)
 {
+    printf("TODO: network_process_recvq\n");
+    return 0;
+}
+
+int network_process_sniffer(network_t *network)
+{
+    printf("TODO: network_process_sniffer\n");
+    sniffer_process_packets(network->sniffer);
     return 0;
 }
