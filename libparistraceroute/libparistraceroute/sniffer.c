@@ -22,7 +22,8 @@ int sniffer_create_raw_socket(sniffer_t *sniffer)
     int res;
 
 	// Create a raw socket (man 7 ip)
-	sniffer->socket  = socket(PF_INET, SOCK_RAW, AF_INET);
+    // TODO we currently only listen for ICMP
+	sniffer->socket  = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	if (sniffer->socket < 0) {
         perror("ERROR creating socket");
 		return -1;
@@ -48,7 +49,7 @@ int sniffer_create_raw_socket(sniffer_t *sniffer)
 		return -1;
     }
 
-    printf("SNIFFER SUCCESSFULLY CREATED\n");
+    printf("SNIFFER SUCCESSFULLY CREATED %d\n", sniffer->socket);
 	
     return 0;
 }
@@ -111,8 +112,18 @@ void sniffer_process_packets(sniffer_t *sniffer)
 		uint16_t ip_len = read16(data, 2);
 		writebe16(data, 2, ip_len);
 #endif
-		if (sniffer->callback != NULL)
-			sniffer->callback(sniffer->network, NULL); // currently we return a NULL packet FIXME 
+		if (sniffer->callback != NULL) {
+            buffer_t *buffer;
+            packet_t *packet;
+
+            buffer = buffer_create();
+            buffer_set_data(buffer, data);
+            buffer_set_size(buffer, data_len);
+
+            packet = packet_create();
+            packet_set_buffer(packet, buffer);
+			sniffer->callback(sniffer->network, packet); 
+        }
 	}
 
 }

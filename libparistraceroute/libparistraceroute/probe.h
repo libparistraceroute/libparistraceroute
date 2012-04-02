@@ -50,6 +50,8 @@ void probe_free(probe_t *probe);
 
 buffer_t *probe_get_buffer(probe_t *probe);
 
+int probe_set_buffer(probe_t *probe, buffer_t *buffer);
+
 // Dump
 void probe_dump(probe_t *probe);
 

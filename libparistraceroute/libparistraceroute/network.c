@@ -4,12 +4,20 @@
 #include "packet.h"
 #include "queue.h"
 
+#include "probe.h" // test
 /******************************************************************************
  * Network
  ******************************************************************************/
 
 void network_sniffer_handler(network_t *network, packet_t *packet)
 {
+    probe_t *probe;
+
+    printf("Information about captured packet:\n");
+    probe = probe_create();
+    probe_set_buffer(probe, packet->buffer);
+    probe_dump(probe);
+
     queue_push_packet(network->recvq, packet);
 }
 
@@ -110,7 +118,9 @@ packet_t *packet_create_from_probe(probe_t *probe)
         return NULL; // missing dst port
     dport = field->int16_value;
 
-    packet = packet_create(dip, dport);
+    packet = packet_create();
+    packet_set_dip(packet, dip);
+    packet_set_dport(packet, dport);
     packet_set_buffer(packet, probe_get_buffer(probe));
 
     size = dynarray_get_size(probe->layers);

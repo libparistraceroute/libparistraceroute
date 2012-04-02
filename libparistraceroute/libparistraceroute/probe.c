@@ -59,6 +59,66 @@ buffer_t *probe_get_buffer(probe_t *probe)
     return probe->buffer;
 }
 
+int probe_set_buffer(probe_t *probe, buffer_t *buffer)
+{
+    size_t          size;
+    unsigned char * data;
+    char          * pname = "ipv4"; // XXX suppose we have an IPv4 reply
+
+    probe->buffer = buffer;
+
+    // XXX dump buffer
+    buffer_dump(probe->buffer);
+    
+    data = buffer_get_data(buffer);
+    size = buffer_get_size(buffer);
+
+    /* Remove the former layer structure */
+    dynarray_clear(probe->layers, (void(*)(void*))layer_free);
+
+    for(;;) {
+        layer_t *layer;
+        protocol_t *protocol;
+        field_t *field;
+        size_t hdrlen;
+
+        layer = layer_create();
+        layer_set_buffer(layer, data);
+        layer_set_buffer_size(layer, size);
+
+        dynarray_push_element(probe->layers, layer);
+
+        protocol = protocol_search(pname);
+        if (!protocol)
+            return -1; // Cannot find matching protocol
+
+        layer_set_protocol(layer, protocol);
+        hdrlen = protocol->header_len;
+
+        data += hdrlen;
+        size -= hdrlen;
+
+        /* In the case of ICMP, while protocol is not really a field, we might
+         * provide it by convenience
+         */
+        field = layer_get_field(layer, "protocol");
+        if (!field) {
+            /* last field = payload */
+            layer = layer_create();
+            layer_set_buffer(layer, data);
+            layer_set_buffer_size(layer, size);
+
+            dynarray_push_element(probe->layers, layer);
+            return 0;
+        } 
+
+        /* continue with next layer considering this protocol */
+        pname = field->string_value;
+    }
+    return 0; 
+
+}
+
 // Dump
 void probe_dump(probe_t *probe)
 {

@@ -94,4 +94,6 @@ int network_process_sendq(network_t *network);
  */
 int network_process_recvq(network_t *network);
 
+int network_process_sniffer(network_t *network);
+
 #endif

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "buffer.h"
 
@@ -49,3 +50,32 @@ size_t  buffer_get_size(buffer_t *buffer)
 {
     return buffer->size;
 }
+
+void buffer_set_data(buffer_t *buffer, unsigned char *data)
+{
+    buffer->data = data;
+}
+
+void buffer_set_size(buffer_t *buffer, size_t size)
+{
+    buffer->size = size;
+}
+
+// Dump
+
+void buffer_dump(buffer_t *buffer)
+{
+    unsigned int i;
+    char c;
+
+    /* print data byte by byte */
+    for (i = 0; i < buffer->size; i++)
+    {
+        c = buffer->data[i];
+        //if (c < ' ' && c != '\n' && c != '\t')
+        //    printf(".");
+        //else
+            printf("%2x ", c);
+    }
+}
+

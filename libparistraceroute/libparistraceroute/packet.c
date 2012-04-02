@@ -9,14 +9,14 @@
  * \brief Allocate a packet
  *
  */
-packet_t * packet_create(unsigned char *dip, unsigned short dport)
+packet_t * packet_create(void)
 {
     packet_t * packet = malloc(sizeof(packet_t));
     if (!packet)
         goto error;
     packet->buffer = NULL;
-    packet->dip = dip;
-    packet->dport = dport;
+    packet->dip = NULL;
+    packet->dport = 0;
 
     return packet;
 
@@ -41,5 +41,17 @@ int packet_set_buffer(packet_t *packet, buffer_t *buffer)
 {
     packet->buffer = buffer;
 
+    return 0;
+}
+
+int packet_set_dip(packet_t *packet, unsigned char *dip)
+{
+    packet->dip = dip;
+    return 0;
+}
+
+int packet_set_dport(packet_t *packet, unsigned short dport)
+{
+    packet->dport = dport;
     return 0;
 }

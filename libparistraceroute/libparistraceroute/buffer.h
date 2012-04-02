@@ -36,5 +36,10 @@ size_t buffer_get_size(buffer_t *buffer);
  */
 int buffer_resize(buffer_t *buffer, size_t size);
 
+void buffer_set_data(buffer_t *buffer, unsigned char *data);
+void buffer_set_size(buffer_t *buffer, size_t size);
+
+// Dump
+void buffer_dump(buffer_t *buffer);
 
 #endif

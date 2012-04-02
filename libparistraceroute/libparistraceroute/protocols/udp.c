@@ -12,6 +12,11 @@
 #define UDP_DEFAULT_SRC_PORT 2828
 #define UDP_DEFAULT_DST_PORT 2828
 
+#define UDP_FIELD_SRC_PORT "src_port"
+#define UDP_FIELD_DST_PORT "dst_port"
+#define UDP_FIELD_LENGTH   "length"
+#define UDP_FIELD_CHECKSUM "checksum"
+
 // XXX mandatory fields ?
 // XXX UDP parsing missing
 #ifdef __FAVOR_BSD
@@ -29,19 +34,19 @@
 /* UDP fields */
 static protocol_field_t udp_fields[] = {
     {
-        .key = "src_port",
+        .key = UDP_FIELD_SRC_PORT,
         .type = TYPE_INT16,
         .offset = offsetof(struct udphdr, SRC_PORT),
     }, {
-        .key = "dst_port",
+        .key = UDP_FIELD_DST_PORT,
         .type = TYPE_INT16,
         .offset = offsetof(struct udphdr, DST_PORT),
     }, {
-        .key = "length",
+        .key = UDP_FIELD_LENGTH,
         .type = TYPE_INT16,
         .offset = offsetof(struct udphdr, LENGTH),
     }, {
-        .key = "checksum",
+        .key = UDP_FIELD_CHECKSUM,
         .type = TYPE_INT16,
         .offset = offsetof(struct udphdr, CHECKSUM),
         // optional = 0

@@ -26,7 +26,8 @@ typedef struct {
  * \return New packet_t structure
  */
 
-packet_t * packet_create(unsigned char *dip, unsigned short dport);
+packet_t * packet_create(void);
+
 
 /**
  * \brief Create a new packet from a probe
@@ -47,5 +48,8 @@ void packet_free(packet_t * packet);
 
 buffer_t * packet_get_buffer(packet_t *packet);
 int packet_set_buffer(packet_t *packet, buffer_t *buffer);
+
+int packet_set_dip(packet_t *packet, unsigned char *dip);
+int packet_set_dport(packet_t *packet, unsigned short dport);
 
 #endif

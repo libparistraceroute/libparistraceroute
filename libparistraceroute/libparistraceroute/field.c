@@ -37,13 +37,13 @@ field_t *field_create_int8(char *key, uint8_t value) {
     return field;
 }
 
-field_t *field_create_string(char *key, unsigned char *value)
+field_t *field_create_string(char *key, char *value)
 {
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
         field->key = strdup(key);
-        field->string_value = (unsigned char*)strdup((char*)value);
+        field->string_value = strdup(value);
         field->type = TYPE_STRING;
     }
     return field;
