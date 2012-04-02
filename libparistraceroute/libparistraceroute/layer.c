@@ -103,6 +103,12 @@ void layer_dump(layer_t *layer, unsigned int indent)
 {
     protocol_field_t *pfield;
     print_indent(indent);
+
+    if (!layer->protocol) {
+        printf("PAYLOAD\n");
+        return;
+    }
+
     printf("LAYER: %s\n", layer->protocol->name);
     print_indent(indent);
     printf("----------\n");
