@@ -11,13 +11,6 @@
 
 void network_sniffer_handler(network_t *network, packet_t *packet)
 {
-    probe_t *probe;
-
-    printf("Information about captured packet:\n");
-    probe = probe_create();
-    probe_set_buffer(probe, packet->buffer);
-    probe_dump(probe);
-
     queue_push_packet(network->recvq, packet);
 }
 
@@ -49,14 +42,11 @@ network_t* network_create(void)
     if (!network->sniffer) 
         goto err_sniffer;
 
-    printf("success creating sniffer\n");
     return network;
 
 err_sniffer:
-    printf("ERROR creating sniffer\n");
     queue_free(network->recvq);
 err_recvq:
-    printf("ERROR creating receive queue\n");
     queue_free(network->sendq);
 err_sendq:
     socketpool_free(network->socketpool);
@@ -146,7 +136,6 @@ packet_t *packet_create_from_probe(probe_t *probe)
     // XXX layer_t will require parent layer, and probe_t bottom_layer
     for (i = size - 1; i >= 0; i--) {
         layer = dynarray_get_ith_element(probe->layers, i);
-        printf("Checksum : layer %d %s\n", i, layer->protocol->name);
         /* Does the protocol require a pseudoheader ? */
         if (layer->protocol->need_ext_checksum) {
             //layer_t        * layer_prev;
@@ -175,7 +164,7 @@ packet_t *packet_create_from_probe(probe_t *probe)
 
     // 3) swap payload and IPv4 checksum
 
-    probe_dump(probe);
+    //probe_dump(probe);
 
     return packet;
 
@@ -209,13 +198,22 @@ int network_process_sendq(network_t *network)
  */
 int network_process_recvq(network_t *network)
 {
-    printf("TODO: network_process_recvq\n");
+    probe_t *probe;
+    packet_t *packet;
+    
+    packet = queue_pop_packet(network->recvq);
+    probe = probe_create();
+    probe_set_buffer(probe, packet->buffer);
+
+    //probe_dump(probe);
+    
+    printf("TODO: queue received probe for matching\n");
+
     return 0;
 }
 
 int network_process_sniffer(network_t *network)
 {
-    printf("TODO: network_process_sniffer\n");
     sniffer_process_packets(network->sniffer);
     return 0;
 }

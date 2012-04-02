@@ -79,7 +79,6 @@ int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
 
     /* Currently only IPv4 and IPv6 are supported */
 	if(addrinf->ai_family==AF_INET){//IPv4
-        printf("sending IPv4\n");
 		sock.sin.sin_family=AF_INET;
 		sock.sin.sin_port = htons(packet->dport);
 		inet_pton(AF_INET, (char*)packet->dip, &sock.sin.sin_addr);
@@ -95,8 +94,6 @@ int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
 	//probe_set_sending_time( probe, get_time ());
 
     size = buffer_get_size(packet->buffer);
-    printf("Sending packet of size : %lu\n", size);
-    printf("%d\n", socketpool->socket);
     if (sendto (socketpool->socket, buffer_get_data(packet->buffer), size, 0, (struct sockaddr *) &sock, sizeof (sock)) < 0){
         perror ("send_data : sending error in queue ");
         return -1;

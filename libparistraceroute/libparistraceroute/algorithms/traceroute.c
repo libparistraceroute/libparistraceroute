@@ -154,7 +154,6 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
         switch (events[i]->type) {
             case ALGORITHM_INIT:
 
-                printf("traceroute::INIT sending probe\n");
                 // Algorithm initialization
                 data = traceroute_data_create(instance);
                 if(!data) goto FAILURE;

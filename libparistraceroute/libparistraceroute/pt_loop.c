@@ -140,16 +140,12 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
         
         if (loop->events[i].data.fd == network_sendq_fd) {
-            printf("INFO: pt_loop network_sendq received activity\n");
             network_process_sendq(loop->network);
         } else if (loop->events[i].data.fd == network_recvq_fd) {
-            printf("INFO: pt_loop network_recvq received activity\n");
             network_process_recvq(loop->network);
         } else if (loop->events[i].data.fd == network_sniffer_fd) {
-            printf("INFO: pt_loop network_sniffer received activity\n");
             network_process_sniffer(loop->network);
         } else if (loop->events[i].data.fd == loop->eventfd_algorithm) {
-            printf("INFO: pt_loop algorithm received activity\n");
             pt_algorithm_instance_iter(loop, pt_process_algorithms_instance);
         // } else {
         }

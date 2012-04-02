@@ -32,7 +32,6 @@ int sniffer_create_raw_socket(sniffer_t *sniffer)
     /* Make the socket non-blocking */
     res = fcntl(sniffer->socket, F_SETFD, O_NONBLOCK);
     if (res != 0) {
-        printf("ERROR making it non blocking\n");
         return -1;
     }
 	
@@ -45,12 +44,9 @@ int sniffer_create_raw_socket(sniffer_t *sniffer)
 	res = bind(sniffer->socket, (struct sockaddr*)&saddr,
 			sizeof(struct sockaddr_in));
 	if (res < 0) {
-        printf("ERROR binding\n");
 		return -1;
     }
 
-    printf("SNIFFER SUCCESSFULLY CREATED %d\n", sniffer->socket);
-	
     return 0;
 }
 
@@ -62,15 +58,12 @@ sniffer_t * sniffer_create(network_t *network, void (*callback)(network_t *netwo
     sniffer = malloc(sizeof(sniffer_t));
     sniffer->network = network;
     sniffer->callback = callback;
-    printf("create raw\n");
     res = sniffer_create_raw_socket(sniffer);
     if (res == -1)
         goto error;
-    printf("RAW OK\n");
     return sniffer;
 
 error:
-    printf("RAW ERROR\n");
     free(sniffer);
     sniffer = NULL;
     return NULL;
@@ -86,7 +79,6 @@ void sniffer_free(sniffer_t *sniffer)
 
 int sniffer_get_fd(sniffer_t *sniffer)
 {
-    printf("sniffer_get_fd\n");
     return sniffer->socket;
 }
 
@@ -95,9 +87,7 @@ void sniffer_process_packets(sniffer_t *sniffer)
     unsigned char data[BUFLEN];
     int data_len;
 
-    printf("sniffer: before recv\n");
 	data_len = recv(sniffer->socket, data, BUFLEN, 0);
-    printf("sniffer: after recv (data_len = %d\n", data_len);
 	if (data_len >= 4) {
 		// We have to make some modifications on the datagram
 		// received because the raw format varies between

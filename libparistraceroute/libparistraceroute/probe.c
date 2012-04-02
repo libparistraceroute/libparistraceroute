@@ -68,8 +68,7 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
 
     probe->buffer = buffer;
 
-    // XXX dump buffer
-    buffer_dump(probe->buffer);
+    // buffer_dump(probe->buffer);
     
     data = buffer_get_data(buffer);
     size = buffer_get_size(buffer);
@@ -96,10 +95,8 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
         dynarray_push_element(probe->layers, layer);
 
         protocol = protocol_search_by_id(protocol_id);
-        printf("Searching protocol of id %hhu\n", protocol_id);
         if (!protocol)
             return -1; // Cannot find matching protocol
-        printf("found: %s\n", protocol->name);
 
         layer_set_protocol(layer, protocol);
         hdrlen = protocol->header_len;
@@ -123,8 +120,6 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
             } else {
                 // XXX some icmp packets do not have payload
                 // Happened with type 3 !
-                printf("Protocol field not found in current layer [%s]... doing payload\n", layer->protocol->name);
-                printf("SIZE == %lu\n", size);
                 /* last field = payload */
                 layer = layer_create();
                 layer_set_buffer(layer, data);
@@ -241,7 +236,6 @@ int probe_set_protocols(probe_t *probe, char *name1, ...)
     return 0;
 
 error: // TODO free()
-    printf("ERROR\n");
     return -1;
 }
 
