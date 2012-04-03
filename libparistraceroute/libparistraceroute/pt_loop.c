@@ -68,6 +68,7 @@ pt_loop_t* pt_loop_create(void)
     loop->events = calloc (MAXEVENTS, sizeof(struct epoll_event));
 
     loop->next_algorithm_id = 1; // 0 means unaffected ?
+    loop->cur_instance = NULL;
 
     return loop;
 
@@ -96,14 +97,22 @@ void pt_loop_free(pt_loop_t *loop)
     loop = NULL;
 }
 
+// Accessors
+
+int pt_loop_set_algorithm_instance(pt_loop_t *loop, algorithm_instance_t *instance)
+{
+    loop->cur_instance = instance;
+    return 0;
+}
+
+algorithm_instance_t *pt_loop_get_algorithm_instance(pt_loop_t *loop)
+{
+    return loop->cur_instance;
+}
+
 void pt_loop_stop(pt_loop_t *loop)
 {
     loop->status = LOOP_STOPPED;
-}
-
-void pt_notify_algorithm_fd(pt_loop_t *loop)
-{
-    eventfd_write(loop->eventfd_algorithm, 1);
 }
 
 int pt_loop(pt_loop_t *loop, unsigned int timeout)

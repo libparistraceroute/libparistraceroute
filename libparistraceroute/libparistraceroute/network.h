@@ -20,6 +20,7 @@
 #include "queue.h"
 #include "socketpool.h"
 #include "sniffer.h"
+#include "dynarray.h"
 
 /******************************************************************************
  * Network
@@ -31,13 +32,15 @@
  */
 typedef struct network_s {
 	/** Pointer to a pool of sockets for use by this network */
-    socketpool_t *socketpool;
+    socketpool_t * socketpool;
 	/** Pointer to a queue for packets to send */
-    queue_t *sendq;
+    queue_t      * sendq;
 	/** Pointer to a queue for packets to be received */
-    queue_t *recvq;
+    queue_t     * recvq;
 	/** Pointer to a sniffer to use on this network */
-    sniffer_t *sniffer;
+    sniffer_t   * sniffer;
+    /** List of probes in transit */
+    dynarray_t      * probes;
 } network_t;
 
 /**
@@ -79,7 +82,7 @@ int network_get_sniffer_fd(network_t *network);
  * \param callback Function pointer to a callback function (Does not appear to be used currently)
  * \return 0
  */
-int network_send_probe(network_t *network, probe_t *probe, void (*callback)); //(pt_loop_t *loop, probe_t *probe, probe_t *reply));
+int network_send_probe(network_t *network, probe_t *probe);
 
 /**
  * \brief Send the next packet on the queue

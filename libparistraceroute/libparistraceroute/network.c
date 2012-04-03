@@ -5,13 +5,15 @@
 #include "queue.h"
 
 #include "probe.h" // test
+#include "algorithm.h"
+
 /******************************************************************************
  * Network
  ******************************************************************************/
 
 void network_sniffer_handler(network_t *network, packet_t *packet)
 {
-    queue_push_packet(network->recvq, packet);
+    queue_push_element(network->recvq, packet);
 }
 
 network_t* network_create(void)
@@ -27,12 +29,12 @@ network_t* network_create(void)
     if (!network->socketpool)
         goto err_socketpool;
 
-    /* create the send queue */
+    /* create the send queue: probes */
     network->sendq = queue_create();
     if (!network->sendq)
         goto err_sendq;
 
-    /* create the receive queue */
+    /* create the receive queue: packets */
     network->recvq = queue_create();
     if (!network->recvq)
         goto err_recvq;
@@ -42,12 +44,18 @@ network_t* network_create(void)
     if (!network->sniffer) 
         goto err_sniffer;
 
+    /* create a list to store probes */
+    network->probes = dynarray_create();
+    if (!network->probes)
+        goto err_probes;
     return network;
 
+err_probes:
+    sniffer_free(network->sniffer);
 err_sniffer:
-    queue_free(network->recvq);
+    queue_free(network->recvq, (ELEMENT_FREE)packet_free);
 err_recvq:
-    queue_free(network->sendq);
+    queue_free(network->sendq, (ELEMENT_FREE)probe_free);
 err_sendq:
     socketpool_free(network->socketpool);
 err_socketpool:
@@ -59,9 +67,10 @@ err_network:
 
 void network_free(network_t *network)
 {
+    dynarray_free(network->probes, (ELEMENT_FREE)probe_free);
     sniffer_free(network->sniffer);
-    queue_free(network->sendq);
-    queue_free(network->recvq);
+    queue_free(network->sendq, (ELEMENT_FREE)probe_free);
+    queue_free(network->recvq, (ELEMENT_FREE)probe_free);
     socketpool_free(network->socketpool);
     free(network);
     network = NULL;
@@ -172,42 +181,82 @@ packet_t *packet_create_from_probe(probe_t *probe)
 
 
 // not the right callback here
-int network_send_probe(network_t *network, probe_t *probe, void (*callback)) 
+int network_send_probe(network_t *network, probe_t *probe)
 {
-    packet_t *packet;
-    
-    packet = packet_create_from_probe(probe);
-    queue_push_packet(network->sendq, packet);
+    queue_push_element(network->sendq, probe);
 
     return 0;
 }
 
+// TODO This could be replaced by watchers: FD -> action
+
 int network_process_sendq(network_t *network)
 {
-    packet_t *packet = queue_pop_packet(network->sendq);
-    if (packet)
-        socketpool_send_packet(network->socketpool, packet);
+    probe_t *probe;
+    packet_t *packet;
+    int res;
+    
+    probe = queue_pop_element(network->sendq);
+
+    /* Make a packet from the probe structure */
+    packet = packet_create_from_probe(probe);
+    if (!packet)
+        return -1;
+
+    /* Send the packet */
+    res = socketpool_send_packet(network->socketpool, packet);
+    if (res < 0)
+        return -2;
+
+    probe_set_sending_time(probe, get_timestamp());
+
+    /* Add the probe the the probes_in_flight list */
+    dynarray_push_element(network->probes, probe);
+
     return 0;
+}
+
+/**
+ * \brief matches a reply with a probe
+ */
+probe_t *network_match_probe(network_t *network, probe_t *probe)
+{
+    // Not implemented
+    printf("TODO: matching probe\n");
+    probe_dump(probe);
+    return NULL;
 }
 
 /**
  * \brief Process received packets: match them with a probe, or discard them.
  * \param network Pointer to a network structure
  *
- * Received packets, typically handled by the snifferTypically, the receive queue stores all the packets received by the sniffer.
+ * Typically, the receive queue stores all the packets received by the sniffer.
  */
 int network_process_recvq(network_t *network)
 {
-    probe_t *probe;
+    probe_t *probe, *reply;
     packet_t *packet;
+    algorithm_instance_t *instance;
     
-    packet = queue_pop_packet(network->recvq);
-    probe = probe_create();
-    probe_set_buffer(probe, packet->buffer);
+    packet = queue_pop_element(network->recvq);
+    reply = probe_create();
+    probe_set_buffer(reply, packet->buffer);
 
     //probe_dump(probe);
     
     printf("TODO: queue received probe for matching\n");
+    probe = network_match_probe(network, reply);
+    if (!probe)
+        return -1; // Discard the probe
+
+    /* We have a match: probe has generated reply
+     * Let's notify the caller that it has received a reply
+     */
+    instance = probe->caller;
+
+    /* TODO we need a probe/reply pair */
+    algorithm_instance_add_event(instance, event_create(PROBE_REPLY_RECEIVED, NULL));
 
     return 0;
 }

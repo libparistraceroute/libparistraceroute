@@ -25,7 +25,7 @@ typedef enum {
     /** Algorithm terminated event */
     ALGORITHM_TERMINATED,
     /** Reply received event */
-    REPLY_RECEIVED
+    PROBE_REPLY_RECEIVED
 } event_type_t;
 
 /**

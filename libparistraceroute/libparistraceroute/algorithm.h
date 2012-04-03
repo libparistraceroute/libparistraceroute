@@ -21,40 +21,19 @@ typedef enum {
     ERROR       /*!< An error occurred */
 } status_t;
 
-struct algorithm_s;
-
-/**
- * \enum caller_type_t
- * \brief Type of caller
- */
-typedef enum {
-    CALLER_ALGORITHM,   /*!< caller is an algorithm */
-} caller_type_t;
-
-/**
- * \struct caller_t
- * \brief Structure describing the caller for an entity.
- */
-typedef struct {
-    caller_type_t type; /*!< Type of the entity that called the algorithm instance */
-    union {
-        struct algorithm_instance_s *caller_algorithm;  /*!< Pointer to the caller algorithm */
-    };
-} caller_t;
-
 /**
  * \struct algorithm_instance_t
  * \brief Structure describing a running instance of an algorithm.
  */
 typedef struct algorithm_instance_s {
-    unsigned int id;                /*!< Unique identifier */
-    struct algorithm_s *algorithm;  /*!< Pointer to the type of algorithm */
-    void *options;                  /*!< Pointer to an option structure specific to the algorithm */
-    probe_t *probe_skel;            /*!< Skeleton for probes forged by this algorithm instance */
-    void *data;                     /*!< Algorithm-defined data */
-    dynarray_t *events;             /*!< An array of events received by the algorithm */
-    caller_t *caller;               /*!< Reference to the entity that called the algorithm */
-    struct pt_loop_s *loop;         /*!< Pointer to a library context */
+    unsigned int id;                     /*!< Unique identifier */
+    struct algorithm_s *algorithm;       /*!< Pointer to the type of algorithm */
+    void *options;                       /*!< Pointer to an option structure specific to the algorithm */
+    probe_t *probe_skel;                 /*!< Skeleton for probes forged by this algorithm instance */
+    void *data;                          /*!< Algorithm-defined data */
+    dynarray_t *events;                  /*!< An array of events received by the algorithm */
+    struct algorithm_instance_s *caller; /*!< Reference to the entity that called the algorithm */
+    struct pt_loop_s *loop;              /*!< Pointer to a library context */
 } algorithm_instance_t;
 
 /**

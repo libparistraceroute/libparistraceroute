@@ -7,6 +7,7 @@
  */
 
 #include <stdbool.h>
+#include "common.h"
 
 /**
  * \struct list_elt_t

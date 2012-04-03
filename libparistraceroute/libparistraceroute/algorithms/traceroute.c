@@ -171,7 +171,7 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
                 // probe_free(probe); // TODO we don't want to make copies
                 break;
 
-            case REPLY_RECEIVED:
+            case PROBE_REPLY_RECEIVED:
                 data = algorithm_instance_get_data(instance);
                 printf("traceroute::INIT probe reply received\n");
 

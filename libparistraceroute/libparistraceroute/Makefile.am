@@ -29,6 +29,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						algorithms/traceroute.h \
 						bitfield.h \
 						buffer.h \
+						common.h \
 						config.h \
 						dynarray.h \
 						event.h \
@@ -66,6 +67,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						algorithms/traceroute.c \
 						bitfield.c \
 						buffer.c \
+						common.c \
 						dynarray.c \
 						event.c \
 						field.c \

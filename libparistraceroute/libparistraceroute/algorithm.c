@@ -113,6 +113,7 @@ unsigned int algorithm_instance_get_num_events(algorithm_instance_t *instance) {
 
 void algorithm_instance_add_event(algorithm_instance_t *instance, event_t *event) {
     dynarray_push_element(instance->events, (void*)event);
+    eventfd_write(instance->loop->eventfd_algorithm, 1);
 }
 
 /******************************************************************************
@@ -125,10 +126,16 @@ void pt_process_algorithms_instance(const void *node, VISIT visit, int level)
     algorithm_instance_t *instance;
 
     instance = *(algorithm_instance_t**)node;
-    instance->algorithm->handler(instance->loop, instance);//, instance->options, instance->probe_skel,
-//            &instance->data, 
-//            algorithm_instance_get_events(instance),
-//            algorithm_instance_get_num_events(instance));
+    
+    /* We remember we are currently in this algorithm context */
+    instance->loop->cur_instance = instance;
+
+    /* Execute algorithm handler */
+    instance->algorithm->handler(instance->loop, instance);
+
+    /* Finished with algorithm context */
+    instance->loop->cur_instance = NULL;
+
     algorithm_instance_clear_events(instance);
 }
 
@@ -158,7 +165,6 @@ algorithm_instance_t * pt_algorithm_add(struct pt_loop_s *loop, char *name, void
 
     /* We need to queue a new event for the algorithm: it has been started */
     algorithm_instance_add_event(instance, event_create(ALGORITHM_INIT, NULL));
-    eventfd_write(loop->eventfd_algorithm, 1);
 
     /* Add this algorithms to the list of handled algorithms */
     pt_algorithm_instance_add(loop, instance);
@@ -173,15 +179,13 @@ void pt_algorithm_terminate(struct pt_loop_s *loop, algorithm_instance_t *instan
         // We should callback
         return;
     }
-    switch (instance->caller->type)
-    {
-        case CALLER_ALGORITHM:
-            /* Queue an event for the caller : child has terminated */
-            algorithm_instance_add_event(instance->caller->caller_algorithm,
-                    event_create(ALGORITHM_TERMINATED, NULL));
-            break;
-        default:
-            break;
+    if (instance->caller) {
+        /* Queue an event for the caller : child has terminated */
+        algorithm_instance_add_event(instance->caller,
+                event_create(ALGORITHM_TERMINATED, NULL));
+    } else {
+        /* TODO User algorithm has terminated */
+        printf("TODO: user algorithm has terminated.\n");
     }
 }
 
