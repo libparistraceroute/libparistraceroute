@@ -52,7 +52,7 @@ void dynarray_clear(dynarray_t *dynarray, void (*element_free)(void *element))
     dynarray->max_size = DYNARRAY_SIZE_INIT;
 }
 
-unsigned int dynarray_get_size(dynarray_t *dynarray)
+size_t dynarray_get_size(dynarray_t *dynarray)
 {
     return dynarray->size;
 }

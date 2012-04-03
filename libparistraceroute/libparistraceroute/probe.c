@@ -385,6 +385,51 @@ char* probe_get_protocol_by_index(unsigned int i)
 }
 
 /******************************************************************************
+ * probe_reply_t
+ ******************************************************************************/
+
+probe_reply_t *probe_reply_create(void)
+{
+    probe_reply_t *probe_reply;
+
+    probe_reply = malloc(sizeof(probe_reply));
+    probe_reply->probe = NULL;
+    probe_reply->reply = NULL;
+
+    return probe_reply;
+}
+
+void probe_reply_free(probe_reply_t *probe_reply)
+{
+    free(probe_reply);
+    probe_reply = NULL;
+}
+
+// Accessors
+
+int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe)
+{
+    probe_reply->probe = probe;
+    return 0;
+}
+
+probe_t * probe_reply_get_probe(probe_reply_t *probe_reply)
+{
+    return probe_reply->probe;
+}
+
+int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply)
+{
+    probe_reply->reply = reply;
+    return 0;
+}
+
+probe_t * probe_reply_get_reply(probe_reply_t *probe_reply)
+{
+    return probe_reply->reply;
+}
+
+/******************************************************************************
  * pt_loop_t
  ******************************************************************************/
 

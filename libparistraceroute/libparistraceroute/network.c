@@ -219,12 +219,39 @@ int network_process_sendq(network_t *network)
 /**
  * \brief matches a reply with a probe
  */
-probe_t *network_match_probe(network_t *network, probe_t *probe)
+probe_t *network_match_probe(network_t *network, probe_t *reply)
 {
-    // Not implemented
-    printf("TODO: matching probe\n");
-    probe_dump(probe);
-    return NULL;
+    field_t *reply_checksum_field;
+    probe_t *probe;
+    size_t size;
+    unsigned int i;
+
+    // probe_dump(probe);
+
+    reply_checksum_field = probe_get_field(reply, "checksum");
+    
+    size = dynarray_get_size(network->probes);
+    for(i = 0; i < size; i++) {
+        field_t *probe_checksum_field;
+
+        probe = dynarray_get_ith_element(network->probes, i);
+
+        /* Reply / probe comparison = let's start simple by only comparing the
+         * checksum
+         */
+        probe_checksum_field = probe_get_field(reply, "checksum");
+        if (field_compare(probe_checksum_field, reply_checksum_field) == 0)
+            break;
+
+    }
+
+    /* No match found if we reached the end of the array */
+    if (i == size) {
+        printf("No match found\n");
+        return NULL;
+    }
+
+    return probe;
 }
 
 /**
@@ -238,6 +265,7 @@ int network_process_recvq(network_t *network)
     probe_t *probe, *reply;
     packet_t *packet;
     algorithm_instance_t *instance;
+    probe_reply_t *pr;
     
     packet = queue_pop_element(network->recvq);
     reply = probe_create();
@@ -245,18 +273,23 @@ int network_process_recvq(network_t *network)
 
     //probe_dump(probe);
     
-    printf("TODO: queue received probe for matching\n");
     probe = network_match_probe(network, reply);
-    if (!probe)
+    if (!probe) {
+        printf("probe discarded\n");
         return -1; // Discard the probe
-
+    }
     /* We have a match: probe has generated reply
      * Let's notify the caller that it has received a reply
      */
     instance = probe->caller;
 
     /* TODO we need a probe/reply pair */
-    algorithm_instance_add_event(instance, event_create(PROBE_REPLY_RECEIVED, NULL));
+    pr = probe_reply_create();
+    if (!pr)
+        return -1; // Could not create probe_reply
+    probe_reply_set_probe(pr, probe);
+    probe_reply_set_reply(pr, reply);
+    algorithm_instance_add_event(instance, event_create(PROBE_REPLY_RECEIVED, pr));
 
     return 0;
 }

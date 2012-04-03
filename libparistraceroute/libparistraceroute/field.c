@@ -110,6 +110,33 @@ size_t field_get_type_size(fieldtype_t type)
     return 0;
 }
 
+// Comparison
+
+int field_compare(field_t *field1, field_t *field2)
+{
+    if (field1->type != field2->type)
+        return -2; // Field are not of the same type !!
+
+    switch (field1->type) {
+        case TYPE_INT8:
+            return field1->value.int8 - field2->value.int8;
+        case TYPE_INT16:
+            return field1->value.int16 - field2->value.int16;
+        case TYPE_INT32:
+            return field1->value.int32 - field2->value.int32;
+        case TYPE_INT4:
+            return field1->value.int4 - field2->value.int4;
+        case TYPE_STRING:
+            return strcmp(field1->value.string, field2->value.string);
+        default:
+            break;
+    }
+    return -3; // Unknown comparison
+    
+}
+
+// Accessors
+
 size_t field_get_size(field_t *field)
 {
     return field_get_type_size(field->type);

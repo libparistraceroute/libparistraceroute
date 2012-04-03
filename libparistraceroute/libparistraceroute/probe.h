@@ -151,6 +151,13 @@ typedef struct {
 probe_reply_t *probe_reply_create(void);
 void probe_reply_free(probe_reply_t *probe_reply);
 
+// Accessors
+
+int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe);
+probe_t * probe_reply_get_probe(probe_reply_t *probe_reply);
+int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply);
+probe_t * probe_reply_get_reply(probe_reply_t *probe_reply);
+
 /******************************************************************************
  * pt_loop_t
  ******************************************************************************/

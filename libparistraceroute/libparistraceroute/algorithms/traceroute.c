@@ -141,6 +141,10 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
     bool                   stop;
     bool                   all_stars;
 
+    probe_reply_t *pr;
+    uint8_t ttl;
+    char *src_ip;
+
     traceroute_options_t * options    = algorithm_instance_get_options(instance);
     event_t             ** events     = algorithm_instance_get_events(instance);
     unsigned int           num_events = algorithm_instance_get_num_events(instance);
@@ -172,13 +176,20 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
                 break;
 
             case PROBE_REPLY_RECEIVED:
+
                 data = algorithm_instance_get_data(instance);
                 printf("traceroute::INIT probe reply received\n");
+
+                pr = events[i]->params;
+                ttl = probe_get_field(pr->probe, "ttl")->value.int8;
+                src_ip = probe_get_field(pr->reply, "src_ip")->value.string;
+
+                printf("\n%hu %s\n", ttl, src_ip);
 
                 num_probes      = options->num_probes;
                 num_sent_probes = data->num_sent_probes;
 
-                data->probes[data->num_sent_probes] = ((reply_received_params_t *) events[i]->params)->probe;
+                data->probes[data->num_sent_probes] = pr->probe;
                 data->num_sent_probes++;
                 if (num_sent_probes < num_probes) {
                     // We've not yet collected the all probes for this hop
