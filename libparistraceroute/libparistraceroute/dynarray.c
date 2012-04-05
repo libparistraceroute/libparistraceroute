@@ -11,7 +11,7 @@ dynarray_t* dynarray_create(void)
 
     dynarray = malloc(sizeof(dynarray_t));
     dynarray->elements = calloc(DYNARRAY_SIZE_INIT, sizeof(void*));
-    memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT);
+    memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT * sizeof(void*));
     dynarray->size = 0;
     dynarray->max_size = DYNARRAY_SIZE_INIT;
     return dynarray;
@@ -32,8 +32,8 @@ void dynarray_free(dynarray_t *dynarray, void (*element_free)(void *element))
 void dynarray_push_element(dynarray_t *dynarray, void *element)
 {
     if (dynarray->size == dynarray->max_size) {
-        dynarray->elements = realloc(dynarray->elements, dynarray->size + DYNARRAY_SIZE_INC);
-        memset(dynarray->elements + dynarray->size, 0, DYNARRAY_SIZE_INC);
+        dynarray->elements = realloc(dynarray->elements, (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void*));
+        memset(dynarray->elements + dynarray->size, 0, DYNARRAY_SIZE_INC * sizeof(void*));
         dynarray->max_size += DYNARRAY_SIZE_INC;
     }
     dynarray->elements[dynarray->size] = element;
@@ -46,8 +46,8 @@ void dynarray_clear(dynarray_t *dynarray, void (*element_free)(void *element))
     for(i = 0; i < dynarray->size; i++) {
         element_free(dynarray->elements[i]);
     }
-    dynarray->elements = realloc(dynarray->elements, DYNARRAY_SIZE_INIT); // XXX
-    memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT);
+    dynarray->elements = realloc(dynarray->elements, DYNARRAY_SIZE_INIT * sizeof(void*)); // XXX
+    memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT * sizeof(void*));
     dynarray->size = 0;
     dynarray->max_size = DYNARRAY_SIZE_INIT;
 }
