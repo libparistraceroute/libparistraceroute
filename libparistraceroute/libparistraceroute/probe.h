@@ -31,6 +31,11 @@ typedef struct {
     buffer_t *buffer;
     /** Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     bitfield_t *bitfield;
+    /** Caller */
+    void *caller;
+    /** Timestamps */
+    double sending_time;
+    double queueing_time;
 } probe_t;
 
 /**
@@ -127,6 +132,32 @@ unsigned int probe_get_num_proto(probe_t *probe);
  */
 field_t ** probe_get_fields(probe_t *probe);
 
+int probe_set_caller(probe_t *probe, void *caller);
+void *probe_get_caller(probe_t *probe);
+int probe_set_sending_time(probe_t *probe, double time);
+double probe_get_sending_time(probe_t *probe);
+int probe_set_queueing_time(probe_t *probe, double time);
+double probe_get_queueing_time(probe_t *probe);
+
+/******************************************************************************
+ * probe_reply_t
+ ******************************************************************************/
+
+typedef struct {
+    probe_t *probe;
+    probe_t *reply;
+} probe_reply_t;
+
+probe_reply_t *probe_reply_create(void);
+void probe_reply_free(probe_reply_t *probe_reply);
+
+// Accessors
+
+int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe);
+probe_t * probe_reply_get_probe(probe_reply_t *probe_reply);
+int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply);
+probe_t * probe_reply_get_reply(probe_reply_t *probe_reply);
+
 /******************************************************************************
  * pt_loop_t
  ******************************************************************************/
@@ -150,4 +181,5 @@ void pt_probe_send(struct pt_loop_s *loop, probe_t *probe);
 
 
 int probe_set_protocols(probe_t *probe, char *name1, ...);
+
 #endif

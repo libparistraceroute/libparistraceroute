@@ -20,6 +20,7 @@ typedef struct pt_loop_s {
     /* epoll data */
     int efd;
     struct epoll_event *events;
+    algorithm_instance_t *cur_instance;
 } pt_loop_t;
 
 pt_loop_t* pt_loop_create(void);
@@ -27,6 +28,9 @@ void pt_loop_free(pt_loop_t *loop);
 void pt_loop_stop(pt_loop_t *loop);
 
 int pt_loop(pt_loop_t *loop, unsigned int timeout);
+
+int pt_loop_set_algorithm_instance(pt_loop_t *loop, algorithm_instance_t *instance);
+algorithm_instance_t *pt_loop_get_algorithm_instance(pt_loop_t *loop);
 
 //void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *reply);
 //void pt_probe_send(struct pt_loop_s *loop, probe_t *probe);

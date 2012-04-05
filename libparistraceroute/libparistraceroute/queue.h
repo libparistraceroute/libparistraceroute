@@ -4,18 +4,18 @@
 #include <sys/eventfd.h>
 
 #include "list.h"
-#include "packet.h"
+#include "probe.h"
 
 typedef struct {
-    list_t *packets;
+    list_t *elements;
     int eventfd;
 } queue_t;
 
 queue_t * queue_create(void);
-void queue_free(queue_t *queue);
+void queue_free(queue_t *queue, void (*element_free) (void *element));
 
-int queue_push_packet(queue_t *queue, packet_t *packet);
-packet_t *queue_pop_packet(queue_t *queue);
+int queue_push_element(queue_t *queue, void *element);
+void *queue_pop_element(queue_t *queue);
 int queue_get_fd(queue_t *queue);
 
 #endif

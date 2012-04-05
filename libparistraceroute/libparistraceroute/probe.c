@@ -6,6 +6,7 @@
 #include "probe.h"
 #include "protocol.h"
 #include "pt_loop.h"
+#include "common.h"
 
 probe_t * probe_create(void)
 {
@@ -29,6 +30,9 @@ probe_t * probe_create(void)
     probe->bitfield = bitfield_create(0);
     if (!probe->bitfield)
         goto err_bitfield;
+
+    /* caller */
+    probe->caller = NULL;
 
     return probe;
 
@@ -276,7 +280,40 @@ int probe_set_fields(probe_t *probe, field_t *field1, ...) {
     return res;
 }
 
-/* Iterator */
+int probe_set_caller(probe_t *probe, void *caller)
+{
+    probe->caller = caller;
+    return 0;
+}
+
+void *probe_get_caller(probe_t *probe)
+{
+    return probe->caller;
+}
+
+int probe_set_sending_time(probe_t *probe, double time)
+{
+    probe->sending_time = time;
+    return 0;
+}
+
+double probe_get_sending_time(probe_t *probe)
+{
+    return probe->sending_time;
+}
+
+int probe_set_queueing_time(probe_t *probe, double time)
+{
+    probe->queueing_time = time;
+    return 0;
+}
+
+double probe_get_queueing_time(probe_t *probe)
+{
+    return probe->queueing_time;
+}
+
+// Iterator
 
 typedef struct {
     void *data;
@@ -348,21 +385,60 @@ char* probe_get_protocol_by_index(unsigned int i)
 }
 
 /******************************************************************************
+ * probe_reply_t
+ ******************************************************************************/
+
+probe_reply_t *probe_reply_create(void)
+{
+    probe_reply_t *probe_reply;
+
+    probe_reply = malloc(sizeof(probe_reply));
+    probe_reply->probe = NULL;
+    probe_reply->reply = NULL;
+
+    return probe_reply;
+}
+
+void probe_reply_free(probe_reply_t *probe_reply)
+{
+    free(probe_reply);
+    probe_reply = NULL;
+}
+
+// Accessors
+
+int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe)
+{
+    probe_reply->probe = probe;
+    return 0;
+}
+
+probe_t * probe_reply_get_probe(probe_reply_t *probe_reply)
+{
+    return probe_reply->probe;
+}
+
+int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply)
+{
+    probe_reply->reply = reply;
+    return 0;
+}
+
+probe_t * probe_reply_get_reply(probe_reply_t *probe_reply)
+{
+    return probe_reply->reply;
+}
+
+/******************************************************************************
  * pt_loop_t
  ******************************************************************************/
 
-void pt_probe_reply_callback(pt_loop_t *loop, probe_t *probe, probe_t *reply)
-{
-    // Search for probe and find the caller
-    //algorithm_instance_add_event(instance->caller->caller_algorithm,
-    //        event_create(PROBE_REPLY_RECEIVED, NULL));
-    // Delete the probe, what about multiple answers ?
-    return;
-}
-
 void pt_probe_send(pt_loop_t *loop, probe_t *probe)
 {
-    /* We need to remember who has been sending the probe */
-    /* + Reply callback */
-    network_send_probe(loop->network, probe, pt_probe_reply_callback);
+    /* We remember which algorithm has generated the probe */
+    probe_set_caller(probe, pt_loop_get_algorithm_instance(loop));
+
+    probe_set_queueing_time(probe, get_timestamp());
+
+    network_send_probe(loop->network, probe);
 }

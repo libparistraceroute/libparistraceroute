@@ -55,7 +55,7 @@ void dynarray_clear(dynarray_t *dynarray, void (*element_free)(void *element));
  * \param dynarray Pointer to a dynamic array structure
  * \return Current size of the dynamic array
  */
-unsigned int dynarray_get_size(dynarray_t *dynarray);
+size_t dynarray_get_size(dynarray_t *dynarray);
 
 /**
  * \brief Get all the elements inside a dynamic array.

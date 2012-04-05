@@ -4,41 +4,52 @@
 queue_t * queue_create(void)
 {
     queue_t *queue;
+
     queue = malloc(sizeof(queue_t));
+    if (!queue)
+        goto err_queue;
+
+    /* Create an eventfd */
     queue->eventfd = eventfd(0, 0);
-    if (queue->eventfd == -1) {
-        free(queue);
-        return NULL;
-    }
-    queue->packets = list_create();
-    if (!(queue->packets)) {
-        close(queue->eventfd);
-        free(queue);
-        queue = NULL;
-    }
+    if (queue->eventfd == -1)
+        goto err_eventfd;
+
+    /* Create the list that will contain the elements */
+    queue->elements = list_create();
+    if (!queue->elements)
+        goto err_elements;
+
     return queue;
+
+err_elements:
+    close(queue->eventfd);
+err_eventfd:
+    free(queue);
+    queue = NULL;
+err_queue:
+    return NULL;
 }
 
-void queue_free(queue_t *queue)
+void queue_free(queue_t *queue, void (*element_free) (void *element))
 {
-    list_free(queue->packets, (void(*)(void*))packet_free);
+    list_free(queue->elements, element_free);
     close(queue->eventfd);
     free(queue);
     queue = NULL;
 }
 
-int queue_push_packet(queue_t *queue, packet_t *packet)
+int queue_push_element(queue_t *queue, void *element)
 {
 
-    list_push_element(queue->packets, packet);
+    list_push_element(queue->elements, element);
     eventfd_write(queue->eventfd, 1);
 
     return 0;
 }
 
-packet_t *queue_pop_packet(queue_t *queue)
+void * queue_pop_element(queue_t *queue)
 {
-    return list_pop_element(queue->packets);
+    return list_pop_element(queue->elements);
 }
 
 int queue_get_fd(queue_t *queue)

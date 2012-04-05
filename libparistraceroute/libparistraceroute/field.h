@@ -120,10 +120,16 @@ void      field_free(field_t *field);
  */
 #define STR(x, y) field_create_string(x, y)
 
+// Accessors
+
 size_t field_get_type_size(fieldtype_t type);
 size_t field_get_size(field_t *field);
 
-//Dump
+// Comparison
+
+int field_compare(field_t *field1, field_t *field2);
+
+// Dump
 void field_dump(field_t *field);
 
 #endif
