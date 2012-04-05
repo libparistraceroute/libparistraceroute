@@ -102,7 +102,7 @@ void algorithm_instance_free(algorithm_instance_t *instance);
 int algorithm_instance_compare(const void *instance1, const void *instance2);
 
 void* algorithm_instance_get_options(algorithm_instance_t *instance);
-void* algorithm_instance_get_probe_skel(algorithm_instance_t *instance);
+probe_t* algorithm_instance_get_probe_skel(algorithm_instance_t *instance);
 void* algorithm_instance_get_data(algorithm_instance_t *instance);
 void algorithm_instance_set_data(algorithm_instance_t *instance, void *data);
 event_t** algorithm_instance_get_events(algorithm_instance_t *instance);

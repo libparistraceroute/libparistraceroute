@@ -31,20 +31,19 @@
  */
 
 typedef struct {
-    unsigned min_ttl;    /**< Minimum ttl at which to send probes */
-    unsigned max_ttl;    /**< Maximum ttl at which to send probes */
-    unsigned num_probes; /**< Number of probes per hop            */
+    unsigned     min_ttl;    /**< Minimum ttl at which to send probes */
+    unsigned     max_ttl;    /**< Maximum ttl at which to send probes */
+    unsigned     num_probes; /**< Number of probes per hop            */
+    const char * dst_ip;     /**< The target IP */
 } traceroute_options_t;
 
 // Default options
 
-/*
 static traceroute_options_t traceroute_default = {
     .min_ttl    = 1,
     .max_ttl    = 30,
     .num_probes = 3,
 };
-*/
 
 /* --------------------------------------------------------------------
  * Algorithm

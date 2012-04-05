@@ -10,7 +10,6 @@
 
 typedef struct reply_received_params_s {
     probe_t * probe;       /**< Probe related to this event */
- // reply_t * reply;       /**< The reply related to this probe */
 } reply_received_params_t;
 
 

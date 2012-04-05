@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include "field.h"
 
-field_t *field_create_int32(char *key, uint32_t value) {
+field_t *field_create_int32(const char *key, uint32_t value) {
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -15,7 +15,7 @@ field_t *field_create_int32(char *key, uint32_t value) {
     return field;
 }
 
-field_t *field_create_int16(char *key, uint16_t value) {
+field_t *field_create_int16(const char *key, uint16_t value) {
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -26,7 +26,7 @@ field_t *field_create_int16(char *key, uint16_t value) {
     return field;
 }
 
-field_t *field_create_int8(char *key, uint8_t value) {
+field_t *field_create_int8(const char *key, uint8_t value) {
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -37,7 +37,7 @@ field_t *field_create_int8(char *key, uint8_t value) {
     return field;
 }
 
-field_t *field_create_string(char *key, char *value)
+field_t *field_create_string(const char *key, const char *value)
 {
     field_t * field = malloc(sizeof(field_t));
 
@@ -49,7 +49,7 @@ field_t *field_create_string(char *key, char *value)
     return field;
 }
 
-field_t *field_create(fieldtype_t type, char *key, void *value)
+field_t *field_create(fieldtype_t type, const char *key, void *value)
 {
     switch (type) {
         case TYPE_INT8:
@@ -67,7 +67,7 @@ field_t *field_create(fieldtype_t type, char *key, void *value)
     return 0;
 }
 
-field_t *field_create_from_network(fieldtype_t type, char *key, void *value)
+field_t *field_create_from_network(fieldtype_t type, const char *key, void *value)
 {
     switch (type) {
         case TYPE_INT8:

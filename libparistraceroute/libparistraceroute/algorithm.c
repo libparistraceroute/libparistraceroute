@@ -82,7 +82,7 @@ void* algorithm_instance_get_options(algorithm_instance_t *instance)
     return instance->options;
 }
 
-void* algorithm_instance_get_probe_skel(algorithm_instance_t *instance)
+probe_t * algorithm_instance_get_probe_skel(algorithm_instance_t *instance)
 {
     return instance->probe_skel;
 }

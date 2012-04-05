@@ -59,36 +59,53 @@ typedef struct {
  * \param value Value to store in the field
  * \return Structure containing the newly created field
  */
-field_t * field_create_int8  (char *key, uint8_t  value);
+
+field_t * field_create_int8  (const char * key, uint8_t  value);
+
 /**
  * \brief Create a field structure to hold a 16 bit integer value
  * \param key Pointer to a unique header identifier
  * \param value Value to store in the field
  * \return Structure containing the newly created field
  */
-field_t * field_create_int16 (char *key, uint16_t value);
+
+field_t * field_create_int16 (const char * key, uint16_t value);
+
 /**
  * \brief Create a field structure to hold a 32 bit integer value
  * \param key Pointer to a unique header identifier
  * \param value Value to store in the field
  * \return Structure containing the newly created field
  */
-field_t * field_create_int32 (char *key, uint32_t value);
+
+field_t * field_create_int32 (const char * key, uint32_t value);
+
 /**
  * \brief Create a field structure to hold a string
  * \param key Pointer to a unique header identifier
- * \param value Value to store in the field
+ * \param value Value to copy in the field
  * \return Structure containing the newly created field
  */
-field_t * field_create_string(char *key, char * value);
 
-field_t *field_create(fieldtype_t type, char *key, void *value);
-field_t *field_create_from_network(fieldtype_t type, char *key, void *value);
+field_t * field_create_string(const char * key, const char * value);
+
+/**
+ *
+ */
+
+field_t * field_create(fieldtype_t type, const char *key, void *value);
+
+/**
+ *
+ */
+
+field_t * field_create_from_network(fieldtype_t type, const char *key, void *value);
 
 /**
  * \brief Delete a field structure
  * \param field Pointer to the field structure to delete
  */
+
 void      field_free(field_t *field);
 
 /**
@@ -97,27 +114,34 @@ void      field_free(field_t *field);
  * \param y Value to store in the field
  * \return Structure containing the newly created field
  */
+
 #define I8(x, y)  field_create_int8(x, y)
+
 /**
  * \brief Macro shorthand for field_create_int16
  * \param x Pointer to a char* key to identify the field
  * \param y Value to store in the field
  * \return Structure containing the newly created field
  */
+
 #define I16(x, y) field_create_int16(x, y)
+
 /**
  * \brief Macro shorthand for field_create_int32
  * \param x Pointer to a char* key to identify the field
  * \param y Value to store in the field
  * \return Structure containing the newly created field
  */
+
 #define I32(x, y) field_create_int32(x, y)
+
 /**
  * \brief Macro shorthand for field_create_string
  * \param x Pointer to a char* key to identify the field
  * \param y String to store in the field
  * \return Structure containing the newly created field
  */
+
 #define STR(x, y) field_create_string(x, y)
 
 // Accessors
@@ -130,6 +154,7 @@ size_t field_get_size(field_t *field);
 int field_compare(field_t *field1, field_t *field2);
 
 // Dump
+
 void field_dump(field_t *field);
 
 #endif
