@@ -12,19 +12,17 @@ typedef struct reply_received_params_s {
     probe_t * probe;       /**< Probe related to this event */
 } reply_received_params_t;
 
-
 /**
  * \enum event_type_t
  * \brief Enum to denote type of event
  */
 
 typedef enum {
-    /** Algorithm initialisation event */
-    ALGORITHM_INIT,
-    /** Algorithm terminated event */
-    ALGORITHM_TERMINATED,
-    /** Reply received event */
-    PROBE_REPLY_RECEIVED
+    ALGORITHM_INIT,       /**< Algorithm initialisation event   */
+    ALGORITHM_TERMINATED, /**< Algorithm has successfully ended */
+    ALGORITHM_FAILURE,    /**< Algorithm has crashed            */
+    ALGORITHM_FREE,       /**< Algorithm has to free the memory */
+    PROBE_REPLY_RECEIVED  /**< Reply received event             */
 } event_type_t;
 
 /**
@@ -35,7 +33,11 @@ typedef enum {
 typedef struct {
     /** Enum holding the event type */
     event_type_t type;
-    /** Pointer to event parameters. REPLY_RECEIVED: reply_received_params_t */
+    
+    /**
+     * Pointer to event parameters.
+     * PROBE_REPLY_RECEIVED: reply_received_params_t
+     */
     void *params;
 } event_t;
 

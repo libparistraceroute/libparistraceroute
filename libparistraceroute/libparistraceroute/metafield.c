@@ -1,12 +1,7 @@
 #include "metafield.h"
 
+#include <string.h>
 #include <stdlib.h>
-
-// internal usage
-
-static inline size_t min(size_t x, size_t y) {
-    return x < y ? x : y;
-}
 
 //--------------------------------------------------------------------------
 // Allocation
@@ -14,8 +9,23 @@ static inline size_t min(size_t x, size_t y) {
 
 // alloc
 
-inline metafield_t * metafield_create() {
-    return calloc(1, sizeof(metafield_t));
+metafield_t * metafield_create(
+    const char * key
+) {
+    metafield_t * metafield = calloc(1, sizeof(metafield_t));
+    if (metafield) {
+        metafield->key = strdup(key);
+        if(!metafield->key) goto FAILURE;
+    }
+
+    return metafield;
+
+FAILURE:
+    if(metafield) {
+        if(metafield->key) free(metafield->key);
+        free(metafield);
+    }
+    return NULL;
 }
 
 // free
@@ -28,15 +38,25 @@ inline void metafield_free(metafield_t * metafield){
 // Getter / setter 
 //--------------------------------------------------------------------------
 
+/*
 // |bits_concept|
 
 inline size_t metafield_num_bits(const metafield_t * metafield) {
     return bitfield_get_num_1(metafield->bits_concept); 
 }
 
-// internal usage : seek the next read/write bit
+// internal usage : seek the next readable bit
 
-bool metafield_find_next_rw(
+static inline bool metafield_find_next(
+    const metafield_t * metafield,
+    size_t            * poffset
+) {
+    return bitfield_find_next_1(metafield->bits_concept, poffset);
+}
+
+// internal usage : seek the next {read/write}able bit
+
+static bool metafield_find_next_rw(
     const metafield_t * metafield,
     size_t            * poffset
 ) {
@@ -44,7 +64,7 @@ bool metafield_find_next_rw(
 
     size_t offset = *poffset;
 
-    while (bitfield_find_next_1(metafield->bits_concept, &offset)) {
+    while (metafield_find_next(metafield, &offset)) {
         switch(bitfield_get_bit(metafield->bits_ro, offset)) {
             case -1: // outside bits_ro => this bit is rw
             case  0: // this bit is marked as rw
@@ -58,41 +78,30 @@ bool metafield_find_next_rw(
     return false;
 }
 
-// |bits_rw| 
-
-size_t metafield_num_bits_rw(const metafield_t * metafield) {
-    size_t res    = 0;
-    size_t offset = 0;
-
-    while(metafield_find_next_rw(metafield, &offset)) res++;
-    return res;
-}
-
-// TODO size_t bitfield_find_next_1(const bitfield_t * bitfield, size_t cur_offset)
-/**
- * \brief Retrieve the value stored in a metafield.
- * \param metafield The metafield
- * \param value The pre-allocated target buffer.
- * \return 0 if success, another value (see <errno.h>) otherwise.
- */
-
-int metafield_get(
+bool metafield_get(
     const metafield_t * metafield,
     unsigned char     * value
 ) {
-    // not yet implemented
-    return false;
+    if (!metafield || !value) return false;
+    return true;
 }
 
-int metafield_set(
+bool metafield_set(
     metafield_t         * metafield,
     const unsigned char * buffer_value,
     size_t                size_in_bits
 ) {
-    // not yet implemented
+    size_t i, offset = 0;
+    if (!metafield || !buffer_value) return false;
+    if (size_in_bits >= metafield_num_bits_rw(metafield)) return false;
+
+    for(i = 0; i < size_in_bits; i++) {
+        if(!metafield_find_next_rw(metafield, &offset)) return false;
+
+    }
     return 0;
 }
-
+*/
 
 //--------------------------------------------------------------------------
 // Iteration

@@ -20,13 +20,18 @@
 //    //graph_print(options->graph); 
 //}
 
+int handler_user(pt_loop_t * loop) {
+    printf("In user's handler");
+    return 1;
+}
+
 int main(int argc, char ** argv)
 {
     algorithm_instance_t * instance;
     probe_t              * probe_skel;
     pt_loop_t            * loop;
     
-    loop = pt_loop_create();
+    loop = pt_loop_create(handler_user);
     if (!loop) {
         perror("E: Cannot create libparistraceroute instance");
         exit(EXIT_FAILURE);

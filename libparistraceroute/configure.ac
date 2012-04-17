@@ -19,6 +19,7 @@ AC_SUBST(API_VERSION)
 
 # Check if the source folder is available
 AC_CONFIG_SRCDIR([paris-traceroute/paris-traceroute.c])
+AC_CONFIG_SRCDIR([traceroute/traceroute.c])
 
 # automake initialization (mandatory) (no check for automake version)
 AM_INIT_AUTOMAKE
@@ -277,6 +278,7 @@ AC_CONFIG_FILES(
     [libparistraceroute/libparistraceroute-$LIBRARY_VERSION.pc:libparistraceroute/libparistraceroute.pc.in]
 	[libparistraceroute/Makefile]
 	[paris-traceroute/Makefile]
+	[traceroute/Makefile]
 	[man/Makefile]
 	[doc/Makefile]
 )

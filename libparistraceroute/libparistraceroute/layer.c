@@ -47,7 +47,7 @@ void layer_set_buffer(layer_t *layer, unsigned char *buffer)
     layer->buffer = buffer;
 }
 
-field_t *layer_get_field(layer_t *layer, char *name)
+field_t *layer_get_field(layer_t *layer, const char * name)
 {
     protocol_field_t *pfield;
 

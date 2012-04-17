@@ -55,6 +55,7 @@ err_probes:
 err_sniffer:
     queue_free(network->recvq, (ELEMENT_FREE)packet_free);
 err_recvq:
+    printf("> network_create: call probe_free\n");
     queue_free(network->sendq, (ELEMENT_FREE)probe_free);
 err_sendq:
     socketpool_free(network->socketpool);
@@ -67,27 +68,26 @@ err_network:
 
 void network_free(network_t *network)
 {
-    dynarray_free(network->probes, (ELEMENT_FREE)probe_free);
+    printf("> network_free: call probe_free(network->probes = %d)\n", network->probes);
+    dynarray_free(network->probes, (ELEMENT_FREE) probe_free);
+    printf("> network_free: OK\n");
     sniffer_free(network->sniffer);
-    queue_free(network->sendq, (ELEMENT_FREE)probe_free);
-    queue_free(network->recvq, (ELEMENT_FREE)probe_free);
+    queue_free(network->sendq, (ELEMENT_FREE) probe_free);
+    queue_free(network->recvq, (ELEMENT_FREE) probe_free);
     socketpool_free(network->socketpool);
     free(network);
     network = NULL;
 }
 
-int network_get_sendq_fd(network_t *network)
-{
+inline int network_get_sendq_fd(network_t *network) {
     return queue_get_fd(network->sendq);
 }
 
-int network_get_recvq_fd(network_t *network)
-{
+inline int network_get_recvq_fd(network_t *network) {
     return queue_get_fd(network->recvq);
 }
 
-int network_get_sniffer_fd(network_t *network)
-{
+inline int network_get_sniffer_fd(network_t *network) {
     return sniffer_get_fd(network->sniffer);
 }
 
@@ -289,7 +289,7 @@ int network_process_recvq(network_t *network)
         return -1; // Could not create probe_reply
     probe_reply_set_probe(pr, probe);
     probe_reply_set_reply(pr, reply);
-    algorithm_instance_add_event(instance, event_create(PROBE_REPLY_RECEIVED, pr));
+    pt_algorithm_throw(NULL, instance, event_create(PROBE_REPLY_RECEIVED, pr));
 
     return 0;
 }

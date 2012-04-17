@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h> //DEBUG
 #include "dynarray.h"
 
 #define DYNARRAY_SIZE_INIT 5
@@ -7,26 +8,36 @@
 
 dynarray_t* dynarray_create(void)
 {
-    dynarray_t *dynarray;
-
-    dynarray = malloc(sizeof(dynarray_t));
-    dynarray->elements = calloc(DYNARRAY_SIZE_INIT, sizeof(void*));
-    memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT * sizeof(void*));
-    dynarray->size = 0;
-    dynarray->max_size = DYNARRAY_SIZE_INIT;
+    dynarray_t * dynarray = malloc(sizeof(dynarray_t));
+    if (dynarray) {
+        dynarray->elements = calloc(DYNARRAY_SIZE_INIT, sizeof(void*));
+        memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT * sizeof(void*));
+        dynarray->size = 0;
+        dynarray->max_size = DYNARRAY_SIZE_INIT;
+    }
     return dynarray;
 }
 
-void dynarray_free(dynarray_t *dynarray, void (*element_free)(void *element))
-{
+void dynarray_free(dynarray_t * dynarray, void (*element_free)(void *element)) { 
     unsigned int i;
-    if (element_free) {
-        for(i = 0; i < dynarray->size; i++)
-            element_free(dynarray->elements[i]);
+
+    printf(">> dynarray_free(@%x): begin\n", dynarray);
+    if (dynarray) {
+        if (dynarray->elements) {
+            if (element_free) {
+                printf(">> dynarray_free(@%x): size = %d\n", dynarray, dynarray->size);
+                for(i = 0; i < dynarray->size; i++) {
+                    printf(">>> dynarray_free(%x): freeing [%d / %d] @%d\n", dynarray, i, dynarray->size, dynarray->elements[i]);
+                    element_free(dynarray->elements[i]);
+                    printf(">>> dynarray_free(%x): element [%d / %d] freed\n", dynarray, i, dynarray->size);
+                }
+                printf(">> dynarray_free(%x): end for\n", dynarray);
+            }
+            free(dynarray->elements);
+        }
+        free(dynarray);
     }
-    free(dynarray->elements);
-    free(dynarray);
-    dynarray = NULL;
+    printf(">> dynarray_free(%x): end\n", dynarray);
 }
 
 void dynarray_push_element(dynarray_t *dynarray, void *element)
@@ -51,6 +62,7 @@ void dynarray_clear(dynarray_t *dynarray, void (*element_free)(void *element))
     dynarray->size = 0;
     dynarray->max_size = DYNARRAY_SIZE_INIT;
 }
+
 
 size_t dynarray_get_size(dynarray_t *dynarray)
 {

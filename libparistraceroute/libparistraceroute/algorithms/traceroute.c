@@ -11,6 +11,7 @@
 #include "../probe.h"
 #include "../event.h"
 #include "../pt_loop.h"
+#include "../algorithm.h"
 
 #include "traceroute.h"
 
@@ -119,8 +120,8 @@ static inline bool is_star(const probe_t * probe) {
  */
 
 static inline bool destination_reached(
-    const char    * dst_ip,
-    const probe_t * reply
+    const char * dst_ip,
+    probe_t    * reply
 ) {
     return !strcmp(
         probe_get_field(reply, "src_ip")->value.string,
@@ -147,9 +148,9 @@ static inline bool stopping_icmp_error(const probe_t * reply) {
  */
 
 bool send_traceroute_probe(
-    pt_loop_t  * loop,
-    probe_t    * probe_skel,
-    uint8_t      ttl
+    pt_loop_t * loop,
+    probe_t   * probe_skel,
+    uint8_t     ttl
 ) {
     if (probe_set_fields(probe_skel, I8("ttl", ttl), NULL) == 0) {
         pt_probe_send(loop, probe_skel);
@@ -167,9 +168,9 @@ bool send_traceroute_probe(
 
 void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
 { 
-    uint8_t                ttl;
+//    uint8_t                ttl;
     unsigned int           i, j, num_probes, num_sent_probes;
-    bool                   stop, all_stars;
+    bool                   all_stars;
     traceroute_data_t    * data; // is NULL before ALGORITHM_INIT
     probe_t              * reply;
     probe_t              * probe;
@@ -185,14 +186,6 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
     if (!options->dst_ip) goto FAILURE; 
     if (!events)          goto FAILURE;
 
-    /*
-    // DEBUG
-    probe_t * probe_skel = probe_create();
-    probe_set_protocols(probe_skel, "ipv4", "udp", NULL);
-    probe_set_fields(probe_skel, STR("dst_ip", options->dst_ip));
-    // DEBUG
-    // */
-
     // For each events, execute the appriopriate code
     for (i = 0; i < num_events; i++) {
         switch (events[i]->type) {
@@ -206,7 +199,7 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
 
                 // Let's start
                 data->ttl = options->min_ttl;
-                if(send_traceroute_probe(loop, probe_skel, data->ttl)) {
+                if (send_traceroute_probe(loop, probe_skel, data->ttl)) {
                     data->num_sent_probes++;
                 } else goto FAILURE;
                 break;
@@ -227,58 +220,64 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
                 data->replies[num_sent_probes - 1] = reply;
 
                 disc_ip = probe_get_field(reply, "src_ip")->value.string;
-                ttl     = probe_get_field(probe, "ttl")->value.int8;
+//                ttl     = probe_get_field(probe, "ttl")->value.int8;
 
                 printf("ttl = %2hu (%d/%d) dst_ip = %s disc_ip = %s\n", data->ttl, num_sent_probes, num_probes, options->dst_ip, disc_ip);
-                printf("TTL = %2hu (%d/%d) dst_ip = %s disc_ip = %s\n", ttl, num_sent_probes, num_probes, options->dst_ip, disc_ip);
+//                printf("TTL = %2hu (%d/%d) dst_ip = %s disc_ip = %s\n", ttl, num_sent_probes, num_probes, options->dst_ip, disc_ip);
 
                 if (num_sent_probes < num_probes) {
 
                     // We've not yet collected the all probes for this hop
-                    if(send_traceroute_probe(loop, probe_skel, data->ttl)) {
+                    if (send_traceroute_probe(loop, probe_skel, data->ttl)) {
                         data->num_sent_probes++;
                     } else goto FAILURE;
 
                 } else {
 
                     // We've collected every probes related to this hop 
-                    stop = false;
                     all_stars = true;
-                    for(j = 0; j < num_probes; ++j) {
+                    for (j = 0; j < num_probes; ++j) {
                         all_stars &= is_star(data->probes[j]);
                         if(destination_reached(options->dst_ip, data->replies[j])
                         || stopping_icmp_error(data->replies[j])
                         ) {
-                            stop = true;
-                            break;
+                            // TODO send_message
+                            goto SUCCESS;
                         }
                     }
-                    stop |= all_stars;
-                    if (stop) goto SUCCESS;
+                    if (all_stars) {
+                        goto SUCCESS;
+                    }
 
                     (data->ttl)++;
-                    traceroute_data_reset(instance, data);
-
                     if (data->ttl == options->max_ttl) goto SUCCESS;
 
-                    if(send_traceroute_probe(loop, probe_skel, data->ttl)) {
+                    traceroute_data_reset(instance, data);
+                    if (send_traceroute_probe(loop, probe_skel, data->ttl)) {
                         data->num_sent_probes++;
                     } else goto FAILURE;
                 }
                 break;
 
-            case ALGORITHM_TERMINATED:
-                // An algorithm called by traceroute has finished
+            case ALGORITHM_FREE:
+                // The caller does not need anymore 'traceroute' datas.
+                traceroute_data_free(data);
                 break;
+
+            default: break; // Events not handled
         }
-        pt_algorithm_terminate(loop, instance);
     }
-    return;
-SUCCESS: // This algorithm has successfully ended
-    printf("success");
+    return; // Traceroute algorithm is not yet finished
+
+SUCCESS: // This traceroute has successfully ended
+    // The caller has to release the memory in the handler in ALGORITHM_TERMINATED
+    // by calling traceroute_data_free()
+    pt_algorithm_terminate(loop, instance);
     return;
 FAILURE: // This algorithm has crashed
-    // We let the user release the memory (traceroute_data_free())
+    // The caller has to release the memory in the handler in ALGORITHM_FAILURE
+    // by calling traceroute_data_free()
+    pt_algorithm_throw(loop, instance, event_create(ALGORITHM_FAILURE, NULL));
     return;
 }
 

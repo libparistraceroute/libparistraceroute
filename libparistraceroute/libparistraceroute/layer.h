@@ -77,7 +77,7 @@ void layer_set_buffer_size(layer_t *layer, size_t buffer_size);
 void layer_set_header_size(layer_t *layer, size_t header_size);
 void layer_set_buffer(layer_t *layer, unsigned char *buffer);
 
-field_t *layer_get_field(layer_t *layer, char *name);
+field_t * layer_get_field(layer_t *layer, const char * name);
 
 // Dump
 

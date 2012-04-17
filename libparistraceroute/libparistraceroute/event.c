@@ -6,7 +6,7 @@ event_t *event_create(event_type_t type, void *params)
 {
     event_t *event;
 
-    event = (event_t*)malloc(sizeof(event_t));
+    event = malloc(sizeof(event_t));
     event->type = type;
     event->params = params;
 

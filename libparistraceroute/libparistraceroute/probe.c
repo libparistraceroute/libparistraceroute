@@ -8,59 +8,54 @@
 #include "pt_loop.h"
 #include "common.h"
 
+// TODO update bitfield
+
 probe_t * probe_create(void)
 {
-    probe_t *probe;
+    probe_t * probe = malloc(sizeof(probe_t));
+    if (!probe) goto ERR_PROBE;
 
-    probe = malloc(sizeof(probe_t));
-    if (!probe)
-        goto err_probe;
-
-    /* Create the buffer to store the field content */
+    // Create the buffer to store the field content
     probe->buffer = buffer_create();
-    if (!(probe->buffer))
-        goto err_buffer;
+    if (!probe->buffer) goto ERR_BUFFER;
 
-    /* Initially the probe has no layers */
+    // Initially the probe has no layers
     probe->layers = dynarray_create();
-    if (!probe->layers)
-        goto err_layers;
+    if (!probe->layers) goto ERR_LAYERS;
 
-    /* ... and an empty bitfield */
-    probe->bitfield = bitfield_create(0);
-    if (!probe->bitfield)
-        goto err_bitfield;
+    // Bitfield that manages which bits have already been set. 
+    // For the moment this is an empty bitfield
+    probe->bitfield = bitfield_create(0); // == NULL
 
-    /* caller */
+    // Save which instance (caller) create this probe
     probe->caller = NULL;
-
     return probe;
 
-err_bitfield:
-    dynarray_free(probe->layers, (void(*)(void*))layer_free);
-err_layers:
+ERR_LAYERS:
     buffer_free(probe->buffer);
-err_buffer:
+ERR_BUFFER:
     free(probe);
-    probe = NULL;
-err_probe:
+ERR_PROBE:
     return NULL;
 }
 
-void probe_free(probe_t *probe)
+void probe_free(probe_t * probe)
 {
-    bitfield_free(probe->bitfield);
-    dynarray_free(probe->layers, (void(*)(void*))layer_free);
-    buffer_free(probe->buffer);
-    free(probe);
-    probe = NULL;
+    printf(">>> Freeing probe @%x\n", probe);
+    if (probe) {
+        /*
+        bitfield_free(probe->bitfield);
+        dynarray_free(probe->layers, (ELEMENT_FREE) layer_free);
+        buffer_free(probe->buffer);
+        */
+        free(probe);
+    }
 }
 
 // Accessors
 
-buffer_t *probe_get_buffer(probe_t *probe)
-{
-    return probe->buffer;
+inline buffer_t * probe_get_buffer(probe_t * probe) {
+    return probe ? probe->buffer : NULL;
 }
 
 int probe_set_buffer(probe_t *probe, buffer_t *buffer)
@@ -347,7 +342,7 @@ field_t ** probe_get_fields(probe_t *probe)
     return NULL; // TODO
 }
 
-field_t *probe_get_field(probe_t *probe, char *name)
+field_t * probe_get_field(probe_t * probe, const char * name)
 {
     size_t size;
     unsigned int i;

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-test -f Makefile && make clean 
+#test -f Makefile && make clean 
 rm -f config.* configure 
 rm -rf aclocal.m4 autom4te.cache
 rm -f depcomp install-sh libtool ltmain.sh missing stamp-h1

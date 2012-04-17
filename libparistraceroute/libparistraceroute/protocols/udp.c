@@ -67,8 +67,7 @@ static struct udphdr udp_default = {
  * \return The number of fields
  */
 
-unsigned int udp_get_num_fields(void)
-{
+inline unsigned int udp_get_num_fields(void) {
     return sizeof(udp_fields) / sizeof(protocol_field_t);
 }
 
@@ -77,8 +76,7 @@ unsigned int udp_get_num_fields(void)
  * \return The size of an UDP header
  */
 
-unsigned int udp_get_header_size(void)
-{
+inline unsigned int udp_get_header_size(void) {
     return sizeof(struct udphdr);
 }
 
@@ -87,31 +85,36 @@ unsigned int udp_get_header_size(void)
  * \param data The address of an allocated buffer that will store the header
  */
 
-void udp_write_default_header(unsigned char *data)
-{
+inline void udp_write_default_header(unsigned char *data) {
     memcpy(data, &udp_default, sizeof(struct udphdr));
 }
 
 /**
  * \brief Compute and write the checksum related to an UDP header
- * \param udp_hdr A pre-allocated UDP header
+ * \param buf A pre-allocated UDP header
  * \param pseudo_hdr The pseudo header 
  * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
- * \return 0 if everything is ok, EINVAL if pseudo_hdr is invalid,
- *    ENOMEM if a memory error arises
+ * \return true if everything is fine, false otherwise  
  */
 
-int udp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
+bool udp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
 {
     unsigned char * tmp;
-    unsigned int len;
-    unsigned short res;
-    struct udphdr *udp_hdr = (struct udphdr *)buf;
-    if (!psh) return EINVAL; // pseudo header required
+    unsigned int    len;
+    unsigned short  res;
+    struct udphdr * udp_hdr = (struct udphdr *) buf;
+
+    if (!psh) { // pseudo header required
+        errno = EINVAL;
+        return false;
+    }
 
     len = sizeof(struct udphdr) + psh->size;
     tmp = malloc(len * sizeof(unsigned char));
-    if(!tmp) return ENOMEM;
+    if (!tmp) { // not enough memory
+        errno = ENOMEM;
+        return false;
+    }
 
     memcpy(tmp, psh->data, psh->size);
     memcpy(tmp + psh->size, udp_hdr, sizeof(struct udphdr));
@@ -119,7 +122,7 @@ int udp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
     udp_hdr->check = res;
 
     free(tmp);
-    return 0;
+    return true;
 }
 
 static protocol_t udp = {

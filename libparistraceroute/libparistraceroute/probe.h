@@ -98,7 +98,7 @@ field_t ** probe_get_fields(probe_t *probe);
  *
  * What about allocation ?
  */
-field_t *probe_get_field(probe_t *probe, char *name);
+field_t *probe_get_field(probe_t *probe, const char *name);
 
 /**
  * \brief Get the payload from a probe

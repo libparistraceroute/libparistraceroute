@@ -15,6 +15,7 @@
  * \enum status_t
  * \brief Algorithm status constants
  */
+
 typedef enum {
     STARTED,    /*!< Algorithm is started */
     STOPPED,    /*!< Algorithm is stopped */
@@ -25,6 +26,7 @@ typedef enum {
  * \struct algorithm_instance_t
  * \brief Structure describing a running instance of an algorithm.
  */
+
 typedef struct algorithm_instance_s {
     unsigned int id;                     /*!< Unique identifier */
     struct algorithm_s *algorithm;       /*!< Pointer to the type of algorithm */
@@ -38,8 +40,10 @@ typedef struct algorithm_instance_s {
 
 /**
  * \struct algorithm_t
- * \brief Structure representing an algorithm
+ * \brief Structure representing an algorithm.
+ * The handler is called everytime an event concerning this instance is raised.
  */
+
 typedef struct algorithm_s {
     char* name;                                                                 /*!< Algorithm name */
     void (*handler)(struct pt_loop_s *loop, algorithm_instance_t *instance);    /*!< Main handler function */
@@ -55,12 +59,14 @@ typedef struct algorithm_s {
  * \param name Name of the algorithm
  * \return An algorithm_t structure
  */
-algorithm_t* algorithm_search(char *name);
+
+algorithm_t* algorithm_search(char * name);
 
 /**
  * \brief Register an algorithm to be used by the library.
  * \param algorithm Pointer to a structure representing the algorithm
  */
+
 void algorithm_register(algorithm_t *algorithm);
 
 #define ALGORITHM_REGISTER(MOD)	\
@@ -81,25 +87,34 @@ static void __init_ ## MOD (void) {	\
  * \param probe_skel Skeleton for probes crafted by the algorithm
  * \return A pointer to an algorithm instance
  */
-algorithm_instance_t* algorithm_instance_create(struct pt_loop_s *loop, algorithm_t *algorithm, void *options, probe_t *probe_skel);
+
+algorithm_instance_t * algorithm_instance_create(
+    struct pt_loop_s * loop,
+    algorithm_t      * algorithm,
+    void             * options,
+    probe_t          * probe_skel
+);
 
 /**
  * \brief Free an algorithm instance
  * \param instance The instance to be free'd
  */
-void algorithm_instance_free(algorithm_instance_t *instance);
+
+void algorithm_instance_free(algorithm_instance_t * instance);
 
 /**
  * \brief Compare two instances of an algorithm
+ *  The comparison is done on the instance id.
  * \param instance1 Pointer to the first instance
  * \param instance2 Pointer to the second instance
  * \return Respectively -1, 0 or 1 if instance1 is lower, equal or bigger than
  *     instance2
- * 
- * The comparison is done on the instance id.
- *
  */
-int algorithm_instance_compare(const void *instance1, const void *instance2);
+
+int algorithm_instance_compare(
+    const algorithm_instance_t * instance1,
+    const algorithm_instance_t * instance2
+);
 
 void* algorithm_instance_get_options(algorithm_instance_t *instance);
 probe_t* algorithm_instance_get_probe_skel(algorithm_instance_t *instance);
@@ -109,16 +124,36 @@ event_t** algorithm_instance_get_events(algorithm_instance_t *instance);
 void algorithm_instance_clear_events(algorithm_instance_t *instance);
 unsigned int algorithm_instance_get_num_events(algorithm_instance_t *instance);
 
-void algorithm_instance_add_event(algorithm_instance_t *instance, event_t *event);
+/**
+ * \brief Throw an event to the libparistraceroute loop or to an instance
+ * \param loop The libparistraceroute loop.
+ *    Pass NULL if this event is raised for an instance.
+ * \param instance The instance that must receives the event.
+ *    Pass NULL if this event has to be sent to the loop.
+ * \param event The event that must be raised
+ */
+
+void pt_algorithm_throw(
+    struct pt_loop_s     * loop, 
+    algorithm_instance_t * instance,
+    event_t              * event
+);
+
+/**
+ * \brief Notify an instance to make it release memory
+ * \param instance The instance we are freeing
+ */
+
+void pt_algorithm_free(algorithm_instance_t * instance);
 
 /******************************************************************************
  * pt_loop_t
  ******************************************************************************/
 
 /**
- * \brief process algorithm events (private)
+ * \brief process algorithm events (internal usage, see visitor for twalk)
  */
-// visitor for twalk
+
 void pt_process_algorithms_instance(const void *node, VISIT visit, int level);
 void pt_algorithm_instance_iter(struct pt_loop_s *loop, void (*action) (const void *, VISIT, int));
 algorithm_instance_t * pt_algorithm_add(struct pt_loop_s *loop, char *name, void *options, probe_t *probe_skel);

@@ -33,7 +33,7 @@ dynarray_t* dynarray_create(void);
  * \param element_free Pointer to a function used to free up element resources
  *     (can be NULL)
  */
-void dynarray_free(dynarray_t *dynarray, void (*element_free)(void *element));
+void dynarray_free(dynarray_t *dynarray , void (*element_free)(void *element));
 
 /**
  * \brief Add a new element at the end of the dynamic array.

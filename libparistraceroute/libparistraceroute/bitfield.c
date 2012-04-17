@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h> // DEBUG
 
 // internal usage
 
@@ -16,12 +17,18 @@ static inline size_t min(size_t x, size_t y) {
 // alloc
 
 bitfield_t * bitfield_create(size_t size_in_bits) {
+    // If this is an empty bitfield return NULL;
+    if (size_in_bits == 0) return NULL;
+
+    // Allocate bitfield structure
     bitfield_t * bitfield = calloc(1, sizeof(bitfield_t));
     if (!bitfield) goto FAILURE;
 
+    // Allocate bitfield mask
     bitfield->mask = malloc(size_in_bits / 8);
     if (!bitfield->mask) goto FAILURE;
 
+    // Set size
     bitfield->size_in_bits = size_in_bits;
     return bitfield;    
 FAILURE:
@@ -32,7 +39,7 @@ FAILURE:
 // free
 
 void bitfield_free(bitfield_t * bitfield) {
-    if (bitfield){
+    if (bitfield) {
         if (bitfield->mask) free(bitfield->mask);
         free(bitfield);
     }
@@ -87,8 +94,12 @@ int bitfield_set_bits(
     size_t offset;
     size_t offset_end = offset_in_bits + num_bits;
 
-    if (!bitfield) return EINVAL;
-    if (offset_in_bits + num_bits >= bitfield->size_in_bits) return EINVAL;
+    if (!bitfield
+    || offset_in_bits + num_bits >= bitfield->size_in_bits
+    ) {
+        errno = EINVAL;
+        return 1;
+    }
 
     if (num_bits) {
         // to improve to set byte per byte
@@ -102,7 +113,7 @@ int bitfield_set_bits(
 // Get i-th bit
 
 inline int bitfield_get_bit(const bitfield_t * bitfield, size_t i) {
-    if(!bitfield || !bitfield->mask || i >= bitfield->size_in_bits) return -1;
+    if (!bitfield || !bitfield->mask || i >= bitfield->size_in_bits) return -1;
     return bitfield->mask[i / 8] & (1 << (i % 8));
 }
 
@@ -160,6 +171,11 @@ size_t bitfield_get_num_1(const bitfield_t * bitfield) {
     return res;
 }
 
+// Size (in bits)
+
+inline size_t bitfield_get_size_in_bits(const bitfield_t * bitfield) {
+    return bitfield->size_in_bits;
+}
 
 //--------------------------------------------------------------------------
 // Operators 
@@ -239,7 +255,4 @@ void bitfield_not(bitfield_t * tgt) {
     }
 }
 
-size_t bitfield_get_size_in_bits(const bitfield_t * bitfield)
-{
-    return bitfield->size_in_bits;
-}
+
