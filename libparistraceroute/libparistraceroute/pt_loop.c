@@ -8,8 +8,7 @@
 // Internal usage
 static void pt_loop_clear_user_events(pt_loop_t * loop);
 
-pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s *loop))
-{
+pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s * loop)) {
     int s, network_sendq_fd, network_recvq_fd, network_sniffer_fd;
     pt_loop_t * loop;
     struct epoll_event network_sendq_event;

@@ -20,7 +20,7 @@ typedef struct pt_loop_s {
     // User
     int                    eventfd_user;            /**< User notification */
     dynarray_t           * events_user;             /**< User events queue */
-    int (* handler_user) (struct pt_loop_s *loop);  /**< User handler */
+    int (*handler_user) (struct pt_loop_s *);       /**< User handler */
 
     // Epoll data
     int                    efd;
@@ -31,10 +31,12 @@ typedef struct pt_loop_s {
 /**
  * \brief Create the paristraceroute loop
  * \param handler_user A pointer to a function declared in the user's program
- *   called whenever a event concerning the user arises. 
- *   - This handler receives a pointer to the libparistraceroute loop.
- *   - It must return a negative value if the libparistraceroute loop
- *     has to be stopped.
+ *   called whenever a event concerning the user arises. This handler 
+ *   - receives a pointer to the libparistraceroute loop,
+ *   - must return a value
+ *     < 0: if the libparistraceroute loop has to be stopped (failure) 
+ *     = 0: if the libparistraceroute loop has to be stopped (success)
+ *     > 0: if the libparistraceroute loop has to continue   (pending) 
  * \return A pointer to a loop if successfull, NULL otherwise.
  */
 
@@ -107,7 +109,7 @@ event_t ** pt_loop_get_user_events(pt_loop_t * loop);
  * \return The number of user events.
  */
 
-unsigned  pt_loop_get_num_user_events(pt_loop_t * loop);
+unsigned pt_loop_get_num_user_events(pt_loop_t * loop);
 
 int pt_loop_set_algorithm_instance(pt_loop_t * loop, algorithm_instance_t * instance);
 algorithm_instance_t * pt_loop_get_algorithm_instance(pt_loop_t * loop);

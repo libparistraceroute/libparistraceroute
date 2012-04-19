@@ -4,4 +4,4 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 # The subdirectories of the project to go into
-SUBDIRS = libparistraceroute paris-traceroute man doc
+SUBDIRS = libparistraceroute paris-traceroute traceroute man doc

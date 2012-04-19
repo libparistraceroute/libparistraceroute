@@ -8,6 +8,7 @@
 *.so
 *.a
 *.la
+*.Po
 
 #Makefile
 
@@ -31,6 +32,7 @@ ltmain.sh
 m4/
 missing
 paris-traceroute/.deps/
+traceroute/.deps/
 
 #Binary
 

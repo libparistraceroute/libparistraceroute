@@ -23,11 +23,12 @@
  * \brief This structure stores internal data of the algorithm
  */
 
-typedef struct traceroute_data_s {
+typedef struct {
     unsigned    num_sent_probes; /**< Amount of probes sent to the current hop */
     unsigned    ttl;             /**< The current TTL */
     probe_t  ** probes;          /**< Probes related to the current hop */
     probe_t  ** replies;         /**< Replies related to each of these probes */
+    traceroute_caller_data_t * caller_data;
 } traceroute_data_t;   
 
 /**
@@ -59,8 +60,9 @@ static void traceroute_data_reset(
 static void traceroute_data_free(traceroute_data_t * traceroute_data)
 {
     if (traceroute_data) {
-        if (traceroute_data->probes)  free(traceroute_data->probes);
-        if (traceroute_data->replies) free(traceroute_data->replies);
+        if (traceroute_data->probes)      free(traceroute_data->probes);
+        if (traceroute_data->replies)     free(traceroute_data->replies);
+        if (traceroute_data->caller_data) free(traceroute_data->caller_data);
         free(traceroute_data);
     }
 }
@@ -73,7 +75,7 @@ static void traceroute_data_free(traceroute_data_t * traceroute_data)
 
 traceroute_data_t * traceroute_data_create(algorithm_instance_t * instance)
 {
-    traceroute_options_t * options         = NULL;
+    traceroute_options_t * options;
     traceroute_data_t    * traceroute_data = NULL;
 
     // Get options
@@ -81,7 +83,7 @@ traceroute_data_t * traceroute_data_create(algorithm_instance_t * instance)
     if (!options) goto FAILURE; 
 
     // Alloc traceroute_data
-    traceroute_data = malloc(sizeof(traceroute_data_t));
+    traceroute_data = calloc(1, sizeof(traceroute_data_t));
     if (!traceroute_data) goto FAILURE;
     
     // Alloc probes 
@@ -92,12 +94,16 @@ traceroute_data_t * traceroute_data_create(algorithm_instance_t * instance)
     traceroute_data->replies = malloc(sizeof(probe_t) * options->num_probes);
     if (!traceroute_data->replies) goto FAILURE;
 
+    // Alloc user data 
+    traceroute_data->caller_data = malloc(sizeof(traceroute_caller_data_t));
+    if (!traceroute_data->caller_data) goto FAILURE;
+
     // Initialization 
     traceroute_data_reset(instance, traceroute_data);
     return traceroute_data;
 
 FAILURE:
-    if (traceroute_data) traceroute_data_free(traceroute_data);
+    traceroute_data_free(traceroute_data);
     return NULL;
 }
 
@@ -168,14 +174,13 @@ bool send_traceroute_probe(
 
 void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
 { 
-//    uint8_t                ttl;
     unsigned int           i, j, num_probes, num_sent_probes;
     bool                   all_stars;
     traceroute_data_t    * data; // is NULL before ALGORITHM_INIT
     probe_t              * reply;
     probe_t              * probe;
     probe_reply_t        * probe_reply;
-    char                 * disc_ip;
+//    char                 * disc_ip;
 
     probe_t              * probe_skel = algorithm_instance_get_probe_skel(instance);
     traceroute_options_t * options    = algorithm_instance_get_options(instance);
@@ -207,8 +212,9 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
             case PROBE_REPLY_RECEIVED:
 
                 data = algorithm_instance_get_data(instance);
-                if (!data)       goto FAILURE;
-                if (!probe_skel) goto FAILURE;
+                if (!data)              goto FAILURE;
+                if (!data->caller_data) goto FAILURE;
+                if (!probe_skel)        goto FAILURE;
 
                 num_probes      = options->num_probes;
                 num_sent_probes = data->num_sent_probes;
@@ -219,44 +225,49 @@ void traceroute_handler(pt_loop_t * loop, algorithm_instance_t * instance)
                 data->probes [num_sent_probes - 1] = probe;
                 data->replies[num_sent_probes - 1] = reply;
 
-                disc_ip = probe_get_field(reply, "src_ip")->value.string;
-//                ttl     = probe_get_field(probe, "ttl")->value.int8;
+                // Send event to the caller
+                data->caller_data->type = TRACEROUTE_PROBE_REPLY;
+                data->caller_data->value.probe_reply.options         = options;
+                data->caller_data->value.probe_reply.discovered_ip   = probe_get_field(reply, "src_ip")->value.string;
+                data->caller_data->value.probe_reply.current_ttl     = data->ttl;
+                data->caller_data->value.probe_reply.num_sent_probes = num_sent_probes;
+                pt_algorithm_throw(loop, instance->caller, event_create(ALGORITHM_ANSWER, data->caller_data));
 
-                printf("ttl = %2hu (%d/%d) dst_ip = %s disc_ip = %s\n", data->ttl, num_sent_probes, num_probes, options->dst_ip, disc_ip);
-//                printf("TTL = %2hu (%d/%d) dst_ip = %s disc_ip = %s\n", ttl, num_sent_probes, num_probes, options->dst_ip, disc_ip);
-
-                if (num_sent_probes < num_probes) {
-
-                    // We've not yet collected the all probes for this hop
-                    if (send_traceroute_probe(loop, probe_skel, data->ttl)) {
-                        data->num_sent_probes++;
-                    } else goto FAILURE;
-
-                } else {
-
-                    // We've collected every probes related to this hop 
+                // If we've collected every probes related to this hop 
+                if (num_sent_probes >= num_probes) {
                     all_stars = true;
                     for (j = 0; j < num_probes; ++j) {
                         all_stars &= is_star(data->probes[j]);
-                        if(destination_reached(options->dst_ip, data->replies[j])
-                        || stopping_icmp_error(data->replies[j])
-                        ) {
-                            // TODO send_message
+                        if (destination_reached(options->dst_ip, data->replies[j])) {
+                            // TODO send_message "destination reached"
+                            goto SUCCESS;
+                        } else if (stopping_icmp_error(data->replies[j])) {
+                            // TODO send_message "icmp error"
                             goto SUCCESS;
                         }
                     }
+
                     if (all_stars) {
+                        // TODO send_message "all stars"
                         goto SUCCESS;
                     }
 
+                    // Increment ttl
                     (data->ttl)++;
-                    if (data->ttl == options->max_ttl) goto SUCCESS;
+                    if (data->ttl == options->max_ttl) {
+                        // TODO send_message "ttl max reached"
+                        goto SUCCESS;
+                    }
 
+                    // Reset data related to the current ttl
                     traceroute_data_reset(instance, data);
-                    if (send_traceroute_probe(loop, probe_skel, data->ttl)) {
-                        data->num_sent_probes++;
-                    } else goto FAILURE;
                 }
+
+                // Send probe
+                if (send_traceroute_probe(loop, probe_skel, data->ttl)) {
+                    data->num_sent_probes++;
+                } else goto FAILURE;
+
                 break;
 
             case ALGORITHM_FREE:

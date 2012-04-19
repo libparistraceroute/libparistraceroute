@@ -73,6 +73,36 @@ static traceroute_options_t traceroute_default = {
  *
  */
 
+typedef enum {
+    TRACEROUTE_DESTINATION_REACHED,
+    TRACEROUTE_ALL_STARS,
+    TRACEROUTE_PROBE_REPLY,
+    TRACEROUTE_ICMP_ERROR
+} traceroute_event_type_t;
+
+// This structure gathers the information passed to the
+// user-defined handler
+
+typedef struct {
+    // Mandatory field
+    const traceroute_options_t * options;  /**< Options passed to this instance */
+    // Event-specific fields
+    const char * discovered_ip;    /**< Discovered IP */
+    unsigned     current_ttl;      /**< Current TTL */
+    unsigned     num_sent_probes;  /**< This is i-th probe sent for this TTL */
+} traceroute_probe_reply_t;
+
+typedef union {
+    traceroute_probe_reply_t probe_reply;
+} traceroute_event_value_t;
+
+typedef struct {
+    traceroute_event_type_t  type;
+    traceroute_event_value_t value;
+} traceroute_caller_data_t;
+
+
+
 /* --------------------------------------------------------------------
  * Interpretation output
  * --------------------------------------------------------------------

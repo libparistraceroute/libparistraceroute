@@ -261,14 +261,12 @@ void ipv4_write_default_header(unsigned char *data)
  * \return 0 if everything is ok, another value otherwise 
  */
 
-int ipv4_write_checksum (unsigned char *buf, pseudoheader_t * psh /* unused */){
+bool ipv4_write_checksum (unsigned char *buf, pseudoheader_t * psh /* unused */){
 	struct iphdr *ip_hed = (struct iphdr *) buf;
     size_t size = sizeof(struct iphdr);
 	ip_hed->check = csum((unsigned short *) ip_hed, size >> 1 ); // TODO: >> 1 RLY?
-
-    return 0;
+    return true;
 }
-
 
 static protocol_t ipv4 = {
     .name                 = "ipv4",

@@ -17,9 +17,9 @@
  */
 
 typedef enum {
-    STARTED,    /*!< Algorithm is started */
-    STOPPED,    /*!< Algorithm is stopped */
-    ERROR       /*!< An error occurred */
+    STARTED,    /*!< Algorithm instance is started */
+    STOPPED,    /*!< Algorithm instance is stopped */
+    ERROR       /*!< An error has occurred */
 } status_t;
 
 /**
@@ -28,14 +28,15 @@ typedef enum {
  */
 
 typedef struct algorithm_instance_s {
-    unsigned int id;                     /*!< Unique identifier */
-    struct algorithm_s *algorithm;       /*!< Pointer to the type of algorithm */
-    void *options;                       /*!< Pointer to an option structure specific to the algorithm */
-    probe_t *probe_skel;                 /*!< Skeleton for probes forged by this algorithm instance */
-    void *data;                          /*!< Algorithm-defined data */
-    dynarray_t *events;                  /*!< An array of events received by the algorithm */
-    struct algorithm_instance_s *caller; /*!< Reference to the entity that called the algorithm */
-    struct pt_loop_s *loop;              /*!< Pointer to a library context */
+    unsigned int                  id;         /*!< Unique identifier */
+    struct algorithm_s          * algorithm;  /*!< Pointer to the type of algorithm */
+    void                        * options;    /*!< Pointer to an option structure specific to the algorithm */
+    probe_t                     * probe_skel; /*!< Skeleton for probes forged by this algorithm instance */
+    void                        * data;       /*!< Internal algorithm data */
+    void                        * outputs;    /*!< Data exposed to the caller and filled by the instance */ 
+    dynarray_t                  * events;     /*!< An array of events received by the algorithm */
+    struct algorithm_instance_s * caller;     /*!< Reference to the entity that called the algorithm (NULL if called by pt_loop) */
+    struct pt_loop_s            * loop;       /*!< Pointer to a library context */
 } algorithm_instance_t;
 
 /**
@@ -49,10 +50,9 @@ typedef struct algorithm_s {
     void (*handler)(struct pt_loop_s *loop, algorithm_instance_t *instance);    /*!< Main handler function */
 } algorithm_t;
 
-
-/******************************************************************************
- * algorithm_t
- ******************************************************************************/
+//--------------------------------------------------------------------
+// algorithm_t 
+//--------------------------------------------------------------------
 
 /**
  * \brief Search for available algorithms by name.
@@ -75,54 +75,21 @@ static void __init_ ## MOD (void) {	\
 	algorithm_register(&MOD); \
 }
 
-/******************************************************************************
- * algorithm_instance_t
- ******************************************************************************/
+//--------------------------------------------------------------------
+// algorithm_instance_t
+//--------------------------------------------------------------------
 
-/**
- * \brief Create an instance of an algorithm
- * \param loop A pointer to a library main loop context
- * \param algorithm A pointer to a structure representing an algorithm
- * \param options A set of algorithm-specific options
- * \param probe_skel Skeleton for probes crafted by the algorithm
- * \return A pointer to an algorithm instance
- */
+void    *  algorithm_instance_get_options   (algorithm_instance_t * instance);
+probe_t *  algorithm_instance_get_probe_skel(algorithm_instance_t * instance);
+void    *  algorithm_instance_get_data      (algorithm_instance_t * instance);
+event_t ** algorithm_instance_get_events    (algorithm_instance_t * instance);
+unsigned   algorithm_instance_get_num_events(algorithm_instance_t * instance);
+void       algorithm_instance_set_data      (algorithm_instance_t * instance, void * data);
+void       algorithm_instance_clear_events  (algorithm_instance_t * instance);
 
-algorithm_instance_t * algorithm_instance_create(
-    struct pt_loop_s * loop,
-    algorithm_t      * algorithm,
-    void             * options,
-    probe_t          * probe_skel
-);
-
-/**
- * \brief Free an algorithm instance
- * \param instance The instance to be free'd
- */
-
-void algorithm_instance_free(algorithm_instance_t * instance);
-
-/**
- * \brief Compare two instances of an algorithm
- *  The comparison is done on the instance id.
- * \param instance1 Pointer to the first instance
- * \param instance2 Pointer to the second instance
- * \return Respectively -1, 0 or 1 if instance1 is lower, equal or bigger than
- *     instance2
- */
-
-int algorithm_instance_compare(
-    const algorithm_instance_t * instance1,
-    const algorithm_instance_t * instance2
-);
-
-void* algorithm_instance_get_options(algorithm_instance_t *instance);
-probe_t* algorithm_instance_get_probe_skel(algorithm_instance_t *instance);
-void* algorithm_instance_get_data(algorithm_instance_t *instance);
-void algorithm_instance_set_data(algorithm_instance_t *instance, void *data);
-event_t** algorithm_instance_get_events(algorithm_instance_t *instance);
-void algorithm_instance_clear_events(algorithm_instance_t *instance);
-unsigned int algorithm_instance_get_num_events(algorithm_instance_t *instance);
+//--------------------------------------------------------------------
+// pt_loop: user interface 
+//--------------------------------------------------------------------
 
 /**
  * \brief Throw an event to the libparistraceroute loop or to an instance
@@ -146,18 +113,62 @@ void pt_algorithm_throw(
 
 void pt_algorithm_free(algorithm_instance_t * instance);
 
-/******************************************************************************
- * pt_loop_t
- ******************************************************************************/
+/**
+ * \brief Add a new algorithm instance in the libparistraceroute loop.
+ * \param loop The libparistraceroute loop
+ * \param name Name of the algorithm (for instance 'traceroute').
+ * \param options Options passed to this instance.
+ * \param probe_skel Probe skeleton that constrains the way the packets
+ *   produced by this instance will be forged.
+ * \return A pointer to the instance, NULL otherwise. 
+ */
+
+algorithm_instance_t * pt_algorithm_add(
+    struct pt_loop_s * loop,
+    char             * name,
+    void             * options,
+    probe_t          * probe_skel
+);
+
+//--------------------------------------------------------------------
+// Internal usage (see pt_loop.c) 
+//--------------------------------------------------------------------
 
 /**
  * \brief process algorithm events (internal usage, see visitor for twalk)
+ * \param node Current instance
+ * \param visit Unused
+ * \param level Unused
  */
 
-void pt_process_algorithms_instance(const void *node, VISIT visit, int level);
-void pt_algorithm_instance_iter(struct pt_loop_s *loop, void (*action) (const void *, VISIT, int));
-algorithm_instance_t * pt_algorithm_add(struct pt_loop_s *loop, char *name, void *options, probe_t *probe_skel);
-void pt_algorithm_terminate(struct pt_loop_s *loop, algorithm_instance_t *instance);
+void pt_process_algorithms_instance(
+    const void * node,
+    VISIT        visit,
+    int          level
+);
 
+/**
+ * \brief process algorithm events (internal usage, see visitor for twalk)
+ * \param loop The libparistraceroute loop
+ * \param action A pointer to a function that process the current instance, e.g.
+ *    that dispatches the events related to this instance.
+ */
+
+void pt_algorithm_instance_iter(
+    struct pt_loop_s * loop,
+    void (*action) (const void *, VISIT, int)
+);
+
+/**
+ * \brief Send a ALGORITHM_TERMINATED event to the caller which may be
+ *   either a calling algorithm or either the libparistraceroute loop 
+ *   if this algorithm has been called by the user program.
+ * \param loop The libparistraceroute loop
+ */
+
+void pt_algorithm_terminate(
+    struct pt_loop_s     * loop,
+    algorithm_instance_t * instance
+);
 
 #endif

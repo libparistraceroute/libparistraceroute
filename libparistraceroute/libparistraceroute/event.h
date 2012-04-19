@@ -3,7 +3,16 @@
 
 /**
  * \file event.h
- * \brief Header file providing a data structure for events
+ * \brief
+ *   Event structures are used to notify an algorithm when
+ *   a particular event arises and to carry data between each
+ *   instances.
+ *
+ *   Events type are mainly here to manage libparistraceroute loop
+ *   (memory, network ...) and are thus independant of the what
+ *   does the algorithm.
+ *
+ *   Specific-algorithm event are nested in a ALGORITHM_ANSWER event.
  */
 
 #include "probe.h"
@@ -18,11 +27,19 @@ typedef struct reply_received_params_s {
  */
 
 typedef enum {
-    ALGORITHM_INIT,       /**< Algorithm initialisation event   */
-    ALGORITHM_TERMINATED, /**< Algorithm has successfully ended */
-    ALGORITHM_FAILURE,    /**< Algorithm has crashed            */
-    ALGORITHM_FREE,       /**< Algorithm has to free the memory */
-    PROBE_REPLY_RECEIVED  /**< Reply received event             */
+
+    // Events raised by an upper layers (caller instances, pt_loop...)
+    
+    ALGORITHM_INIT,       /**< Start the algorithm (allocate memory...)        */
+    ALGORITHM_FREE,       /**< This instance has to free the memory            */
+
+    // Events raised by a lower layers (called instances, network...)
+
+    ALGORITHM_ANSWER,     /**< A specific-algorithm event has arised           */
+    ALGORITHM_FAILURE,    /**< A called instance has crashed                   */
+    ALGORITHM_TERMINATED, /**< A called instance has finished                  */
+    PROBE_REPLY_RECEIVED  /**< Network layer has got a probe for this instance */
+
 } event_type_t;
 
 /**
@@ -31,14 +48,14 @@ typedef enum {
  */
 
 typedef struct {
-    /** Enum holding the event type */
-    event_type_t type;
+    event_type_t type;    /**< Enum holding the event type */
     
     /**
      * Pointer to event parameters.
-     * PROBE_REPLY_RECEIVED: reply_received_params_t
+     * PROBE_REPLY_RECEIVED : reply_received_params_t *
+     * ALGORITHM_ANSWER     : see called algorithm implementation
      */
-    void *params;
+    void * params;
 } event_t;
 
 /** 
