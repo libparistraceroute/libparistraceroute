@@ -1,6 +1,7 @@
 #include "bitfield.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <stdio.h> // DEBUG
 
@@ -17,22 +18,45 @@ static inline size_t min(size_t x, size_t y) {
 // alloc
 
 bitfield_t * bitfield_create(size_t size_in_bits) {
-    // If this is an empty bitfield return NULL;
-    if (size_in_bits == 0) return NULL;
 
     // Allocate bitfield structure
     bitfield_t * bitfield = calloc(1, sizeof(bitfield_t));
-    if (!bitfield) goto FAILURE;
+    if (!bitfield) goto err;
 
     // Allocate bitfield mask
-    bitfield->mask = malloc(size_in_bits / 8);
-    if (!bitfield->mask) goto FAILURE;
+    if (size_in_bits > 0) {
+        bitfield->mask = malloc(size_in_bits / 8);
+        if (!bitfield->mask) goto err_mask;
+    }
 
     // Set size
     bitfield->size_in_bits = size_in_bits;
     return bitfield;    
-FAILURE:
+
+err_mask:
     bitfield_free(bitfield);
+err:
+    return NULL;
+}
+
+// dup
+
+bitfield_t * bitfield_dup(bitfield_t *bitfield)
+{
+    bitfield_t *bf;
+
+    if (!bitfield)
+        return NULL;
+
+    bf = bitfield_create(bitfield->size_in_bits);
+    if (!bf)
+        goto error;
+
+    memcpy(bf->mask, bitfield->mask, bitfield->size_in_bits / 8);
+
+    return bf;
+
+error:
     return NULL;
 }
 
@@ -43,6 +67,15 @@ void bitfield_free(bitfield_t * bitfield) {
         if (bitfield->mask) free(bitfield->mask);
         free(bitfield);
     }
+}
+
+//--------------------------------------------------------------------------
+// Additions
+//--------------------------------------------------------------------------
+
+unsigned char *bitfield_get_mask(const bitfield_t *bitfield)
+{
+    return bitfield->mask;
 }
 
 //--------------------------------------------------------------------------

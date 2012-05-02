@@ -17,6 +17,7 @@ typedef struct {
 	/** Pointer to a structure describing the protocol */
     protocol_t *protocol;
     unsigned char *buffer;
+    unsigned char *mask;
     size_t header_size;
     size_t buffer_size;
 } layer_t;
@@ -26,6 +27,9 @@ typedef struct {
  * \return Newly created layer
  */
 layer_t *layer_create(void);
+
+layer_t *layer_dup(layer_t *layer);
+
 /**
  * \brief Delete a layer structure
  * \param layer Pointer to the layer structure to delete
@@ -74,10 +78,14 @@ int layer_set_field(layer_t *layer, field_t *field);
 int layer_set_payload(layer_t *layer, buffer_t *payload);
 
 void layer_set_buffer_size(layer_t *layer, size_t buffer_size);
+size_t layer_get_buffer_size(layer_t *layer);
 void layer_set_header_size(layer_t *layer, size_t header_size);
 void layer_set_buffer(layer_t *layer, unsigned char *buffer);
+void layer_set_mask(layer_t *layer, unsigned char *mask);
 
 field_t * layer_get_field(layer_t *layer, const char * name);
+
+int layer_set_payload(layer_t *layer, buffer_t * payload);
 
 // Dump
 

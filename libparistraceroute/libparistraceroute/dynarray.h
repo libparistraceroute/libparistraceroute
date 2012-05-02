@@ -1,6 +1,8 @@
 #ifndef DYNARRAY_H
 #define DYNARRAY_H
 
+#include "unistd.h"
+
 /**
  * \file dynarray.h
  * \brief Header file: dynamic array structure
@@ -27,6 +29,8 @@ typedef struct {
  */
 dynarray_t* dynarray_create(void);
 
+dynarray_t* dynarray_dup (dynarray_t* dynarray, void * (*element_dup)(void*));
+
 /**
  * \brief Free a dynamic array structure.
  * \param dynarray Pointer to a dynamic array structure
@@ -41,6 +45,8 @@ void dynarray_free(dynarray_t *dynarray , void (*element_free)(void *element));
  * \param element Pointer to the element to add
  */
 void dynarray_push_element(dynarray_t *dynarray, void *element);
+
+int dynarray_del_ith_element(dynarray_t *dynarray, unsigned int i);
 
 /**
  * \brief Clear a dynamic array.

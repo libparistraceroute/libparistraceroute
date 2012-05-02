@@ -48,6 +48,9 @@ network_t* network_create(void)
     network->probes = dynarray_create();
     if (!network->probes)
         goto err_probes;
+
+    network->last_tag = 0;
+
     return network;
 
 err_probes:
@@ -68,7 +71,7 @@ err_network:
 
 void network_free(network_t *network)
 {
-    printf("> network_free: call probe_free(network->probes = %d)\n", network->probes);
+    //printf("> network_free: call probe_free(network->probes = %d)\n", network->probes);
     dynarray_free(network->probes, (ELEMENT_FREE) probe_free);
     printf("> network_free: OK\n");
     sniffer_free(network->sniffer);
@@ -97,9 +100,6 @@ packet_t *packet_create_from_probe(probe_t *probe)
 {
     //unsigned char  * payload;
     //size_t           payload_size;
-    layer_t        * layer;
-    size_t           size;
-    int              i;
     char           * dip;
     unsigned short   dport;
     packet_t *packet;
@@ -122,81 +122,77 @@ packet_t *packet_create_from_probe(probe_t *probe)
     packet_set_dport(packet, dport);
     packet_set_buffer(packet, probe_get_buffer(probe));
 
-    size = dynarray_get_size(probe->layers);
-
-    /* Sets the payload */
-
-    /* Allow the protocol to do some processing before checksumming */
-    for (i = 0; i<size; i++) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-
-        /* finalize callback */
-        if (layer->protocol->finalize)
-            layer->protocol->finalize(layer->buffer);
-
-    }
-
-    // 1) Write payload (need to have enough buffer space)
-    //payload      = probe_get_payload(probe);
-    //payload_size = probe_get_payload_size(probe);
-
-    // 2) Go though the layers of the probe in the reverse order to write
-    // checksums
-    // XXX layer_t will require parent layer, and probe_t bottom_layer
-    for (i = size - 1; i >= 0; i--) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-        /* Does the protocol require a pseudoheader ? */
-        if (layer->protocol->need_ext_checksum) {
-            //layer_t        * layer_prev;
-            //protocol_t     * protocol_prev;
-            //pseudoheader_t * psh; // variant of a buffer
-
-            if (i == 0)
-                return NULL;
-
-            //layer_prev = dynarray_get_ith_element(probe->layers, i-1);
-            //protocol_prev = layer_prev->protocol;
-
-            // TODO not implemented
-            // psh = protocol->create_pseudo_header(protocol_prev, offsets[i-1]);
-            // if (!psh)
-            //     return NULL;
-            //    protocol->write_checksum(data, psh);
-            //    free(psh); 
-            //    psh = NULL;
-
-        } else {
-            // could be a function in layer ?
-            layer->protocol->write_checksum(layer->buffer, NULL);
-        }
-    }
-
-    // 3) swap payload and IPv4 checksum
-
-    //probe_dump(probe);
-
     return packet;
 
 }
 
-
-// not the right callback here
-int network_send_probe(network_t *network, probe_t *probe)
+int network_get_available_tag(network_t *network)
 {
-    queue_push_element(network->sendq, probe);
-
-    return 0;
+    // XXX
+    return ++network->last_tag;
 }
 
 // TODO This could be replaced by watchers: FD -> action
-
 int network_process_sendq(network_t *network)
 {
     probe_t *probe;
     packet_t *packet;
     int res;
-    
+
+    uint16_t tag, checksum;
+    buffer_t * buffer;
+
     probe = queue_pop_element(network->sendq);
+
+    /* The probe gets assigned a unique tag. Currently we encode it in the UDP
+     * checksum, but I guess the tag will be protocol dependent. Also, since the
+     * tag changes the probe, the user has no direct control of what is sent on
+     * the wire, since typically a packet is tagged just before sending, after
+     * scheduling, to maximize the number of probes in flight. Available space
+     * in the headers is used for tagging, + encoding some information... */
+    /* XXX hardcoded XXX */
+
+    /* 1) Set payload = tag : this is only possible if both the payload and the
+     * checksum have not been set by the user.
+     * We need a list of used tags = in flight... + an efficient way to get a
+     * free one... Also, we need to share tags between several instances ?
+     * randomized tags ? Also, we need to determine how much size we have to
+     * encode information. */
+    tag = network_get_available_tag(network);
+
+    //probe_dump(probe);
+
+    buffer = buffer_create();
+    buffer_set_data(buffer, (unsigned char*)&tag, sizeof(uint16_t));
+
+    probe_set_payload(probe, buffer);
+    
+    //printf("With payload:\n");
+    //probe_dump(probe);
+
+    /* 2) Compute checksum : should be done automatically by probe_set_fields */
+
+    probe_update_fields(probe);
+
+    //printf("After update fields:\n");
+    //probe_dump(probe);
+
+    /* 3) Swap checksum and payload : give explanations here ! */
+
+    checksum = probe_get_field_ext(probe, "checksum", 1)->value.int16; // UDP checksum
+    probe_set_field_ext(probe, I16("checksum", tag), 1);
+
+    //printf("After setting tag as checksum:\n");
+    //probe_dump(probe);
+
+    buffer_set_data(buffer, (unsigned char*)&checksum, sizeof(uint16_t));
+    probe_set_payload(probe, buffer);
+
+    //printf("After setting checksum as payload:\n");
+    //probe_dump(probe);
+
+    /* NOTE: we must define a metafield tag, which can be parametrized, and
+     * match on this metafield */
 
     /* Make a packet from the probe structure */
     packet = packet_create_from_probe(probe);
@@ -226,9 +222,12 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
     size_t size;
     unsigned int i;
 
-    // probe_dump(probe);
+    //probe_dump(reply);
 
-    reply_checksum_field = probe_get_field(reply, "checksum");
+    reply_checksum_field = probe_get_field_ext(reply, "checksum", 3);
+    if (!reply_checksum_field)
+        /* we only match with ICMP */
+        return NULL;
     
     size = dynarray_get_size(network->probes);
     for(i = 0; i < size; i++) {
@@ -239,7 +238,7 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
         /* Reply / probe comparison = let's start simple by only comparing the
          * checksum
          */
-        probe_checksum_field = probe_get_field(reply, "checksum");
+        probe_checksum_field = probe_get_field_ext(probe, "checksum", 1);
         if (field_compare(probe_checksum_field, reply_checksum_field) == 0)
             break;
 
@@ -247,8 +246,16 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
 
     /* No match found if we reached the end of the array */
     if (i == size) {
-        printf("No match found\n");
+        printf("Probe discarded:\n");
+        probe_dump(reply);
         return NULL;
+    } else {
+        /* We delete the corresponding probe
+         * Should be kept, for archive purposes, and to match for duplicates...
+         * but we cannot reenable it until we set the probe tag into the
+         * checksum, since probes with same flow_id and different ttl have the
+         * same checksum */
+        dynarray_del_ith_element(network->probes, i);
     }
 
     return probe;
@@ -275,7 +282,6 @@ int network_process_recvq(network_t *network)
     
     probe = network_match_probe(network, reply);
     if (!probe) {
-        printf("probe discarded\n");
         return -1; // Discard the probe
     }
     /* We have a match: probe has generated reply

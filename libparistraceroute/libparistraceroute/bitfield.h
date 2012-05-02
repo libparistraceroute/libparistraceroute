@@ -23,6 +23,8 @@ typedef struct bitfield_s {
 
 bitfield_t * bitfield_create(size_t size_in_bits);
 
+bitfield_t * bitfield_dup(bitfield_t *bitfield);
+
 /**
  * \brief Delete a bitfield from the memory
  * \param bitfield Address of this bitfield
@@ -33,6 +35,8 @@ void bitfield_free(bitfield_t * bitfield);
 //--------------------------------------------------------------------------
 // Setter/getter 
 //--------------------------------------------------------------------------
+
+unsigned char *bitfield_get_mask(const bitfield_t *bitfield);
 
 /**
  * \brief Retrieve the i-th bit stored in a bitfield

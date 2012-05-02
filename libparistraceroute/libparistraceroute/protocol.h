@@ -9,7 +9,7 @@
 #include <stdbool.h>
 
 #include "protocol_field.h"
-#include "pseudoheader.h"
+#include "buffer.h"
 
 #define END_PROTOCOL_FIELDS { .key = NULL }
 
@@ -39,9 +39,11 @@ typedef struct {
 	 * \param psh Pointer to a pseudoheader_t structure
 	 * \return true if success, false othewise 
 	 */
-	bool (*write_checksum)(unsigned char *buf, pseudoheader_t *psh);
+	bool (*write_checksum)(unsigned char *buf, buffer_t *psh);
 
     // create_pseudo_header
+    buffer_t * (*create_pseudo_header)(unsigned char* buffer);
+    //
 	
     /** Pointer to a protocol_field_t structure holding the header fields */
     protocol_field_t *fields;

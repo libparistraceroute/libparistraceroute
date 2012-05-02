@@ -4,7 +4,7 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
-#include "algorithm.h"
+//#include "algorithm.h"
 #include "network.h"
 #include "event.h"
 
@@ -20,12 +20,12 @@ typedef struct pt_loop_s {
     // User
     int                    eventfd_user;            /**< User notification */
     dynarray_t           * events_user;             /**< User events queue */
-    int (*handler_user) (struct pt_loop_s *);       /**< User handler */
+    void (*handler_user)(void *);                   /**< User handler */
 
     // Epoll data
     int                    efd;
     struct epoll_event   * epoll_events;
-    algorithm_instance_t * cur_instance;
+    struct algorithm_instance_s * cur_instance;
 } pt_loop_t;
 
 /**
@@ -40,7 +40,7 @@ typedef struct pt_loop_s {
  * \return A pointer to a loop if successfull, NULL otherwise.
  */
 
-pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s * loop));
+pt_loop_t * pt_loop_create(void (*handler_user)(void*));
 
 /**
  * \brief Close properly the paristraceroute loop
@@ -111,10 +111,17 @@ event_t ** pt_loop_get_user_events(pt_loop_t * loop);
 
 unsigned pt_loop_get_num_user_events(pt_loop_t * loop);
 
-int pt_loop_set_algorithm_instance(pt_loop_t * loop, algorithm_instance_t * instance);
-algorithm_instance_t * pt_loop_get_algorithm_instance(pt_loop_t * loop);
-
 //void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *reply);
 //void pt_probe_send(struct pt_loop_s *loop, probe_t *probe);
+
+/**
+ * \brief Send a probe packet across a network
+ * \param network Pointer to the network to use
+ * \param probe Pointer to the probe to use
+ * \param callback Function pointer to a callback function
+ *     (Does not appear to be used currently)
+ * \return 0
+ */
+int pt_send_probe(pt_loop_t *loop, probe_t *probe);
 
 #endif

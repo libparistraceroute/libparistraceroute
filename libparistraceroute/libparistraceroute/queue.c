@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdio.h>
 #include "queue.h"
 
 queue_t * queue_create(void)
@@ -10,7 +11,7 @@ queue_t * queue_create(void)
         goto err_queue;
 
     /* Create an eventfd */
-    queue->eventfd = eventfd(0, 0);
+    queue->eventfd = eventfd(0, EFD_SEMAPHORE);
     if (queue->eventfd == -1)
         goto err_eventfd;
 
@@ -49,6 +50,12 @@ int queue_push_element(queue_t *queue, void *element)
 
 void * queue_pop_element(queue_t *queue)
 {
+    uint64_t ret;
+    ssize_t count;
+    
+    count = read(queue->eventfd, &ret, sizeof(ret));
+    if (count == -1)
+        return NULL;
     return list_pop_element(queue->elements);
 }
 

@@ -4,7 +4,43 @@
 #include "buffer.h"
 
 inline buffer_t * buffer_create() {
-    return calloc(1, sizeof(buffer_t));
+    buffer_t *buffer;
+    buffer = malloc(sizeof(buffer_t));
+    if (!buffer)
+        goto error;
+
+    buffer->data = NULL;
+    buffer->size = 0;
+    return buffer;
+
+error:
+    return NULL;
+}
+
+buffer_t * buffer_dup(buffer_t * buffer)
+{
+    buffer_t *buf;
+
+    if (!buffer)
+        return NULL;
+
+    buf = buffer_create();
+    if (!buf)
+        goto error;
+
+    buf->data = calloc(buffer->size, sizeof(unsigned char));
+    if (!buf->data)
+        goto error_buffer;
+
+    memcpy(buf->data, buffer->data, buffer->size);
+    buf->size = buffer->size;
+
+    return buf;
+
+error_buffer:
+    free(buffer);
+error:
+    return NULL;
 }
 
 void buffer_free(buffer_t * buffer)
@@ -18,6 +54,10 @@ void buffer_free(buffer_t * buffer)
 int buffer_resize(buffer_t *buffer, size_t size)
 {
     unsigned char *tmp;
+
+    if (buffer->size == size)
+        return 0;
+
     if (!buffer->data) {
         // First time allocation
         buffer->data = calloc(size, sizeof(unsigned char));
@@ -41,8 +81,10 @@ inline size_t buffer_get_size(const buffer_t *buffer) {
     return buffer->size;
 }
 
-inline void buffer_set_data(buffer_t *buffer, unsigned char *data) {
-    buffer->data = data;
+inline void buffer_set_data(buffer_t *buffer, unsigned char *data, unsigned int size)
+{
+    buffer_resize(buffer, size);
+    memcpy(buffer->data, data, size);
 }
 
 inline void buffer_set_size(buffer_t *buffer, size_t size) {

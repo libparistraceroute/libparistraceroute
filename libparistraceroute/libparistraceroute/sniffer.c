@@ -107,8 +107,7 @@ void sniffer_process_packets(sniffer_t *sniffer)
             packet_t *packet;
 
             buffer = buffer_create();
-            buffer_set_data(buffer, data);
-            buffer_set_size(buffer, data_len);
+            buffer_set_data(buffer, data, data_len);
 
             packet = packet_create();
             packet_set_buffer(packet, buffer);

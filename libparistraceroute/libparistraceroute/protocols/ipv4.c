@@ -261,10 +261,10 @@ void ipv4_write_default_header(unsigned char *data)
  * \return 0 if everything is ok, another value otherwise 
  */
 
-bool ipv4_write_checksum (unsigned char *buf, pseudoheader_t * psh /* unused */){
-	struct iphdr *ip_hed = (struct iphdr *) buf;
+bool ipv4_write_checksum (unsigned char *buf, buffer_t * psh){
+	struct iphdr *iph = (struct iphdr *) buf;
     size_t size = sizeof(struct iphdr);
-	ip_hed->check = csum((unsigned short *) ip_hed, size >> 1 ); // TODO: >> 1 RLY?
+	iph->check = csum((unsigned short *) iph, size >> 1 ); // TODO: >> 1 RLY?
     return true;
 }
 
@@ -273,7 +273,7 @@ static protocol_t ipv4 = {
     .protocol             = 4, // XXX only IP over IP (encapsulation) 
     .get_num_fields       = ipv4_get_num_fields,
     .write_checksum       = ipv4_write_checksum,
-  //.create_pseudo_header = NULL,
+    .create_pseudo_header = NULL,
     .fields               = ipv4_fields,
     .header_len           = sizeof(struct iphdr),
     .write_default_header = ipv4_write_default_header, // TODO generic

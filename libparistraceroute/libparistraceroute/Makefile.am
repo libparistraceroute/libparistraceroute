@@ -25,7 +25,9 @@ lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la
 
 libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						algorithm.h \
-						algorithms/mda.h \
+						algorithms/mda/data.h \
+						algorithms/mda/flow.h \
+						algorithms/mda/interface.h \
 						algorithms/traceroute.h \
 						bitfield.h \
 						buffer.h \
@@ -35,9 +37,11 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						event.h \
 						field.h \
 						layer.h \
+						lattice.h \
 						list.h \
 						metafield.h \
 						network.h \
+						optparse.h \
 						packet.h \
 						probe.h \
 						protocol.h \
@@ -64,6 +68,9 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         $(libparistraceroute_la_HEADERS) \
 						algorithm.c \
 						algorithms/mda.c \
+						algorithms/mda/data.c \
+						algorithms/mda/flow.c \
+						algorithms/mda/interface.c \
 						algorithms/traceroute.c \
 						bitfield.c \
 						buffer.c \
@@ -71,10 +78,12 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						dynarray.c \
 						event.c \
 						field.c \
+						lattice.c \
 						layer.c \
 						list.c \
 						metafield.c \
 						network.c \
+						optparse.c \
 						packet.c \
 						probe.c \
 						protocol.c \

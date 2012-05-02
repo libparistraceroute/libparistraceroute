@@ -190,12 +190,25 @@ inline unsigned int algorithm_instance_get_num_events(algorithm_instance_t * ins
 void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
 {
     algorithm_instance_t * instance = *((algorithm_instance_t **) node);
+    unsigned int i, num_events;
+    uint64_t        ret;
+    ssize_t         count;
     
     // Save temporarily this algorithm context
     instance->loop->cur_instance = instance;
 
-    // Execute algorithm handler
-    instance->algorithm->handler(instance->loop, instance);
+    // Execute algorithm handler for events of each algorithm
+    num_events = dynarray_get_size(instance->events);
+    for (i = 0; i < num_events; i++) {
+        event_t *event;
+
+        count = read(instance->loop->eventfd_algorithm, &ret, sizeof(ret));
+        if (count == -1)
+            return;
+
+        event = dynarray_get_ith_element(instance->events, i);
+        instance->algorithm->handler(instance->loop, event, &instance->data, instance->probe_skel);
+    }
 
     // Restore the algorithm context
     instance->loop->cur_instance = NULL;
@@ -219,6 +232,9 @@ algorithm_instance_t * pt_algorithm_add(
         return NULL;  // No such algorithm
     }
     
+    // If the probe skeleton does not exist, create it.
+    if (!probe_skel)
+        probe_skel = probe_create();
     // Create a new instance of a running algorithm
     instance = algorithm_instance_create(loop, algorithm, options, probe_skel);
 

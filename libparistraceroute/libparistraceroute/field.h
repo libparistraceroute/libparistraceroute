@@ -22,6 +22,10 @@ typedef enum {
     TYPE_INT16,
 	/** 32 bit integer */
     TYPE_INT32,
+	/** 64 bit integer */
+    TYPE_INT64,
+    /** max integer */
+    TYPE_INTMAX,
 	/** String */
     TYPE_STRING
 } fieldtype_t;
@@ -37,6 +41,10 @@ typedef union {
     uint16_t        int16;
 	/** Value of data as a 32 bit integer */
     uint32_t        int32;
+	/** Value of data as a 64 bit integer */
+    uint64_t        int64;
+    /** Value of data as a max integer */
+    uintmax_t       intmax;
 	/** Pointer to string data */
     char          * string;
 } value_t;
@@ -79,6 +87,10 @@ field_t * field_create_int16 (const char * key, uint16_t value);
  */
 
 field_t * field_create_int32 (const char * key, uint32_t value);
+
+field_t * field_create_int64 (const char * key, uint64_t value);
+
+field_t * field_create_intmax (const char * key, uintmax_t value);
 
 /**
  * \brief Create a field structure to hold a string
@@ -134,6 +146,9 @@ void      field_free(field_t *field);
  */
 
 #define I32(x, y) field_create_int32(x, y)
+
+#define I64(x, y) field_create_int64(x, y)
+#define IMAX(x, y) field_create_intmax(x, y)
 
 /**
  * \brief Macro shorthand for field_create_string

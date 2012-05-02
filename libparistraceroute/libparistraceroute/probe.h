@@ -45,6 +45,12 @@ typedef struct {
 probe_t * probe_create(void);
 
 /**
+ * \brief Create a probe from probe skeleton
+ * \return A pointer to a probe_t structure containing the probe
+ */
+probe_t * probe_dup(probe_t *probe_skel);
+
+/**
  * \brief Free a probe
  * \param probe A pointer to a probe_t structure containing the probe
  * \return None
@@ -67,6 +73,11 @@ void probe_dump(probe_t *probe);
  * \return None
  */
 void probe_add_field(probe_t *probe, field_t *field);
+
+int probe_set_field_ext(probe_t *probe, field_t *field, unsigned int depth);
+int probe_set_field(probe_t *probe, field_t *field);
+
+int probe_update_fields(probe_t *probe);
 
 /**
  * \brief Assigns a set of fields to a probe
@@ -99,6 +110,7 @@ field_t ** probe_get_fields(probe_t *probe);
  * What about allocation ?
  */
 field_t *probe_get_field(probe_t *probe, const char *name);
+field_t *probe_get_field_ext(probe_t *probe, const char *name, unsigned int depth);
 
 /**
  * \brief Get the payload from a probe
@@ -106,6 +118,9 @@ field_t *probe_get_field(probe_t *probe, const char *name);
  * \return NULL (Not yet implemented)
  */
 unsigned char *probe_get_payload(probe_t *probe);
+
+int probe_set_payload(probe_t *probe, buffer_t * payload);
+
 /**
  * \brief Get the size of the payload from a probe
  * \param probe Pointer to a probe_t structure to get the payload size from
@@ -171,13 +186,6 @@ struct pt_loop_s;
  * \return None
  */
 void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *reply);
-/**
- * \brief Send a probe across the network
- * \param loop Pointer to a pt_loop_s structure describing the loop in which the probe should run (?)
- * \param probe Pointer to a probe_t structure describing the probe to send
- * \return None
- */
-void pt_probe_send(struct pt_loop_s *loop, probe_t *probe);
 
 
 int probe_set_protocols(probe_t *probe, char *name1, ...);

@@ -2,13 +2,15 @@
 #include <unistd.h>
 #include <stdio.h> // DEBUG
 #include "pt_loop.h"
+#include "algorithm.h"
 
 #define MAXEVENTS 100
 
 // Internal usage
 static void pt_loop_clear_user_events(pt_loop_t * loop);
 
-pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s * loop)) {
+pt_loop_t * pt_loop_create(void (*handler_user)(void*))
+{
     int s, network_sendq_fd, network_recvq_fd, network_sniffer_fd;
     pt_loop_t * loop;
     struct epoll_event network_sendq_event;
@@ -27,21 +29,21 @@ pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s * loop)) {
         goto ERR_EPOLL;
     
     /* eventfd for algorithms */
-    loop->eventfd_algorithm = eventfd(0, 0);
+    loop->eventfd_algorithm = eventfd(0, EFD_SEMAPHORE);
     if (loop->eventfd_algorithm == -1)
         goto ERR_EVENTFD_ALGORITHM;
     algorithm_event.data.fd = loop->eventfd_algorithm;
-    algorithm_event.events = EPOLLIN | EPOLLET;
+    algorithm_event.events = EPOLLIN; // | EPOLLET;
     s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_algorithm, &algorithm_event);
     if (s == -1)
         goto ERR_EVENTFD_ADD_ALGORITHM;
 
     /* eventfd for user */
-    loop->eventfd_user = eventfd(0, 0);
+    loop->eventfd_user = eventfd(0, EFD_SEMAPHORE);
     if (loop->eventfd_user == -1)
         goto ERR_EVENTFD_USER;
     user_event.data.fd = loop->eventfd_user;
-    user_event.events = EPOLLIN | EPOLLET;
+    user_event.events = EPOLLIN; // | EPOLLET;
     s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, loop->eventfd_user, &user_event);
     if (s == -1)
         goto ERR_EVENTFD_ADD_USER;
@@ -54,7 +56,7 @@ pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s * loop)) {
     /* sending queue */
     network_sendq_fd = network_get_sendq_fd(loop->network);
     network_sendq_event.data.fd = network_sendq_fd;
-    network_sendq_event.events = EPOLLIN | EPOLLET;
+    network_sendq_event.events = EPOLLIN; // | EPOLLET;
     s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sendq_fd, &network_sendq_event);
     if (s == -1)
         goto ERR_SENDQ_ADD;
@@ -62,7 +64,7 @@ pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s * loop)) {
     /* receiving queue */
     network_recvq_fd = network_get_recvq_fd(loop->network);
     network_recvq_event.data.fd = network_recvq_fd;
-    network_recvq_event.events = EPOLLIN | EPOLLET;
+    network_recvq_event.events = EPOLLIN; // | EPOLLET;
     s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_recvq_fd, &network_recvq_event);
     if (s == -1) 
         goto ERR_RECVQ_ADD;
@@ -70,7 +72,7 @@ pt_loop_t * pt_loop_create(int (*handler_user)(struct pt_loop_s * loop)) {
     /* sniffer */
     network_sniffer_fd = network_get_sniffer_fd(loop->network);
     network_sniffer_event.data.fd = network_sniffer_fd;
-    network_sniffer_event.events = EPOLLIN | EPOLLET;
+    network_sniffer_event.events = EPOLLIN; // | EPOLLET;
     s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sniffer_fd, &network_sniffer_event);
     if (s == -1)
         goto ERR_SNIFFER_ADD;
@@ -124,19 +126,6 @@ void pt_loop_free(pt_loop_t * loop)
 
 // Accessors
 
-inline int pt_loop_set_algorithm_instance(
-    pt_loop_t            * loop,
-    algorithm_instance_t * instance
-) {
-    loop->cur_instance = instance;
-    return 0;
-}
-
-inline algorithm_instance_t * pt_loop_get_algorithm_instance(pt_loop_t *loop)
-{
-    return loop ? loop->cur_instance : NULL;
-}
-
 inline event_t ** pt_loop_get_user_events(pt_loop_t * loop)
 {
     return loop ?
@@ -159,6 +148,48 @@ inline void pt_loop_clear_user_events(pt_loop_t * loop)
 static inline int min(int x, int y) {
     return x < y ? x : y;
 }
+
+/**
+ * \brief User-defined handler called by libparistraceroute 
+ * \param loop The libparistraceroute loop
+ * \param algorithm_outputs Information updated by the algorithm
+ * \return An integer used by pt_loop()
+ *   - <0: there is failure, stop pt_loop
+ *   - =0: algorithm has successfully ended, stop the loop
+ *   - >0: the algorithm has not yet ended, continue
+ */
+
+int pt_loop_process_user_events(pt_loop_t * loop) {
+    unsigned        i;
+    event_t      ** events     = pt_loop_get_user_events(loop); 
+    unsigned int    num_events = pt_loop_get_num_user_events(loop);
+    uint64_t        ret;
+    ssize_t         count;
+
+    for (i = 0; i < num_events; i++) {
+        // decrement the associated eventfd counter
+        count = read(loop->eventfd_user, &ret, sizeof(ret));
+        if (count == -1)
+            return -1;
+
+        switch (events[i]->type) {
+            case ALGORITHM_TERMINATED:
+                printf("> Received ALGORITHM_TERMINATED\n");
+                return 0;
+            case ALGORITHM_FAILURE:
+                printf("> Received ALGORITHM_FAILURE\n");
+                return -1;
+            case ALGORITHM_ANSWER:
+                // TODO carry (algorithm_id, instance_id) in user data ?
+                loop->handler_user(events[i]->params);
+                break;
+            default:
+                break;
+        }
+    }
+    return 1;
+}
+
 
 int pt_loop(pt_loop_t *loop, unsigned int timeout)
 {
@@ -212,7 +243,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
         } else if (cur_fd == loop->eventfd_user) {
 
             // Throw this event to the user-defined handler
-            ret = min(ret, loop->handler_user(loop));
+            ret = pt_loop_process_user_events(loop);
             
             // Flush the queue 
             pt_loop_clear_user_events(loop);
@@ -221,5 +252,21 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
     // Process internal events
     return ret;
+}
+
+// not the right callback here
+int pt_send_probe(pt_loop_t *loop, probe_t *probe)
+{
+    /* We remember which algorithm has generated the probe */
+    probe_set_caller(probe, loop->cur_instance);
+    probe_set_queueing_time(probe, get_timestamp());
+
+    /* The probe gets assigned a unique ID for the algorithm */
+    /* TODO */
+
+    //probe_dump(probe);
+    queue_push_element(loop->network->sendq, probe);
+
+    return 0;
 }
 

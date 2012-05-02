@@ -10,6 +10,7 @@
 #include "probe.h"
 #include "event.h"
 #include "dynarray.h"
+#include "pt_loop.h"
 
 /**
  * \enum status_t
@@ -47,7 +48,7 @@ typedef struct algorithm_instance_s {
 
 typedef struct algorithm_s {
     char* name;                                                                 /*!< Algorithm name */
-    void (*handler)(struct pt_loop_s *loop, algorithm_instance_t *instance);    /*!< Main handler function */
+    int (*handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel); /*!< Main handler function */
 } algorithm_t;
 
 //--------------------------------------------------------------------

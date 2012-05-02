@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <errno.h>       // ERRNO, EINVAL
 #include <stddef.h>      // offsetof()
+#include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <arpa/inet.h>
 
@@ -97,7 +98,7 @@ inline void udp_write_default_header(unsigned char *data) {
  * \return true if everything is fine, false otherwise  
  */
 
-bool udp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
+bool udp_write_checksum(unsigned char *buf, buffer_t * psh)
 {
     unsigned char * tmp;
     unsigned int    len;
@@ -109,15 +110,17 @@ bool udp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
         return false;
     }
 
-    len = sizeof(struct udphdr) + psh->size;
+    len = sizeof(struct udphdr) + buffer_get_size(psh);
     tmp = malloc(len * sizeof(unsigned char));
     if (!tmp) { // not enough memory
         errno = ENOMEM;
         return false;
     }
 
-    memcpy(tmp, psh->data, psh->size);
-    memcpy(tmp + psh->size, udp_hdr, sizeof(struct udphdr));
+    /* XXX shall we replace this by buffer operations */
+    memcpy(tmp, buffer_get_data(psh), buffer_get_size(psh));
+
+    memcpy(tmp + buffer_get_size(psh), udp_hdr, sizeof(struct udphdr));
     res = csum(*(unsigned short**) &tmp, (len >> 1));
     udp_hdr->check = res;
 
@@ -125,12 +128,45 @@ bool udp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
     return true;
 }
 
+#define HD_UDP_DADDR 4
+#define HD_UDP_PAD 8
+#define HD_UDP_PROT 9
+#define HD_UDP_LEN 10
+
+buffer_t * udp_create_psh_ipv4(unsigned char* ipv4_buffer)
+//unsigned char** pseudo_header, int* size)
+{
+    buffer_t *psh;
+    struct iphdr *iph;
+    unsigned char *data;
+    
+    psh = buffer_create();
+    buffer_resize(psh, 12);
+
+    data = buffer_get_data(psh);
+
+    iph = (struct iphdr*) ipv4_buffer;
+    *(( u_int32_t *)  data                ) = (u_int32_t) iph->saddr;
+    *(( u_int32_t *) (data + HD_UDP_DADDR)) = (u_int32_t) iph->daddr;
+    *(( u_int8_t  *) (data + HD_UDP_PAD  )) =             0;
+    *(( u_int8_t  *) (data + HD_UDP_PROT )) = (u_int8_t)  iph->protocol;
+    *(( u_int16_t *) (data + HD_UDP_LEN  )) = (u_int16_t) htons(ntohs(iph->tot_len)-4*iph->ihl);
+
+    return psh;
+}
+
+buffer_t * udp_create_psh(unsigned char * buffer)
+{
+    // http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
+    return udp_create_psh_ipv4(buffer);
+}
+
 static protocol_t udp = {
     .name                 = "udp",
     .protocol             = SOL_UDP, // 17
     .get_num_fields       = udp_get_num_fields,
     .write_checksum       = udp_write_checksum,
-  //.create_pseudo_header = NULL,
+    .create_pseudo_header = udp_create_psh,
     .fields               = udp_fields,
   //.defaults             = udp_defaults,             // XXX used when generic
     .header_len           = sizeof(struct udphdr),

@@ -1,6 +1,8 @@
 - When configure is run without libpcap-dev, building fails
 - Make sure libcommon is built by libnet
 
+- MDA
+ . why do we need to wait that 10.0.0.1 is complete to send probes to next hop ?
 
 
 

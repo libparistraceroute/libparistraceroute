@@ -16,6 +16,8 @@
  * where a packet scheduler might be implemented (rate limits, etc.).
  */
 
+#include <stdint.h>
+
 #include "packet.h"
 #include "queue.h"
 #include "socketpool.h"
@@ -38,6 +40,9 @@ typedef struct network_s {
     queue_t      * recvq;      /**< Queue for packets to be received */
     sniffer_t    * sniffer;    /**< Sniffer to use on this network */
     dynarray_t   * probes;     /**< List of probes in transit */
+
+    /* Temp */
+    uintmax_t      last_tag;
 } network_t;
 
 /**
@@ -79,17 +84,6 @@ int network_get_recvq_fd(network_t * network);
 int network_get_sniffer_fd(network_t * network);
 
 /**
- * \brief Send a probe packet across a network
- * \param network Pointer to the network to use
- * \param probe Pointer to the probe to use
- * \param callback Function pointer to a callback function
- *     (Does not appear to be used currently)
- * \return 0
- */
-
-int network_send_probe(network_t * network, probe_t * probe);
-
-/**
  * \brief Send the next packet on the queue
  * \param network The network to use for the queue and for sending
  * \return 0
@@ -106,5 +100,8 @@ int network_process_sendq(network_t * network);
 int network_process_recvq(network_t * network);
 
 int network_process_sniffer(network_t *network);
+
+// XXX
+int network_get_available_tag(network_t *network);
 
 #endif

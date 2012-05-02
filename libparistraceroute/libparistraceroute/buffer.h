@@ -9,7 +9,6 @@
 typedef struct {
     unsigned char * data;     /**< Data stored in the buffer   */
     size_t          size;     /**< Size of the data (in bytes) */
-    size_t          max_size; /**< Size available (in bytes)   */
 } buffer_t;
 
 //-----------------------------------------------------------------
@@ -23,6 +22,8 @@ typedef struct {
  */
 
 buffer_t * buffer_create(void);
+
+buffer_t * buffer_dup(buffer_t *buffer);
 
 /**
  * \brief Free a buffer structure.
@@ -67,7 +68,7 @@ int buffer_resize(buffer_t * buffer, size_t size);
  * \param buffer The address of the buffer
  */
 
-void buffer_set_data(buffer_t * buffer, unsigned char * data);
+void buffer_set_data(buffer_t *buffer, unsigned char *data, unsigned int size);
 
 /**
  * \brief Alter

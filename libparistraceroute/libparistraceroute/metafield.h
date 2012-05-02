@@ -22,14 +22,35 @@
  */
 
 typedef struct metafield_s {
-     char * key;     /**< Name of the metafield ("flow")   */ 
-//    pattern_t    pattern; /** "regexp" related to the metafield */
-    bitfield_t   bits;    /**< Bits related to the metafield    */
+    /* Exposed fields */
+    char  * name;
+    char ** patterns;
 
-    // Callbacks
-    struct metafield_s * (*get)(unsigned char * buffer);
-    //int (*set)(unsigned char * buffer, struct metafield_s * metafield);
+    /* Internal fields */
+    bitfield_t   bitfield;    /**< Bits related to the metafield    */
+
 } metafield_t;
+
+int metafield_compare(const void * metafield1, const void * metafield2);
+metafield_t* metafield_search(char * name);
+void metafield_register(metafield_t * metafield);
+
+// - pattern matching
+// - successor of a value
+// - bitmask of unauthorized bits ?
+// - prevent some fields to be used : eg. do not vary dst_port not to appear as
+//   a port scan. how to do it for flow_id and ipv6 for example ?
+// - an options to parametrize metafields 
+
+
+
+
+
+
+
+
+
+
 
 typedef long long int metafield_value_t;
 

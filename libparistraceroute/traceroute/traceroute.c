@@ -5,6 +5,7 @@
 
 #include "pt_loop.h"
 #include "probe.h"
+#include "algorithm.h"
 #include "algorithms/traceroute.h"
 
 /**
@@ -12,11 +13,16 @@
  */
 
 // TODO manage properly event allocation and desallocation
-void handler_traceroute_event(const traceroute_caller_data_t * data) {
+void traceroute_handler(void *data)
+{
     const traceroute_probe_reply_t * reply;
-    switch (data->type) {
+    traceroute_caller_data_t *_data;
+    
+    _data = data;
+
+    switch (_data->type) {
         case TRACEROUTE_PROBE_REPLY:
-            reply = &data->value.probe_reply;
+            reply = &_data->value.probe_reply;
             printf(
                 "ttl = %2hu (%d/%d) dst_ip = %s disc_ip = %s\n",
                 reply->current_ttl,
@@ -33,40 +39,6 @@ void handler_traceroute_event(const traceroute_caller_data_t * data) {
             printf("not yet implemented");
             break;
     }
-}
-
-/**
- * \brief User-defined handler called by libparistraceroute 
- * \param loop The libparistraceroute loop
- * \param algorithm_outputs Information updated by the algorithm
- * \return An integer used by pt_loop()
- *   - <0: there is failure, stop pt_loop
- *   - =0: algorithm has successfully ended, stop the loop
- *   - >0: the algorithm has not yet ended, continue
- */
-
-int handler_user(pt_loop_t * loop) {
-    unsigned        i;
-    event_t      ** events     = pt_loop_get_user_events(loop); 
-    unsigned int    num_events = pt_loop_get_num_user_events(loop);
-
-    for (i = 0; i < num_events; i++) {
-        switch (events[i]->type) {
-            case ALGORITHM_TERMINATED:
-                printf("> Received ALGORITHM_TERMINATED\n");
-                return 0;
-            case ALGORITHM_FAILURE:
-                printf("> Received ALGORITHM_FAILURE\n");
-                return -1;
-            case ALGORITHM_ANSWER:
-                // TODO carry (algorithm_id, instance_id) in user data ?
-                handler_traceroute_event(events[i]->params);
-                break;
-            default:
-                break;
-        }
-    }
-    return 1;
 }
 
 /**
@@ -89,7 +61,7 @@ int main(int argc, char ** argv)
     char dst_ip[] = "1.1.1.2";
 
     // Create libparistraceroute loop
-    loop = pt_loop_create(handler_user);
+    loop = pt_loop_create(traceroute_handler);
     if (!loop) {
         perror("E: Cannot create libparistraceroute loop ");
         goto ERR_LOOP;

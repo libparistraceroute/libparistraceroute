@@ -91,7 +91,7 @@ void icmp_write_default_header(unsigned char *data)
  *    ENOMEM if a memory error arises
  */
 
-int icmp_write_checksum(unsigned char *buf, pseudoheader_t * psh)
+int icmp_write_checksum(unsigned char *buf, buffer_t * psh)
 {
     struct icmphdr *icmp_hed;
     unsigned short len;

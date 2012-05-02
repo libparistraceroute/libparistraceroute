@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/time.h>
 #include "common.h"
 
@@ -17,3 +18,11 @@ double get_timestamp(void)
 
     return t;
 }
+
+void print_indent(unsigned int indent)
+{
+    int i;
+    for(i = 0; i < indent; i++)
+        printf("    ");
+}
+
