@@ -60,6 +60,9 @@ int main(int argc, char ** argv)
     // Harcode command line parsing here
     char dst_ip[] = "1.1.1.2";
 
+    printf("This sample program is currently broken, please use paris-traceroute in the meantime.\n");
+    exit(EXIT_FAILURE);
+
     // Create libparistraceroute loop
     loop = pt_loop_create(traceroute_handler);
     if (!loop) {
