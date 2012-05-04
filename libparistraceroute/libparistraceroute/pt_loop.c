@@ -181,7 +181,7 @@ int pt_loop_process_user_events(pt_loop_t * loop) {
 
 int pt_loop(pt_loop_t *loop, unsigned int timeout)
 {
-    int n, i, cur_fd, ret = 1;
+    int n, i, cur_fd;
 
     // TODO set a flag to avoid issues due to several threads
     // and put a critical section to manage this flag

@@ -47,7 +47,7 @@ typedef struct algorithm_instance_s {
  */
 
 typedef struct algorithm_s {
-    char* name;                                                                 /*!< Algorithm name */
+    const char* name;                                                                 /*!< Algorithm name */
     int (*handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel); /*!< Main handler function */
 } algorithm_t;
 
@@ -61,7 +61,7 @@ typedef struct algorithm_s {
  * \return An algorithm_t structure
  */
 
-algorithm_t* algorithm_search(char * name);
+algorithm_t* algorithm_search(const char * name);
 
 /**
  * \brief Register an algorithm to be used by the library.
@@ -126,7 +126,7 @@ void pt_algorithm_free(algorithm_instance_t * instance);
 
 algorithm_instance_t * pt_algorithm_add(
     struct pt_loop_s * loop,
-    char             * name,
+    const char       * name,
     void             * options,
     probe_t          * probe_skel
 );

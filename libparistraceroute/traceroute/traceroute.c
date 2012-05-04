@@ -13,14 +13,14 @@
  */
 
 // TODO manage properly event allocation and desallocation
-void traceroute_handler(void *data)
+void traceroute_handler(pt_loop_t * loop, event_t * event, void *data)
 {
     const traceroute_probe_reply_t * reply;
     traceroute_caller_data_t *_data;
     
     _data = data;
 
-    switch (_data->type) {
+    switch (event->type) {
         case TRACEROUTE_PROBE_REPLY:
             reply = &_data->value.probe_reply;
             printf(

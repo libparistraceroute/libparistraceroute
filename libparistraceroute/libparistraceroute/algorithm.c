@@ -70,7 +70,7 @@ int algorithm_compare(const void * algorithm1, const void * algorithm2)
     );
 }
 
-algorithm_t* algorithm_search(char * name)
+algorithm_t* algorithm_search(const char * name)
 {
     algorithm_t **algorithm, search;
 
@@ -220,7 +220,7 @@ void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
 
 algorithm_instance_t * pt_algorithm_add(
     struct pt_loop_s * loop,
-    char             * name,
+    const char       * name,
     void             * options,
     probe_t          * probe_skel
 ) {

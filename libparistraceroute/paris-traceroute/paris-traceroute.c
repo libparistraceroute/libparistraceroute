@@ -46,7 +46,7 @@ int main(int argc, char ** argv)
     probe_t              * probe_skel;
     pt_loop_t            * loop;
     char                 * dst_ip;
-
+    const char           * algorithm;
     int ret;
     
     if (opt_parse("usage: %s [options] host", options, argv) != 1) {
@@ -54,6 +54,8 @@ int main(int argc, char ** argv)
         exit(EXIT_FAILURE);
     }
     dst_ip = argv[1];
+    algorithm = algorithms[0];
+    printf("Traceroute to %s using algorithm %s\n\n", dst_ip, algorithm);
     
     // Create libparistraceroute loop
     loop = pt_loop_create(paris_traceroute_handler);
@@ -81,7 +83,7 @@ int main(int argc, char ** argv)
     };
     
     // Instanciate a 'mda' algorithm
-    instance = pt_algorithm_add(loop, "mda", &options, probe_skel);
+    instance = pt_algorithm_add(loop, algorithm, &options, probe_skel);
     if (!instance) {
         perror("E: Cannot add 'mda' algorithm");
         goto ERR_INSTANCE;
