@@ -119,7 +119,6 @@ static void algorithm_instance_free(algorithm_instance_t * instance)
 
     if (instance) {
         if (instance->probe_skel) {
-            printf("> algorithm_instance_free: call probe_free\n");
             probe_free(instance->probe_skel);
         }
         dynarray_free(instance->events, (ELEMENT_FREE) event_free);
@@ -239,7 +238,7 @@ algorithm_instance_t * pt_algorithm_add(
     instance = algorithm_instance_create(loop, algorithm, options, probe_skel);
 
     // We need to queue a new event for the algorithm: it has been started
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL));
+    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL, NULL));
 
     // Add this algorithms to the list of handled algorithms
     pt_algorithm_instance_add(loop, instance);
@@ -267,7 +266,7 @@ void pt_algorithm_throw(
 
 inline void pt_algorithm_free(algorithm_instance_t * instance) {
     // Notify the called algorithm that it can free its data
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_FREE, NULL));
+    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL));
 
     // Release this instance from the memory
     algorithm_instance_free(instance);
@@ -293,7 +292,7 @@ inline void pt_algorithm_terminate(
     pt_algorithm_throw(
         instance->caller ? NULL : loop,
         instance->caller,
-        event_create(ALGORITHM_TERMINATED, NULL)
+        event_create(ALGORITHM_TERMINATED, NULL, NULL)
     );
 }
 

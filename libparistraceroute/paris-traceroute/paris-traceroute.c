@@ -2,50 +2,40 @@
 #include <stdio.h>
 #include <search.h>
 #include <string.h> // memcpy
-
+#include <libgen.h> // basename
+#include "optparse.h"
 #include "pt_loop.h"
 #include "probe.h"
+#include "lattice.h"
 #include "algorithm.h"
-#include "algorithms/traceroute.h"
+#include "algorithms/mda.h"
 
 /******************************************************************************
  * Command line stuff                                                         *
  ******************************************************************************/
+const char *algorithms[] = {
+    "mda", "traceroute", NULL
+};
+struct opt_spec options[] = {
+    {opt_help, "h", "--help", OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
+    {opt_store_choice, "a", "--algorithm", "ALGORITHM", "traceroute algorithm: one of "
+     "'traceroute', 'mda' [default]", algorithms},
+    {OPT_NO_ACTION}
+};
 
-//void mda_done(pt_loop_t *pt_loop, mda_options_t *options) { 
-//    if (!options) {
-//        printf("E: No options\n");
-//        exit(EXIT_FAILURE);
-//    }
-//    pt_loop_stop(pt_loop);
-//    //graph_print(options->graph); 
-//}
 
 // TODO manage properly event allocation and desallocation
-void paris_traceroute_handler(void *data)
+void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void *data)
 {
-    const traceroute_probe_reply_t * reply;
-    traceroute_caller_data_t *_data;
+    lattice_t * lattice;
 
-    _data = data;
-
-    switch (_data->type) {
-        case TRACEROUTE_PROBE_REPLY:
-            reply = &_data->value.probe_reply;
-            printf(
-                "ttl = %2hu (%d/%d) dst_ip = %s disc_ip = %s\n",
-                reply->current_ttl,
-                reply->num_sent_probes,
-                reply->options->num_probes,
-                reply->options->dst_ip,
-                reply->discovered_ip
-            );
+    switch (event->type) {
+        case ALGORITHM_TERMINATED:
+            lattice = event->data;
+            lattice_dump(lattice, (ELEMENT_DUMP) mda_interface_dump);
+            pt_loop_terminate(loop);
             break;
-        case TRACEROUTE_DESTINATION_REACHED:
-            break;
-        case TRACEROUTE_ALL_STARS:
-        case TRACEROUTE_ICMP_ERROR:
-            printf("not yet implemented");
+        default:
             break;
     }
 }
@@ -55,14 +45,15 @@ int main(int argc, char ** argv)
     algorithm_instance_t * instance;
     probe_t              * probe_skel;
     pt_loop_t            * loop;
+    char                 * dst_ip;
 
-    int status;
-    int ret = EXIT_FAILURE;
+    int ret;
     
-    // Harcode command line parsing here
-    char dst_ip[] = "1.1.1.2";
-    // We can get algorithm options from the commandline also
-
+    if (opt_parse("usage: %s [options] host", options, argv) != 1) {
+        fprintf(stderr, "%s: destination required\n", basename(argv[0]));
+        exit(EXIT_FAILURE);
+    }
+    dst_ip = argv[1];
     
     // Create libparistraceroute loop
     loop = pt_loop_create(paris_traceroute_handler);
@@ -96,21 +87,19 @@ int main(int argc, char ** argv)
         goto ERR_INSTANCE;
     }
 
-    do {
-        // Wait for events. They will be catched by handler_user() 
-        status = pt_loop(loop, 0);
-    } while (status > 0);
-
-    // Display results
-    printf("******************* END *********************\n");
-    ret = EXIT_SUCCESS;
+    // Wait for events. They will be catched by handler_user() 
+    ret = pt_loop(loop, 0);
+    if (ret < 0) goto error;
 
     // Free data and quit properly
     pt_algorithm_free(instance);
+
+    exit(EXIT_SUCCESS);
 
 ERR_INSTANCE:
 ERR_PROBE_SKEL:
     //pt_loop_free(loop);
 ERR_LOOP:
-    exit(ret);
+error:
+    exit(EXIT_FAILURE);
 }

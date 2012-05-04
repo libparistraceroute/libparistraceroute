@@ -28,6 +28,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						algorithms/mda/data.h \
 						algorithms/mda/flow.h \
 						algorithms/mda/interface.h \
+						algorithms/mda.h \
 						algorithms/traceroute.h \
 						bitfield.h \
 						buffer.h \

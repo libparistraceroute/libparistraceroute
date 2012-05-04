@@ -8,6 +8,9 @@
 #include "network.h"
 #include "event.h"
 
+#define PT_LOOP_CONTINUE  0
+#define PT_LOOP_TERMINATE 1
+
 typedef struct pt_loop_s {
     // Network
     network_t            * network;
@@ -20,8 +23,10 @@ typedef struct pt_loop_s {
     // User
     int                    eventfd_user;            /**< User notification */
     dynarray_t           * events_user;             /**< User events queue */
-    void (*handler_user)(void *);                   /**< User handler */
+    void (*handler_user)(struct pt_loop_s *, event_t *, void *); /**< User handler */
+    void                 * user_data;
 
+    int                    stop;
     // Epoll data
     int                    efd;
     struct epoll_event   * epoll_events;
@@ -40,7 +45,7 @@ typedef struct pt_loop_s {
  * \return A pointer to a loop if successfull, NULL otherwise.
  */
 
-pt_loop_t * pt_loop_create(void (*handler_user)(void*));
+pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *));
 
 /**
  * \brief Close properly the paristraceroute loop
@@ -123,5 +128,8 @@ unsigned pt_loop_get_num_user_events(pt_loop_t * loop);
  * \return 0
  */
 int pt_send_probe(pt_loop_t *loop, probe_t *probe);
+
+int pt_loop_terminate(pt_loop_t * loop);
+int pt_raise_event(pt_loop_t * loop, event_type_t event_type, void * data);
 
 #endif

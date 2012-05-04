@@ -295,7 +295,7 @@ int network_process_recvq(network_t *network)
         return -1; // Could not create probe_reply
     probe_reply_set_probe(pr, probe);
     probe_reply_set_reply(pr, reply);
-    pt_algorithm_throw(NULL, instance, event_create(PROBE_REPLY_RECEIVED, pr));
+    pt_algorithm_throw(NULL, instance, event_create(PROBE_REPLY, pr, NULL));
 
     return 0;
 }

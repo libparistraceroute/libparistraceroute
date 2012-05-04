@@ -17,10 +17,6 @@
 
 #include "probe.h"
 
-typedef struct reply_received_params_s {
-    probe_t * probe;       /**< Probe related to this event */
-} reply_received_params_t;
-
 /**
  * \enum event_type_t
  * \brief Enum to denote type of event
@@ -28,18 +24,13 @@ typedef struct reply_received_params_s {
 
 typedef enum {
 
-    // Events raised by an upper layers (caller instances, pt_loop...)
-    
-    ALGORITHM_INIT,       /**< Start the algorithm (allocate memory...)        */
-    ALGORITHM_FREE,       /**< This instance has to free the memory            */
+    PROBE_REPLY,
+    PROBE_TIMEOUT,
 
-    // Events raised by a lower layers (called instances, network...)
-
-    ALGORITHM_ANSWER,     /**< A specific-algorithm event has arised           */
-    ALGORITHM_FAILURE,    /**< A called instance has crashed                   */
-    ALGORITHM_TERMINATED, /**< A called instance has finished                  */
-    PROBE_REPLY_RECEIVED  /**< Network layer has got a probe for this instance */
-
+    ALGORITHM_INIT,
+    ALGORITHM_TERMINATED,
+    ALGORITHM_EVENT,
+    ALGORITHM_ERROR
 } event_type_t;
 
 /**
@@ -55,7 +46,9 @@ typedef struct {
      * PROBE_REPLY_RECEIVED : reply_received_params_t *
      * ALGORITHM_ANSWER     : see called algorithm implementation
      */
-    void * params;
+    void * data;
+
+    struct algorithm_instance_s * issuer;
 } event_t;
 
 /** 
@@ -65,7 +58,7 @@ typedef struct {
  * \return Newly created event structure
  */
 
-event_t *event_create(event_type_t type, void *params);
+event_t *event_create(event_type_t type, void * data, struct algorithm_instance_s * issuer);
 
 /**
  * \brief Release an event when done

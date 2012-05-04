@@ -201,7 +201,7 @@ int traceroute_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *s
             } else goto FAILURE;
             break;
 
-        case PROBE_REPLY_RECEIVED:
+        case PROBE_REPLY:
 
             data = *pdata;
             if (!data->caller_data) goto FAILURE;
@@ -209,7 +209,7 @@ int traceroute_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *s
             num_probes      = options->num_probes;
             num_sent_probes = data->num_sent_probes;
 
-            probe_reply = event->params;
+            probe_reply = event->data;
             probe = probe_reply->probe;
             reply = probe_reply->reply;
             data->probes [num_sent_probes - 1] = probe;
@@ -260,25 +260,25 @@ int traceroute_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *s
 
             break;
 
-        case ALGORITHM_FREE:
+        case ALGORITHM_TERMINATED:
             // The caller does not need anymore 'traceroute' datas.
             traceroute_data_free(*pdata);
             break;
 
         default: break; // Events not handled
     }
-    return; // Traceroute algorithm is not yet finished
+    return 0; // Traceroute algorithm is not yet finished
 
 SUCCESS: // This traceroute has successfully ended
     // The caller has to release the memory in the handler in ALGORITHM_TERMINATED
     // by calling traceroute_data_free()
     // XXX pt_algorithm_terminate(loop, instance);
-    return;
+    return 0;
 FAILURE: // This algorithm has crashed
     // The caller has to release the memory in the handler in ALGORITHM_FAILURE
     // by calling traceroute_data_free()
     // XXX pt_algorithm_throw(loop, instance, event_create(ALGORITHM_FAILURE, NULL));
-    return;
+    return -1;
 }
 
 static algorithm_t traceroute = {

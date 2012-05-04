@@ -45,6 +45,7 @@ typedef struct {
 
     unsigned int confidence;
 
+    char * dst_ip;
     pt_loop_t *loop;
     probe_t *skel;
 } mda_data_t;

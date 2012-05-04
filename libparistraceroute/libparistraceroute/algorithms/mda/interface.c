@@ -98,15 +98,9 @@ uintmax_t mda_interface_get_available_flow_id(mda_interface_t *interface, unsign
     return 0;
 }
 
-void mda_interface_dump(mda_interface_t *interface)
+void mda_flow_dump(mda_interface_t * interface)
 {
     unsigned int i, size;
-
-    print_indent(interface->ttl);
-    if (interface->address)
-        printf("%s <", interface->address);
-    else
-        printf("ORIGIN <");
     size = dynarray_get_size(interface->flows);
     for (i = 0; i < size; i++) {
         mda_flow_t *flow = dynarray_get_ith_element(interface->flows, i);
@@ -118,5 +112,25 @@ void mda_interface_dump(mda_interface_t *interface)
         }
         printf("%ju, ", flow->flow_id);
     }
-    printf(">\n");
+}
+
+void mda_interface_dump(lattice_elt_t * elt)
+{
+    mda_interface_t * interface = lattice_elt_get_data(elt);
+    unsigned int i, num_next;
+
+    num_next = dynarray_get_size(elt->next);
+    for (i = 0; i < num_next; i++) {
+        lattice_elt_t *iter_elt;
+        mda_interface_t * iter_iface;
+
+        iter_elt = dynarray_get_ith_element(elt->next, i);
+        iter_iface = lattice_elt_get_data(iter_elt);
+
+        printf("%hhu %s -> %s [ ", interface->ttl, interface->address ? interface->address : "ORIGIN", iter_iface->address);
+        mda_flow_dump(interface);
+        printf(" -> ");
+        mda_flow_dump(iter_iface);
+        printf("]\n");
+    }
 }

@@ -9,7 +9,7 @@
 // Internal usage
 static void pt_loop_clear_user_events(pt_loop_t * loop);
 
-pt_loop_t * pt_loop_create(void (*handler_user)(void*))
+pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *))
 {
     int s, network_sendq_fd, network_recvq_fd, network_sniffer_fd;
     pt_loop_t * loop;
@@ -84,6 +84,9 @@ pt_loop_t * pt_loop_create(void (*handler_user)(void*))
     loop->events_user = dynarray_create();
     if (!loop->events_user) goto ERR_EVENTS_USER;
 
+    loop->user_data = NULL;
+    loop->stop = PT_LOOP_CONTINUE;
+
     loop->next_algorithm_id = 1; // 0 means unaffected ?
     loop->cur_instance = NULL;
 
@@ -114,9 +117,7 @@ ERR_MALLOC:
 void pt_loop_free(pt_loop_t * loop)
 {
     if (loop) {
-        printf("pt_loop_free: calling network_free\n");
         network_free(loop->network);
-        printf("pt_loop_free: network_free OK\n");
         close(loop->eventfd_algorithm);
         close(loop->efd);
         pt_loop_clear_user_events(loop);
@@ -172,20 +173,7 @@ int pt_loop_process_user_events(pt_loop_t * loop) {
         if (count == -1)
             return -1;
 
-        switch (events[i]->type) {
-            case ALGORITHM_TERMINATED:
-                printf("> Received ALGORITHM_TERMINATED\n");
-                return 0;
-            case ALGORITHM_FAILURE:
-                printf("> Received ALGORITHM_FAILURE\n");
-                return -1;
-            case ALGORITHM_ANSWER:
-                // TODO carry (algorithm_id, instance_id) in user data ?
-                loop->handler_user(events[i]->params);
-                break;
-            default:
-                break;
-        }
+        loop->handler_user(loop, events[i], loop->user_data);
     }
     return 1;
 }
@@ -202,56 +190,57 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     int network_recvq_fd   = network_get_recvq_fd(loop->network);
     int network_sniffer_fd = network_get_sniffer_fd(loop->network);
 
-    /* Wait for events */
-    n = epoll_wait(loop->efd, loop->epoll_events, MAXEVENTS, -1);
+    do {
+        /* Wait for events */
+        n = epoll_wait(loop->efd, loop->epoll_events, MAXEVENTS, -1);
 
-    /* XXX What kind of events do we have
-     * - sockets (packets received, timeouts, etc.)
-     * - internal queues where probes and packets are stored
-     * - ...
-     */
+        /* XXX What kind of events do we have
+         * - sockets (packets received, timeouts, etc.)
+         * - internal queues where probes and packets are stored
+         * - ...
+         */
+        // Dispatch events
+        for (i = 0; i < n; i++) {
+            cur_fd = loop->epoll_events[i].data.fd;
 
-    // Dispatch events
-    for (i = 0; i < n; i++) {
-        cur_fd = loop->epoll_events[i].data.fd;
-
-        // Handle errors on fds
-        if ((loop->epoll_events[i].events & EPOLLERR)
-        ||  (loop->epoll_events[i].events & EPOLLHUP)
-        || !(loop->epoll_events[i].events & EPOLLIN)
-        ) {
-            // An error has occured on this fd
-            fprintf(stderr, "epoll error\n");
-            close(cur_fd);
-            continue;
-        }
-        
-        if (cur_fd == network_sendq_fd) {
-            network_process_sendq(loop->network);
-        } else if (cur_fd == network_recvq_fd) {
-            network_process_recvq(loop->network);
-        } else if (cur_fd == network_sniffer_fd) {
-            network_process_sniffer(loop->network);
-        } else if (cur_fd == loop->eventfd_algorithm) {
+            // Handle errors on fds
+            if ((loop->epoll_events[i].events & EPOLLERR)
+            ||  (loop->epoll_events[i].events & EPOLLHUP)
+            || !(loop->epoll_events[i].events & EPOLLIN)
+            ) {
+                // An error has occured on this fd
+                fprintf(stderr, "epoll error\n");
+                close(cur_fd);
+                continue;
+            }
             
-            // There is one common queue shared by every instancied algorithms.
-            // We call pt_process_algorithms_iter() to find for which instance
-            // the event has been raised. Then we process this event thanks
-            // to pt_process_algorithms_instance() that calls the handler.
-            pt_algorithm_instance_iter(loop, pt_process_algorithms_instance);
+            if (cur_fd == network_sendq_fd) {
+                network_process_sendq(loop->network);
+            } else if (cur_fd == network_recvq_fd) {
+                network_process_recvq(loop->network);
+            } else if (cur_fd == network_sniffer_fd) {
+                network_process_sniffer(loop->network);
+            } else if (cur_fd == loop->eventfd_algorithm) {
+                
+                // There is one common queue shared by every instancied algorithms.
+                // We call pt_process_algorithms_iter() to find for which instance
+                // the event has been raised. Then we process this event thanks
+                // to pt_process_algorithms_instance() that calls the handler.
+                pt_algorithm_instance_iter(loop, pt_process_algorithms_instance);
 
-        } else if (cur_fd == loop->eventfd_user) {
+            } else if (cur_fd == loop->eventfd_user) {
 
-            // Throw this event to the user-defined handler
-            ret = pt_loop_process_user_events(loop);
-            
-            // Flush the queue 
-            pt_loop_clear_user_events(loop);
+                // Throw this event to the user-defined handler
+                pt_loop_process_user_events(loop);
+                
+                // Flush the queue 
+                pt_loop_clear_user_events(loop);
+            }
         }
-    }
+    } while (loop->stop == PT_LOOP_CONTINUE);
 
     // Process internal events
-    return ret;
+    return loop->stop == PT_LOOP_TERMINATE ? 0 : -1;
 }
 
 // not the right callback here
@@ -270,3 +259,16 @@ int pt_send_probe(pt_loop_t *loop, probe_t *probe)
     return 0;
 }
 
+int pt_loop_terminate(pt_loop_t * loop)
+{
+    loop->stop = PT_LOOP_TERMINATE;
+    return 0;
+}
+
+int pt_raise_event(pt_loop_t * loop, event_type_t event_type, void * data)
+{
+    if (!loop->cur_instance)
+        return -1; /* user program cannot raise events */
+    pt_algorithm_throw(loop, loop->cur_instance->caller, event_create(event_type, data, loop->cur_instance));
+    return 0;
+}
