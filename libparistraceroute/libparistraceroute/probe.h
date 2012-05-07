@@ -121,6 +121,8 @@ unsigned char *probe_get_payload(probe_t *probe);
 
 int probe_set_payload(probe_t *probe, buffer_t * payload);
 
+int probe_write_payload(probe_t *probe, buffer_t * payload, unsigned int offset);
+
 /**
  * \brief Get the size of the payload from a probe
  * \param probe Pointer to a probe_t structure to get the payload size from
@@ -189,5 +191,7 @@ void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *re
 
 
 int probe_set_protocols(probe_t *probe, char *name1, ...);
+
+int probe_update_fields(probe_t *probe);
 
 #endif

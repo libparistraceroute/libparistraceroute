@@ -77,6 +77,8 @@ int layer_set_field(layer_t *layer, field_t *field);
  */
 int layer_set_payload(layer_t *layer, buffer_t *payload);
 
+int layer_write_payload(layer_t * layer, buffer_t * payload, unsigned int offset);
+
 void layer_set_buffer_size(layer_t *layer, size_t buffer_size);
 size_t layer_get_buffer_size(layer_t *layer);
 void layer_set_header_size(layer_t *layer, size_t header_size);

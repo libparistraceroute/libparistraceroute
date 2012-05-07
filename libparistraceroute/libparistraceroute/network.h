@@ -40,6 +40,9 @@ typedef struct network_s {
     queue_t      * recvq;      /**< Queue for packets to be received */
     sniffer_t    * sniffer;    /**< Sniffer to use on this network */
     dynarray_t   * probes;     /**< List of probes in transit */
+    
+    // Timer data
+    int                    timerfd; // used for probe timeouts, Linux specific
 
     /* Temp */
     uintmax_t      last_tag;
@@ -83,6 +86,8 @@ int network_get_recvq_fd(network_t * network);
 
 int network_get_sniffer_fd(network_t * network);
 
+int network_get_timerfd(network_t *network);
+
 /**
  * \brief Send the next packet on the queue
  * \param network The network to use for the queue and for sending
@@ -100,6 +105,8 @@ int network_process_sendq(network_t * network);
 int network_process_recvq(network_t * network);
 
 int network_process_sniffer(network_t *network);
+
+int network_process_timeout(network_t * network);
 
 // XXX
 int network_get_available_tag(network_t *network);

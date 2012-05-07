@@ -27,6 +27,8 @@ typedef struct pt_loop_s {
     void                 * user_data;
 
     int                    stop;
+    // Signal data
+    int                    sfd; // signalfd
     // Epoll data
     int                    efd;
     struct epoll_event   * epoll_events;

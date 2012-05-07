@@ -3,6 +3,13 @@
 #include <search.h>
 #include <string.h> // memcpy
 #include <libgen.h> // basename
+
+#include <sys/types.h>  // getaddrinfo etc.
+#include <sys/socket.h>
+#include <netdb.h>
+
+#include "paris-traceroute.h"
+
 #include "optparse.h"
 #include "pt_loop.h"
 #include "probe.h"
@@ -23,6 +30,73 @@ struct opt_spec options[] = {
     {OPT_NO_ACTION}
 };
 
+/******************************************************************************
+ * Helper functions
+ ******************************************************************************/
+
+static int af = 0; // ?
+static char *dst_name = NULL;
+
+
+// CPPFLAGS += -D_GNU_SOURCE
+
+static int getaddr (const char *name, sockaddr_any *addr) {
+    int ret;
+    struct addrinfo hints, *ai, *res = NULL;
+
+    memset (&hints, 0, sizeof (hints));
+    hints.ai_family = af;
+    hints.ai_flags = AI_IDN;
+
+    ret = getaddrinfo (name, NULL, &hints, &res);
+    if (ret) {
+        fprintf (stderr, "%s: %s\n", name, gai_strerror (ret));
+        return -1;
+    }
+
+    for (ai = res; ai; ai = ai->ai_next) {
+        if (ai->ai_family == af)  break;
+        /*  when af not specified, choose DEF_AF if present   */
+        if (!af && ai->ai_family == DEF_AF)
+            break;
+    }
+    if (!ai)  ai = res; /*  anything...  */
+
+    if (ai->ai_addrlen > sizeof (*addr))
+        return -1;  /*  paranoia   */
+    memcpy (addr, ai->ai_addr, ai->ai_addrlen);
+
+    freeaddrinfo (res);
+
+    return 0;
+}
+
+static int set_host (char *hostname, sockaddr_any *dst_addr)
+{
+
+    if (getaddr (hostname, dst_addr) < 0)
+        return -1;
+
+    dst_name = hostname;
+
+    /*  i.e., guess it by the addr in cmdline...  */
+    if (!af)  af = dst_addr->sa.sa_family;
+
+    return 0;
+}
+
+static char addr2str_buf[INET6_ADDRSTRLEN];
+
+static const char *addr2str (const sockaddr_any *addr) {
+    getnameinfo (&addr->sa, sizeof (*addr),
+        addr2str_buf, sizeof (addr2str_buf), 0, 0, NI_NUMERICHOST);
+
+    return addr2str_buf;
+}
+
+/******************************************************************************
+ * Main
+ ******************************************************************************/
 
 // TODO manage properly event allocation and desallocation
 void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void *data)
@@ -48,12 +122,15 @@ int main(int argc, char ** argv)
     char                 * dst_ip;
     const char           * algorithm;
     int ret;
+
+    static sockaddr_any dst_addr = {{ 0, }, };
     
     if (opt_parse("usage: %s [options] host", options, argv) != 1) {
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
         exit(EXIT_FAILURE);
     }
-    dst_ip = argv[1];
+    set_host(argv[1], &dst_addr);
+    dst_ip = addr2str(&dst_addr);
     algorithm = algorithms[0];
     printf("Traceroute to %s using algorithm %s\n\n", dst_ip, algorithm);
     
@@ -72,7 +149,8 @@ int main(int argc, char ** argv)
     }
 
     probe_set_protocols(probe_skel, "ipv4", "udp", NULL);
-    probe_set_fields(probe_skel, STR("dst_ip", dst_ip), NULL);
+    probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
+    probe_set_fields(probe_skel, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
 
     // Prepare options related to the 'mda' algorithm
     traceroute_options_t options = {
@@ -82,7 +160,6 @@ int main(int argc, char ** argv)
         .dst_ip     = dst_ip    // probe skeleton
     };
     
-    // Instanciate a 'mda' algorithm
     instance = pt_algorithm_add(loop, algorithm, &options, probe_skel);
     if (!instance) {
         perror("E: Cannot add 'mda' algorithm");

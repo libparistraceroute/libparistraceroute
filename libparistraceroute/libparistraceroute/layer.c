@@ -119,11 +119,26 @@ int layer_set_field(layer_t *layer, field_t *field)
 
 int layer_set_payload(layer_t *layer, buffer_t * payload)
 {
+    if (layer->protocol)
+        return -1; // can only set the payload layer
+
     if (buffer_get_size(payload) > layer->buffer_size)
         return -1; // not enough buffer space
 
     /* This could be some buffer helper function */
     memcpy(layer->buffer, buffer_get_data(payload), buffer_get_size(payload));
+    return 0;
+}
+
+int layer_write_payload(layer_t * layer, buffer_t * payload, unsigned int offset)
+{
+    if (layer->protocol)
+        return -1; // can only set the payload layer
+
+    if (offset + buffer_get_size(payload) > layer->buffer_size)
+        return -1; // not enough buffer space
+
+    memcpy(layer->buffer + offset, buffer_get_data(payload), buffer_get_size(payload));
     return 0;
 }
 

@@ -157,8 +157,9 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
         } else {
             /* FIXME: special treatment : Do we have an ICMP header ? */
             field = layer_get_field(layer, "type");
-            if (!field)
+            if (!field) {
                 return -1; // weird icmp packet !
+            }
             if ((field->value.int8 == 3) || (field->value.int8 == 11)) { // TTL expired, an IP packet header is repeated !
                 // Length will be wrong !!!
                 protocol_id = ipv4_protocol_id;
@@ -200,15 +201,12 @@ void probe_dump(probe_t *probe)
     printf("\n");
 }
 
-int probe_update_fields(probe_t *probe)
+int probe_finalize(probe_t * probe)
 {
-    unsigned int size;
-    int i;
-    layer_t *layer;
+    unsigned int   i, size;
+    layer_t      * layer;
 
     size = dynarray_get_size(probe->layers);
-
-    /* Sets the payload */
 
     /* Allow the protocol to do some processing before checksumming */
     for (i = 0; i<size; i++) {
@@ -221,11 +219,66 @@ int probe_update_fields(probe_t *probe)
             layer->protocol->finalize(layer->buffer);
     }
 
-    // 1) Write payload (need to have enough buffer space)
-    //payload      = probe_get_payload(probe);
-    //payload_size = probe_get_payload_size(probe);
+    return 0;
+}
 
-    // 2) Go though the layers of the probe in the reverse order to write
+int probe_update_protocol(probe_t * probe)
+{
+    layer_t * layer, * prev_layer = NULL;
+    protocol_field_t * pfield;
+    unsigned int i, size;
+
+    size = dynarray_get_size(probe->layers);
+
+    for (i = 0; i < size; i++) {
+        layer = dynarray_get_ith_element(probe->layers, i);
+
+        if (!layer->protocol)
+            continue;
+        if (prev_layer) {
+            pfield = protocol_get_field(layer->protocol, "protocol");
+            if (pfield) {
+                layer_set_field(layer, I16("protocol", (uint16_t)prev_layer->protocol->protocol));
+            }
+        }
+        prev_layer = layer;
+    }
+
+    return 0;
+}
+
+int probe_update_length(probe_t * probe)
+{
+    unsigned int   i, size;
+    protocol_field_t * pfield;
+    layer_t      * layer;
+
+    size = dynarray_get_size(probe->layers);
+
+    /* Allow the protocol to do some processing before checksumming */
+    for (i = 0; i<size; i++) {
+        layer = dynarray_get_ith_element(probe->layers, i);
+
+        if (!layer->protocol)
+            continue;
+        pfield = protocol_get_field(layer->protocol, "length");
+        if (pfield) {
+            layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));
+        }
+    }
+
+    return 0;
+}
+
+int probe_update_checksum(probe_t * probe)
+{
+    unsigned int   size;
+    int            i;
+    layer_t      * layer;
+
+    size = dynarray_get_size(probe->layers);
+
+    // Go though the layers of the probe in the reverse order to write
     // checksums
     // XXX layer_t will require parent layer, and probe_t bottom_layer
     for (i = size - 1; i >= 0; i--) {
@@ -257,8 +310,28 @@ int probe_update_fields(probe_t *probe)
             layer->protocol->write_checksum(layer->buffer, NULL);
         }
     }
+    return 0;
+}
+
+int probe_update_fields(probe_t *probe)
+{
+    int res;
+
+    res = probe_finalize(probe);
+    if (res < 0) goto error;
+
+    res = probe_update_protocol(probe);
+    if (res < 0) goto error;
+
+    res = probe_update_length(probe);
+    if (res < 0) goto error;
+
+    res = probe_update_checksum(probe);
+    if (res < 0) goto error;
 
     return 0;
+error:
+    return -1;
 }
 
 // TODO A similar function should allow hooking into the layer structure
@@ -444,10 +517,10 @@ int probe_resize_buffer(probe_t * probe, unsigned int size)
     
 }
 
-int probe_set_payload(probe_t *probe, buffer_t * payload)
+int probe_set_payload_size(probe_t * probe, unsigned int payload_size)
 {
     unsigned int size;
-    unsigned int old_buffer_size, old_payload_size, new_payload_size;
+    unsigned int old_buffer_size, old_payload_size;
     layer_t * payload_layer;
     
     /* The payload is the last layer */
@@ -456,18 +529,79 @@ int probe_set_payload(probe_t *probe, buffer_t * payload)
 
     old_buffer_size = buffer_get_size(probe->buffer);
     old_payload_size = layer_get_buffer_size(payload_layer);
-    new_payload_size = buffer_get_size(payload);
 
-    if (old_payload_size != new_payload_size) {
+    if (old_payload_size != payload_size) {
         /* Resize probe buffer */
-        probe_resize_buffer(probe, old_buffer_size - old_payload_size + new_payload_size);
+        probe_resize_buffer(probe, old_buffer_size - old_payload_size + payload_size);
 
         /* Change the buffer, and fix layers offsets */
-        layer_set_buffer_size(payload_layer, new_payload_size);
+        layer_set_buffer_size(payload_layer, payload_size);
     }
 
-    /* Sets payload */
+    // XXX probe_update_fields(probe);
+
+    return 0;
+}
+
+int probe_set_min_payload_size(probe_t * probe, unsigned int payload_size)
+{
+    unsigned int size;
+    unsigned int old_buffer_size, old_payload_size;
+    layer_t * payload_layer;
+    
+    /* The payload is the last layer */
+    size = dynarray_get_size(probe->layers);
+    payload_layer = dynarray_get_ith_element(probe->layers, size - 1);
+
+    old_buffer_size = buffer_get_size(probe->buffer);
+    old_payload_size = layer_get_buffer_size(payload_layer);
+
+    if (old_payload_size < payload_size) {
+        /* Resize probe buffer */
+        probe_resize_buffer(probe, old_buffer_size - old_payload_size + payload_size);
+
+        /* Change the buffer, and fix layers offsets */
+        layer_set_buffer_size(payload_layer, payload_size);
+    }
+
+    // XXX probe_update_fields(probe);
+
+    return 0;
+}
+
+int probe_set_payload(probe_t *probe, buffer_t * payload)
+{
+    unsigned int size;
+    layer_t * payload_layer;
+
+    probe_set_payload_size(probe, buffer_get_size(payload));
+    
+    /* The payload is the last layer */
+    size = dynarray_get_size(probe->layers);
+    payload_layer = dynarray_get_ith_element(probe->layers, size - 1);
+
     layer_set_payload(payload_layer, payload);
+
+    // XXX probe_update_fields(probe); // done twice probe_set_payload_size
+
+    return 0;
+}
+
+int probe_write_payload(probe_t *probe, buffer_t * payload, unsigned int offset)
+{
+    unsigned int size;
+    layer_t * payload_layer;
+
+    /* We need to ensure we have sufficient buffer size  */
+    probe_set_min_payload_size(probe, offset + buffer_get_size(payload));
+    
+    /* The payload is the last layer */
+    size = dynarray_get_size(probe->layers);
+    payload_layer = dynarray_get_ith_element(probe->layers, size - 1);
+
+    layer_write_payload(payload_layer, payload, offset);
+
+    // XXX probe_update_fields(probe); // done twice probe_set_min_payload_size
 
     return 0;
 }
@@ -512,7 +646,7 @@ int probe_set_fields(probe_t *probe, field_t *field1, ...) {
 
     va_end(args);
 
-    probe_update_fields(probe);
+    // XXX probe_update_fields(probe);
     
     /* 0 if all fields could be set */
     return res;

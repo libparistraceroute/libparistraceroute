@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h> // DEBUG
+#include <sys/signalfd.h>
+#include <signal.h>
 #include "pt_loop.h"
 #include "algorithm.h"
 
@@ -11,13 +13,17 @@ static void pt_loop_clear_user_events(pt_loop_t * loop);
 
 pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *))
 {
-    int s, network_sendq_fd, network_recvq_fd, network_sniffer_fd;
+    int s, network_sendq_fd, network_recvq_fd, network_sniffer_fd, network_timerfd;
     pt_loop_t * loop;
     struct epoll_event network_sendq_event;
     struct epoll_event network_recvq_event;
     struct epoll_event network_sniffer_event;
     struct epoll_event algorithm_event;
     struct epoll_event user_event;
+    struct epoll_event network_timerfd_event;
+    /* Signal management */
+    sigset_t mask;
+    struct epoll_event signal_event;
 
     loop = malloc(sizeof(pt_loop_t));
     if(!loop) goto ERR_MALLOC;
@@ -47,6 +53,26 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *))
     s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, loop->eventfd_user, &user_event);
     if (s == -1)
         goto ERR_EVENTFD_ADD_USER;
+  
+    /* Signal processing */
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGQUIT);
+
+    /* Block signals so that they are not managed by their handlers anymore */
+    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+        goto ERR_SIGPROCMASK;
+
+    loop->sfd = signalfd(-1, &mask, 0);
+    if (loop->sfd == -1)
+        goto ERR_SIGNALFD;
+
+    signal_event.data.fd = loop->sfd;
+    signal_event.events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, loop->sfd, &signal_event);
+    if (s == -1) 
+        goto ERR_SIGNALFD_ADD;
    
     /* network */
     loop->network = network_create();
@@ -77,6 +103,14 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *))
     if (s == -1)
         goto ERR_SNIFFER_ADD;
 
+    /* Timerfd */
+    network_timerfd = network_get_timerfd(loop->network);
+    network_timerfd_event.data.fd = network_timerfd;
+    network_timerfd_event.events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_timerfd, &network_timerfd_event);
+    if (s == -1)
+        goto ERR_TIMERFD_ADD;
+
     /* Buffer where events are returned */
     loop->epoll_events = calloc(MAXEVENTS, sizeof(struct epoll_event));
     if (!loop->epoll_events) goto ERR_EVENTS;
@@ -90,17 +124,24 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *))
     loop->next_algorithm_id = 1; // 0 means unaffected ?
     loop->cur_instance = NULL;
 
+    loop->algorithm_instances_root = NULL;
+
     return loop;
 
+//free(loop->events_user);
 ERR_EVENTS_USER:
-    free(loop->events_user);
-ERR_EVENTS:
     free(loop->epoll_events);
+ERR_EVENTS:
+ERR_TIMERFD_ADD:
 ERR_SNIFFER_ADD:
 ERR_RECVQ_ADD:
 ERR_SENDQ_ADD:
     network_free(loop->network);
 ERR_NETWORK:
+ERR_SIGNALFD_ADD:
+    close(loop->sfd);
+ERR_SIGNALFD:
+ERR_SIGPROCMASK:
 ERR_EVENTFD_ADD_USER:
     close(loop->eventfd_user);
 ERR_EVENTFD_USER:
@@ -116,13 +157,15 @@ ERR_MALLOC:
 
 void pt_loop_free(pt_loop_t * loop)
 {
-    if (loop) {
-        network_free(loop->network);
-        close(loop->eventfd_algorithm);
-        close(loop->efd);
-        pt_loop_clear_user_events(loop);
-        free(loop);
-    }
+    free(loop->events_user);
+    free(loop->epoll_events);
+    network_free(loop->network);
+    close(loop->sfd);
+    close(loop->eventfd_user);
+    close(loop->eventfd_algorithm);
+    close(loop->efd);
+    pt_loop_clear_user_events(loop);
+    free(loop);
 }
 
 // Accessors
@@ -189,6 +232,9 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     int network_sendq_fd   = network_get_sendq_fd(loop->network);
     int network_recvq_fd   = network_get_recvq_fd(loop->network);
     int network_sniffer_fd = network_get_sniffer_fd(loop->network);
+    int network_timerfd    = network_get_timerfd(loop->network);
+    ssize_t s;
+    struct signalfd_siginfo fdsi;
 
     do {
         /* Wait for events */
@@ -235,6 +281,25 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 
                 // Flush the queue 
                 pt_loop_clear_user_events(loop);
+            } else if (cur_fd == loop->sfd) {
+                // Handling signals
+                //
+                s = read(loop->sfd, &fdsi, sizeof(struct signalfd_siginfo));
+                if (s != sizeof(struct signalfd_siginfo)) {
+                    perror("read");
+                    continue;
+                }
+
+                if (fdsi.ssi_signo == SIGINT) {
+                    loop->stop = PT_LOOP_TERMINATE;
+                } else if (fdsi.ssi_signo == SIGQUIT) {
+                    exit(EXIT_SUCCESS);
+                } else {
+                    printf("Read unexpected signal\n");
+                }
+            } else if (cur_fd == network_timerfd) {
+                /* Timeout for first packet in network->probes */
+                network_process_timeout(loop->network);
             }
         }
     } while (loop->stop == PT_LOOP_CONTINUE);

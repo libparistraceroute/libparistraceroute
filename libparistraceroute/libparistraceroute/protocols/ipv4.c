@@ -2,6 +2,7 @@
 #include <stddef.h> // offsetof()
 #include <string.h> // memcpy()
 #include <unistd.h> // close()
+#include <stdio.h>
 #include <arpa/inet.h> // inet_pton()
 //#include <netdb.h>
 #include <netinet/ip.h>
@@ -216,7 +217,7 @@ int ipv4_finalize(unsigned char *buffer) {
 
     /* Setting source address */
 	struct iphdr *ip_hed = (struct iphdr *)buffer;
-	if(ip_hed->saddr==0){//has to be calculated 
+	if (ip_hed->saddr==0) {//has to be calculated 
 		ip_hed->saddr = ipv4_get_default_sip(ip_hed->daddr);
 	}
 

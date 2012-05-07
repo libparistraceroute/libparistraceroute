@@ -101,7 +101,7 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
     uintmax_t flow_id;
 
     int i;
-    int tosend;
+    int tosend = 0;
     int num_flows_missing = 0, num_flows_avail = 0;
     int num_flows_testing;
     int num_siblings;
@@ -176,6 +176,7 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
         probe = probe_dup(data->skel);
         probe_set_fields(probe, IMAX("flow_id", flow_id), I8("ttl", interface->ttl+1), NULL);
         pt_send_probe(data->loop, probe);
+        //printf("Sent probe at ttl %hhu with flow_id %ju\n", interface->ttl + 1, flow_id);
         interface->sent++;
     }
 
@@ -381,7 +382,7 @@ int mda_handler_reply(pt_loop_t *loop, event_t *event, void **pdata, probe_t *sk
     flow_id = probe_get_field(pr->probe, "flow_id")->value.intmax;
     addr    = probe_get_field(pr->reply, "src_ip" )->value.string;
 
-    //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id);
+    printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id);
 
     /* The couple probe-reply defines a link (origin, destination)
      * 
@@ -462,7 +463,24 @@ error:
     return -1;
 }
 
+int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel)
+{
+    //mda_data_t * data;
+    probe_t    * probe;
+    uintmax_t    flow_id;
+    uint8_t      ttl;
 
+    //data = *pdata;
+    probe = event->data;
+
+    ttl     = probe_get_field(probe, "ttl"    )->value.int8;
+    flow_id = probe_get_field(probe, "flow_id")->value.intmax;
+
+    printf("Probe timeout received: %hhu [%ju]\n", ttl, flow_id);
+
+    return 0;
+
+}
 /* Very similar to a set of fields + command line flags... */
 /* algorithm_set_options just like probe_set_fields */
 
@@ -480,6 +498,7 @@ int mda_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel)
     switch (event->type) {
         case ALGORITHM_INIT:       return mda_handler_init(loop, event, pdata, skel);
         case PROBE_REPLY:          return mda_handler_reply(loop, event, pdata, skel);
+        case PROBE_TIMEOUT:        return mda_handler_timeout(loop, event, pdata, skel);
         case ALGORITHM_TERMINATED: return 0;
         default:                   return -1; // EINVAL;
     }

@@ -26,6 +26,8 @@ mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
     interface->type = MDA_LB_TYPE_UNKNOWN;
     interface->enumeration_done = false;
     interface->ttl = 0;
+    interface->sent = 0;
+    interface->received = 0;
 
     return interface;
 
