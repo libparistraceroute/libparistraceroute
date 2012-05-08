@@ -472,6 +472,7 @@ int mda_handler_reply(pt_loop_t *loop, event_t *event, void **pdata, probe_t *sk
 
         source_interface->received++;
 
+        /* We have received the last needed flow */
         if (source_interface->received + source_interface->timeout == source_interface->sent) {
             ret = mda_event_new_link(loop, source_interface, dest_interface);
             if (ret < 0) goto error;
@@ -531,7 +532,7 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *
         search_ttl_flow.result = NULL;
         mda_timeout_flow(source_elt, &search_ttl_flow);
 
-        if (source_interface->timeout == source_interface->sent) {
+        if (source_interface->timeout == source_interface->sent) { // XXX to_send ??
             /* All timeouts, we need to add a star interface, and start a new
              * discovery at the next ttl. Currently, that supposes we have only
              * one interface... */
@@ -546,6 +547,17 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *
                 if (ret < 0) goto error;
             } else {
                 ret = mda_event_new_link(loop, source_interface, NULL);
+                if (ret < 0) goto error;
+            }
+        } else if (source_interface->timeout + source_interface->received == source_interface->sent) {
+            unsigned int i, num_next;
+            /* We have received all answers, and the last is a timeout (since we
+             * are processing it */
+            num_next = dynarray_get_size(source_elt->next);
+            for (i = 0; i < num_next; i++) {
+                lattice_elt_t * next_elt = dynarray_get_ith_element(source_elt->next, i);
+                mda_interface_t * next_iface = lattice_elt_get_data(next_elt);
+                ret = mda_event_new_link(loop, source_interface, next_iface);
                 if (ret < 0) goto error;
             }
         }

@@ -21,7 +21,7 @@
  * Command line stuff                                                         *
  ******************************************************************************/
 const char *algorithms[] = {
-    "mda", "traceroute", NULL
+    "mda", NULL
 };
 struct opt_spec options[] = {
     {opt_help, "h", "--help", OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
