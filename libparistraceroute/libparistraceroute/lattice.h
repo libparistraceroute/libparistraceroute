@@ -26,7 +26,8 @@ typedef struct {
 } lattice_elt_t;
 
 typedef struct {
-    lattice_elt_t *root;
+    //lattice_elt_t *root;
+    dynarray_t * roots;
     void *data;
     int (*cmp)(void*, void*);
 } lattice_t;

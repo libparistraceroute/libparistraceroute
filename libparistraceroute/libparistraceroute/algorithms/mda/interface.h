@@ -21,7 +21,8 @@ typedef enum {
 typedef struct {
 
     char         * address;
-    unsigned int   sent, received;
+    unsigned int   sent, received, timeout;
+    unsigned int   nb_stars;
 
     /* Stores flow information about the current interface */
     dynarray_t   * flows;
@@ -46,6 +47,8 @@ uintmax_t mda_interface_get_available_flow_id(mda_interface_t *interface, unsign
 //mda_interface_t *mda_interface_find_rec(mda_interface_t *interface, uint8_t ttl, uintmax_t flow_id);
 //int mda_interface_add(mda_interface_t *interface, mda_interface_t *added_interface);
 
+void mda_flow_dump(mda_interface_t * interface);
+void mda_link_dump(mda_interface_t ** link);
 void mda_interface_dump(lattice_elt_t * elt);
 
 #endif /* MDA_INTERFACE_H */

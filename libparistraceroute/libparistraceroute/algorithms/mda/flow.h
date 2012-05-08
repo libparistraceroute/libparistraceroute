@@ -7,7 +7,8 @@
 typedef enum {
     MDA_FLOW_AVAILABLE,
     MDA_FLOW_UNAVAILABLE,
-    MDA_FLOW_TESTING
+    MDA_FLOW_TESTING,
+    MDA_FLOW_TIMEOUT
 } mda_flow_state_t;
 
 /**

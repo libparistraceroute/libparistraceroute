@@ -28,6 +28,8 @@ mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
     interface->ttl = 0;
     interface->sent = 0;
     interface->received = 0;
+    interface->timeout = 0;
+    interface->nb_stars = 0;
 
     return interface;
 
@@ -109,30 +111,49 @@ void mda_flow_dump(mda_interface_t * interface)
         switch (flow->state) {
             case MDA_FLOW_AVAILABLE:   printf(" "); break;
             case MDA_FLOW_UNAVAILABLE: printf("*"); break;
-            case MDA_FLOW_TESTING:     printf("!"); break;
+            case MDA_FLOW_TESTING:     printf("?"); break;
+            case MDA_FLOW_TIMEOUT:     printf("!"); break;
             default:                                break;
         }
         printf("%ju, ", flow->flow_id);
     }
 }
 
+void mda_link_dump(mda_interface_t * link[2])
+{
+    if (!link[1]) {
+        printf("%hhu %s [ ", link[0]->ttl, link[0]->address ? link[0]->address : "*");
+        mda_flow_dump(link[0]);
+        printf(" ]\n");
+        return;
+    }
+
+    printf("%hhu %s -> %s [ ", link[0]->ttl, link[0]->address ? link[0]->address : "*", link[1]->address ? link[1]->address : "*");
+    mda_flow_dump(link[0]);
+    printf(" -> ");
+    mda_flow_dump(link[1]);
+    printf("]\n");
+}
+
 void mda_interface_dump(lattice_elt_t * elt)
 {
-    mda_interface_t * interface = lattice_elt_get_data(elt);
     unsigned int i, num_next;
+    mda_interface_t * link[2];
+    
+    link[0] = lattice_elt_get_data(elt);
 
     num_next = dynarray_get_size(elt->next);
+    if (num_next == 0) {
+        link[1] = NULL;
+        mda_link_dump(link);
+    }
     for (i = 0; i < num_next; i++) {
         lattice_elt_t *iter_elt;
-        mda_interface_t * iter_iface;
 
         iter_elt = dynarray_get_ith_element(elt->next, i);
-        iter_iface = lattice_elt_get_data(iter_elt);
+        link[1] = lattice_elt_get_data(iter_elt);
 
-        printf("%hhu %s -> %s [ ", interface->ttl, interface->address ? interface->address : "ORIGIN", iter_iface->address);
-        mda_flow_dump(interface);
-        printf(" -> ");
-        mda_flow_dump(iter_iface);
-        printf("]\n");
+        mda_link_dump(link);
+
     }
 }

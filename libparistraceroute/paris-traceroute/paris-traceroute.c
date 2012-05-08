@@ -101,13 +101,24 @@ static const char *addr2str (const sockaddr_any *addr) {
 // TODO manage properly event allocation and desallocation
 void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void *data)
 {
-    lattice_t * lattice;
+    mda_event_t * mda_event;
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
-            lattice = event->data;
-            lattice_dump(lattice, (ELEMENT_DUMP) mda_interface_dump);
+            // Dump full lattice, only when MDA_NEW_LINK is not handled
+            // lattice_dump(event->data, (ELEMENT_DUMP) mda_interface_dump);
             pt_loop_terminate(loop);
+            break;
+        case ALGORITHM_EVENT:
+            mda_event = event->data;
+            switch (mda_event->type) {
+                case MDA_NEW_LINK:
+                    mda_link_dump(mda_event->data);
+                    break;
+                default:
+                    break;
+            }
+
             break;
         default:
             break;

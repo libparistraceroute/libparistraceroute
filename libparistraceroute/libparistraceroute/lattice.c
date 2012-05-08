@@ -63,7 +63,8 @@ lattice_t * lattice_create(void)
     lattice = malloc(sizeof(lattice_t));
     if (!lattice) goto error;
 
-    lattice->root = NULL;
+    //lattice->root = NULL;
+    lattice->roots = dynarray_create();
     lattice->data = NULL;
     lattice->cmp  = NULL; /* by default, we compare pointer data */
 
@@ -100,7 +101,7 @@ int lattice_set_cmp(lattice_t * lattice, int (*cmp)(void * data1, void * data2))
     return 0;
 }
 
-int lattice_walk_dfs(
+int lattice_walk_dfs_rec(
         lattice_elt_t *elt, 
         int (*visitor)(lattice_elt_t *, void *), 
         void *data)
@@ -124,7 +125,7 @@ int lattice_walk_dfs(
     num_next = dynarray_get_size(elt->next);
     for (i = 0; i < num_next; i++) {
         elt_iter = dynarray_get_ith_element(elt->next, i);
-        ret = lattice_walk_dfs(elt_iter, visitor, data);
+        ret = lattice_walk_dfs_rec(elt_iter, visitor, data);
         switch (ret) {
             case LATTICE_DONE:           break;
             case LATTICE_CONTINUE:       done = false; break;// continue the for
@@ -137,11 +138,39 @@ int lattice_walk_dfs(
 
 }
 
+int lattice_walk_dfs(
+        lattice_t * lattice,         
+        int (*visitor)(lattice_elt_t *, void *),
+        void *data)
+{
+    lattice_elt_t * root;
+    unsigned int    i, num_roots;
+    int             ret;
+    bool            done = true;
+    
+    /* Process all roots */
+    num_roots = dynarray_get_size(lattice->roots);
+    for (i = 0; i < num_roots; i++) {
+        root = dynarray_get_ith_element(lattice->roots, i);
+        ret = lattice_walk_dfs_rec(root, visitor, data);
+        switch (ret) {
+            case LATTICE_DONE:           break;
+            case LATTICE_CONTINUE:       done = false; break;// continue the for
+            case LATTICE_INTERRUPT_ALL:  return LATTICE_INTERRUPT_ALL;
+            default:                     return LATTICE_ERROR;
+        }
+    }
+
+    return done ? LATTICE_DONE : LATTICE_CONTINUE;
+
+}
+
+
 int lattice_walk(lattice_t *lattice, int (*visitor)(lattice_elt_t *, void * data), void * data, lattice_traversal_t traversal)
 {
     switch (traversal) {
         case LATTICE_WALK_DFS:
-            return lattice_walk_dfs(lattice->root, visitor, data);
+            return lattice_walk_dfs(lattice, visitor, data);
         case LATTICE_WALK_BFS:
             return -3; // not implemented
         default:
@@ -169,10 +198,19 @@ lattice_elt_t * lattice_find_elt(lattice_elt_t * elt, void * data, int (*cmp)(vo
 
 void * lattice_find(lattice_t * lattice, void * data)
 {
-    lattice_elt_t * elt;
+    lattice_elt_t * elt, * root;
+    unsigned int    i, num_roots;
     
-    elt = lattice_find_elt(lattice->root, data, lattice->cmp);
-    return elt ? elt->data : NULL;
+    /* Process all roots */
+    num_roots = dynarray_get_size(lattice->roots);
+    for (i = 0; i < num_roots; i++) {
+        root = dynarray_get_ith_element(lattice->roots, i);
+        elt = lattice_find_elt(root, data, lattice->cmp);
+        if (elt)
+            return elt->data;
+    }
+
+    return NULL;
 }
 
 int lattice_add_element(lattice_t * lattice, lattice_elt_t * prev, void * data)
@@ -182,9 +220,7 @@ int lattice_add_element(lattice_t * lattice, lattice_elt_t * prev, void * data)
     elt =  lattice_elt_create(data);
 
     if (!prev) {
-        if (lattice->root)
-            return -1;
-        lattice->root = elt;
+        dynarray_push_element(lattice->roots, elt);
         return 0;
     }
 

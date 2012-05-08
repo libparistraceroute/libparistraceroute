@@ -119,6 +119,10 @@ field_t *probe_get_field_ext(probe_t *probe, const char *name, unsigned int dept
  */
 unsigned char *probe_get_payload(probe_t *probe);
 
+int probe_set_payload_size(probe_t * probe, unsigned int payload_size);
+
+int probe_set_min_payload_size(probe_t * probe, unsigned int payload_size);
+
 int probe_set_payload(probe_t *probe, buffer_t * payload);
 
 int probe_write_payload(probe_t *probe, buffer_t * payload, unsigned int offset);
