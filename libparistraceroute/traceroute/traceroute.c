@@ -64,7 +64,7 @@ int main(int argc, char ** argv)
     exit(EXIT_FAILURE);
 
     // Create libparistraceroute loop
-    loop = pt_loop_create(traceroute_handler);
+    loop = pt_loop_create(traceroute_handler, NULL);
     if (!loop) {
         perror("E: Cannot create libparistraceroute loop ");
         goto ERR_LOOP;

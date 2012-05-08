@@ -11,7 +11,7 @@
 // Internal usage
 static void pt_loop_clear_user_events(pt_loop_t * loop);
 
-pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *))
+pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *), void * user_data)
 {
     int s, network_sendq_fd, network_recvq_fd, network_sniffer_fd, network_timerfd;
     pt_loop_t * loop;
@@ -118,7 +118,7 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *))
     loop->events_user = dynarray_create();
     if (!loop->events_user) goto ERR_EVENTS_USER;
 
-    loop->user_data = NULL;
+    loop->user_data = user_data;
     loop->stop = PT_LOOP_CONTINUE;
 
     loop->next_algorithm_id = 1; // 0 means unaffected ?

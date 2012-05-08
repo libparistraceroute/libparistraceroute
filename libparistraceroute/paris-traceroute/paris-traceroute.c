@@ -16,19 +16,30 @@
 #include "lattice.h"
 #include "algorithm.h"
 #include "algorithms/mda.h"
+#include "algorithms/traceroute.h"
 
 /******************************************************************************
  * Command line stuff                                                         *
  ******************************************************************************/
+
 const char *algorithms[] = {
     "mda", NULL
 };
 struct opt_spec options[] = {
     {opt_help, "h", "--help", OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
     {opt_store_choice, "a", "--algorithm", "ALGORITHM", "traceroute algorithm: one of "
-     "'traceroute', 'mda' [default]", algorithms},
+     "'mda' [default]", algorithms},
     {OPT_NO_ACTION}
 };
+
+/******************************************************************************
+ * Program data
+ ******************************************************************************/
+
+typedef struct {
+    const char * algorithm;
+    const char * dst_ip;
+} paris_traceroute_data_t;
 
 /******************************************************************************
  * Helper functions
@@ -99,24 +110,28 @@ static const char *addr2str (const sockaddr_any *addr) {
  ******************************************************************************/
 
 // TODO manage properly event allocation and desallocation
-void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void *data)
+void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
     mda_event_t * mda_event;
+    paris_traceroute_data_t * data = user_data;
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
             // Dump full lattice, only when MDA_NEW_LINK is not handled
-            // lattice_dump(event->data, (ELEMENT_DUMP) mda_interface_dump);
+            if (strcmp(data->algorithm, "mda") != 0)
+                lattice_dump(event->data, (ELEMENT_DUMP) mda_interface_dump);
             pt_loop_terminate(loop);
             break;
         case ALGORITHM_EVENT:
-            mda_event = event->data;
-            switch (mda_event->type) {
-                case MDA_NEW_LINK:
-                    mda_link_dump(mda_event->data);
-                    break;
-                default:
-                    break;
+            if (strcmp(data->algorithm, "mda") == 0) {
+                mda_event = event->data;
+                switch (mda_event->type) {
+                    case MDA_NEW_LINK:
+                        mda_link_dump(mda_event->data);
+                        break;
+                    default:
+                        break;
+                }
             }
 
             break;
@@ -127,11 +142,10 @@ void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void *data)
 
 int main(int argc, char ** argv)
 {
+    paris_traceroute_data_t * data;
     algorithm_instance_t * instance;
     probe_t              * probe_skel;
     pt_loop_t            * loop;
-    char                 * dst_ip;
-    const char           * algorithm;
     int ret;
 
     static sockaddr_any dst_addr = {{ 0, }, };
@@ -141,12 +155,17 @@ int main(int argc, char ** argv)
         exit(EXIT_FAILURE);
     }
     set_host(argv[1], &dst_addr);
-    dst_ip = addr2str(&dst_addr);
-    algorithm = algorithms[0];
-    printf("Traceroute to %s using algorithm %s\n\n", dst_ip, algorithm);
+
+    data = malloc(sizeof(paris_traceroute_data_t));
+    if (!data) goto error;
+    data->dst_ip = addr2str(&dst_addr);
+    data->algorithm = algorithms[0];
+
+    printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
+
     
     // Create libparistraceroute loop
-    loop = pt_loop_create(paris_traceroute_handler);
+    loop = pt_loop_create(paris_traceroute_handler, data);
     if (!loop) {
         perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP;
@@ -161,17 +180,17 @@ int main(int argc, char ** argv)
 
     probe_set_protocols(probe_skel, "ipv4", "udp", NULL);
     probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
-    probe_set_fields(probe_skel, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
+    probe_set_fields(probe_skel, STR("dst_ip", data->dst_ip), I16("dst_port", 30000), NULL);
 
     // Prepare options related to the 'mda' algorithm
     traceroute_options_t options = {
         .min_ttl    = 1,        // fields from command line
         .max_ttl    = 30,
         .num_probes = 3,
-        .dst_ip     = dst_ip    // probe skeleton
+        .dst_ip     = data->dst_ip    // probe skeleton
     };
     
-    instance = pt_algorithm_add(loop, algorithm, &options, probe_skel);
+    instance = pt_algorithm_add(loop, data->algorithm, &options, probe_skel);
     if (!instance) {
         perror("E: Cannot add 'mda' algorithm");
         goto ERR_INSTANCE;

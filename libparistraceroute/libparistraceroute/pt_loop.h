@@ -47,7 +47,7 @@ typedef struct pt_loop_s {
  * \return A pointer to a loop if successfull, NULL otherwise.
  */
 
-pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *));
+pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *), void * user_data);
 
 /**
  * \brief Close properly the paristraceroute loop
