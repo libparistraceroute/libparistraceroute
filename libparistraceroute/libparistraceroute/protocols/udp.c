@@ -110,7 +110,8 @@ bool udp_write_checksum(unsigned char *buf, buffer_t * psh)
         return false;
     }
 
-    len = sizeof(struct udphdr) + buffer_get_size(psh);
+    //len = sizeof(struct udphdr) + buffer_get_size(psh) +4;
+    len = ntohs(udp_hdr->LENGTH) + buffer_get_size(psh);
     tmp = malloc(len * sizeof(unsigned char));
     if (!tmp) { // not enough memory
         errno = ENOMEM;
@@ -120,7 +121,8 @@ bool udp_write_checksum(unsigned char *buf, buffer_t * psh)
     /* XXX shall we replace this by buffer operations */
     memcpy(tmp, buffer_get_data(psh), buffer_get_size(psh));
 
-    memcpy(tmp + buffer_get_size(psh), udp_hdr, sizeof(struct udphdr));
+    //memcpy(tmp + buffer_get_size(psh), udp_hdr, sizeof(struct udphdr)+4);
+    memcpy(tmp + buffer_get_size(psh), udp_hdr, ntohs(udp_hdr->LENGTH));//sizeof(struct udphdr));
     res = csum(*(unsigned short**) &tmp, (len >> 1));
     udp_hdr->check = res;
 

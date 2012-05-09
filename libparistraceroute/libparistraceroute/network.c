@@ -175,7 +175,7 @@ int network_tag_probe(network_t * network, probe_t * probe)
     buffer_set_data(buffer, (unsigned char*)&tag, sizeof(uint16_t));
 
     // Write the tag at offset zero of the payload
-    printf("Write the tag at offset zero of the payload\n");
+    //printf("Write the tag %hu at offset zero of the payload\n", tag);
     probe_write_payload(probe, buffer, 0);
     
     //printf("With payload:\n");
@@ -183,6 +183,7 @@ int network_tag_probe(network_t * network, probe_t * probe)
 
     /* 2) Compute checksum : should be done automatically by probe_set_fields */
 
+    //probe_dump(probe);
     probe_update_fields(probe);
 
     //printf("After update fields:\n");
@@ -190,16 +191,14 @@ int network_tag_probe(network_t * network, probe_t * probe)
 
     /* 3) Swap checksum and payload : give explanations here ! */
 
-    checksum = probe_get_field_ext(probe, "checksum", 1)->value.int16; // UDP checksum
-    printf("checksum = %hu\n", checksum);
-    probe_set_field_ext(probe, I16("checksum", tag), 1);
+    checksum = htons(probe_get_field_ext(probe, "checksum", 1)->value.int16); // UDP checksum
+    probe_set_field_ext(probe, I16("checksum", htons(tag)), 1);
 
     //printf("After setting tag as checksum:\n");
     //probe_dump(probe);
 
     buffer_set_data(buffer, (unsigned char*)&checksum, sizeof(uint16_t));
     // We write the checksum at offset zero of the payload
-    printf("We write the checksum at offset zero of the payload\n");
     probe_write_payload(probe, buffer, 0);
 
     //printf("After setting checksum as payload:\n");
@@ -221,12 +220,12 @@ int network_process_sendq(network_t *network)
     unsigned int num_probes;
 
     probe = queue_pop_element(network->sendq);
-    probe_update_fields(probe);
-    /*
-    res = network_tag_probe(probe);
+    //probe_update_fields(probe);
+    
+    res = network_tag_probe(network, probe);
     if (res < 0)
         goto error;
-    */
+    
 
     /* Make a packet from the probe structure */
     packet = packet_create_from_probe(probe);
