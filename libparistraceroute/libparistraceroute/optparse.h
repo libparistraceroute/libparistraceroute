@@ -9,7 +9,7 @@ void opt_options1st(void);
 
 const char *opt_name(void);
 void opt_err_pfx(void);
-void opt_err_sfx(void);
+int opt_err_sfx(void);
 void opt_err(const char *msg);
 
 struct opt_str {

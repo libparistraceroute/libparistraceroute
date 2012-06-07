@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "optparse.h"
 
 #define EMPTY(s) (!(s) || !*(s))
@@ -212,14 +213,15 @@ void opt_err_pfx(void)
     fprintf(stderr, "%s: ", globals.prog);
 }
 
-void opt_err_sfx(void)
+int opt_err_sfx(void)
 {
     putc('\n', stderr);
     if (globals.curr->help) {
         fputs("option usage:\n", stderr);
         print1opt(globals.curr, stderr, 0);
     }
-    exit(EXIT_FAILURE);
+    errno=EINVAL;
+    return false;
 }
     
 void opt_err(const char *msg)
@@ -241,14 +243,14 @@ int opt_help(char *arg, void *data)
     printf(globals.usage, globals.prog);
     putchar('\n');
     printopts(stdout);
-    exit(0);
+    return true;
 }
 
 int opt_version(char *arg, void *data)
 {
     assert(!arg && data);
     puts((char *)data);
-    exit(0);
+    return true;
 }
 
 int opt_stop(char *arg, void *data)
@@ -457,7 +459,7 @@ static struct opt_spec *findlf(struct opt_spec *opts, const char *arg)
     return opts->action ? opts : NULL;
 }
 
-static void unknown(const char *arg)
+static int unknown(const char *arg)
 {
     fprintf(stderr, "%s: no such option: %s\n", globals.prog, arg);
     if (globals.helpsf)
@@ -468,7 +470,8 @@ static void unknown(const char *arg)
                 globals.prog, globals.helplf);
     else
         printopts(stderr);
-    exit(EXIT_FAILURE);
+    errno=EINVAL;
+    return false;
 }
 
 int opt_parse(const char *usage, struct opt_spec *opts, char **argv)
@@ -538,7 +541,8 @@ int opt_parse(const char *usage, struct opt_spec *opts, char **argv)
                         o2 = findlf(o + 1, a);
                         if (!o2) {
                             fprintf(stderr, " or %s?)\n", o->lf);
-                            exit(EXIT_FAILURE);
+                            errno=EINVAL;
+                            return false;
                         }
                         fprintf(stderr, ", %s", o->lf);
                     }

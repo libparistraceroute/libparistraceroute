@@ -293,7 +293,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 if (fdsi.ssi_signo == SIGINT) {
                     loop->stop = PT_LOOP_TERMINATE;
                 } else if (fdsi.ssi_signo == SIGQUIT) {
-                    exit(EXIT_SUCCESS);
+                    return true;
                 } else {
                     printf("Read unexpected signal\n");
                 }
