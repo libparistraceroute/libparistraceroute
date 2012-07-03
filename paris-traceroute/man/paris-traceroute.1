@@ -1,0 +1,27 @@
+.\" Man page for paris-traceroute
+
+.TH paris-traceroute 1 "8th June 2012" www.paris-traceroute.net "Paris Traceroute"
+
+.SH NAME
+Paris-Traceroute
+.SH SYNOPSIS
+An advanced implementation of traceroute which correctly handles load balancing servers among other things
+.SH DESCRIPTION
+.P
+We introduce Paris traceroute, a new traceroute to respond to load balancing routers. Its key innovation is to control the probe packet header fields in a manner that allows all probes towards a destination to follow the same path in the presence of per-flow load balancing. It also allows a user to distinguish between the presence of per-flow load balancing and per-packet load balancing. Unfortunately, due to the random nature of per-packet load balancing, Paris traceroute cannot perfectly enumerate all paths in all situations. But it can do considerably better than the classic traceroute, and it can flag those instances where there are doubts. The problem, if one wishes to maintain certain header fields constant, is that traceroute still needs to be able to match response packets to their corresponding probe packets.
+.P
+Paris traceroute does this by varying header fields that are within the first 28 octets, but are not used for load balancing. In the case of TCP probes, Paris traceroute varies the sequence number. In UDP probes, it is the checksum field. This requires manipulating the payload to yield the desired checksum, as packets with an incorrect checksum are liable to be discarded. In ICMP probes, it is a combination of the ICMP identifier and the sequence number. We carefully set the value of the ICMP identifier and sequence number to keep constant the header checksum of all probes to a destination. Figure 2 summarizes the IP, UDP, and ICMP header fields that are used by load balancers, classic traceroute, and Paris traceroute. We include the ICMP type field as used for load balancing, even if we cannot verify it experimentally (routers only repond to one type of probes, which is the ICMP echo request). Our experiments with UDP, TCP, and IPSec probes do give strong evidence that routers blindly use the first four 
+octets after the IP header combined with the IP fields to do load balancing.
+.SH OPTIONS
+.RS
+-h, --help							Displays help and usage information
+
+-a<ALGORITHM>, --algorithm=<ALGORITHM>		Choose which algorithm to use. Default is "mda".
+.RE
+.\" TODO: Add "SEE ALSO" section
+.\".SH SEE ALSO
+.\"man(1), groff(1), man.config(5)
+.SH BUGS
+No known bugs. If any are found please feel free to email us.
+.SH AUTHOR
+Julian Cromarty (julian.cromarty@gmail.com)

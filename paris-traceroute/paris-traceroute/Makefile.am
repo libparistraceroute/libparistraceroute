@@ -19,3 +19,4 @@ paris_traceroute_LDADD = -lparistraceroute-1.0
 paris_traceroute_LDFLAGS = -L../libparistraceroute
 paris_traceroute_DEPENDENCIES =
 
+install-bin: install

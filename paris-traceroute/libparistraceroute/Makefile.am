@@ -137,3 +137,7 @@ pkgconfig_DATA = libparistraceroute-@LIBRARY_VERSION@.pc
 ## archive.  However, it will not be installed on an end user's system due to
 ## the noinst_ prefix.
 #dist_noinst_SCRIPTS = autogen.sh
+
+install-dev: install-data
+
+install-bin: install-exec

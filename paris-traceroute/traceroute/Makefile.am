@@ -18,3 +18,4 @@ traceroute_LDADD = -lparistraceroute-1.0
 traceroute_LDFLAGS = -L../libparistraceroute
 traceroute_DEPENDENCIES =
 
+install:
