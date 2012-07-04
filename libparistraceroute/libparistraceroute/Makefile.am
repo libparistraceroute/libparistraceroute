@@ -140,4 +140,4 @@ pkgconfig_DATA = libparistraceroute-@LIBRARY_VERSION@.pc
 
 install-dev: install-data
 
-install-bin: install-exec
+install-lib: install-exec

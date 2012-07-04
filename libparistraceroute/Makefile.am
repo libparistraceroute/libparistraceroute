@@ -11,5 +11,7 @@ install-dev:
 
 install-bin:
 	cd paris-traceroute && $(MAKE) $(AM_MAKEFLAGS) install-bin
-	cd libparistraceroute && $(MAKE) $(AM_MAKEFLAGS) install-bin
 	cd man && $(MAKE) $(AM_MAKEFLAGS) install
+
+install-lib:
+	cd libparistraceroute && $(MAKE) $(AM_MAKEFLAGS) install-lib
