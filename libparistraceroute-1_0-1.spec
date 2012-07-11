@@ -16,24 +16,24 @@
  #
 
 # Basic Information
-Name:paris-traceroute
-Version:0.1
+Name:libparistraceroute-1_0-1
+Version:1.0
 Release:1%{?dist}
 Group:Development/Libraries/C and C++
-Summary:A new version of the traceroute algorithm that can handle load balancing
+Summary:A library dedicated to designing network measurement tools using crafted probes
 License:BSD-2
-URL:http://paris-traceroute.net
+URL:http://code.google.com/p/paris-traceroute
 # Build Information
 BuildRoot:%{_tmppath}/%{name}-%{version}-%{release}-root
 # Source Information
-Source0:paris-traceroute-0.1.tar.bz2
+Source0:libparistraceroute.tar.bz2
 #Source2:AUTHORS
 #Patch0:
 # Dependency Information
 BuildRequires:gcc binutils
-Requires:libparistraceroute
+#Requires:
 %description
-Paris traceroute is a new version of the well-known network diagnosis and measurement tool. It addresses problems caused by load balancers with the initial implementation of traceroute.
+libparistraceroute is a library designed to simplify the process of creating advanced network measurement tools such as ping or traceroute through the use of custom probe packets 
 %prep
 %setup -q
 %build
@@ -41,7 +41,7 @@ Paris traceroute is a new version of the well-known network diagnosis and measur
 %configure
 make %{?_smp_mflags} RPM_OPT_FLAGS="$RPM_OPT_FLAGS"
 %install
-make install-bin DESTDIR=%{buildroot}
+make install-lib DESTDIR=%{buildroot}
 %clean
 rm -rf %{buildroot}
 ./prepare_package.sh
@@ -51,16 +51,13 @@ rm -rf %{buildroot}
 /sbin/ldconfig
 %files
 %defattr(-,root,root,-)
-/usr/bin/paris-traceroute
-#/usr/bin/traceroute
-%{_mandir}/man1/paris-traceroute.1*
+%{_libdir}/libparistraceroute-1.0.so.1.0.0
+%{_libdir}/libparistraceroute-1.0.a
+%exclude
+%{_libdir}/libparistraceroute-1.0.la
+%{_libdir}/libparistraceroute-1.0.so
+%{_libdir}/libparistraceroute-1.0.so.1
 %doc
 %changelog
-* Wed Jul 4 2012 Julian Cromarty <julian.cromarty@gmail.com> 0.1
+* Wed Jun 20 2012 Julian Cromarty <julian.cromarty@gmail.com> 0.1
 - Initial Spec File
-- Forgot source0 definition
-- Fixed changelog date format
-- Added installed files and dirs to files section
-- Added group, description and moved defattrs to correct place
-- Removed development files
-- Removed libraries
