@@ -31,7 +31,7 @@ Source0:paris-traceroute-0.1.tar.bz2
 #Patch0:
 # Dependency Information
 BuildRequires:gcc binutils
-Requires:libparistraceroute
+Requires:libparistraceroute-1_0-1
 %description
 Paris traceroute is a new version of the well-known network diagnosis and measurement tool. It addresses problems caused by load balancers with the initial implementation of traceroute.
 %prep
