@@ -11,11 +11,15 @@ dynarray_t* dynarray_create(void)
     dynarray_t * dynarray = malloc(sizeof(dynarray_t));
     if (dynarray) {
         dynarray->elements = calloc(DYNARRAY_SIZE_INIT, sizeof(void*));
+        if (!dynarray->elements) goto ERR_ELEMENTS;
         memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT * sizeof(void*));
         dynarray->size = 0;
         dynarray->max_size = DYNARRAY_SIZE_INIT;
+        return dynarray;
+    ERR_ELEMENTS:
+    	free(dynarray);
     }
-    return dynarray;
+    return NULL;
 }
 
 dynarray_t* dynarray_dup (dynarray_t* dynarray, void* (*element_dup)(void*))

@@ -25,7 +25,8 @@ typedef struct {
 
 /**
  * \brief Create a dynamic array structure.
- * \return A dynarray_t structure representing an empty dynamic array
+ * \return A dynarray_t structure representing an empty dynamic array, or NULL
+ * 		on failure
  */
 dynarray_t* dynarray_create(void);
 
