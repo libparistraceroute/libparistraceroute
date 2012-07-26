@@ -44,7 +44,9 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						network.h \
 						optparse.h \
 						packet.h \
+						predicate.h \
 						probe.h \
+						probe_generator.h \
 						protocol.h \
 						protocol_field.h \
 						pseudoheader.h \
@@ -86,7 +88,9 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						network.c \
 						optparse.c \
 						packet.c \
+						predicate.c \
 						probe.c \
+						probe_generator.c \
 						protocol.c \
 						protocols/icmp.c \
 						protocols/udp.c \

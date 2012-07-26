@@ -281,6 +281,7 @@ AC_CONFIG_FILES(
 	[traceroute/Makefile]
 	[man/Makefile]
 	[doc/Makefile]
+	[test/Makefile]
 )
 AC_OUTPUT
 
