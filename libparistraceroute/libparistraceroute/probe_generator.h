@@ -9,6 +9,7 @@
 #define PROBE_GENERATOR_H_
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "probe.h"
 #include "predicate.h"
@@ -23,25 +24,26 @@ typedef enum predicate_bool_t {
 	NOT
 } predicate_bool_t;
 
-typedef enum Node_type {
+typedef enum node_type {
+	NODE_BOOL,
 	NODE_OPERATOR,
-	NODE_PREDICATE
+	NODE_CONSTANT,
+	NODE_REFERENCE
 } node_type_t;
 
-typedef struct Generator_node {
-	dynarray_t*				leaves;			//Array of leaves (generator_node_t*)
-	int 					numLeaves;
-	predicate_bool_t*		bool_operator;	//Only one or the other of these is used
-	predicate_t*			predicate;		//The other will be null
+typedef struct generator_node_t {
+	void*			left;		//Pointer to left leaf
+	void*			right;		//Pointer to right leaf
+	node_type_t		type;		//Enum to say which of the 3 types of node is usea
+	void*			content;	//Holds the node itself
 } generator_node_t;
 
 //Struct acting like a class for setting constraints
-typedef struct Generator {
-	dynarray_t*		 		predicate_roots; //dynamic array storing predicate tree roots (generator_node_t*)
+typedef struct generator_t {
+	//dynarray_t*		 		predicate_roots; //dynamic array storing predicate tree roots (generator_node_t*)
 	probe_t*				probe_skel;		//Probe skeleton that stores the current probe
+	generator_node_t*		root_node;
 } generator_t;
-
-generator_node_t* generator_node_create();
 
 //Add a predicate tree. Second arg is function pointer to predicate_and, predicate_or etc..
 generator_t* add_predicate(generator_t*, void*, predicate_t*, ...);
@@ -60,10 +62,5 @@ bool generator_get_last(const generator_t*, probe_t*);
 //Return: True on success, false if no more valid probes
 //TODO: implement bool_get_next
 bool generator_get_next(const generator_t*, probe_t*);
-
-//Sets either a predicate or an operator as the content of a predicate tree node
-//Nullifies both node pointers before setting new data to ensure only one or the other is ever set
-void generator_node_set_content(node_type_t, void*);
-
 
 #endif /* PROBE_GENERATOR_H_ */
