@@ -37,6 +37,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						dynarray.h \
 						event.h \
 						field.h \
+						group.h \
 						layer.h \
 						lattice.h \
 						list.h \
@@ -44,16 +45,15 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						network.h \
 						optparse.h \
 						packet.h \
-						predicate.h \
 						probe.h \
-						probe_generator.h \
 						protocol.h \
 						protocol_field.h \
 						pseudoheader.h \
 						pt_loop.h \
 						queue.h \
 						sniffer.h \
-						socketpool.h
+						socketpool.h \
+						stackedlist.h
 
 # where to install the headers on the system
 libparistraceroute_@LIBRARY_VERSION@_ladir = $(includedir)/paristraceroute
@@ -88,9 +88,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						network.c \
 						optparse.c \
 						packet.c \
-						predicate.c \
 						probe.c \
-						probe_generator.c \
 						protocol.c \
 						protocols/icmp.c \
 						protocols/udp.c \
@@ -99,7 +97,8 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						pt_loop.c \
 						queue.c \
 						sniffer.c \
-						socketpool.c
+						socketpool.c \
+						stackedlist.c
 
 ## Instruct libtool to include ABI version information in the generated shared
 ## library file (.so).  The library ABI version is defined in configure.ac, so

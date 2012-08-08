@@ -1,3 +1,3 @@
 @SET_MAKE@
 
-man_MANS = paris-traceroute.1 #traceroute.1
+dist_man_MANS = paris-traceroute.1 #traceroute.1

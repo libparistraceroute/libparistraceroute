@@ -12,7 +12,11 @@ bin_PROGRAMS = paris-traceroute
 
 # list of sources for the paris-traceroute binary
 paris_traceroute_SOURCES =    \
-                        paris-traceroute.c
+			paris-traceroute.h \
+			paris-traceroute.c
+
+#paris_traceroute_HEADERS =	\
+#			paris-traceroute.h
 
 paris_traceroute_CFLAGS = -D_GNU_SOURCE
 paris_traceroute_LDADD = -lparistraceroute-1.0

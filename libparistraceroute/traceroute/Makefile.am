@@ -1,6 +1,7 @@
 @SET_MAKE@
 
 AUTOMAKE_OPTIONS = foreign
+ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 ###############################################################################
 #
@@ -18,4 +19,3 @@ traceroute_LDADD = -lparistraceroute-1.0
 traceroute_LDFLAGS = -L../libparistraceroute
 traceroute_DEPENDENCIES =
 
-install:
