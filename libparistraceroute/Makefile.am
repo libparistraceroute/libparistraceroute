@@ -23,8 +23,7 @@ deb:
 	#cp debian $(PACKAGE)-$(VERSION)/ ; \
 	fakeroot debuild -us -uc ;
 
-rpm:
-	rpm-prepare rpm-i386 rpm-x86_64 rpm-clean
+rpm:	rpm-prepare rpm-i386 rpm-x86_64 rpm-sparc rpm-clean
 
 rpm-prepare:
 	if [ ! -d packages/rpm/RPMS ]; then \
