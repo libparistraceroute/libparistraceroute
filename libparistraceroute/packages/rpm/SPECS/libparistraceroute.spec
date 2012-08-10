@@ -30,7 +30,7 @@ Source0:paris-traceroute-0.1.tar.bz2
 #Source2:AUTHORS
 #Patch0:
 # Dependency Information
-BuildRequires:gcc binutils libtool autoconf automake
+#BuildRequires:gcc binutils libtool autoconf automake
 #Requires:
 %description
 libparistraceroute is a library designed to simplify the process of creating advanced network measurement tools such as ping or traceroute through the use of custom probe packets 
