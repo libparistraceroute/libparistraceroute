@@ -47,11 +47,14 @@ rpm-prepare:
 	mv $(PACKAGE)-$(VERSION).tar.bz2 packages/rpm/SOURCES/ ;
 
 rpm-x86_64:
-	rpmbuild --define '_topdir packages/rpm' -ba --target=x86_64-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
-	rpmbuild --define '_topdir packages/rpm' -ba --target=x86_64-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec
+	rpmbuild --define '_topdir $(pwd)/packages/rpm' -ba --target=x86_64-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild --define "_topdir $(pwd)/packages/rpm" -ba --target=x86_64-gnu-linux --clean -v packages/rpm/SPECS/libparistraceroute.spec ;
 rpm-i386:
-	rpmbuild --define '_topdir packages/rpm' -ba --target=i386-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
-	rpmbuild --define '_topdir packages/rpm' -ba --target=i386-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec
+	rpmbuild --define '_topdir $(pwd)/packages/rpm' -ba --target=i386-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild --define '_topdir $(pwd)/packages/rpm' -ba --target=i386-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec ;
+rpm-sparc:
+	rpmbuild --define '_topdir $(pwd)/packages/rpm' -ba --target=sparc-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild --define '_topdir $(pwd)/packages/rpm' -ba --target=sparc-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec ;
 
 rpm-clean:
 	rm -rf packages/rpm/SOURCES/*
