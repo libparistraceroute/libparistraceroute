@@ -16,7 +16,7 @@ install-bin:
 install-lib:
 	cd libparistraceroute && $(MAKE) $(AM_MAKEFLAGS) install-lib
 
-deb:	deb-prepare deb-i386
+deb:	deb-prepare deb-host
 
 deb-prepare:
 	$(MAKE) dist-bzip2 ; \
@@ -25,7 +25,7 @@ deb-prepare:
 		mkdir packages/deb/$(PACKAGE)-$(VERSION) ; \
 	fi
 
-deb-i386:
+deb-host:
 	cd packages/deb ; \
 	rm -rf $(PACKAGE)-$(VERSION) ; \
 	tar xjf paris-traceroute_1.0.orig.tar.bz2 ; \
@@ -39,7 +39,7 @@ deb-i386:
 	cp -r ../paris-traceroute-debian debian ; \
 	debuild -us -uc ;
 
-rpm:	rpm-prepare rpm-i386 rpm-x86_64 rpm-sparc rpm-clean
+rpm:	rpm-prepare rpm-host rpm-clean
 
 rpm-prepare:
 	if [ ! -d packages/rpm/RPMS ]; then \
@@ -61,6 +61,9 @@ rpm-prepare:
 	$(MAKE) dist-bzip2 ; \
 	mv $(PACKAGE)-$(VERSION).tar.bz2 packages/rpm/SOURCES/ ;
 
+rpm-host:
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --clean packages/rpm/SPECS/libparistraceroute.spec ;
 rpm-x86_64:
 	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=x86_64-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
 	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=x86_64-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec ;
