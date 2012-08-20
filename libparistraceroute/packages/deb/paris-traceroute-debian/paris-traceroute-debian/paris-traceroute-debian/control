@@ -1,0 +1,12 @@
+Source: paris-traceroute
+Maintainer: Julian Cromarty <julian.cromarty@gmail.com>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 8)
+
+Package: paris-traceroute
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: A new version of the traceroute algorithm that can handle load balancing
+ Paris traceroute is a new version of the well-known network diagnosis and measurement tool. It addresses problems caused by load balancers with the initial implementation of traceroute.

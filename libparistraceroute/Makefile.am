@@ -16,12 +16,28 @@ install-bin:
 install-lib:
 	cd libparistraceroute && $(MAKE) $(AM_MAKEFLAGS) install-lib
 
-deb:
+deb:	deb-prepare deb-i386
+
+deb-prepare:
 	$(MAKE) dist-bzip2 ; \
 	mv $(PACKAGE)-$(VERSION).tar.bz2 packages/deb/$(PACKAGE)_$(VERSION).orig.tar.bz2 ; \
+	if [ ! -d packages/deb/$(PACKAGE)-$(VERSION) ]; then \
+		mkdir packages/deb/$(PACKAGE)-$(VERSION) ; \
+	fi
+
+deb-i386:
 	cd packages/deb ; \
-	#cp debian $(PACKAGE)-$(VERSION)/ ; \
-	fakeroot debuild -us -uc ;
+	rm -rf $(PACKAGE)-$(VERSION) ; \
+	tar xjf paris-traceroute_1.0.orig.tar.bz2 ; \
+	cd $(PACKAGE)-$(VERSION) ; \
+	cp -r ../libparistraceroute-debian debian ; \
+	debuild -us -uc ; \
+	cd .. ; \
+	rm -rf $(PACKAGE)-$(VERSION) ; \
+	tar xjf paris-traceroute_1.0.orig.tar.bz2 ; \
+	cd $(PACKAGE)-$(VERSION) ; \
+	cp -r ../paris-traceroute-debian debian ; \
+	debuild -us -uc ;
 
 rpm:	rpm-prepare rpm-i386 rpm-x86_64 rpm-sparc rpm-clean
 

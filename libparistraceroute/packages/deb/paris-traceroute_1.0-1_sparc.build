@@ -1,0 +1,381 @@
+ dpkg-buildpackage -rfakeroot -D -us -uc
+dpkg-buildpackage: source package paris-traceroute
+dpkg-buildpackage: source version 1.0-1
+dpkg-buildpackage: source changed by Julian Cromarty <julian.cromarty@gmail.com>
+ dpkg-source --before-build paris-traceroute-1.0
+dpkg-buildpackage: host architecture sparc
+dpkg-source: info: patches are not applied, applying them now
+dpkg-source: info: applying debian
+ fakeroot debian/rules clean
+dh clean
+   dh_testdir
+   debian/rules override_dh_auto_clean
+make[1]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+rm -f config.log config.status *.pc libparistraceroute/*.pc
+make[1]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+   dh_clean
+ dpkg-source -b paris-traceroute-1.0
+dpkg-source: info: using source format `3.0 (quilt)'
+dpkg-source: info: building paris-traceroute using existing ./paris-traceroute_1.0.orig.tar.bz2
+dpkg-source: warning: ignoring deletion of file libparistraceroute/libparistraceroute-1.0.pc
+dpkg-source: info: building paris-traceroute in paris-traceroute_1.0-1.debian.tar.gz
+dpkg-source: info: building paris-traceroute in paris-traceroute_1.0-1.dsc
+ debian/rules build
+dh build
+   dh_testdir
+   dh_auto_configure
+configure: WARNING: unrecognized options: --disable-maintainer-mode
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... /bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking for style of include used by make... GNU
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking dependency style of gcc... none
+checking how to run the C preprocessor... gcc -E
+checking for grep that handles long lines and -e... /bin/grep
+checking for egrep... /bin/grep -E
+checking for ANSI C header files... yes
+checking for sys/types.h... yes
+checking for sys/stat.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for memory.h... yes
+checking for strings.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for unistd.h... yes
+checking whether byte ordering is bigendian... yes
+checking for gcc... (cached) gcc
+checking whether we are using the GNU C compiler... (cached) yes
+checking whether gcc accepts -g... (cached) yes
+checking for gcc option to accept ISO C89... (cached) none needed
+checking dependency style of gcc... (cached) none
+checking build system type... sparc-unknown-linux-gnu
+checking host system type... sparc-unknown-linux-gnu
+checking how to print strings... printf
+checking for a sed that does not truncate output... /bin/sed
+checking for fgrep... /bin/grep -F
+checking for ld used by gcc... /usr/bin/ld
+checking if the linker (/usr/bin/ld) is GNU ld... yes
+checking for BSD- or MS-compatible name lister (nm)... /usr/bin/nm -B
+checking the name lister (/usr/bin/nm -B) interface... BSD nm
+checking whether ln -s works... yes
+checking the maximum length of command line arguments... 402653181
+checking whether the shell understands some XSI constructs... yes
+checking whether the shell understands "+="... yes
+checking how to convert sparc-unknown-linux-gnu file names to sparc-unknown-linux-gnu format... func_convert_file_noop
+checking how to convert sparc-unknown-linux-gnu file names to toolchain format... func_convert_file_noop
+checking for /usr/bin/ld option to reload object files... -r
+checking for objdump... objdump
+checking how to recognize dependent libraries... pass_all
+checking for dlltool... no
+checking how to associate runtime and link libraries... printf %s\n
+checking for ar... ar
+checking for archiver @FILE support... @
+checking for strip... strip
+checking for ranlib... ranlib
+checking command to parse /usr/bin/nm -B output from gcc object... ok
+checking for sysroot... no
+checking for mt... mt
+checking if mt is a manifest tool... no
+checking for dlfcn.h... yes
+checking for objdir... .libs
+checking if gcc supports -fno-rtti -fno-exceptions... no
+checking for gcc option to produce PIC... -fPIC -DPIC
+checking if gcc PIC flag -fPIC -DPIC works... yes
+checking if gcc static flag -static works... yes
+checking if gcc supports -c -o file.o... yes
+checking if gcc supports -c -o file.o... (cached) yes
+checking whether the gcc linker (/usr/bin/ld) supports shared libraries... yes
+checking whether -lc should be explicitly linked in... no
+checking dynamic linker characteristics... GNU/Linux ld.so
+checking how to hardcode library paths into programs... immediate
+checking whether stripping libraries is possible... yes
+checking if libtool supports shared libraries... yes
+checking whether to build shared libraries... yes
+checking whether to build static libraries... no
+checking for pcap_open_live in -lpcap... no
+checking for ANSI C header files... (cached) yes
+checking arpa/inet.h usability... yes
+checking arpa/inet.h presence... yes
+checking for arpa/inet.h... yes
+checking netinet/in.h usability... yes
+checking netinet/in.h presence... yes
+checking for netinet/in.h... yes
+checking netinet/ip.h usability... yes
+checking netinet/ip.h presence... yes
+checking for netinet/ip.h... yes
+checking sys/socket.h usability... yes
+checking sys/socket.h presence... yes
+checking for sys/socket.h... yes
+checking winsock2.h usability... no
+checking winsock2.h presence... no
+checking for winsock2.h... no
+checking netlink/netlink.h usability... no
+checking netlink/netlink.h presence... no
+checking for netlink/netlink.h... no
+checking net/rtnetlink.h usability... no
+checking net/rtnetlink.h presence... no
+checking for net/rtnetlink.h... no
+checking for stdlib.h... (cached) yes
+checking for string.h... (cached) yes
+checking for unistd.h... (cached) yes
+checking whether time.h and sys/time.h may both be included... yes
+checking for error_at_line... yes
+checking for stdlib.h... (cached) yes
+checking for GNU libc compatible malloc... yes
+checking for inet_ntoa... yes
+checking for memset... yes
+checking for socket... yes
+checking for strdup... yes
+checking for strerror... yes
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating libparistraceroute/libparistraceroute-1.0.pc
+config.status: creating libparistraceroute/Makefile
+config.status: creating paris-traceroute/Makefile
+config.status: creating traceroute/Makefile
+config.status: creating man/Makefile
+config.status: creating doc/Makefile
+config.status: creating test/Makefile
+config.status: creating libparistraceroute/config.h
+config.status: libparistraceroute/config.h is unchanged
+config.status: executing depfiles commands
+config.status: executing libtool commands
+configure: WARNING: unrecognized options: --disable-maintainer-mode
+   Results
+   ~~~~~~~
+Probe sender:     
+Network sniffer:  
+Route impl.:      
+Protocol:         IPv4
+Transport:        
+Debug code:       yes
+Debug level:      1
+Endianess:        big-endian
+OS:               unix
+CFLAGS:           -g -Wall -fno-strict-aliasing
+LDFLAGS:          
+   dh_auto_build
+make[1]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+Making all in libparistraceroute
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute'
+make  all-am
+make[3]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute'
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o algorithm.lo algorithm.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c algorithm.c  -fPIC -DPIC -o .libs/algorithm.o
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o mda.lo `test -f 'algorithms/mda.c' || echo './'`algorithms/mda.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c algorithms/mda.c  -fPIC -DPIC -o .libs/mda.o
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o data.lo `test -f 'algorithms/mda/data.c' || echo './'`algorithms/mda/data.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c algorithms/mda/data.c  -fPIC -DPIC -o .libs/data.o
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o flow.lo `test -f 'algorithms/mda/flow.c' || echo './'`algorithms/mda/flow.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c algorithms/mda/flow.c  -fPIC -DPIC -o .libs/flow.o
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o interface.lo `test -f 'algorithms/mda/interface.c' || echo './'`algorithms/mda/interface.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c algorithms/mda/interface.c  -fPIC -DPIC -o .libs/interface.o
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o traceroute.lo `test -f 'algorithms/traceroute.c' || echo './'`algorithms/traceroute.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c algorithms/traceroute.c  -fPIC -DPIC -o .libs/traceroute.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o bitfield.lo bitfield.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c bitfield.c  -fPIC -DPIC -o .libs/bitfield.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o buffer.lo buffer.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c buffer.c  -fPIC -DPIC -o .libs/buffer.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o common.lo common.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c common.c  -fPIC -DPIC -o .libs/common.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o dynarray.lo dynarray.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c dynarray.c  -fPIC -DPIC -o .libs/dynarray.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o event.lo event.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c event.c  -fPIC -DPIC -o .libs/event.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o field.lo field.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c field.c  -fPIC -DPIC -o .libs/field.o
+field.c: In function 'field_dump':
+field.c:197:13: warning: format '%lu' expects argument of type 'long unsigned int', but argument 2 has type 'uint64_t' [-Wformat]
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o lattice.lo lattice.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c lattice.c  -fPIC -DPIC -o .libs/lattice.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o layer.lo layer.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c layer.c  -fPIC -DPIC -o .libs/layer.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o list.lo list.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c list.c  -fPIC -DPIC -o .libs/list.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o metafield.lo metafield.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c metafield.c  -fPIC -DPIC -o .libs/metafield.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o network.lo network.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c network.c  -fPIC -DPIC -o .libs/network.o
+network.c: In function 'network_tag_probe':
+network.c:194:5: warning: implicit declaration of function 'htons' [-Wimplicit-function-declaration]
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o optparse.lo optparse.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c optparse.c  -fPIC -DPIC -o .libs/optparse.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o packet.lo packet.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c packet.c  -fPIC -DPIC -o .libs/packet.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o probe.lo probe.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c probe.c  -fPIC -DPIC -o .libs/probe.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o protocol.lo protocol.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c protocol.c  -fPIC -DPIC -o .libs/protocol.o
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o icmp.lo `test -f 'protocols/icmp.c' || echo './'`protocols/icmp.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c protocols/icmp.c  -fPIC -DPIC -o .libs/icmp.o
+protocols/icmp.c:114:5: warning: initialization from incompatible pointer type [enabled by default]
+protocols/icmp.c:114:5: warning: (near initialization for 'icmp.write_checksum') [enabled by default]
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o udp.lo `test -f 'protocols/udp.c' || echo './'`protocols/udp.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c protocols/udp.c  -fPIC -DPIC -o .libs/udp.o
+/bin/bash ../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o ipv4.lo `test -f 'protocols/ipv4.c' || echo './'`protocols/ipv4.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c protocols/ipv4.c  -fPIC -DPIC -o .libs/ipv4.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o protocol_field.lo protocol_field.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c protocol_field.c  -fPIC -DPIC -o .libs/protocol_field.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o pt_loop.lo pt_loop.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c pt_loop.c  -fPIC -DPIC -o .libs/pt_loop.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o queue.lo queue.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c queue.c  -fPIC -DPIC -o .libs/queue.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o sniffer.lo sniffer.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c sniffer.c  -fPIC -DPIC -o .libs/sniffer.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o socketpool.lo socketpool.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c socketpool.c  -fPIC -DPIC -o .libs/socketpool.o
+/bin/bash ../libtool --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.     -g -Wall -fno-strict-aliasing -c -o stackedlist.lo stackedlist.c
+libtool: compile:  gcc -DHAVE_CONFIG_H -I. -g -Wall -fno-strict-aliasing -c stackedlist.c  -fPIC -DPIC -o .libs/stackedlist.o
+/bin/bash ../libtool --tag=CC   --mode=link gcc  -g -Wall -fno-strict-aliasing -version-info 1:0:0  -o libparistraceroute-1.0.la -rpath /usr/lib algorithm.lo mda.lo data.lo flow.lo interface.lo traceroute.lo bitfield.lo buffer.lo common.lo dynarray.lo event.lo field.lo lattice.lo layer.lo list.lo metafield.lo network.lo optparse.lo packet.lo probe.lo protocol.lo icmp.lo udp.lo ipv4.lo protocol_field.lo pt_loop.lo queue.lo sniffer.lo socketpool.lo stackedlist.lo  
+libtool: link: gcc -shared  -fPIC -DPIC  .libs/algorithm.o .libs/mda.o .libs/data.o .libs/flow.o .libs/interface.o .libs/traceroute.o .libs/bitfield.o .libs/buffer.o .libs/common.o .libs/dynarray.o .libs/event.o .libs/field.o .libs/lattice.o .libs/layer.o .libs/list.o .libs/metafield.o .libs/network.o .libs/optparse.o .libs/packet.o .libs/probe.o .libs/protocol.o .libs/icmp.o .libs/udp.o .libs/ipv4.o .libs/protocol_field.o .libs/pt_loop.o .libs/queue.o .libs/sniffer.o .libs/socketpool.o .libs/stackedlist.o      -Wl,-soname -Wl,libparistraceroute-1.0.so.1 -o .libs/libparistraceroute-1.0.so.1.0.0
+libtool: link: (cd ".libs" && rm -f "libparistraceroute-1.0.so.1" && ln -s "libparistraceroute-1.0.so.1.0.0" "libparistraceroute-1.0.so.1")
+libtool: link: (cd ".libs" && rm -f "libparistraceroute-1.0.so" && ln -s "libparistraceroute-1.0.so.1.0.0" "libparistraceroute-1.0.so")
+libtool: link: ( cd ".libs" && rm -f "libparistraceroute-1.0.la" && ln -s "../libparistraceroute-1.0.la" "libparistraceroute-1.0.la" )
+make[3]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute'
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute'
+Making all in paris-traceroute
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+gcc -DHAVE_CONFIG_H -I. -I../libparistraceroute    -D_GNU_SOURCE -g -Wall -fno-strict-aliasing -c -o paris_traceroute-paris-traceroute.o `test -f 'paris-traceroute.c' || echo './'`paris-traceroute.c
+/bin/bash ../libtool --tag=CC   --mode=link gcc -D_GNU_SOURCE -g -Wall -fno-strict-aliasing -L../libparistraceroute  -o paris-traceroute paris_traceroute-paris-traceroute.o -lparistraceroute-1.0 
+libtool: link: gcc -D_GNU_SOURCE -g -Wall -fno-strict-aliasing -o .libs/paris-traceroute paris_traceroute-paris-traceroute.o  -L../libparistraceroute /home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute/.libs/libparistraceroute-1.0.so
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+Making all in traceroute
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/traceroute'
+gcc -DHAVE_CONFIG_H -I. -I../libparistraceroute     -g -Wall -fno-strict-aliasing -c traceroute.c
+traceroute.c: In function ‘traceroute_handler’:
+traceroute.c:23:5: warning: enumeration value ‘ALGORITHM_EVENT’ not handled in switch [-Wswitch]
+traceroute.c:23:5: warning: enumeration value ‘ALGORITHM_ERROR’ not handled in switch [-Wswitch]
+/bin/bash ../libtool --tag=CC   --mode=link gcc  -g -Wall -fno-strict-aliasing -L../libparistraceroute  -o traceroute traceroute.o -lparistraceroute-1.0 
+libtool: link: gcc -g -Wall -fno-strict-aliasing -o .libs/traceroute traceroute.o  -L../libparistraceroute /home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute/.libs/libparistraceroute-1.0.so
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/traceroute'
+Making all in man
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+make[2]: Nothing to be done for `all'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+Making all in doc
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/doc'
+make[2]: Nothing to be done for `all'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/doc'
+Making all in test
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/test'
+make[2]: Nothing to be done for `all'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/test'
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+make[2]: Nothing to be done for `all-am'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+make[1]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+   dh_auto_test
+make[1]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+Making check in libparistraceroute
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute'
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute'
+Making check in paris-traceroute
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+make[2]: Nothing to be done for `check'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+Making check in traceroute
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/traceroute'
+make[2]: Nothing to be done for `check'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/traceroute'
+Making check in man
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+make[2]: Nothing to be done for `check'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+Making check in doc
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/doc'
+make[2]: Nothing to be done for `check'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/doc'
+Making check in test
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/test'
+make[2]: Nothing to be done for `check'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/test'
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+make[2]: Nothing to be done for `check-am'.
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+make[1]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+ fakeroot debian/rules binary
+dh binary
+   dh_testroot
+   dh_prep
+   dh_installdirs
+   debian/rules override_dh_auto_install
+make[1]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+/usr/bin/make DESTDIR=$(pwd)/debian/paris-traceroute install-bin
+make[2]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+cd paris-traceroute && /usr/bin/make  install-bin
+make[3]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+make[4]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+ /bin/mkdir -p '/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/debian/paris-traceroute/usr/bin'
+  /bin/bash ../libtool   --mode=install /usr/bin/install -c paris-traceroute '/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/debian/paris-traceroute/usr/bin'
+libtool: install: warning: `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/libparistraceroute/libparistraceroute-1.0.la' has not been installed in `/usr/lib'
+libtool: install: /usr/bin/install -c .libs/paris-traceroute /home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/debian/paris-traceroute/usr/bin/paris-traceroute
+make[4]: Nothing to be done for `install-data-am'.
+make[4]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+make[3]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/paris-traceroute'
+cd man && /usr/bin/make  install
+make[3]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+make[4]: Entering directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+make[4]: Nothing to be done for `install-exec-am'.
+ /bin/mkdir -p '/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/debian/paris-traceroute/usr/share/man/man1'
+ /usr/bin/install -c -m 644 paris-traceroute.1 '/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/debian/paris-traceroute/usr/share/man/man1'
+make[4]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+make[3]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0/man'
+make[2]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+make[1]: Leaving directory `/home/jooles/work/paris-traceroute.libparistraceroute/libparistraceroute/packages/deb/paris-traceroute-1.0'
+   dh_install
+   dh_installdocs
+   dh_installchangelogs
+   dh_installexamples
+   dh_installman
+   dh_installcatalogs
+   dh_installcron
+   dh_installdebconf
+   dh_installemacsen
+   dh_installifupdown
+   dh_installinfo
+   dh_pysupport
+dh_pysupport: This program is deprecated, you should use dh_python2 instead. Migration guide: http://deb.li/dhs2p
+   dh_installinit
+   dh_installmenu
+   dh_installmime
+   dh_installmodules
+   dh_installlogcheck
+   dh_installlogrotate
+   dh_installpam
+   dh_installppp
+   dh_installudev
+   dh_installwm
+   dh_installxfonts
+   dh_installgsettings
+   dh_bugfiles
+   dh_ucf
+   dh_lintian
+   dh_gconf
+   dh_icons
+   dh_perl
+   dh_usrlocal
+   dh_link
+   dh_compress
+   dh_fixperms
+   dh_strip
+   dh_makeshlibs
+   dh_shlibdeps
+dpkg-shlibdeps: error: couldn't find library libparistraceroute-1.0.so.1 needed by debian/paris-traceroute/usr/bin/paris-traceroute (ELF format: 'elf32-sparc'; RPATH: '').
+dpkg-shlibdeps: error: Cannot continue due to the error above.
+Note: libraries are not searched in other binary packages that do not have any shlibs or symbols file.
+To help dpkg-shlibdeps find private libraries, you might need to set LD_LIBRARY_PATH.
+dh_shlibdeps: dpkg-shlibdeps -Tdebian/paris-traceroute.substvars debian/paris-traceroute/usr/bin/paris-traceroute returned exit code 2
+make: *** [binary] Error 2
+dpkg-buildpackage: error: fakeroot debian/rules binary gave error exit status 2

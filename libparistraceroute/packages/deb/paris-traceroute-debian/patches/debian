@@ -1,0 +1,37 @@
+Description: Fix for debuild moaning about a .pc file
+ Debian's package creation tools are whiny and annoying. Doing this shuts
+ them up by adding a patch for the .pc file that is causing a problem.
+ .
+ paris-traceroute (1.0-1) UNRELEASED; urgency=low
+ .
+   * Initial release. (Closes: #XXXXXX)
+Author: Julian Cromarty <julian.cromarty@gmail.com>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: http://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: <YYYY-MM-DD>
+
+--- /dev/null
++++ paris-traceroute-1.0/libparistraceroute/libparistraceroute-1.0.pc
+@@ -0,0 +1,12 @@
++prefix=/usr
++exec_prefix=${prefix}
++libdir=${exec_prefix}/lib
++includedir=${prefix}/include
++
++Name: paris-traceroute
++Description: libparistraceroute
++Version: 1.0
++URL: 
++Libs: -L${libdir} -lparistraceroute-1:0:0
++Cflags: -I${includedir}/paristraceroute-1:0:0 -I${libdir}/paristraceroute-1:0:0/include
++

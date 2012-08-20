@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	rm -f config.log config.status *.pc libparistraceroute/*.pc
+
+override_dh_auto_install:
+        $(MAKE) DESTDIR=$$(pwd)/debian/paris-traceroute install-lib

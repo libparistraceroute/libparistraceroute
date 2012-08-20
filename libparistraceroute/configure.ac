@@ -5,7 +5,7 @@
 #
 
 # Initial information about the project
-AC_INIT([paris-traceroute], [0.1], [paris-traceroute@googlegroups.com])
+AC_INIT([paris-traceroute], [1.0], [paris-traceroute@googlegroups.com])
 
 # Define these substitions here to keep all version information in one place.
 # For information on how to properly maintain the library version information,

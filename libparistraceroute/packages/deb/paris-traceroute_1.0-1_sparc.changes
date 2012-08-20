@@ -1,0 +1,31 @@
+Format: 1.8
+Date: Thu, 09 Aug 2012 23:56:55 +0100
+Source: paris-traceroute
+Binary: libparistraceroute
+Architecture: source sparc
+Version: 1.0-1
+Distribution: UNRELEASED
+Urgency: low
+Maintainer: Julian Cromarty <julian.cromarty@gmail.com>
+Changed-By: Julian Cromarty <julian.cromarty@gmail.com>
+Description: 
+ libparistraceroute - A library dedicated to designing network measurement tools using
+Changes: 
+ paris-traceroute (1.0-1) UNRELEASED; urgency=low
+ .
+   * Initial release. (Closes: #XXXXXX)
+Checksums-Sha1: 
+ 5b6223a398072ccfdb3f72ed4258b5f53c95cf0a 845 paris-traceroute_1.0-1.dsc
+ 5d9795132b0564712cb2960d39857146b73c8ddb 314321 paris-traceroute_1.0.orig.tar.bz2
+ 2f0b4612583fd49de9704e9c7ba5e680008b2149 818 paris-traceroute_1.0-1.debian.tar.gz
+ d88b474f7e39c5aebcb7c914cde5a5a26df059b8 1172 libparistraceroute_1.0-1_sparc.deb
+Checksums-Sha256: 
+ 236c2f580f3d04206e404fed7a093bba69b484770e18da9532ded257bf07ebf1 845 paris-traceroute_1.0-1.dsc
+ b2e3f9067f05e0e568bd78acde22d8eaf708da6c029e09df0938e2566e5747f7 314321 paris-traceroute_1.0.orig.tar.bz2
+ 3f25d7bfb787fd29ea09d027865c4f01e3ad618525df16b2670cab8dff40c7c4 818 paris-traceroute_1.0-1.debian.tar.gz
+ 424f3b718f11b31f8de2eceec31d89b8c8b6351339696e05b5187fbb7069c153 1172 libparistraceroute_1.0-1_sparc.deb
+Files: 
+ 9d8158c625a4157caa78cfc525cf9dde 845 misc optional paris-traceroute_1.0-1.dsc
+ 18b595e7d277c1418f7591911c8bde2c 314321 misc optional paris-traceroute_1.0.orig.tar.bz2
+ d6b053f36b289027bb32c73621c9ea6e 818 misc optional paris-traceroute_1.0-1.debian.tar.gz
+ 8daf714c2694efe027868a08e670ffc9 1172 misc optional libparistraceroute_1.0-1_sparc.deb

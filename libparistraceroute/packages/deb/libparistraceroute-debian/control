@@ -1,0 +1,12 @@
+Source: paris-traceroute
+Maintainer: Julian Cromarty <julian.cromarty@gmail.com>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 8)
+
+Package: libparistraceroute
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: A library dedicated to designing network measurement tools using crafted probes
+ libparistraceroute is a library designed to simplify the process of creating advanced network measurement tools such as ping or traceroute through the use of custom probe packets

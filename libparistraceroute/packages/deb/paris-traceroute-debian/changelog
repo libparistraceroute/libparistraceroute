@@ -1,0 +1,5 @@
+paris-traceroute (1.0-1) UNRELEASED; urgency=low
+
+  * Initial release. (Closes: #XXXXXX)
+
+ -- Julian Cromarty <julian.cromarty@gmail.com>  Thu, 09 Aug 2012 23:56:55 +0100
