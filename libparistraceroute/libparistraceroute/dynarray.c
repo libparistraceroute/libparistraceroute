@@ -111,8 +111,10 @@ void **dynarray_get_elements(dynarray_t *dynarray)
 
 void *dynarray_get_ith_element(dynarray_t *dynarray, unsigned int i)
 {
-    if (i >= dynarray->size)
+    if (i >= dynarray->size){
         return NULL; // out of range
+    }
+
     return dynarray->elements[i];
 }
 

@@ -9,6 +9,12 @@
 #include <stddef.h> // size_t
 #include <stdint.h>
 
+
+typedef union{
+	uint32_t	d32[4];
+	uint64_t	d64[2];
+} uint128_t;
+
 /**
  * \enum fieldtype_t
  * \brief Enumeration of the possible data types for a header field
@@ -24,6 +30,8 @@ typedef enum {
     TYPE_INT32,
 	/** 64 bit integer */
     TYPE_INT64,
+	/** 128 bit */
+    TYPE_INT128,
     /** max integer */
     TYPE_INTMAX,
 	/** String */
@@ -41,8 +49,10 @@ typedef union {
     uint16_t        int16;
 	/** Value of data as a 32 bit integer */
     uint32_t        int32;
-	/** Value of data as a 64 bit integer */
+    /** Value of data as a 64 bit integer */
     uint64_t        int64;
+    /** Value of data of a 128 Bit bitfield as 4x uint32_t, 2x uint64_t */
+    uint128_t		int128;
     /** Value of data as a max integer */
     uintmax_t       intmax;
 	/** Pointer to string data */
@@ -89,6 +99,9 @@ field_t * field_create_int16 (const char * key, uint16_t value);
 field_t * field_create_int32 (const char * key, uint32_t value);
 
 field_t * field_create_int64 (const char * key, uint64_t value);
+
+field_t * field_create_int128(const char * key, uint128_t value);
+
 
 field_t * field_create_intmax (const char * key, uintmax_t value);
 
@@ -148,6 +161,7 @@ void      field_free(field_t *field);
 #define I32(x, y) field_create_int32(x, y)
 
 #define I64(x, y) field_create_int64(x, y)
+#define I128(x, y) field_create_int128(x, y)
 #define IMAX(x, y) field_create_intmax(x, y)
 
 /**

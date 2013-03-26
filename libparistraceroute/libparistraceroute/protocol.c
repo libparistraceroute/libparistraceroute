@@ -4,6 +4,7 @@
 #include "probe.h"
 #include "protocol_field.h"
 #include "field.h"
+#include "buffer.h"
 
 /* static ? */
 void *protocols_root;
@@ -18,6 +19,21 @@ int protocol_compare_id(const void *protocol1, const void *protocol2)
 {
     return ((const protocol_t*)protocol1)->protocol - ((const protocol_t*)protocol2)->protocol;
 }
+
+protocol_t* protocol_search_by_buffer(buffer_t *buffer)
+{
+    protocol_t *protocol;
+   
+    data = buffer_get_data(buffer) 
+    
+    for (protocol in [ipv4,ipv6] ){
+      if protocol.instance_of(data){
+             return protocol;
+       }
+     return NULL;
+     }
+}
+     
 
 protocol_t* protocol_search(char *name)
 {

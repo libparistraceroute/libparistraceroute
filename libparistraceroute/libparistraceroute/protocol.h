@@ -65,6 +65,11 @@ typedef struct {
      * before the packet checksum is computed, and the packet is sent
      */
     int (*finalize)(unsigned char *buffer);
+
+    /**
+     * Pointer to a function that detects the version of the protocol
+     */
+    bool (*instance_of)(unsigned char *buffer);
 } protocol_t;
 
 /**
@@ -72,6 +77,8 @@ typedef struct {
  * \param name String containing the name to search for
  * \return Pointer to a protocol_t structure containing the desired protocol or NULL if not found
  */
+protocol_t* protocol_search_by_buffer(buffer_t *buffer);
+
 protocol_t* protocol_search(char *name);
 
 protocol_t* protocol_search_by_id(uint8_t id);

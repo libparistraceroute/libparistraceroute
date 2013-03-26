@@ -269,6 +269,20 @@ bool ipv4_write_checksum (unsigned char *buf, buffer_t * psh){
     return true;
 }
 
+bool ipv4_instance_of(unsigned char buffer)
+{
+   TYPE_INT4 version;
+   
+   version=;
+
+   if ( version == 4 ){
+      return true
+   else
+      return false;
+   }
+}
+
+
 static protocol_t ipv4 = {
     .name                 = "ipv4",
     .protocol             = 4, // XXX only IP over IP (encapsulation) 
@@ -282,6 +296,7 @@ static protocol_t ipv4 = {
     .get_header_size      = ipv4_get_header_size,
     .need_ext_checksum    = false,
     .finalize             = ipv4_finalize,
+    .instance_of          = ipv4_instance_of,
 };
 
 PROTOCOL_REGISTER(ipv4);

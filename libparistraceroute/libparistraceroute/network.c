@@ -122,15 +122,20 @@ packet_t *packet_create_from_probe(probe_t *probe)
     field_t *field;
     
     // XXX assert ipv4/udp/no payload (encode tag into checksum) 
-    
+
     field = probe_get_field(probe, "dst_ip");
     if (!field)
         return NULL; // missing dst ip
+
+
     dip = field->value.string;
 
     field = probe_get_field(probe, "dst_port");
-    if (!field)
+
+    if (!field){
         return NULL; // missing dst port
+    }
+
     dport = field->value.int16;
 
     packet = packet_create();
@@ -152,6 +157,7 @@ int network_tag_probe(network_t * network, probe_t * probe)
 {
     uint16_t tag, checksum;
     buffer_t * buffer;
+
 
     /* The probe gets assigned a unique tag. Currently we encode it in the UDP
      * checksum, but I guess the tag will be protocol dependent. Also, since the
@@ -186,7 +192,6 @@ int network_tag_probe(network_t * network, probe_t * probe)
     //probe_dump(probe);
     probe_update_fields(probe);
 
-    //printf("After update fields:\n");
     //probe_dump(probe);
 
     /* 3) Swap checksum and payload : give explanations here ! */
@@ -194,14 +199,12 @@ int network_tag_probe(network_t * network, probe_t * probe)
     checksum = htons(probe_get_field_ext(probe, "checksum", 1)->value.int16); // UDP checksum
     probe_set_field_ext(probe, I16("checksum", htons(tag)), 1);
 
-    //printf("After setting tag as checksum:\n");
     //probe_dump(probe);
 
     buffer_set_data(buffer, (unsigned char*)&checksum, sizeof(uint16_t));
     // We write the checksum at offset zero of the payload
     probe_write_payload(probe, buffer, 0);
 
-    //printf("After setting checksum as payload:\n");
     //probe_dump(probe);
 
     /* NOTE: we must define a metafield tag, which can be parametrized, and
@@ -223,14 +226,16 @@ int network_process_sendq(network_t *network)
     //probe_update_fields(probe);
     
     res = network_tag_probe(network, probe);
+
     if (res < 0)
         goto error;
     
 
     /* Make a packet from the probe structure */
     packet = packet_create_from_probe(probe);
-    if (!packet)
-        return -1;
+    if (!packet){
+    	return -1;
+    }
 
     /* Send the packet */
     res = socketpool_send_packet(network->socketpool, packet);
@@ -259,6 +264,7 @@ int network_process_sendq(network_t *network)
 
     return 0;
 error:
+printf("error\n");
     return -1;
 }
 
@@ -309,27 +315,37 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
     size_t size;
     unsigned int i;
 
-    //probe_dump(reply);
+   // probe_dump(reply);
+
+
 
     reply_checksum_field = probe_get_field_ext(reply, "checksum", 3);
+
+
     if (!reply_checksum_field)
         /* we only match with ICMP */
         return NULL;
     
     size = dynarray_get_size(network->probes);
+
     for(i = 0; i < size; i++) {
         field_t *probe_checksum_field;
 
         probe = dynarray_get_ith_element(network->probes, i);
 
+
+
         /* Reply / probe comparison = let's start simple by only comparing the
          * checksum
          */
         probe_checksum_field = probe_get_field_ext(probe, "checksum", 1);
-        if (field_compare(probe_checksum_field, reply_checksum_field) == 0)
-            break;
 
+
+        if (field_compare(probe_checksum_field, reply_checksum_field) == 0){
+            break;
+        }
     }
+
 
     /* No match found if we reached the end of the array */
     if (i == size) {
@@ -338,6 +354,7 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
         return NULL;
     }
 
+
     /* We delete the corresponding probe
      * Should be kept, for archive purposes, and to match for duplicates...
      * but we cannot reenable it until we set the probe tag into the
@@ -345,9 +362,12 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
      * same checksum */
     dynarray_del_ith_element(network->probes, i);
 
+
     if (i == 0) {
         network_schedule_next_probe_timeout(network);
     }
+
+
 
     return probe;
 }
@@ -363,14 +383,20 @@ int network_process_recvq(network_t *network)
     probe_t *probe, *reply;
     packet_t *packet;
     probe_reply_t *pr;
-    
-    packet = queue_pop_element(network->recvq);
-    reply = probe_create();
-    probe_set_buffer(reply, packet->buffer);
 
+
+    packet = queue_pop_element(network->recvq);
+
+    reply = probe_create();
+
+
+    probe_set_buffer(reply, packet->buffer);
     //probe_dump(probe);
-    
+
+
+
     probe = network_match_probe(network, reply);
+
     if (!probe) {
         printf("Probe discarded\n");
         return -1; // Discard the probe
@@ -382,7 +408,11 @@ int network_process_recvq(network_t *network)
         printf("Error creating probe_reply\n");
         return -1; // Could not create probe_reply
     }
+
+
     probe_reply_set_probe(pr, probe);
+
+
     probe_reply_set_reply(pr, reply);
 
     pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, pr, NULL));

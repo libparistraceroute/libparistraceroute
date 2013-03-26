@@ -9,6 +9,7 @@
 #include "common.h"
 #include "metafield.h"
 #include "bitfield.h"
+#define IPV4FLOW 2400
 
 // TODO update bitfield
 
@@ -97,7 +98,7 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     size_t          offset;
     unsigned char * data;
     protocol_t    * protocol;
-    uint8_t         protocol_id, ipv4_protocol_id;
+    uint8_t         protocol_id;
 
     probe->buffer = buffer;
 
@@ -109,11 +110,11 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     /* Remove the former layer structure */
     dynarray_clear(probe->layers, (void(*)(void*))layer_free);
 
-    /* FIXME Let's suppose we have an IPv4 protocol */
-    protocol = protocol_search("ipv4");
-    ipv4_protocol_id = protocol->protocol;
+    
+    protocol = protocol_search_by_buffer(buffer);
+    
 
-    protocol_id = ipv4_protocol_id;
+    protocol_id =protocol->protocol; 
 
     offset = 0;
 

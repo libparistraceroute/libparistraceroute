@@ -90,8 +90,10 @@ int layer_set_field(layer_t *layer, field_t *field)
         return -1; // payload
 
     pfield = protocol_get_field(layer->protocol, field->key);
-    if (!pfield)
-        return -1; // field not found
+    if (!pfield){
+		return -1; // field not found
+    }
+
 
     /* Check we have enough room in the probe buffer */
     pfield_size = field_get_type_size(pfield->type);
@@ -99,6 +101,7 @@ int layer_set_field(layer_t *layer, field_t *field)
         /* NOTE the allocation of the buffer might be tricky for headers with
          * variable len (such as IPv4 with options, etc.).
          */
+    	printf("The allocated buffer is not sufficient\n");
         return -2; // the allocated buffer is not sufficient
     }
 
@@ -108,7 +111,7 @@ int layer_set_field(layer_t *layer, field_t *field)
      * directly
      */
     if (pfield->set)
-        pfield->set(layer->buffer, field);
+    	pfield->set(layer->buffer, field);
     else
         protocol_field_set(pfield, layer->buffer, field);
 
