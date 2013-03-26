@@ -317,7 +317,7 @@ unsigned int ipv6_get_num_fields(void)
     return sizeof(ipv6_fields) / sizeof(protocol_field_t);
 }
 
-bool ipv6_instance_of(unsigned char buffer)
+/*bool ipv6_instance_of(unsigned char buffer)
 {
    TYPE_INT4 version;
    
@@ -328,7 +328,7 @@ bool ipv6_instance_of(unsigned char buffer)
    else
       return false;
    }
-}
+}*/
 
 static protocol_t ipv6 = {
 	.name				= "ipv6",
@@ -343,7 +343,7 @@ static protocol_t ipv6 = {
 	.get_header_size		= ipv6_get_header_size, // Redundant? XXX12
 	.need_ext_checksum		= false,
 	.finalize			= ipv6_finalize,
-        .instance_of                    = ipv6_instance_of,
+//        .instance_of                    = ipv6_instance_of,
 };
 
 PROTOCOL_REGISTER(ipv6);

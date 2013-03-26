@@ -23,15 +23,16 @@ int protocol_compare_id(const void *protocol1, const void *protocol2)
 protocol_t* protocol_search_by_buffer(buffer_t *buffer)
 {
     protocol_t *protocol;
+    unsigned char data;
    
-    data = buffer_get_data(buffer) 
+    data = buffer_get_data(buffer); 
     
-    for (protocol in [ipv4,ipv6] ){
-      if protocol.instance_of(data){
-             return protocol;
-       }
-     return NULL;
-     }
+ //   for (protocol in [ipv4,ipv6] ){
+ //     if protocol.instance_of(data){
+  //           return protocol;
+   //    }
+  //   return NULL;
+    // }
 }
      
 

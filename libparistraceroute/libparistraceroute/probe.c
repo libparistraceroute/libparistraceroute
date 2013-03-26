@@ -98,8 +98,7 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     size_t          offset;
     unsigned char * data;
     protocol_t    * protocol;
-    uint8_t         protocol_id;
-
+    uint8_t         protocol_id,ipv4_protocol_id;
     probe->buffer = buffer;
 
     // buffer_dump(probe->buffer);
