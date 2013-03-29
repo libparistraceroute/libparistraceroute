@@ -92,6 +92,17 @@ inline buffer_t * probe_get_buffer(probe_t * probe) {
     return probe ? probe->buffer : NULL;
 }
 
+/**
+ * \brief Guess the IP version of a packet stored in a buffer
+ *   according to the 4 first bits.
+ * \param buffer The buffer storing an (IP) packet
+ * \return 4 for IPv4, 6 for IPv6, another value if the
+ *   buffer is not well-formed.
+ */
+unsigned char buffer_guess_ip_version(buffer_t * buffer) {
+    return buffer->data[0] >> 4;
+}
+
 int probe_set_buffer(probe_t *probe, buffer_t *buffer)
 {
     int             size; // to prevent underflow
@@ -109,11 +120,17 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     /* Remove the former layer structure */
     dynarray_clear(probe->layers, (void(*)(void*))layer_free);
 
+    unsigned char ip_version = buffer_guess_ip_version(buffer);
     
-    protocol = protocol_search_by_buffer(buffer);
-    
-
-    protocol_id =protocol->protocol; 
+////////////////////////:
+    protocol = ip_version == 6 ? protocol_search("ipv6") :
+               ip_version == 4 ? protocol_search("ipv4") :
+               NULL;
+    if (!protocol) {
+        perror("E: probe_set_buffer: cannot guess IP version");
+    }
+    protocol_id = protocol-> protocol;
+///////////////
 
     offset = 0;
 
