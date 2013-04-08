@@ -37,6 +37,7 @@ buffer_t * buffer_dup(buffer_t * buffer)
 
     return buf;
 
+
 error_buffer:
     free(buffer);
 error:
@@ -91,6 +92,10 @@ inline void buffer_set_size(buffer_t *buffer, size_t size) {
     buffer->size = size;
 }
 
+unsigned char buffer_guess_ip_version(buffer_t * buffer) {
+    return buffer->data[0] >> 4;
+}
+
 // Dump
 
 void buffer_dump(const buffer_t * buffer)
@@ -108,4 +113,8 @@ void buffer_dump(const buffer_t * buffer)
             printf("%2x ", c);
     }
 }
+
+
+
+
 

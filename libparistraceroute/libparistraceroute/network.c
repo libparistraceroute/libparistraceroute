@@ -339,9 +339,8 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
          * checksum
          */
         probe_checksum_field = probe_get_field_ext(probe, "checksum", 1);
-
-
-        if (field_compare(probe_checksum_field, reply_checksum_field) == 0){
+                   
+        if (field_compare(probe_checksum_field, reply_checksum_field)) {
             break;
         }
     }

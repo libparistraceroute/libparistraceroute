@@ -2,7 +2,7 @@
 #include <stdio.h> // XXX
 #include <stdarg.h>
 #include <string.h>
-
+#include "buffer.h"
 #include "probe.h"
 #include "protocol.h"
 #include "pt_loop.h"
@@ -92,16 +92,6 @@ inline buffer_t * probe_get_buffer(probe_t * probe) {
     return probe ? probe->buffer : NULL;
 }
 
-/**
- * \brief Guess the IP version of a packet stored in a buffer
- *   according to the 4 first bits.
- * \param buffer The buffer storing an (IP) packet
- * \return 4 for IPv4, 6 for IPv6, another value if the
- *   buffer is not well-formed.
- */
-unsigned char buffer_guess_ip_version(buffer_t * buffer) {
-    return buffer->data[0] >> 4;
-}
 
 int probe_set_buffer(probe_t *probe, buffer_t *buffer)
 {
@@ -120,8 +110,8 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     /* Remove the former layer structure */
     dynarray_clear(probe->layers, (void(*)(void*))layer_free);
 
-    unsigned char ip_version = buffer_guess_ip_version(buffer);
-    
+  unsigned char ip_version = buffer_guess_ip_version(buffer);
+             
 ////////////////////////:
     protocol = ip_version == 6 ? protocol_search("ipv6") :
                ip_version == 4 ? protocol_search("ipv4") :
@@ -168,22 +158,29 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
         if (field) {
             protocol_id = field->value.int8;
             continue;
-        } else if (strcmp(layer->protocol->name, "icmp") != 0) {
+        } else if  (protocol_id != 58) { // MARKERIP
+//	    printf(" we think this is payload\n");
             protocol_id = 0; /* payload */
             break;
-        } else {
+         }     else {
+            		protocol_id = 6; /* ICMP6 + IPv6*/
+            
+	}  if (strcmp(layer->protocol->name, "icmp") != 0) {
+            protocol_id = 0; /* payload */
+            break;
+        	} else {
             /* FIXME: special treatment : Do we have an ICMP header ? */
             field = layer_get_field(layer, "type");
-            if (!field) {
-                return -1; // weird icmp packet !
-            }
-            if ((field->value.int8 == 3) || (field->value.int8 == 11)) { // TTL expired, an IP packet header is repeated !
+           		 if (!field) {
+               			 return -1; // weird icmp packet !
+           		 }
+            		if ((field->value.int8 == 3) || (field->value.int8 == 11)) { // TTL expired, an IP packet header is repeated !
                 // Length will be wrong !!!
                 protocol_id = ipv4_protocol_id;
-            } else {
+            		} else {
                 protocol_id = 0; /* payload */
-            }
-        }
+           		 }
+        	}
     }
     /* payload */
     if (protocol_id == 0) {

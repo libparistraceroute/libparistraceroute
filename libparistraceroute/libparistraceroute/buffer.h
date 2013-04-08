@@ -86,4 +86,15 @@ void buffer_set_size(buffer_t * buffer, size_t size);
 
 void buffer_dump(const buffer_t * buffer);
 
+
+/**
+ * \brief Guess the IP version of a packet stored in a buffer
+ *   according to the 4 first bits.
+ * \param buffer The buffer storing an (IP) packet
+ * \return 4 for IPv4, 6 for IPv6, another value if the
+ *   buffer is not well-formed.
+ */
+unsigned char buffer_guess_ip_version(buffer_t * buffer);
+
+
 #endif
