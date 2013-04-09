@@ -267,6 +267,11 @@ int probe_update_length(probe_t * probe)
     protocol_field_t * pfield;
     layer_t      * layer;
 
+ // XXX IPv6 Hacks
+    // TODO refactor
+   // int proto_ipv6 = protocol_search("ipv6")->protocol;
+   // int proto_ipv6_hdrlen = 40;
+
     size = dynarray_get_size(probe->layers);
 
     /* Allow the protocol to do some processing before checksumming */
@@ -277,13 +282,16 @@ int probe_update_length(probe_t * probe)
             continue;
         pfield = protocol_get_field(layer->protocol, "length");
         if (pfield) {
-            layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));
+        //	if (layer->protocol->protocol == proto_ipv6){
+        //		layer_set_field(layer, I16("length", (uint16_t)((layer->buffer_size) - proto_ipv6_hdrlen)));
+        //	}else {
+        		layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));
+        //	}
         }
     }
 
     return 0;
 }
-
 int probe_update_checksum(probe_t * probe)
 {
     unsigned int   size;

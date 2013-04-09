@@ -5,7 +5,7 @@
 #include "protocol_field.h"
 #include "field.h"
 #include "buffer.h"
-
+#include <stdio.h>
 /* static ? */
 void *protocols_root;
 
@@ -20,20 +20,7 @@ int protocol_compare_id(const void *protocol1, const void *protocol2)
     return ((const protocol_t*)protocol1)->protocol - ((const protocol_t*)protocol2)->protocol;
 }
 
-protocol_t* protocol_search_by_buffer(buffer_t *buffer)
-{
-    protocol_t *protocol;
-    unsigned char data;
-   
-    data = buffer_get_data(buffer); 
-    
- //   for (protocol in [ipv4,ipv6] ){
- //     if protocol.instance_of(data){
-  //           return protocol;
-   //    }
-  //   return NULL;
-    // }
-}
+
      
 
 protocol_t* protocol_search(char *name)
@@ -52,6 +39,10 @@ protocol_t* protocol_search(char *name)
 protocol_t* protocol_search_by_id(uint8_t id)
 {
     protocol_t **protocol, search;
+   // Ugly hack XXX
+    if (id == 58){
+	return protocol_search("icmp6");
+    }
 
     search.protocol = id;
     protocol = tfind((const void*)&search, (void* const*)&protocols_root,

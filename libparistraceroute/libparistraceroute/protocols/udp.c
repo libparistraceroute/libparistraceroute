@@ -5,6 +5,7 @@
 #include <errno.h>       // ERRNO, EINVAL
 #include <stddef.h>      // offsetof()
 #include <netinet/ip.h>
+#include <netinet/ip6.h>
 #include <netinet/udp.h>
 #include <arpa/inet.h>
 
@@ -17,6 +18,7 @@
 #define UDP_FIELD_DST_PORT "dst_port"
 #define UDP_FIELD_LENGTH   "length"
 #define UDP_FIELD_CHECKSUM "checksum"
+
 
 // XXX mandatory fields ?
 // XXX UDP parsing missing
@@ -63,6 +65,7 @@ static struct udphdr udp_default = {
     .CHECKSUM = 0
 };
 
+
 /**
  * \brief Retrieve the number of fields in a UDP header
  * \return The number of fields
@@ -90,6 +93,7 @@ inline void udp_write_default_header(unsigned char *data) {
     memcpy(data, &udp_default, sizeof(struct udphdr));
 }
 
+// TODO Check Checksum calculation for ipv6
 /**
  * \brief Compute and write the checksum related to an UDP header
  * \param buf A pre-allocated UDP header
@@ -135,6 +139,12 @@ bool udp_write_checksum(unsigned char *buf, buffer_t * psh)
 #define HD_UDP_PROT 9
 #define HD_UDP_LEN 10
 
+#define HD_UDP6_DADDR 16
+#define HD_UDP6_LEN 32
+#define HD_UDP6_PAD 36
+#define HD_UDP6_NXH 39
+
+
 buffer_t * udp_create_psh_ipv4(unsigned char* ipv4_buffer)
 //unsigned char** pseudo_header, int* size)
 {
@@ -147,6 +157,7 @@ buffer_t * udp_create_psh_ipv4(unsigned char* ipv4_buffer)
 
     data = buffer_get_data(psh);
 
+
     iph = (struct iphdr*) ipv4_buffer;
     *(( u_int32_t *)  data                ) = (u_int32_t) iph->saddr;
     *(( u_int32_t *) (data + HD_UDP_DADDR)) = (u_int32_t) iph->daddr;
@@ -157,11 +168,65 @@ buffer_t * udp_create_psh_ipv4(unsigned char* ipv4_buffer)
     return psh;
 }
 
+buffer_t * udp_create_psh_ipv6(unsigned char* ipv6_buffer)
+{
+	/* http://tools.ietf.org/html/rfc2460
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                                                               |
+	   +                                                               +
+	   |                                                               |
+	   +                         Source Address                        +
+	   |                                                               |
+	   +                                                               +
+	   |                                                               |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                                                               |
+	   +                                                               +
+	   |                                                               |
+	   +                      Destination Address                      +
+	   |                                                               |
+	   +                                                               +
+	   |                                                               |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                   Upper-Layer Packet Length                   |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                      zero                     |  Next Header  |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   */
+    buffer_t *psh;
+    struct ip6_hdr *iph;
+    unsigned char *data;
+
+    psh = buffer_create();
+    buffer_resize(psh, 40);
+
+    data = buffer_get_data(psh);
+
+
+    iph = (struct ip6_hdr *) ipv6_buffer;
+    *(( u_int32_t *) (data                ))	=  iph->ip6_src.__in6_u.__u6_addr32[0]; // src_ip
+    *(( u_int32_t *) (data  + 4           ))	=  iph->ip6_src.__in6_u.__u6_addr32[1]; // src_ip
+    *(( u_int32_t *) (data  + 8           )) 	=  iph->ip6_src.__in6_u.__u6_addr32[2]; // src_ip
+    *(( u_int32_t *) (data  + 12          ))	=  iph->ip6_src.__in6_u.__u6_addr32[3]; // src_ip
+    *(( u_int32_t *) (data + HD_UDP6_DADDR   ))	=  iph->ip6_dst.__in6_u.__u6_addr32[0]; // dst_ip
+    *(( u_int32_t *) (data + HD_UDP6_DADDR+4 ))	=  iph->ip6_dst.__in6_u.__u6_addr32[1]; // dst_ip
+    *(( u_int32_t *) (data + HD_UDP6_DADDR+8 ))	=  iph->ip6_dst.__in6_u.__u6_addr32[2]; // dst_ip
+    *(( u_int32_t *) (data + HD_UDP6_DADDR+12))	=  iph->ip6_dst.__in6_u.__u6_addr32[3]; // dst_ip
+    *(( u_int16_t *) (data + HD_UDP6_LEN))		=  iph->ip6_ctlun.ip6_un1.ip6_un1_plen; // XXX ext headers need to be substracted
+    *(( u_int32_t  *) (data + HD_UDP6_PAD  )) 	=  0x00000000; // 3 Bytes zero (3 stay zero, one gets overwritten)
+    *(( u_int8_t  *) (data + HD_UDP6_NXH )) 	= 17;  // UDP takes last byte
+
+    return psh;
+
+}
+
 buffer_t * udp_create_psh(unsigned char * buffer)
 {
     // http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
-    return udp_create_psh_ipv4(buffer);
+	// XXX IPv6 hacks -> todo generic.
+    return udp_create_psh_ipv6(buffer);
 }
+
 
 static protocol_t udp = {
     .name                 = "udp",
