@@ -25,10 +25,20 @@
 const char *algorithms[] = {
     "mda", NULL
 };
+static int    is_ipv4 = 0;
+const char *protocols[] = {
+    "UDP", NULL
+};
+
+#define HELP_4 "Use IPv4"
+#define HELP_P "Use raw packet of protocol prot for tracerouting UDP :one of :'UDP' [default]"
+
 struct opt_spec options[] = {
-    {opt_help, "h", "--help", OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
-    {opt_store_choice, "a", "--algorithm", "ALGORITHM", "traceroute algorithm: one of "
-     "'mda' [default]", algorithms},
+    // action          sf  lf                    metavar         help         data
+    {opt_help,         "h", "--help"   ,         OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
+    {opt_version,      "V", "--version",         OPT_NO_METAVAR, OPT_NO_HELP, "version 1.0"},
+    {opt_store_0,      "4", OPT_NO_LF  ,         OPT_NO_METAVAR, HELP_4,      &is_ipv4   },
+    {opt_store_choice, "P", "--protocol",        "protocol",     HELP_P,      protocols },
     {OPT_NO_ACTION}
 };
 
@@ -42,12 +52,16 @@ typedef struct {
 } paris_traceroute_data_t;
 
 /******************************************************************************
- * Helper functions
+ * Static variables 
  ******************************************************************************/
 
-static int af = 0; // ?
-static char *dst_name = NULL;
+static int    af = 0; // ?
+static char * dst_name = NULL;
 
+
+/******************************************************************************
+ * Helper functions
+ ******************************************************************************/
 
 // CPPFLAGS += -D_GNU_SOURCE
 
@@ -143,10 +157,11 @@ void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void * user_dat
 int main(int argc, char ** argv)
 {
     paris_traceroute_data_t * data;
-    algorithm_instance_t * instance;
-    probe_t              * probe_skel;
-    pt_loop_t            * loop;
+    algorithm_instance_t    * instance;
+    probe_t                 * probe_skel;
+    pt_loop_t               * loop;
     int ret;
+    char *prot = "UDP";
 
     static sockaddr_any dst_addr = {{ 0, }, };
     
@@ -160,7 +175,8 @@ int main(int argc, char ** argv)
     if (!data) goto error;
     data->dst_ip = addr2str(&dst_addr);
     data->algorithm = algorithms[0];
-
+    prot = protocols[0];
+    
     printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
 
     
@@ -178,7 +194,12 @@ int main(int argc, char ** argv)
         goto ERR_PROBE_SKEL;
     }
 
-    probe_set_protocols(probe_skel, "ipv4", "udp", NULL);
+    probe_set_protocols(
+        probe_skel,
+        is_ipv4 ? "ipv4" : "ipv6",
+        prot,
+        NULL
+    );
     probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
     probe_set_fields(probe_skel, STR("dst_ip", data->dst_ip), I16("dst_port", 30000), NULL);
 
