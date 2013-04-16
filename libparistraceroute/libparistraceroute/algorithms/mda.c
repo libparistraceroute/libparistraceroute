@@ -13,6 +13,8 @@
 #include "optparse.h"
 #include "../algorithm.h"
 
+// DEBUG
+#include "../probe.h"
 
 /* MDA options */
 struct opt_spec mda_options[] = {
@@ -24,6 +26,19 @@ struct opt_spec mda_options[] = {
     // max missing
     {OPT_NO_ACTION}
 };
+
+inline mda_options_t mda_get_default_options() {
+    traceroute_options_t traceroute_default_options;
+
+    mda_options_t mda_options = {
+         .traceroute_options = traceroute_get_default_options(),
+         .bound              = 95,
+         .max_branch         = 5
+    };
+
+    return mda_options;
+};
+
 
 /*******************************************************************************
  * PRECOMPUTED NUMBER OF PROBES
@@ -289,6 +304,10 @@ int mda_handler_init(pt_loop_t *loop, event_t *event, void **pdata, probe_t *ske
     if (!*pdata) return -1;
     data = *pdata;
 
+    printf("mda_handler_init %s\n", probe_get_field(skel, "dst_ip")->value.string);
+    probe_dump(skel);
+    printf("W: mda.c: set dport to 53"); // TOFIX
+    probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
     data->dst_ip = probe_get_field(skel, "dst_ip")->value.string;
     data->loop = loop;
     data->skel = skel;

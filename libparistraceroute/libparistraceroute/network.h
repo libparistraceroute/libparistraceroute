@@ -49,6 +49,18 @@ typedef struct network_s {
 } network_t;
 
 /**
+ *
+ */
+
+void network_set_timeout(unsigned new_timeout);
+
+/**
+ *
+ */
+
+unsigned network_get_timeout();
+
+/**
  * \brief Create a new network structure
  * \return A newly created network_t structure
  */

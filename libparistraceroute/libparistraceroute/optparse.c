@@ -290,6 +290,7 @@ int opt_store_char(char *arg, void *data)
     return 0;
 }
 
+
 int opt_store_int(char *arg, void *data)
 {
     char *end;
@@ -373,6 +374,67 @@ int opt_store_str(char *arg, void *data) {
     return 0;
 }
 
+int opt_store_int_2(char *arg, void *data){
+    char     * tab[3];
+    char     * end;
+    int        i = 0;
+    unsigned * p = data;
+    unsigned   val1, val2;
+
+    assert(arg && data);
+    tab[i] = strtok(arg, ",");
+    if (!tab[i]) {
+         opt_err("this option requires two values seperated by ','");
+    }
+
+    while (tab[i] != NULL) {
+        i++;
+        tab[i] = strtok(NULL,",");
+        if (i == 3 ) {
+         opt_err("this option requires two values seperated by ','");            
+        }
+        if (i < 2 && !tab[i]) {
+         opt_err("this option requires two values seperated by ','");                     
+        }
+    }
+
+    ////
+    if (i != 2) {
+        opt_err("this option requires two values seperated by ','");
+    }
+    /////
+
+    val1 = strtol(tab[0], &end, 10);
+    errno = 0;
+    if (end == tab[0] || end[0])
+        opt_err("the first value of %s must be an integer");
+    if (errno == ERANGE || val1 < p[1] || val1 > p[2]) {
+        opt_err_pfx();
+        fprintf(stderr, "the first value of %s must be in the range %d to %d",
+                opt_name(), p[1], p[2]);
+        opt_err_sfx();
+    }
+    p[0] = val1;
+    
+     val2 = strtol(tab[1], &end, 10);
+    errno = 0;
+      if (end == tab[0] || end[0])
+        opt_err("the second value of %s must be an integer");
+    if (errno == ERANGE || val2 < p[4] || val2 > p[5]) {
+        opt_err_pfx();
+        fprintf(stderr, "the second value of %s must be in the range %d to %d",
+                opt_name(), p[4], p[5]);
+        opt_err_sfx();
+    }
+    p[3] = val2;
+    p[6] = 1;
+    return 0;
+ }
+
+    
+        
+
+    
 static void badchoice(const char **choices, const char *arg)
 {
     int i;

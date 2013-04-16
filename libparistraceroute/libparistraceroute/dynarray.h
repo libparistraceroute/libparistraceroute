@@ -1,8 +1,6 @@
 #ifndef DYNARRAY_H
 #define DYNARRAY_H
 
-#include "unistd.h"
-
 /**
  * \file dynarray.h
  * \brief Header file: dynamic array structure
@@ -17,19 +15,25 @@
  * \struct dynarray_t
  * \brief Structure representing a dynamic array.
  */
+
 typedef struct {
-    void **elements;        /*!< Pointer to the array of elements */
-    unsigned int size;      /*!< Current size of the array */
-    unsigned int max_size;  /*!< Current maximum size of the array */
+    void         ** elements;  /**< Pointer to the array of elements */
+    unsigned int    size;      /**< Current size of the array */
+    unsigned int    max_size;  /**< Current maximum size of the array */
 } dynarray_t;
 
 /**
  * \brief Create a dynamic array structure.
  * \return A dynarray_t structure representing an empty dynamic array
  */
-dynarray_t* dynarray_create(void);
 
-dynarray_t* dynarray_dup (dynarray_t* dynarray, void * (*element_dup)(void*));
+dynarray_t * dynarray_create();
+
+/**
+ *
+ */
+
+dynarray_t * dynarray_dup(dynarray_t* dynarray, void * (*element_dup)(void *));
 
 /**
  * \brief Free a dynamic array structure.
@@ -37,6 +41,7 @@ dynarray_t* dynarray_dup (dynarray_t* dynarray, void * (*element_dup)(void*));
  * \param element_free Pointer to a function used to free up element resources
  *     (can be NULL)
  */
+
 void dynarray_free(dynarray_t *dynarray , void (*element_free)(void *element));
 
 /**
@@ -44,7 +49,15 @@ void dynarray_free(dynarray_t *dynarray , void (*element_free)(void *element));
  * \param dynarray Pointer to a dynamic array structure
  * \param element Pointer to the element to add
  */
+
 void dynarray_push_element(dynarray_t *dynarray, void *element);
+
+/**
+ * \brief Remove the i-th element from a dynarray
+ * \param dynarray The dynarray to update
+ * \param i The index of the element to remove
+ * \return ...
+ */
 
 int dynarray_del_ith_element(dynarray_t *dynarray, unsigned int i);
 
@@ -54,6 +67,7 @@ int dynarray_del_ith_element(dynarray_t *dynarray, unsigned int i);
  * \param element_free Pointer to a function used to free up element resources
  *     (can be NULL)
  */
+
 void dynarray_clear(dynarray_t *dynarray, void (*element_free)(void *element));
 
 /**
@@ -61,6 +75,7 @@ void dynarray_clear(dynarray_t *dynarray, void (*element_free)(void *element));
  * \param dynarray Pointer to a dynamic array structure
  * \return Current size of the dynamic array
  */
+
 size_t dynarray_get_size(dynarray_t *dynarray);
 
 /**
@@ -68,8 +83,16 @@ size_t dynarray_get_size(dynarray_t *dynarray);
  * \param dynarray Pointer to a dynamic array structure
  * \return An array of pointer to the dynamic array elements
  */
-void **dynarray_get_elements(dynarray_t *dynarray);
 
-void *dynarray_get_ith_element(dynarray_t *dynarray, unsigned int i);
+void ** dynarray_get_elements(dynarray_t *dynarray);
+
+/**
+ * \brief Retrieve the i-th element from a dynarray
+ * \param dynarray The dynarray to query 
+ * \param i The index of the element to retrieve 
+ * \return ...
+ */
+
+void * dynarray_get_ith_element(dynarray_t *dynarray, unsigned int i);
 
 #endif

@@ -12,8 +12,31 @@
 #include "../event.h"
 #include "../pt_loop.h"
 #include "../algorithm.h"
+#include "../dynarray.h"
 
 #include "traceroute.h"
+
+/*
+inline traceroute_options_t traceroute_get_default_options() {
+    traceroute_options_t traceroute_options = {
+        .min_ttl    = 1,
+        .max_ttl    = 30,
+        .num_probes = 3,
+        .dst_ip     = NULL
+    };
+    return traceroute_options;
+};
+*/
+
+/**
+ * \brief Complete the options passed as parameter with the
+ *   traceroute-specific options
+ * \param options A dynarray containing zero or more opt_spec
+ *   instances
+ */
+void traceroute_update_options(dynarray_t * options) {
+    // push_element pour chaque opt initialisé avec l'options
+}
 
 //-----------------------------------------------------------------
 // Internal data management

@@ -29,6 +29,7 @@ int opt_store_int_lim(char *, void *);
 int opt_store_double(char *, void *);
 int opt_store_double_lim(char *, void *);
 int opt_store_str(char *, void *);
+int opt_store_int_2(char *,void *);
 int opt_store_choice(char *, void *);
 int opt_store_choice_abbr(char *, void *);
 

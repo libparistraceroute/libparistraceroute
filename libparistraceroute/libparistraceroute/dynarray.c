@@ -6,7 +6,7 @@
 #define DYNARRAY_SIZE_INIT 5
 #define DYNARRAY_SIZE_INC 5
 
-dynarray_t* dynarray_create(void)
+dynarray_t * dynarray_create(void)
 {
     dynarray_t * dynarray = malloc(sizeof(dynarray_t));
     if (dynarray) {
@@ -18,7 +18,7 @@ dynarray_t* dynarray_create(void)
     return dynarray;
 }
 
-dynarray_t* dynarray_dup (dynarray_t* dynarray, void* (*element_dup)(void*))
+dynarray_t * dynarray_dup (dynarray_t * dynarray, void * (*element_dup)(void *))
 {
     dynarray_t   *da;
     unsigned int  i, size;
@@ -64,11 +64,24 @@ void dynarray_free(dynarray_t * dynarray, void (*element_free)(void *element)) {
 void dynarray_push_element(dynarray_t *dynarray, void *element)
 {
     if (dynarray->size == dynarray->max_size) {
-        dynarray->elements = realloc(dynarray->elements, (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void*));
-        memset(dynarray->elements + dynarray->size, 0, DYNARRAY_SIZE_INC * sizeof(void*));
+        dynarray->elements = realloc(dynarray->elements, (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *));
+        memset(dynarray->elements + dynarray->size, 0, DYNARRAY_SIZE_INC * sizeof(void *));
         dynarray->max_size += DYNARRAY_SIZE_INC;
     }
     dynarray->elements[dynarray->size] = element;
+    dynarray->size++;
+}
+
+void dynarray_add_element(dynarray_t * dynarray, void * element, size_t sizeof_element) {
+    // TODO factorize with dynarray_push_element
+    if (dynarray->size == dynarray->max_size) {
+        dynarray->elements = realloc(dynarray->elements, (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *));
+        memset(dynarray->elements + dynarray->size, 0, DYNARRAY_SIZE_INC * sizeof(void *));
+        dynarray->max_size += DYNARRAY_SIZE_INC;
+    }
+    copy = malloc(sizeof(sizeof_element));
+    memcpy(copy, element, sizeof(sizeof_element));
+    dynarray->elements[dynarray->size] = copy;
     dynarray->size++;
 }
 

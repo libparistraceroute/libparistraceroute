@@ -39,11 +39,8 @@ typedef struct {
 
 // Default options
 
-//static traceroute_options_t traceroute_default = {
-//    .min_ttl    = 1,
-//    .max_ttl    = 30,
-//    .num_probes = 3,
-//};
+
+traceroute_options_t traceroute_get_default_options(void);
 
 /* --------------------------------------------------------------------
  * Algorithm
@@ -100,8 +97,6 @@ typedef struct {
     traceroute_event_type_t  type;
     traceroute_event_value_t value;
 } traceroute_caller_data_t;
-
-
 
 /* --------------------------------------------------------------------
  * Interpretation output

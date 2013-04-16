@@ -282,10 +282,11 @@ int probe_update_length(probe_t * probe)
             continue;
         pfield = protocol_get_field(layer->protocol, "length");
         if (pfield) {
+                layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));		
         //	if (layer->protocol->protocol == proto_ipv6){
         //		layer_set_field(layer, I16("length", (uint16_t)((layer->buffer_size) - proto_ipv6_hdrlen)));
         //	}else {
-        		layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));
+        //		layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));
         //	}
         }
     }

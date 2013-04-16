@@ -9,12 +9,22 @@
 #include "probe.h" // test
 #include "algorithm.h"
 
-#define TIMEOUT 3
+//#define TIMEOUT 3
 #define sec_to_nsec 1000000
+
+static int timeout ;
 
 /******************************************************************************
  * Network
  ******************************************************************************/
+
+void network_set_timeout(unsigned new_timeout) {
+    timeout = new_timeout;
+}
+
+unsigned network_get_timeout() {
+    return timeout;
+}
 
 void network_sniffer_handler(network_t *network, packet_t *packet)
 {
@@ -274,7 +284,7 @@ int network_schedule_probe_timeout(network_t * network, probe_t * probe)
 
     if (probe) {
         double d;
-        d = TIMEOUT - (get_timestamp() - probe_get_sending_time(probe));
+        d = network_get_timeout() - (get_timestamp() - probe_get_sending_time(probe));
         new_value.it_value.tv_sec = (time_t) d;
         new_value.it_value.tv_nsec = (d - (time_t) d) * sec_to_nsec;;
     } else {

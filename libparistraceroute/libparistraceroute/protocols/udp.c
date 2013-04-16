@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 #include "../protocol.h"
-
+#include "buffer.h"
 #define UDP_DEFAULT_SRC_PORT 2828
 #define UDP_DEFAULT_DST_PORT 2828
 
@@ -71,7 +71,7 @@ static struct udphdr udp_default = {
  * \return The number of fields
  */
 
-inline unsigned int udp_get_num_fields(void) {
+unsigned int udp_get_num_fields(void) {
     return sizeof(udp_fields) / sizeof(protocol_field_t);
 }
 
@@ -80,7 +80,7 @@ inline unsigned int udp_get_num_fields(void) {
  * \return The size of an UDP header
  */
 
-inline unsigned int udp_get_header_size(void) {
+unsigned int udp_get_header_size(void) {
     return sizeof(struct udphdr);
 }
 
@@ -89,7 +89,7 @@ inline unsigned int udp_get_header_size(void) {
  * \param data The address of an allocated buffer that will store the header
  */
 
-inline void udp_write_default_header(unsigned char *data) {
+void udp_write_default_header(unsigned char *data) {
     memcpy(data, &udp_default, sizeof(struct udphdr));
 }
 
@@ -224,7 +224,16 @@ buffer_t * udp_create_psh(unsigned char * buffer)
 {
     // http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
 	// XXX IPv6 hacks -> todo generic.
-    return udp_create_psh_ipv6(buffer);
+     /* buffer_t *psh;
+    unsigned char ip_version = buffer_guess_ip_version(buffer); 
+   
+       psh = ip_version == 6 ? udp_create_psh_ipv6(buffer) :
+                        == 4 ? udp_create_psh_ipv4(buffer) :
+                        NULL;
+       if(!psh){
+           perror("E:can not create udp pseudo header");
+       }*/
+    return udp_create_psh_ipv4(buffer);
 }
 
 
