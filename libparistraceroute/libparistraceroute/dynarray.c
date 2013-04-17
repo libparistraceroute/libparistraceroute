@@ -72,7 +72,7 @@ void dynarray_push_element(dynarray_t *dynarray, void *element)
     dynarray->size++;
 }
 
-void dynarray_add_element(dynarray_t * dynarray, void * element, size_t sizeof_element) {
+/* void dynarray_add_element(dynarray_t * dynarray, void * element, size_t sizeof_element) {
     // TODO factorize with dynarray_push_element
     if (dynarray->size == dynarray->max_size) {
         dynarray->elements = realloc(dynarray->elements, (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *));
@@ -83,7 +83,7 @@ void dynarray_add_element(dynarray_t * dynarray, void * element, size_t sizeof_e
     memcpy(copy, element, sizeof(sizeof_element));
     dynarray->elements[dynarray->size] = copy;
     dynarray->size++;
-}
+} */
 
 int dynarray_del_ith_element(dynarray_t *dynarray, unsigned int i)
 {

@@ -25,7 +25,7 @@ const char *algorithms[] = {
     "mda", "traceroute", "paris-traceroute", NULL
 };
 static int    is_ipv4 = 1;
-static int    is_udp = 1;
+static int    is_udp = 0;
 static int    do_res = 1;
 
 const char *protocols[] = {
@@ -41,23 +41,23 @@ static unsigned wait[3]      = {5,   0,   INT_MAX};
 static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
 #define HELP_4 "Use IPv4"
-#define HELP_P "Use raw packet of protocol prot for tracerouting UDP :one of :'UDP' [default]"
+#define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'UDP' [default]"
 #define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
 #define HELP_f "Start from the first_ttl hop (instead from 1), first_ttl must be between 1 and 255"
 #define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must must be between 1 and 255"
 #define HELP_n "Do not resolve IP addresses to their domain names"
-#define HELP_w " Set the number of seconds to wait for response to a probe (default is 5.0)"
+#define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
 #define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
-#define HELP_a "traceroute algorithm: one of  'mda' [default],traceroute ,'paris-traceroute'"
+#define HELP_a "Traceroute algorithm: one of  'mda' [default],'traceroute', 'paris-traceroute'"
 
 struct opt_spec cl_options[] = {
     // action            sf   lf                   metavar             help         data
     {opt_help,           "h", "--help"   ,         OPT_NO_METAVAR,     OPT_NO_HELP, OPT_NO_DATA},
     {opt_version,        "V", "--version",         OPT_NO_METAVAR,     OPT_NO_HELP, "version 1.0"},
     {opt_store_choice,   "a", "--algo",            "ALGORITHM",        HELP_a,      algorithms},
-    {opt_store_0,        "4", OPT_NO_LF  ,         OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
+    {opt_store_1,        "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
     {opt_store_choice,   "P", "--protocol",        "protocol",         HELP_P,      protocols},
-    {opt_store_0,        "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
+    {opt_store_1,        "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
     {opt_store_int_lim,  "f", "--first",           "first_ttl",        HELP_f,      first_ttl},
     {opt_store_int_lim,  "m", "--max-hops",        "max_ttl",          HELP_m,      max_ttl},
     {opt_store_0,        "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_res},
@@ -182,7 +182,7 @@ void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void * user_dat
 int main(int argc, char ** argv)
 {
     traceroute_options_t      traceroute_options;
-    mda_options_t             mda_options, mda_default_options;
+    mda_options_t             mda_options;
     paris_traceroute_data_t * data;
     algorithm_instance_t    * instance;
     probe_t                 * probe_skel;
@@ -215,7 +215,33 @@ int main(int argc, char ** argv)
         perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP;
     }
+
+   // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
+    probe_skel = probe_create();
+    if (!probe_skel) {
+        perror("E: Cannot create probe skeleton");
+        goto ERR_PROBE_SKEL;
+    }
     
+    probe_set_protocols(
+        probe_skel,
+        is_ipv4 ? "ipv4" : "ipv6",
+        "udp",//is_udp  ? "udp" : prot,
+        NULL
+    );
+    probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
+
+    // Set default values
+    probe_set_fields(
+        probe_skel,
+        STR("dst_ip", data->dst_ip),
+        I16("dst_port", 3000),
+        NULL
+    );
+
+    if (is_udp) {           
+        probe_set_fields(probe_skel, I16("dst_port", 53), NULL);
+    } 
  
     // Verify that the user pass option related to mda iif
     // this is the chosen algorithm .
@@ -228,7 +254,7 @@ int main(int argc, char ** argv)
     }
 
     // Prepare options related to the chosen algorithm
-    if (strcmp(data->algorithm, "traceroute") || strcmp(data->algorithm, "paris-traceroute")) {
+    if (strcmp(data->algorithm, "traceroute") == 0 || strcmp(data->algorithm, "paris-traceroute") == 0) {
         traceroute_options = traceroute_get_default_options();
 
         // Overrides default parameter with user's ones 
@@ -241,7 +267,7 @@ int main(int argc, char ** argv)
         traceroute_options.dst_ip = addr2str(&dst_addr);
         data->options = &traceroute_options;
 
-    } else if (strcmp(data->algorithm, "mda") || mda[6]) {
+    } else if (strcmp(data->algorithm, "mda") == 0 || mda[6]) {
         mda_options = mda_get_default_options(); 
         printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
             mda_options.traceroute_options.min_ttl,
@@ -265,38 +291,22 @@ int main(int argc, char ** argv)
         if (mda[3] != mda_options.max_branch) { 
             mda_options.max_branch = mda[3];
         }
+            printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
+            mda_options.traceroute_options.min_ttl,
+            mda_options.traceroute_options.max_ttl,
+            mda_options.traceroute_options.num_probes,
+            mda_options.traceroute_options.dst_ip ? mda_options.traceroute_options.dst_ip : "",
+            mda_options.bound,
+            mda_options.max_branch
+        );
+
         data->options = &mda_options;
     } else {
         perror("E: Unknown algorithm ");
         goto ERROR;   
     }
 
-   // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
-    probe_skel = probe_create();
-    if (!probe_skel) {
-        perror("E: Cannot create probe skeleton");
-        goto ERR_PROBE_SKEL;
-    }
-    
-    probe_set_protocols(
-        probe_skel,
-        is_ipv4 ? "ipv4" : "ipv6",
-        is_udp  ? "udp" : prot,
-        NULL
-    );
-    probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
-
-    // Set default values
-    probe_set_fields(
-        probe_skel,
-        STR("dst_ip", data->dst_ip),
-        I16("dst_port", 30000),
-        NULL
-    );
-
-    if (is_udp) {           
-        probe_set_fields(probe_skel, I16("dst_port", 53), NULL);
-    }
+   
 
     instance = pt_algorithm_add(loop, data->algorithm, data->options, probe_skel);
     if (!instance) {

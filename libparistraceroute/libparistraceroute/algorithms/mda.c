@@ -304,9 +304,9 @@ int mda_handler_init(pt_loop_t *loop, event_t *event, void **pdata, probe_t *ske
     if (!*pdata) return -1;
     data = *pdata;
 
-    printf("mda_handler_init %s\n", probe_get_field(skel, "dst_ip")->value.string);
+    //printf("mda_handler_init %s\n", probe_get_field(skel, "dst_ip")->value.string);
     probe_dump(skel);
-    printf("W: mda.c: set dport to 53"); // TOFIX
+    printf("W: mda.c: set dport to 53 \n"); // TOFIX
     probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
     data->dst_ip = probe_get_field(skel, "dst_ip")->value.string;
     data->loop = loop;

@@ -11,6 +11,8 @@
 #include "event.h"
 #include "dynarray.h"
 #include "pt_loop.h"
+#include "optparse.h"
+
 
 /**
  * \enum status_t
@@ -47,8 +49,9 @@ typedef struct algorithm_instance_s {
  */
 
 typedef struct algorithm_s {
-    const char* name;                                                                 /*!< Algorithm name */
-    int (*handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel); /*!< Main handler function */
+    const char        * name;                                                                       /*!< Algorithm name */
+    int              (*handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel);      /*!< Main handler function */
+    struct opt_spec   * options;                                                                    /*!< Options related to the algorithm */
 } algorithm_t;
 
 //--------------------------------------------------------------------
@@ -68,7 +71,7 @@ algorithm_t* algorithm_search(const char * name);
  * \param algorithm Pointer to a structure representing the algorithm
  */
 
-void algorithm_register(algorithm_t *algorithm);
+void algorithm_register(algorithm_t * algorithm);
 
 #define ALGORITHM_REGISTER(MOD)	\
 static void __init_ ## MOD (void) __attribute__ ((constructor));	\

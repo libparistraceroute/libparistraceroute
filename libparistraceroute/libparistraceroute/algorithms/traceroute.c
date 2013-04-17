@@ -16,7 +16,16 @@
 
 #include "traceroute.h"
 
-/*
+/* traceroute options */
+struct opt_spec traceroute_options[] = {
+    /* action       short       long         metavar       help                   variable XXX */
+    {opt_store_int, OPT_NO_SF, "min-ttl",    "TTL",        "minimum TTL",         0},
+    {opt_store_int, OPT_NO_SF, "max-ttl",    "TTL",        "maximum TTL",         0},
+    {OPT_NO_ACTION}
+};
+
+
+
 inline traceroute_options_t traceroute_get_default_options() {
     traceroute_options_t traceroute_options = {
         .min_ttl    = 1,
@@ -26,7 +35,7 @@ inline traceroute_options_t traceroute_get_default_options() {
     };
     return traceroute_options;
 };
-*/
+
 
 /**
  * \brief Complete the options passed as parameter with the
@@ -306,7 +315,8 @@ FAILURE: // This algorithm has crashed
 
 static algorithm_t traceroute = {
     .name    = "traceroute",
-    .handler = traceroute_handler
+    .handler = traceroute_handler,
+    .options = traceroute_options
 };
 
 ALGORITHM_REGISTER(traceroute);
