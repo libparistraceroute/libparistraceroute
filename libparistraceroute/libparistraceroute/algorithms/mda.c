@@ -374,7 +374,7 @@ int mda_delete_flow(lattice_elt_t * elt, void * data)
 int mda_timeout_flow(lattice_elt_t * elt, void * data)
 {
     mda_interface_t     * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t * search    = data;
+    mda_ttl_flow_t      * search    = data;
 
     if (interface->ttl == search->ttl) {
         unsigned int i, size;
@@ -635,7 +635,8 @@ int mda_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel)
 
 static algorithm_t mda = {
     .name    = "mda",
-    .handler = mda_handler
+    .handler = mda_handler,
+    .option  = mda_options
 };
 
 ALGORITHM_REGISTER(mda);

@@ -305,10 +305,9 @@ int main(int argc, char ** argv)
         perror("E: Unknown algorithm ");
         goto ERROR;   
     }
+    
 
-   
-
-    instance = pt_algorithm_add(loop, data->algorithm, data->options, probe_skel);
+    instance = pt_algorithm_add(loop, data->algorithm, &tr_options, probe_skel);
     if (!instance) {
         perror("E: Cannot add the chosen algorithm");
         goto ERR_INSTANCE;

@@ -227,7 +227,7 @@ algorithm_instance_t * pt_algorithm_add(
     algorithm_t          * algorithm;
     algorithm_instance_t * instance;
 
-    if(! (algorithm = algorithm_search(name)) ) {
+    if (!(algorithm = algorithm_search(name))) {
         return NULL;  // No such algorithm
     }
     

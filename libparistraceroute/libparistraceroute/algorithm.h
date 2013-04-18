@@ -61,10 +61,10 @@ typedef struct algorithm_s {
 /**
  * \brief Search for available algorithms by name.
  * \param name Name of the algorithm
- * \return An algorithm_t structure
+ * \return A pointer to the corresponding algorithm_t structure if any, NULL otherwise
  */
 
-algorithm_t* algorithm_search(const char * name);
+algorithm_t * algorithm_search(const char * name);
 
 /**
  * \brief Register an algorithm to be used by the library.
