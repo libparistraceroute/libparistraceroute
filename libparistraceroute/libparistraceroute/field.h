@@ -65,9 +65,9 @@ typedef union {
  */
 typedef struct {
 	/** Pointer to a unique identifier key */
-    char *key;
+    char      * key;
 	/** Union of all field data */
-    value_t value;
+    value_t     value;
     fieldtype_t type;
 } field_t;
 

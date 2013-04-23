@@ -59,12 +59,12 @@ void probe_free(probe_t *probe);
 
 // Accessors
 
-buffer_t *probe_get_buffer(probe_t *probe);
+buffer_t *probe_get_buffer(const probe_t *probe);
 
 int probe_set_buffer(probe_t *probe, buffer_t *buffer);
 
 // Dump
-void probe_dump(probe_t *probe);
+void probe_dump(const probe_t *probe);
 
 /**
  * \brief Add a field to a probe
@@ -101,7 +101,7 @@ void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *fie
  * \param probe Pointer to a probe_t structure to get the fields from
  * \return NULL (NYI - Will be Array of pointers to field_t structures stored in the probe)
  */
-field_t ** probe_get_fields(probe_t *probe);
+field_t ** probe_get_fields(const probe_t *probe);
 
 /**
  * \brief Copies a field value at the specified location.
@@ -109,15 +109,15 @@ field_t ** probe_get_fields(probe_t *probe);
  *
  * What about allocation ?
  */
-field_t *probe_get_field(probe_t *probe, const char *name);
-field_t *probe_get_field_ext(probe_t *probe, const char *name, unsigned int depth);
+field_t * probe_get_field(const probe_t *probe, const char *name);
+field_t * probe_get_field_ext(const probe_t *probe, const char *name, unsigned int depth);
 
 /**
  * \brief Get the payload from a probe
  * \param probe Pointer to a probe_t structure to get the payload from
  * \return NULL (Not yet implemented)
  */
-unsigned char *probe_get_payload(probe_t *probe);
+unsigned char *probe_get_payload(const probe_t *probe);
 
 int probe_set_payload_size(probe_t * probe, unsigned int payload_size);
 
@@ -132,7 +132,7 @@ int probe_write_payload(probe_t *probe, buffer_t * payload, unsigned int offset)
  * \param probe Pointer to a probe_t structure to get the payload size from
  * \return 0 (NYI - Will be Size of the probe's payload)
  */
-unsigned int probe_get_payload_size(probe_t *probe);
+unsigned int probe_get_payload_size(const probe_t *probe);
 /**
  * \brief Get the protocol from the probe with the given index
  * \param i Integer index of the probe to use
@@ -145,20 +145,20 @@ char* probe_get_protocol_by_index(unsigned int i);
  * \param probe Pointer to a probe_t structure to use
  * \return 0 (NYI)
  */
-unsigned int probe_get_num_proto(probe_t *probe);
+unsigned int probe_get_num_proto(const probe_t *probe);
 /**
  * \brief Get the header fields from a probe
  * \param probe Pointer to a probe_t structure to use
  * \return NULL (NYI - Will be Array of pointers to the field_t structures contained in the given probe)
  */
-field_t ** probe_get_fields(probe_t *probe);
+field_t ** probe_get_fields(const probe_t *probe);
 
 int probe_set_caller(probe_t *probe, void *caller);
-void *probe_get_caller(probe_t *probe);
+void *probe_get_caller(const probe_t *probe);
 int probe_set_sending_time(probe_t *probe, double time);
-double probe_get_sending_time(probe_t *probe);
+double probe_get_sending_time(const probe_t *probe);
 int probe_set_queueing_time(probe_t *probe, double time);
-double probe_get_queueing_time(probe_t *probe);
+double probe_get_queueing_time(const probe_t *probe);
 
 /******************************************************************************
  * probe_reply_t
@@ -175,9 +175,9 @@ void probe_reply_free(probe_reply_t *probe_reply);
 // Accessors
 
 int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe);
-probe_t * probe_reply_get_probe(probe_reply_t *probe_reply);
+probe_t * probe_reply_get_probe(const probe_reply_t *probe_reply);
 int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply);
-probe_t * probe_reply_get_reply(probe_reply_t *probe_reply);
+probe_t * probe_reply_get_reply(const probe_reply_t *probe_reply);
 
 /******************************************************************************
  * pt_loop_t

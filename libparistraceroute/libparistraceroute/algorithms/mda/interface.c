@@ -5,14 +5,15 @@
 #include "../../common.h"
 #include "../../dynarray.h"
 #include "interface.h"
+#include "address.h"
 
-mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
+mda_interface_t * mda_interface_create(char * addr)//unsigned int addr)
 {
-    mda_interface_t *interface;
+    mda_interface_t * interface;
 
     interface = malloc(sizeof(mda_interface_t));
     if (!interface)
-        goto error;
+        goto ERROR;
 
     if (addr)
         interface->address = strdup(addr);
@@ -21,7 +22,7 @@ mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
 
     interface->flows = dynarray_create();
     if (!interface->flows)
-        goto err_flows;
+        goto ERR_FLOWS;
 
     interface->type = MDA_LB_TYPE_UNKNOWN;
     interface->enumeration_done = false;
@@ -33,11 +34,11 @@ mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
 
     return interface;
 
-err_flows:
-    if (interface->address)
+ERR_FLOWS:
+    if (interface->address) 
         free(interface->address);
     free(interface);
-error:
+ERROR:
     return NULL;
 }
 
@@ -119,16 +120,24 @@ void mda_flow_dump(mda_interface_t * interface)
     }
 }
 
-void mda_link_dump(mda_interface_t * link[2])
-{
+void mda_link_dump(mda_interface_t * link[2]) {
+
     if (!link[1]) {
-        printf("%hhu %s [ ", link[0]->ttl, link[0]->address ? link[0]->address : "*");
+        printf("%hhu %s (%s) [ ",
+                link[0]->ttl,
+                link[0]->address ? address_resolv(link[0]->address) : "*", 
+                link[0]->address ? link[0]->address : "*"
+                );
         mda_flow_dump(link[0]);
         printf(" ]\n");
         return;
     }
-
-    printf("%hhu %s -> %s [ ", link[0]->ttl, link[0]->address ? link[0]->address : "*", link[1]->address ? link[1]->address : "*");
+    printf("%hhu %s (%s) -> %s (%s) [ ", link[0]->ttl,
+            link[0]->address ? address_resolv(link[0]->address) : "*", 
+            link[0]->address ? link[0]->address : "*",
+            link[1]->address ? address_resolv(link[1]->address) : "*", 
+            link[1]->address ? link[1]->address : "*"
+            );
     mda_flow_dump(link[0]);
     printf(" -> ");
     mda_flow_dump(link[1]);

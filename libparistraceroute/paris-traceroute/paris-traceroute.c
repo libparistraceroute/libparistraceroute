@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#include "paris-traceroute.h"
+//#include "paris-traceroute.h"
 #include "optparse.h"
 #include "pt_loop.h"
 #include "probe.h"
@@ -16,6 +16,7 @@
 #include "algorithm.h"
 #include "algorithms/mda.h"
 #include "algorithms/traceroute.h"
+#include "address.h"
 
 /******************************************************************************
  * Command line stuff                                                         *
@@ -35,13 +36,13 @@ const char *protocols[] = {
 //                              def  min  max
 static unsigned first_ttl[3] = {1,   1 ,  255};
 static unsigned max_ttl[3]   = {30,  1,   255};
-static unsigned wait[3]      = {5,   0,   INT_MAX};
+static double   wait[3]      = {5,   0,   INT_MAX};
 
 //                              def1 min1 max1 def2 min2 max2      mda_enabled
 static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
 #define HELP_4 "Use IPv4"
-#define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'UDP' [default]"
+#define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
 #define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
 #define HELP_f "Start from the first_ttl hop (instead from 1), first_ttl must be between 1 and 255"
 #define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must must be between 1 and 255"
@@ -61,7 +62,7 @@ struct opt_spec cl_options[] = {
     {opt_store_int_lim,  "f", "--first",           "first_ttl",        HELP_f,      first_ttl},
     {opt_store_int_lim,  "m", "--max-hops",        "max_ttl",          HELP_m,      max_ttl},
     {opt_store_0,        "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_res},
-    {opt_store_int_lim,  "w", "--wait",            "waittime",         HELP_w,      wait},
+    {opt_store_double_lim,  "w", "--wait",            "waittime",         HELP_w,      wait},
     {opt_store_int_2,    "M", "--mda",             "bound,max_branch", HELP_M,      mda},
     {OPT_NO_ACTION},
 };
@@ -76,72 +77,6 @@ typedef struct {
     void       * options;
 } paris_traceroute_data_t;
 
-/******************************************************************************
- * Static variables 
- ******************************************************************************/
-
-static int    af = 0; // ? address family
-static char * dst_name = NULL;
-
-/******************************************************************************
- * Helper functions
- ******************************************************************************/
-
-// CPPFLAGS += -D_GNU_SOURCE
-
-static int getaddr(const char *name, sockaddr_any *addr) {
-    int ret;
-    struct addrinfo hints, *ai, *res = NULL;
-
-    memset (&hints, 0, sizeof (hints));
-    hints.ai_family = af;
-    hints.ai_flags = AI_IDN;
-
-    ret = getaddrinfo (name, NULL, &hints, &res);
-    if (ret) {
-        fprintf (stderr, "%s: %s\n", name, gai_strerror (ret));
-        return -1;
-    }
-
-    for (ai = res; ai; ai = ai->ai_next) {
-        if (ai->ai_family == af)  break;
-        /*  when af not specified, choose DEF_AF if present   */
-        if (!af && ai->ai_family == DEF_AF)
-            break;
-    }
-    if (!ai)  ai = res; /*  anything...  */
-
-    if (ai->ai_addrlen > sizeof (*addr))
-        return -1;  /*  paranoia   */
-    memcpy (addr, ai->ai_addr, ai->ai_addrlen);
-
-    freeaddrinfo (res);
-
-    return 0;
-}
-
-static int set_host (char *hostname, sockaddr_any *dst_addr)
-{
-
-    if (getaddr (hostname, dst_addr) < 0)
-        return -1;
-
-    dst_name = hostname;
-
-    /*  i.e., guess it by the addr in cmdline...  */
-    if (!af)  af = dst_addr->sa.sa_family;
-
-    return 0;
-}
-
-static char addr2str_buf[INET6_ADDRSTRLEN];
-
-static const char *addr2str (const sockaddr_any *addr) {
-    getnameinfo (&addr->sa, sizeof (*addr),
-        addr2str_buf, sizeof (addr2str_buf), 0, 0, NI_NUMERICHOST);
-
-    return addr2str_buf;
-}
 
 /******************************************************************************
  * Main
@@ -199,16 +134,15 @@ int main(int argc, char ** argv)
     
     // Retrieve the target IP address
     for(i = 0; argv[i] != NULL && i < sizeof(argv); ++i);
-    set_host(argv[i - 1], &dst_addr);
+    address_set_host(argv[i - 1], &dst_addr);
     data = malloc(sizeof(paris_traceroute_data_t));
     if (!data) goto ERROR;
-    data->dst_ip = addr2str(&dst_addr);
+    data->dst_ip = address_2_str(&dst_addr);
     data->algorithm = algorithms[0];
     prot = protocols[0];   
     printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
     network_set_timeout(wait[0]);
-    
-    
+
     // Create libparistraceroute loop
     loop = pt_loop_create(paris_traceroute_handler, data);
     if (!loop) {
@@ -226,7 +160,7 @@ int main(int argc, char ** argv)
     probe_set_protocols(
         probe_skel,
         is_ipv4 ? "ipv4" : "ipv6",
-        "udp",//is_udp  ? "udp" : prot,
+        is_udp  ? "udp" : prot,
         NULL
     );
     probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
@@ -264,7 +198,7 @@ int main(int argc, char ** argv)
          if (max_ttl[0] != traceroute_options.max_ttl) { 
             traceroute_options.max_ttl = max_ttl[0];
         }
-        traceroute_options.dst_ip = addr2str(&dst_addr);
+        traceroute_options.dst_ip = address_2_str(&dst_addr);
         data->options = &traceroute_options;
 
     } else if (strcmp(data->algorithm, "mda") == 0 || mda[6]) {
@@ -284,7 +218,7 @@ int main(int argc, char ** argv)
         if (max_ttl[0] != mda_options.traceroute_options.max_ttl) { 
             mda_options.traceroute_options.max_ttl = max_ttl[0];
         }
-        traceroute_options.dst_ip = addr2str(&dst_addr);
+        traceroute_options.dst_ip = address_2_str(&dst_addr);
         if (mda[0] != mda_options.bound) { 
             mda_options.bound = mda[0];
         }
@@ -307,7 +241,7 @@ int main(int argc, char ** argv)
     }
     
 
-    instance = pt_algorithm_add(loop, data->algorithm, &tr_options, probe_skel);
+    instance = pt_algorithm_add(loop, data->algorithm, data->options, probe_skel);
     if (!instance) {
         perror("E: Cannot add the chosen algorithm");
         goto ERR_INSTANCE;

@@ -68,6 +68,7 @@ int buffer_resize(buffer_t *buffer, size_t size)
         tmp = realloc(buffer->data, size * sizeof(unsigned char));
         if (!tmp)
             return -1; // cannot realloc, orig still valid
+        memset(tmp + buffer->size, 0 , size * sizeof(unsigned char) - buffer->size);
         buffer->data = tmp;
     }
     buffer->size = size;
