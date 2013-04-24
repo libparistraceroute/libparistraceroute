@@ -183,7 +183,7 @@ static struct iphdr ipv4_default = {
  *
  * TODO we can generalize this to other transport protocols ?
  */
-u_int32_t ipv4_get_default_sip(u_int32_t dip) {
+uint32_t ipv4_get_default_sip(uint32_t dip) {
         int sock;
         struct sockaddr_in addr, name;
         int len = sizeof(struct sockaddr_in);
@@ -262,10 +262,9 @@ void ipv4_write_default_header(unsigned char *data)
  * \return 0 if everything is ok, another value otherwise 
  */
 
-bool ipv4_write_checksum (unsigned char *buf, buffer_t * psh){
-	struct iphdr *iph = (struct iphdr *) buf;
-    size_t size = sizeof(struct iphdr);
-	iph->check = csum((unsigned short *) iph, size >> 1 ); // TODO: >> 1 RLY?
+bool ipv4_write_checksum(unsigned char *buf, buffer_t * psh) {
+	struct iphdr * iph = (struct iphdr *) buf;
+    iph->check = csum((const uint16_t *) iph, sizeof(struct iphdr));
     return true;
 }
 

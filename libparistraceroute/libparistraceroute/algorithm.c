@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h> // XXX
 #include <string.h>
 #include <search.h>
 
@@ -49,7 +48,8 @@ static int algorithm_instance_compare(
 );
 
 /**
- *
+ * \brief Register an algorithm instance in the main loop
+ * \param instance The instance that we register
  */
 
 static algorithm_instance_t * pt_algorithm_instance_add(
@@ -232,8 +232,10 @@ algorithm_instance_t * pt_algorithm_add(
     }
     
     // If the probe skeleton does not exist, create it.
-    if (!probe_skel)
+    if (!probe_skel) {
         probe_skel = probe_create();
+    }
+
     // Create a new instance of a running algorithm
     instance = algorithm_instance_create(loop, algorithm, options, probe_skel);
 

@@ -18,9 +18,9 @@
  */
 
 typedef enum {
-    STARTED,    /*!< Algorithm instance is started */
-    STOPPED,    /*!< Algorithm instance is stopped */
-    ERROR       /*!< An error has occurred */
+    STARTED,    /**< Algorithm instance is started */
+    STOPPED,    /**< Algorithm instance is stopped */
+    ERROR       /**< An error has occurred         */
 } status_t;
 
 /**
@@ -29,15 +29,15 @@ typedef enum {
  */
 
 typedef struct algorithm_instance_s {
-    unsigned int                  id;         /*!< Unique identifier */
-    struct algorithm_s          * algorithm;  /*!< Pointer to the type of algorithm */
-    void                        * options;    /*!< Pointer to an option structure specific to the algorithm */
-    probe_t                     * probe_skel; /*!< Skeleton for probes forged by this algorithm instance */
-    void                        * data;       /*!< Internal algorithm data */
-    void                        * outputs;    /*!< Data exposed to the caller and filled by the instance */ 
-    dynarray_t                  * events;     /*!< An array of events received by the algorithm */
-    struct algorithm_instance_s * caller;     /*!< Reference to the entity that called the algorithm (NULL if called by pt_loop) */
-    struct pt_loop_s            * loop;       /*!< Pointer to a library context */
+    unsigned int                  id;         /**< Unique identifier */
+    struct algorithm_s          * algorithm;  /**< Pointer to the type of algorithm */
+    void                        * options;    /**< Pointer to an option structure specific to the algorithm */
+    probe_t                     * probe_skel; /**< Skeleton for probes forged by this algorithm instance */
+    void                        * data;       /**< Internal algorithm data */
+    void                        * outputs;    /**< Data exposed to the caller and filled by the instance */ 
+    dynarray_t                  * events;     /**< An array of events received by the algorithm */
+    struct algorithm_instance_s * caller;     /**< Reference to the entity that called the algorithm (NULL if called by pt_loop) */
+    struct pt_loop_s            * loop;       /**< Pointer to a library context */
 } algorithm_instance_t;
 
 /**
@@ -47,8 +47,13 @@ typedef struct algorithm_instance_s {
  */
 
 typedef struct algorithm_s {
-    const char* name;                                                                 /*!< Algorithm name */
-    int (*handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel); /*!< Main handler function */
+    const char * name;                        /**< Algorithm name */
+    int (*handler)(
+        pt_loop_t *  loop,
+        event_t   *  event,
+        void      ** pdata,
+        probe_t   *  skel
+    );                                        /**< Main handler function */
 } algorithm_t;
 
 //--------------------------------------------------------------------

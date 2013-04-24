@@ -23,7 +23,14 @@ typedef struct bitfield_s {
 
 bitfield_t * bitfield_create(size_t size_in_bits);
 
-bitfield_t * bitfield_dup(bitfield_t *bitfield);
+/**
+ * \brief Duplicate a bitfield
+ * \param bitfield The bitfield to duplicate
+ * \return The address of the newly created bitfield,
+ *    NULL if the memory allocation has failed.
+ */
+
+bitfield_t * bitfield_dup(const bitfield_t * bitfield);
 
 /**
  * \brief Delete a bitfield from the memory

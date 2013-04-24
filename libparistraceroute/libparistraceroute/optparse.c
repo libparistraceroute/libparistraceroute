@@ -427,8 +427,14 @@ int opt_store_choice_abbr(char *arg, void *data)
         ;
     if (choices[j]) {
         opt_err_pfx();
-        fprintf(stderr, "ambiguous choice '%s' for option %s\n%*s(%s",
-                arg, opt_name(), strlen(globals.prog)+2, "", choices[i]);
+        fprintf(
+            stderr, "ambiguous choice '%s' for option %s\n%*s(%s",
+            arg,
+            opt_name(),
+            (char *) strlen(globals.prog) + 2,
+            "",
+            choices[i]
+        );
         for (;;) {
             i = j;
             for (j = i + 1;
@@ -530,9 +536,14 @@ int opt_parse(const char *usage, struct opt_spec *opts, char **argv)
             if (o) {
                 o2 = findlf(o + 1, a);
                 if (o2) {
-                    fprintf(stderr, "%s: ambiguous option %s\n%*s(%s",
-                            globals.prog, a, strlen(globals.prog)+2,
-                            "", o->lf);
+                    fprintf(
+                        stderr, "%s: ambiguous option %s\n%*s(%s",
+                        globals.prog,
+                        a,
+                        strlen(globals.prog) + 2,
+                        "",
+                        o->lf
+                    );
                     for (;;) {
                         o = o2;
                         o2 = findlf(o + 1, a);

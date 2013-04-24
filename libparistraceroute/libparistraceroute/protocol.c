@@ -81,16 +81,21 @@ void protocol_iter_fields(protocol_t *protocol, void *data, void (*callback)(pro
     for (i=0; i < num_fields; i++) {
         callback(&protocol->fields[i], data);
     }
-
 }
 
-//from http://mixter.void.ru/rawip.html
-u_int16_t csum (u_int16_t *buf, int nwords){ //nword = taille du paquet (divisé par 2 ( >>1) pour faire des words)
-  unsigned long sum;
-  for (sum = 0; nwords > 0; nwords--)
-    sum += *buf++;
-  sum = (sum >> 16) + (sum & 0xffff);
-  sum += (sum >> 16);
-  return (u_int16_t)~sum;
+// adapted from http://www.netpatch.ru/windows-files/pingscan/raw_ping.c.html
+
+uint16_t csum(const uint16_t * buf, size_t size) {
+    unsigned long sum = 0;
+    while(size > 1) {
+        sum += *buf++;
+        size -= sizeof(uint16_t);
+    }
+    if (size) {
+        sum += * (uint8_t *) buf;
+    }
+    sum  = (sum >> 16) + (sum & 0xffff);
+    sum += (sum >> 16);
+    return (uint16_t) ~sum;
 }
 

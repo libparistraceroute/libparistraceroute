@@ -19,18 +19,26 @@ typedef struct {
 /**
  * \brief Create a buffer structure
  * \return Pointer to the newly created buffer structure
+ *    NULL in case of failure
  */
 
 buffer_t * buffer_create(void);
 
-buffer_t * buffer_dup(buffer_t *buffer);
+/**
+ * \brief Duplicate a buffer instance
+ * \param buffer The buffer to duplicate
+ * \return The address of the newly created buffer, NULL
+ *    if the memory allocation has failed.
+ */
+
+buffer_t * buffer_dup(const buffer_t * buffer);
 
 /**
  * \brief Free a buffer structure.
  * \param buffer Pointer to the buffer structure to free
  */
 
-void buffer_free(buffer_t *buffer);
+void buffer_free(buffer_t * buffer);
 
 //-----------------------------------------------------------------
 // Accessors
@@ -42,7 +50,7 @@ void buffer_free(buffer_t *buffer);
  * \return The address of the data
  */
 
-unsigned char * buffer_get_data(buffer_t * buffer);
+unsigned char * buffer_get_data(const buffer_t * buffer);
 
 /**
  * \brief Retrieve the size of the allocated memory area
@@ -68,10 +76,11 @@ int buffer_resize(buffer_t * buffer, size_t size);
  * \param buffer The address of the buffer
  */
 
-void buffer_set_data(buffer_t *buffer, unsigned char *data, unsigned int size);
+void buffer_set_data(buffer_t * buffer, unsigned char * data, unsigned int size);
 
 /**
- * \brief Alter
+ * \brief Alter the size declared in the buffer structure.
+ * It does not reallocate anything.
  * \param buffer The address of the buffer
  */
 
