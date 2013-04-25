@@ -206,7 +206,7 @@ void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
             return;
 
         event = dynarray_get_ith_element(instance->events, i);
-        instance->algorithm->handler(instance->loop, event, &instance->data, instance->probe_skel);
+        instance->algorithm->handler(instance->loop, event, &instance->data, instance->probe_skel, instance->options);
     }
 
     // Restore the algorithm context

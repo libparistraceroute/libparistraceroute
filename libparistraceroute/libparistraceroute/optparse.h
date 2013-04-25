@@ -2,12 +2,19 @@
 #ifndef OPTPARSE_H
 #define OPTPARSE_H
 
+
+struct opt_spec {
+    int (*action)(char *, void *);
+    const char *sf, *lf, *metavar, *help;
+    void *data;
+};
+
 void opt_basename(char *fn, char sep);
 void opt_config(int width, int max_help_pos,
                 int indent, const char *separator);
 void opt_options1st(void);
 
-const char *opt_name(void);
+const char * opt_name(void);
 void opt_err_pfx(void);
 void opt_err_sfx(void);
 void opt_err(const char *msg);
@@ -33,11 +40,6 @@ int opt_store_int_2(char *,void *);
 int opt_store_choice(char *, void *);
 int opt_store_choice_abbr(char *, void *);
 
-struct opt_spec {
-    int (*action)(char *, void *);
-    const char *sf, *lf, *metavar, *help;
-    void *data;
-};
 #define OPT_NO_ACTION (void *)0
 #define OPT_NO_SF (void *)0
 #define OPT_NO_LF (void *)0
@@ -45,7 +47,7 @@ struct opt_spec {
 #define OPT_NO_HELP (void *)0
 #define OPT_NO_DATA (void *)0
 
-int opt_parse(const char *usage, struct opt_spec *opts, char **argv);
+int opt_parse(const char * usage, struct opt_spec * opts, char **argv);
 char ***opt_remainder(void);
 
 #endif

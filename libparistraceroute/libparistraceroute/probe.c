@@ -469,16 +469,16 @@ int probe_set_field_ext(probe_t *probe, field_t *field, unsigned int depth)
 
 }
 
-int probe_set_field(probe_t *probe, field_t *field)
+int probe_set_field(probe_t * probe, field_t * field)
 {
     return probe_set_field_ext(probe, field, 0);
 }
 
 
-int probe_set_metafield(probe_t *probe, field_t *field)
+int probe_set_metafield(probe_t * probe, field_t * field)
 {
-    metafield_t *metafield;
-    field_t *f;
+    metafield_t * metafield;
+    field_t     * f;
 
     /* TEMP HACK : we only have IPv4 and flow_id, let's encode it into the
      * src_port */

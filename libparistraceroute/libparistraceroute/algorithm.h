@@ -50,7 +50,7 @@ typedef struct algorithm_instance_s {
 
 typedef struct algorithm_s {
     const char        * name;                                                                       /*!< Algorithm name */
-    int              (*handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel);      /*!< Main handler function */
+    int              (* handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * options);      /*!< Main handler function */
     struct opt_spec   * options;                                                                    /*!< Options related to the algorithm */
 } algorithm_t;
 

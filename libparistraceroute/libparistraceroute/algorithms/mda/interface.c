@@ -5,14 +5,15 @@
 #include "../../common.h"
 #include "../../dynarray.h"
 #include "interface.h"
+#include "address.h"
 
-mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
+mda_interface_t * mda_interface_create(char * addr)//unsigned int addr)
 {
-    mda_interface_t *interface;
+    mda_interface_t * interface;
 
     interface = malloc(sizeof(mda_interface_t));
     if (!interface)
-        goto error;
+        goto ERROR;
 
     if (addr)
         interface->address = strdup(addr);
@@ -21,7 +22,7 @@ mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
 
     interface->flows = dynarray_create();
     if (!interface->flows)
-        goto err_flows;
+        goto ERR_FLOWS;
 
     interface->type = MDA_LB_TYPE_UNKNOWN;
     interface->enumeration_done = false;
@@ -33,11 +34,11 @@ mda_interface_t *mda_interface_create(char *addr)//unsigned int addr)
 
     return interface;
 
-err_flows:
-    if (interface->address)
+ERR_FLOWS:
+    if (interface->address) 
         free(interface->address);
     free(interface);
-error:
+ERROR:
     return NULL;
 }
 
@@ -119,16 +120,41 @@ void mda_flow_dump(mda_interface_t * interface)
     }
 }
 
-void mda_link_dump(mda_interface_t * link[2])
-{
+void mda_link_dump(mda_interface_t * link[2], unsigned res) {
+
     if (!link[1]) {
-        printf("%hhu %s [ ", link[0]->ttl, link[0]->address ? link[0]->address : "*");
+        if(res) {
+        printf("%hhu %s (%s) [ ",
+                link[0]->ttl,
+                link[0]->address ? address_resolv(link[0]->address) : "*", 
+                link[0]->address ? link[0]->address : "*"
+                );
+                 }
+        else {
+         printf("%hhu %s  [ ",
+                link[0]->ttl,
+                link[0]->address ? link[0]->address : "*"
+                );
+                }
         mda_flow_dump(link[0]);
         printf(" ]\n");
         return;
-    }
 
-    printf("%hhu %s -> %s [ ", link[0]->ttl, link[0]->address ? link[0]->address : "*", link[1]->address ? link[1]->address : "*");
+    }
+    if (res) {
+    printf("%hhu %s (%s) -> %s (%s) [ ", link[0]->ttl,
+            link[0]->address ? address_resolv(link[0]->address) : "*", 
+            link[0]->address ? link[0]->address : "*",
+            link[1]->address ? address_resolv(link[1]->address) : "*", 
+            link[1]->address ? link[1]->address : "*"
+            );
+    }
+    else {
+        printf("%hhu %s -> %s [ ", link[0]->ttl,
+            link[0]->address ? link[0]->address : "*",
+            link[1]->address ? link[1]->address : "*"
+            );
+            }
     mda_flow_dump(link[0]);
     printf(" -> ");
     mda_flow_dump(link[1]);
@@ -137,7 +163,7 @@ void mda_link_dump(mda_interface_t * link[2])
 
 void mda_interface_dump(lattice_elt_t * elt)
 {
-    unsigned int i, num_next;
+    unsigned int      i, num_next;
     mda_interface_t * link[2];
     
     link[0] = lattice_elt_get_data(elt);
@@ -145,7 +171,7 @@ void mda_interface_dump(lattice_elt_t * elt)
     num_next = dynarray_get_size(elt->next);
     if (num_next == 0) {
         link[1] = NULL;
-        mda_link_dump(link);
+        mda_link_dump(link, 1);
     }
     for (i = 0; i < num_next; i++) {
         lattice_elt_t *iter_elt;
@@ -153,7 +179,7 @@ void mda_interface_dump(lattice_elt_t * elt)
         iter_elt = dynarray_get_ith_element(elt->next, i);
         link[1] = lattice_elt_get_data(iter_elt);
 
-        mda_link_dump(link);
+        mda_link_dump(link, 1);
 
     }
 }

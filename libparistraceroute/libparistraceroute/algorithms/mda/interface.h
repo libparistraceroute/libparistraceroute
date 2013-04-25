@@ -33,12 +33,13 @@ typedef struct {
 
 } mda_interface_t;
 
-mda_interface_t *mda_interface_create(char *addr);
-void mda_interface_free(mda_interface_t *interface);
+mda_interface_t * mda_interface_create(char * addr);
 
-int mda_interface_add_flow_id(mda_interface_t *interface, uintmax_t flow_id, mda_flow_state_t state);
+void mda_interface_free(mda_interface_t * interface);
 
-unsigned int mda_interface_get_num_flows(mda_interface_t *interface, mda_flow_state_t state);
+int mda_interface_add_flow_id(mda_interface_t * interface, uintmax_t flow_id, mda_flow_state_t state);
+
+unsigned int mda_interface_get_num_flows(mda_interface_t * interface, mda_flow_state_t state);
 
 //uintmax_t mda_interface_get_new_flow_id(mda_interface_t *interface);
 uintmax_t mda_interface_get_available_flow_id(mda_interface_t *interface, unsigned int num_siblings, mda_data_t * data);
@@ -48,7 +49,7 @@ uintmax_t mda_interface_get_available_flow_id(mda_interface_t *interface, unsign
 //int mda_interface_add(mda_interface_t *interface, mda_interface_t *added_interface);
 
 void mda_flow_dump(mda_interface_t * interface);
-void mda_link_dump(mda_interface_t ** link);
+void mda_link_dump(mda_interface_t ** link, unsigned res);
 void mda_interface_dump(lattice_elt_t * elt);
 
 #endif /* MDA_INTERFACE_H */

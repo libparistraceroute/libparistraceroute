@@ -14,10 +14,10 @@
  */
 
 typedef struct {
-    buffer_t *buffer; /**< Buffer to hold the packet data */
+    buffer_t     * buffer; /**< Buffer to hold the packet data */
 
     /* Redundant information : temporary */
-    char *dip;
+    char         * dip;
     unsigned short dport;
 } packet_t;
 
@@ -46,10 +46,11 @@ void packet_free(packet_t * packet);
 
 // Accessors
 
-buffer_t * packet_get_buffer(packet_t *packet);
-int packet_set_buffer(packet_t *packet, buffer_t *buffer);
+buffer_t * packet_get_buffer(packet_t * packet);
 
-int packet_set_dip(packet_t *packet, char *dip);
-int packet_set_dport(packet_t *packet, unsigned short dport);
+int packet_set_buffer(packet_t * packet, buffer_t * buffer);
+
+int packet_set_dip(packet_t * packet, char * dip);
+int packet_set_dport(packet_t * packet, unsigned short dport);
 
 #endif

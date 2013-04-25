@@ -13,10 +13,10 @@
  */
 
 // TODO manage properly event allocation and desallocation
-void traceroute_handler(pt_loop_t * loop, event_t * event, void *data)
+void traceroute_handler(pt_loop_t * loop, event_t * event, void * data)
 {
     const traceroute_probe_reply_t * reply;
-    traceroute_caller_data_t *_data;
+    traceroute_caller_data_t       *_data;
     
     _data = data;
 
@@ -60,8 +60,8 @@ int main(int argc, char ** argv)
     // Harcode command line parsing here
     char dst_ip[] = "1.1.1.2";
 
-    printf("This sample program is currently broken, please use paris-traceroute in the meantime.\n");
-    exit(EXIT_FAILURE);
+//    printf("This sample program is currently broken, please use paris-traceroute in the meantime.\n");
+  //  exit(EXIT_FAILURE);
 
     // Create libparistraceroute loop
     loop = pt_loop_create(traceroute_handler, NULL);

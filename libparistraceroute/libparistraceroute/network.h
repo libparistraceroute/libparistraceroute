@@ -42,7 +42,7 @@ typedef struct network_s {
     dynarray_t   * probes;     /**< List of probes in transit */
     
     // Timer data
-    int                    timerfd; // used for probe timeouts, Linux specific
+    int            timerfd; // used for probe timeouts, Linux specific
 
     /* Temp */
     uintmax_t      last_tag;
@@ -52,13 +52,13 @@ typedef struct network_s {
  *
  */
 
-void network_set_timeout(unsigned new_timeout);
+void network_set_timeout(double new_timeout);
 
 /**
  *
  */
 
-unsigned network_get_timeout();
+double network_get_timeout(void);
 
 /**
  * \brief Create a new network structure

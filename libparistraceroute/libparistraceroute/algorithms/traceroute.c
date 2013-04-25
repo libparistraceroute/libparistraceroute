@@ -56,10 +56,10 @@ void traceroute_update_options(dynarray_t * options) {
  */
 
 typedef struct {
-    unsigned    num_sent_probes; /**< Amount of probes sent to the current hop */
-    unsigned    ttl;             /**< The current TTL */
-    probe_t  ** probes;          /**< Probes related to the current hop */
-    probe_t  ** replies;         /**< Replies related to each of these probes */
+    unsigned                   num_sent_probes; /**< Amount of probes sent to the current hop */
+    unsigned                   ttl;             /**< The current TTL */
+    probe_t                 ** probes;          /**< Probes related to the current hop */
+    probe_t                 ** replies;         /**< Replies related to each of these probes */
     traceroute_caller_data_t * caller_data;
 } traceroute_data_t;   
 
@@ -69,9 +69,7 @@ typedef struct {
  * \param traceroute_data The instance we reinitialize
  */
 
-static void traceroute_data_reset(
-    traceroute_data_t    * traceroute_data
-) {
+static void traceroute_data_reset(traceroute_data_t * traceroute_data) {
     traceroute_options_t * traceroute_options = NULL;
     traceroute_options = NULL;
     //if (!traceroute_options) return; 
@@ -156,14 +154,8 @@ static inline bool is_star(const probe_t * probe) {
  * \return true iif the destination is reached
  */
 
-static inline bool destination_reached(
-    const char * dst_ip,
-    probe_t    * reply
-) {
-    return !strcmp(
-        probe_get_field(reply, "src_ip")->value.string,
-        dst_ip
-    );
+static inline bool destination_reached(const char * dst_ip, probe_t * reply) {
+    return !strcmp(probe_get_field(reply, "src_ip")->value.string, dst_ip);
 }
 
 /**
@@ -184,11 +176,7 @@ static inline bool stopping_icmp_error(const probe_t * reply) {
  * \return true if successful
  */
 
-bool send_traceroute_probe(
-    pt_loop_t * loop,
-    probe_t   * probe_skel,
-    uint8_t     ttl
-) {
+bool send_traceroute_probe(pt_loop_t * loop, probe_t * probe_skel,uint8_t ttl) {
     if (probe_set_fields(probe_skel, I8("ttl", ttl), NULL) == 0) {
         probe_dump(probe_skel);
         pt_send_probe(loop, probe_skel);
@@ -204,7 +192,7 @@ bool send_traceroute_probe(
  *  the upper scopes.
  */
 
-int traceroute_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel)
+int traceroute_handler(pt_loop_t * loop, event_t * event, void **pdata, probe_t * skel)
 { 
     unsigned int           j, num_probes, num_sent_probes;
     bool                   all_stars;
@@ -213,7 +201,7 @@ int traceroute_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *s
     probe_t              * probe;
     probe_reply_t        * probe_reply;
 
-    traceroute_options_t * options = NULL; // XXX TODO
+    traceroute_options_t * options =NULL ; // XXX TODO
 
     //if (!options)         goto FAILURE; 
     //if (!options->dst_ip) goto FAILURE; 
@@ -261,7 +249,7 @@ int traceroute_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *s
                 for (j = 0; j < num_probes; ++j) {
                     all_stars &= is_star(data->probes[j]);
                     if (destination_reached(options->dst_ip, data->replies[j])) {
-                        // TODO send_message "destination reached"
+                        // TODO send_message "destination reached"a
                         goto SUCCESS;
                     } else if (stopping_icmp_error(data->replies[j])) {
                         // TODO send_message "icmp error"

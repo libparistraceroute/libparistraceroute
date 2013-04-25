@@ -24,7 +24,8 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la 
 
 libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
-						algorithm.h \
+						address.h \
+                        algorithm.h \
 						algorithms/mda/data.h \
 						algorithms/mda/flow.h \
 						algorithms/mda/interface.h \
@@ -67,7 +68,8 @@ libparistraceroute_@LIBRARY_VERSION@_ladir = $(includedir)/paristraceroute
 # the list of header files that belong to the library (to be installed later)
 libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         $(libparistraceroute_la_HEADERS) \
-						algorithm.c \
+					    address.c \
+                        algorithm.c \
 						algorithms/mda.c \
 						algorithms/mda/data.c \
 						algorithms/mda/flow.c \

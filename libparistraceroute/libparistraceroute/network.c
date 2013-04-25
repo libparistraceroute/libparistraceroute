@@ -12,17 +12,17 @@
 //#define TIMEOUT 3
 #define sec_to_nsec 1000000
 
-static int timeout ;
+static double timeout;
 
 /******************************************************************************
  * Network
  ******************************************************************************/
 
-void network_set_timeout(unsigned new_timeout) {
+void network_set_timeout(double new_timeout) {
     timeout = new_timeout;
 }
 
-unsigned network_get_timeout() {
+double network_get_timeout() {
     return timeout;
 }
 
@@ -152,6 +152,7 @@ packet_t *packet_create_from_probe(probe_t *probe)
     packet_set_dip(packet, dip);
     packet_set_dport(packet, dport);
     packet_set_buffer(packet, probe_get_buffer(probe));
+    //probe_dump(probe);
 
     return packet;
 
@@ -227,8 +228,8 @@ int network_tag_probe(network_t * network, probe_t * probe)
 // TODO This could be replaced by watchers: FD -> action
 int network_process_sendq(network_t *network)
 {
-    probe_t *probe;
-    packet_t *packet;
+    probe_t  * probe;
+    packet_t * packet;
     int res;
     unsigned int num_probes;
 
@@ -263,7 +264,7 @@ int network_process_sendq(network_t *network)
         /* There is no running timer, let's set one for this probe */
         struct itimerspec new_value;
 
-        new_value.it_value.tv_sec = 3; /* XXX hardcoded timeout */
+        new_value.it_value.tv_sec = (time_t)  timeout; /* XXX hardcoded timeout */
         new_value.it_value.tv_nsec = 0;
         new_value.it_interval.tv_sec = 0;
         new_value.it_interval.tv_nsec = 0;
@@ -281,7 +282,6 @@ printf("error\n");
 int network_schedule_probe_timeout(network_t * network, probe_t * probe)
 {
     struct itimerspec new_value;
-
     if (probe) {
         double d;
         d = network_get_timeout() - (get_timestamp() - probe_get_sending_time(probe));
@@ -320,9 +320,9 @@ int network_schedule_next_probe_timeout(network_t * network)
  */
 probe_t *network_match_probe(network_t *network, probe_t *reply)
 {
-    field_t *reply_checksum_field;
-    probe_t *probe;
-    size_t size;
+    field_t    * reply_checksum_field;
+    probe_t    * probe;
+    size_t       size;
     unsigned int i;
 
    // probe_dump(reply);
