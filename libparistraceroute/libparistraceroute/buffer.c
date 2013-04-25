@@ -31,7 +31,6 @@ buffer_t * buffer_dup(const buffer_t * buffer)
     buf->size = buffer->size;
     return buf;
 
-<<<<<<< HEAD
 
 error_buffer:
     free(buffer);
@@ -67,10 +66,7 @@ int buffer_resize(buffer_t * buffer, size_t size)
 <<<<<<< HEAD
         if (!tmp)
             return -1; // cannot realloc, orig still valid
-       // memset(tmp + buffer->size, 0, (size + buffer->size) * sizeof(unsigned char));
-=======
-        if (!tmp) return -1; // cannot realloc, orig still valid
->>>>>>> origin/master
+        memset(tmp + buffer->size, 0 , size * sizeof(unsigned char) - buffer->size);
         buffer->data = tmp;
     }
     buffer->size = size;

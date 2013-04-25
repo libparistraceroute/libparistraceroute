@@ -32,12 +32,10 @@ typedef struct {
 
 
 //typedef union common_sockaddr sockaddr_any;
-
 int address_get_by_name (const char * name, sockaddr_any * addr);
 
 int address_set_host (char * hostname, sockaddr_any * dst_addr);
 
-const char * address_2_str (const sockaddr_any * addr); 
 
 char * address_resolv(char * name);
 

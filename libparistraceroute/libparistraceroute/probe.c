@@ -88,7 +88,7 @@ void probe_free(probe_t * probe)
 
 // Accessors
 
-inline buffer_t * probe_get_buffer(probe_t * probe) {
+inline buffer_t * probe_get_buffer(const probe_t * probe) {
     return probe ? probe->buffer : NULL;
 }
 
@@ -202,7 +202,7 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
 }
 
 // Dump
-void probe_dump(probe_t *probe)
+void probe_dump(const probe_t *probe)
 {
     size_t size;
     unsigned int i;
@@ -469,11 +469,8 @@ int probe_set_field_ext(probe_t *probe, field_t *field, unsigned int depth)
     return res;
 }
 
-<<<<<<< HEAD
 int probe_set_field(probe_t * probe, field_t * field)
-=======
 inline int probe_set_field(probe_t *probe, field_t *field)
->>>>>>> origin/master
 {
     return probe_set_field_ext(probe, field, 0);
 }
@@ -507,8 +504,8 @@ int probe_set_metafield(probe_t * probe, field_t * field)
 
 int probe_resize_buffer(probe_t * probe, unsigned int size)
 {
-    unsigned int offset, num_layers, i;
-    protocol_field_t *pfield;
+    unsigned int       offset, num_layers, i;
+    protocol_field_t * pfield;
     /* We can only resize the last layer (payload) */
     /* TODO */
 
@@ -640,6 +637,10 @@ const field_t * probe_get_metafield(const probe_t * probe, const char * name)
     const field_t * field;
     field_t       * ret_field;
 
+field_t * probe_get_metafield(const probe_t *probe, const char *name)
+{
+    field_t * field, * ret_field;
+
     // TODO to generalize to any metafield
     if (strcmp(name, "flow_id") != 0) return NULL;
 
@@ -651,8 +652,8 @@ const field_t * probe_get_metafield(const probe_t * probe, const char * name)
 
 // TODO same function starting at a given layer
 int probe_set_fields(probe_t *probe, field_t *field1, ...) {
-    va_list args;
-    field_t *field;
+    va_list   args;
+    field_t * field;
     int res;
 
     va_start(args, field1);
@@ -709,7 +710,7 @@ int probe_set_queueing_time(probe_t *probe, double time)
     return 0;
 }
 
-double probe_get_queueing_time(probe_t *probe)
+double probe_get_queueing_time(const probe_t *probe)
 {
     return probe->queueing_time;
 }
@@ -738,12 +739,12 @@ void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *, v
     // not implemented : need to iter over protocol fields of each layer
 }
 
-unsigned int probe_get_num_proto(probe_t *probe)
+unsigned int probe_get_num_proto(const probe_t *probe)
 {
     return 0; // TODO
 }
 
-field_t ** probe_get_fields(probe_t *probe)
+field_t ** probe_get_fields(const probe_t *probe)
 {
     return NULL; // TODO
 }
@@ -758,11 +759,10 @@ const field_t * probe_get_field_ext(const probe_t * probe, const char * name, un
     // We go through the layers until we get the required field
     size = dynarray_get_size(probe->layers);
     for(i = depth; i < size; i++) {
-        
         layer = dynarray_get_ith_element(probe->layers, i);
+<<<<<<< HEAD
 
         if ((field = layer_get_field(layer, name))) return field;
-    }
 
     // Not found, this is maybe a metafield
     return probe_get_metafield(probe, name);
@@ -773,13 +773,13 @@ const field_t * probe_get_field(const probe_t * probe, const char * name)
     return probe_get_field_ext(probe, name, 0);
 }
 
-unsigned char *probe_get_payload(probe_t *probe)
+unsigned char *probe_get_payload(const probe_t *probe)
 {
     // point into the packet structure
     return NULL; // TODO
 }
 
-unsigned int probe_get_payload_size(probe_t *probe)
+unsigned int probe_get_payload_size(const probe_t *probe)
 {
     return 0; // TODO
 }
@@ -794,9 +794,9 @@ char* probe_get_protocol_by_index(unsigned int i)
  * probe_reply_t
  ******************************************************************************/
 
-probe_reply_t *probe_reply_create(void)
+probe_reply_t * probe_reply_create(void)
 {
-    probe_reply_t *probe_reply;
+    probe_reply_t * probe_reply;
 
     probe_reply = malloc(sizeof(probe_reply_t));
     probe_reply->probe = NULL;
@@ -819,7 +819,7 @@ int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe)
     return 0;
 }
 
-probe_t * probe_reply_get_probe(probe_reply_t *probe_reply)
+probe_t * probe_reply_get_probe(const probe_reply_t *probe_reply)
 {
     return probe_reply->probe;
 }
@@ -830,7 +830,7 @@ int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply)
     return 0;
 }
 
-probe_t * probe_reply_get_reply(probe_reply_t *probe_reply)
+probe_t * probe_reply_get_reply(const probe_reply_t *probe_reply)
 {
     return probe_reply->reply;
 }

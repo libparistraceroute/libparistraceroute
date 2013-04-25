@@ -294,7 +294,11 @@ ERROR:
  * MDA HANDLERS
  */
 
+<<<<<<< HEAD
 int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * poption)
+=======
+int mda_handler_init(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * poption)
+>>>>>>> 94269790759e34a6a43d2b9841337b1680ce591d
 {
     mda_data_t    * data;
     mda_options_t * options;
@@ -309,6 +313,9 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t *
     //printf("W: mda.c: set dport to 53 \n"); // TOFIX
     //probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
     /* printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
+    printf("W: mda.c: set dport to 53 \n"); // TOFIX
+    probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
+     printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
             options->traceroute_options.min_ttl,
             options->traceroute_options.max_ttl,
             options->traceroute_options.num_probes,
@@ -317,8 +324,6 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t *
             options->max_branch
         );
         */
-    data->dst_ip = probe_get_field(skel, "dst_ip")->value.string;
-    data->loop = loop;
     data->skel = skel;
 
     /* Create a dummy first hop, root of a lattice of discovered interfaces:

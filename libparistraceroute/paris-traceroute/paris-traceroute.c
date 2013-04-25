@@ -33,6 +33,7 @@ const char *protocols[] = {
     "udp", NULL
 };
 
+<<<<<<< HEAD
 //                              def    min  max
 static unsigned first_ttl[3] = {1,     1,   255};
 static unsigned max_ttl[3]   = {30,    1,   255};
@@ -110,6 +111,8 @@ void result_dump(lattice_elt_t * elt)
 
     }
 }
+=======
+>>>>>>> 94269790759e34a6a43d2b9841337b1680ce591d
 
 // TODO manage properly event allocation and desallocation
 void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void * user_data)
