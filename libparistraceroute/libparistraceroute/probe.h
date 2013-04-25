@@ -109,8 +109,8 @@ field_t ** probe_get_fields(probe_t *probe);
  *
  * What about allocation ?
  */
-field_t *probe_get_field(probe_t *probe, const char *name);
-field_t *probe_get_field_ext(probe_t *probe, const char *name, unsigned int depth);
+const field_t * probe_get_field(const probe_t * probe, const char * name);
+const field_t * probe_get_field_ext(const probe_t * probe, const char * name, unsigned int depth);
 
 /**
  * \brief Get the payload from a probe
@@ -194,7 +194,7 @@ struct pt_loop_s;
 void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *reply);
 
 
-int probe_set_protocols(probe_t *probe, char *name1, ...);
+int probe_set_protocols(probe_t * probe, char * name1, ...);
 
 int probe_update_fields(probe_t *probe);
 

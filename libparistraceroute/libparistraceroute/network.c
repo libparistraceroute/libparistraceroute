@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/timerfd.h>
+#include <arpa/inet.h>   // htons
+
 #include "network.h"
 #include "packet.h"
 #include "queue.h"
-
 #include "probe.h" // test
 #include "algorithm.h"
 
@@ -78,10 +79,10 @@ err_probes:
 err_timerfd:
     sniffer_free(network->sniffer);
 err_sniffer:
-    queue_free(network->recvq, (ELEMENT_FREE)packet_free);
+    queue_free(network->recvq, (ELEMENT_FREE) packet_free);
 err_recvq:
     printf("> network_create: call probe_free\n");
-    queue_free(network->sendq, (ELEMENT_FREE)probe_free);
+    queue_free(network->sendq, (ELEMENT_FREE) probe_free);
 err_sendq:
     socketpool_free(network->socketpool);
 err_socketpool:

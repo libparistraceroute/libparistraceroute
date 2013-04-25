@@ -4,7 +4,8 @@
 #include <arpa/inet.h>
 #include "field.h"
 
-field_t *field_create_int8(const char *key, uint8_t value) {
+field_t * field_create_int8(const char * key, uint8_t value)
+{
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -15,7 +16,8 @@ field_t *field_create_int8(const char *key, uint8_t value) {
     return field;
 }
 
-field_t *field_create_int16(const char *key, uint16_t value) {
+field_t * field_create_int16(const char * key, uint16_t value)
+{
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -26,7 +28,8 @@ field_t *field_create_int16(const char *key, uint16_t value) {
     return field;
 }
 
-field_t *field_create_int32(const char *key, uint32_t value) {
+field_t * field_create_int32(const char * key, uint32_t value)
+{
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -37,7 +40,8 @@ field_t *field_create_int32(const char *key, uint32_t value) {
     return field;
 }
 
-field_t *field_create_int64(const char *key, uint64_t value) {
+field_t * field_create_int64(const char * key, uint64_t value)
+{
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -48,6 +52,7 @@ field_t *field_create_int64(const char *key, uint64_t value) {
     return field;
 }
 
+<<<<<<< HEAD
 field_t *field_create_int128(const char *key, uint128_t value) {
     field_t * field = malloc(sizeof(field_t));
 
@@ -60,6 +65,10 @@ field_t *field_create_int128(const char *key, uint128_t value) {
 }
 
 field_t *field_create_intmax(const char *key, uintmax_t value) {
+=======
+field_t * field_create_intmax(const char * key, uintmax_t value)
+{
+>>>>>>> origin/master
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -70,7 +79,7 @@ field_t *field_create_intmax(const char *key, uintmax_t value) {
     return field;
 }
 
-field_t *field_create_string(const char *key, const char *value)
+field_t * field_create_string(const char * key, const char * value)
 {
     field_t * field = malloc(sizeof(field_t));
 
@@ -82,23 +91,27 @@ field_t *field_create_string(const char *key, const char *value)
     return field;
 }
 
-field_t *field_create(fieldtype_t type, const char *key, void *value)
+field_t * field_create(fieldtype_t type, const char * key, void * value)
 {
     switch (type) {
         case TYPE_INT8:
-            return field_create_int8(key, *(uint8_t*)value);
+            return field_create_int8(key, *(uint8_t *) value);
         case TYPE_INT16:
-            return field_create_int16(key, *(uint16_t*)value);
+            return field_create_int16(key, *(uint16_t *) value);
         case TYPE_INT32:
-            return field_create_int32(key, *(uint32_t*)value);
+            return field_create_int32(key, *(uint32_t *) value);
         case TYPE_INT64:
+<<<<<<< HEAD
             return field_create_int64(key, *(uint64_t*)value);
         case TYPE_INT128:
             return field_create_int128(key, *(uint128_t*)value);
+=======
+            return field_create_int64(key, *(uint64_t *) value);
+>>>>>>> origin/master
         case TYPE_INTMAX:
-            return field_create_intmax(key, *(uintmax_t*)value);
+            return field_create_intmax(key, *(uintmax_t *) value);
         case TYPE_STRING:
-            return field_create_string(key, (char *)value);
+            return field_create_string(key, (char *) value);
         case TYPE_INT4:
         default:
             break;
@@ -106,17 +119,18 @@ field_t *field_create(fieldtype_t type, const char *key, void *value)
     return 0;
 }
 
-field_t *field_create_from_network(fieldtype_t type, const char *key, void *value)
+field_t * field_create_from_network(fieldtype_t type, const char * key, void * value)
 {
 	uint128_t temp128;
     switch (type) {
         case TYPE_INT8:
-            return field_create_int8(key, *(uint8_t*)value);
+            return field_create_int8(key, *(uint8_t *) value);
         case TYPE_INT16:
-            return field_create_int16(key, ntohs(*(uint16_t*)value));
+            return field_create_int16(key, ntohs(*(uint16_t *) value));
         case TYPE_INT32:
-            return field_create_int32(key, ntohl(*(uint32_t*)value));
+            return field_create_int32(key, ntohl(*(uint32_t *) value));
         case TYPE_INT64:
+<<<<<<< HEAD
             return field_create_int64(key, ntohl(*(uint64_t*)value));
         case TYPE_INT128:
         	temp128.d64[0] = ntohl(((uint128_t *) value)->d64[1]);
@@ -124,10 +138,13 @@ field_t *field_create_from_network(fieldtype_t type, const char *key, void *valu
         	((uint128_t *) value)->d64[0] = temp128.d64[0];
         	((uint128_t *) value)->d64[1] = temp128.d64[1];
             return field_create_int128(key, *(uint128_t *) value);
+=======
+            return field_create_int64(key, ntohl(*(uint64_t *) value));
+>>>>>>> origin/master
         case TYPE_INTMAX:
-            return field_create_intmax(key, ntohl(*(uintmax_t*)value));
+            return field_create_intmax(key, ntohl(*(uintmax_t *) value));
         case TYPE_STRING:
-            return field_create_string(key, (char *)value);
+            return field_create_string(key, (char *) value);
         case TYPE_INT4:
         default:
             break;
@@ -135,12 +152,19 @@ field_t *field_create_from_network(fieldtype_t type, const char *key, void *valu
     return 0;
 }
 
-void field_free(field_t *field)
+void field_free(field_t * field)
 {
-    if(field) {
+    if (field) {
         if(field->key) free(field->key);
         free(field);
     }
+}
+
+// Accessors
+
+size_t field_get_size(const field_t * field)
+{
+    return field_get_type_size(field->type);
 }
 
 size_t field_get_type_size(fieldtype_t type)
@@ -168,12 +192,20 @@ size_t field_get_type_size(fieldtype_t type)
 
 // Comparison
 
-int field_compare(field_t *field1, field_t *field2)
+int field_compare(const field_t * field1, const field_t * field2)
 {
+<<<<<<< HEAD
 
 	int result = 0;
     if (field1->type != field2->type)
         return -2; // Field are not of the same type !!
+=======
+    if (field1->type != field2->type) {
+        printf("field_compare: field are not of the same type");
+        return -2;
+    }
+
+>>>>>>> origin/master
     switch (field1->type) {
         case TYPE_INT8:
             return field1->value.int8 - field2->value.int8;
@@ -197,19 +229,13 @@ int field_compare(field_t *field1, field_t *field2)
         default:
             break;
     }
+    printf("field_compare: unknown field type %d", field1->type); 
     return -3; // Unknown comparison
-    
-}
-
-// Accessors
-
-size_t field_get_size(field_t *field)
-{
-    return field_get_type_size(field->type);
 }
 
 // Dump
-void field_dump(field_t *field)
+
+void field_dump(const field_t * field)
 {
     switch (field->type) {
         case TYPE_INT8:
@@ -238,5 +264,5 @@ void field_dump(field_t *field)
         default:
             break;
     }
-    
 }
+

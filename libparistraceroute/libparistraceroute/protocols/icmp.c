@@ -1,25 +1,28 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>      // memcpy()
-#include <stdbool.h>
-#include <errno.h>       // ERRNO, EINVAL
-#include <stddef.h>      // offsetof()
+#include <stdlib.h>           // malloc()
+#include <string.h>           // memcpy()
+#include <stdbool.h>          // bool
+#include <errno.h>            // ERRNO, EINVAL
+#include <stddef.h>           // offsetof()
 #include <netinet/ip_icmp.h>
+#include <netinet/in.h>       // IPPROTO_ICMP = 1
 #include <arpa/inet.h>
 
 #include "../protocol.h"
 
-#define ICMP_FIELD_TYPE           "type"
-#define ICMP_FIELD_CODE           "code"
-#define ICMP_FIELD_CHECKSUM       "checksum"
-#define ICMP_FIELD_REST_OF_HEADER "rest_of_header"
+#define ICMP_FIELD_TYPE             "type"
+#define ICMP_FIELD_CODE             "code"
+#define ICMP_FIELD_CHECKSUM         "checksum"
+#define ICMP_FIELD_REST_OF_HEADER   "rest_of_header"
 
 #define ICMP_DEFAULT_TYPE           0
 #define ICMP_DEFAULT_CODE           0
 #define ICMP_DEFAULT_CHECKSUM       0
 #define ICMP_DEFAULT_REST_OF_HEADER 0
 
-/* ICMP fields */
+/**
+ * ICMP fields
+ */
+
 static protocol_field_t icmp_fields[] = {
     {
         .key = ICMP_FIELD_TYPE,
@@ -44,7 +47,10 @@ static protocol_field_t icmp_fields[] = {
     END_PROTOCOL_FIELDS
 };
 
-/* Default ICMP values */
+/**
+ * Default ICMP values
+ */
+
 static struct icmphdr icmp_default = {
     .code           = ICMP_DEFAULT_TYPE,
     .type           = ICMP_DEFAULT_CODE,
@@ -74,42 +80,45 @@ unsigned int icmp_get_header_size(void)
 
 /**
  * \brief Write the default ICMP header
- * \param data The address of an allocated buffer that will store the header
+ * \param data The address of an allocated buffer that will
+ *    store the ICMP header
  */
 
-void icmp_write_default_header(unsigned char *data)
+void icmp_write_default_header(unsigned char * data)
 {
     memcpy(data, &icmp_default, sizeof(struct icmphdr));
 }
 
 /**
  * \brief Compute and write the checksum related to an ICMP header
- * \param icmp_hdr A pre-allocated ICMP header
- * \param pseudo_hdr The pseudo header 
+ * \param icmp_header A pre-allocated ICMP header. The ICMP checksum
+ *    stored in this buffer is updated by this function.
+ * \param ip_psh Pass NULL 
  * \sa http://www.networksorcery.com/enp/protocol/icmp.htm#Checksum
- * \return 0 if everything is ok, EINVAL if pseudo_hdr is invalid,
- *    ENOMEM if a memory error arises
+ * \return true if everything is ok, false otherwise
+ *    errno stores:
+ *    - EINVAL if pseudo_hdr is invalid (!= NULL)
+ *    - ENOMEM if a memory error arises
  */
 
-int icmp_write_checksum(unsigned char *buf, buffer_t * psh)
+bool icmp_write_checksum(uint8_t * icmp_header, buffer_t * ip_psh)
 {
-    struct icmphdr *icmp_hed;
-    unsigned short len;
+    struct icmphdr * icmp_hdr;
 
-    if (psh) return EINVAL; // pseudo header not required
+    // No pseudo header not required in ICMP
+    if (ip_psh) {
+        errno = EINVAL;
+        return false;
+    }
 
-    icmp_hed = (struct icmphdr *)buf;
-    len = sizeof(struct icmphdr);
-
-    icmp_hed->checksum = csum(*(unsigned short**)buf, len >> 1);
-
-    return 0;
-
+    icmp_hdr = (struct icmphdr *) icmp_header;
+    icmp_hdr->checksum = csum((uint16_t *) icmp_header, sizeof(struct icmphdr));
+    return true;
 }
 
 static protocol_t icmp = {
     .name                 = "icmp",
-    .protocol             = 1,
+    .protocol             = IPPROTO_ICMP,
     .get_num_fields       = icmp_get_num_fields,
     .write_checksum       = icmp_write_checksum,
     .fields               = icmp_fields,

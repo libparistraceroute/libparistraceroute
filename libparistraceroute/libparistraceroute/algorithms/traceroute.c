@@ -177,6 +177,7 @@ static inline bool stopping_icmp_error(const probe_t * reply) {
  */
 
 bool send_traceroute_probe(pt_loop_t * loop, probe_t * probe_skel,uint8_t ttl) {
+
     if (probe_set_fields(probe_skel, I8("ttl", ttl), NULL) == 0) {
         probe_dump(probe_skel);
         pt_send_probe(loop, probe_skel);
@@ -192,8 +193,8 @@ bool send_traceroute_probe(pt_loop_t * loop, probe_t * probe_skel,uint8_t ttl) {
  *  the upper scopes.
  */
 
-int traceroute_handler(pt_loop_t * loop, event_t * event, void **pdata, probe_t * skel)
-{ 
+int traceroute_handler(pt_loop_t * loop, event_t * event, void **pdata, probe_t * skel) {
+
     unsigned int           j, num_probes, num_sent_probes;
     bool                   all_stars;
     traceroute_data_t    * data; // is NULL before ALGORITHM_INIT

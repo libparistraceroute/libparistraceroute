@@ -36,6 +36,9 @@ void traceroute_handler(pt_loop_t * loop, event_t * event, void * data)
             break;
         case TRACEROUTE_ALL_STARS:
         case TRACEROUTE_ICMP_ERROR:
+        case ALGORITHM_EVENT:
+        case ALGORITHM_ERROR:
+        default:
             printf("not yet implemented");
             break;
     }

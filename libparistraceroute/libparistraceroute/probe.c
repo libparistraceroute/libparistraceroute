@@ -92,10 +92,14 @@ inline buffer_t * probe_get_buffer(probe_t * probe) {
     return probe ? probe->buffer : NULL;
 }
 
+<<<<<<< HEAD
 
 int probe_set_buffer(probe_t *probe, buffer_t *buffer)
+=======
+int probe_set_buffer(probe_t * probe, buffer_t * buffer)
+>>>>>>> origin/master
 {
-    int             size; // to prevent underflow
+    size_t          size; // to prevent underflow
     size_t          offset;
     unsigned char * data;
     protocol_t    * protocol;
@@ -108,7 +112,7 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     size = buffer_get_size(buffer);
 
     /* Remove the former layer structure */
-    dynarray_clear(probe->layers, (void(*)(void*))layer_free);
+    dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
 
   unsigned char ip_version = buffer_guess_ip_version(buffer);
              
@@ -125,10 +129,10 @@ int probe_set_buffer(probe_t *probe, buffer_t *buffer)
     offset = 0;
 
     for(;;) {
-        layer_t *layer;
-        protocol_t *protocol;
-        field_t *field;
-        size_t hdrlen;
+        layer_t       * layer;
+        protocol_t    * protocol;
+        const field_t * field;
+        size_t          hdrlen;
 
         layer = layer_create();
         layer_set_buffer(layer, data + offset);
@@ -359,52 +363,49 @@ error:
 
 // TODO A similar function should allow hooking into the layer structure
 // and not at the top layer
-int probe_set_protocols(probe_t *probe, char *name1, ...)
+int probe_set_protocols(probe_t * probe, char * name1, ...)
 {
-    va_list  args, args2;
-    size_t   buflen, offset;
-    char   * i;
-    layer_t *layer, *prev_layer;
+    va_list   args, args2;
+    size_t    buflen, offset;
+    char    * i;
+    layer_t * layer, *prev_layer;
 
-    /* Remove the former layer structure */
-    dynarray_clear(probe->layers, (void(*)(void*))layer_free);
+    // Remove the former layer structure
+    dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
 
-    /* Set up the new layer structure */
+    // Set up the new layer structure
     va_start(args, name1);
 
+    // Allocate the buffer according to the layer structure
     buflen = 0;
-    /* allocate the buffer according to the layer structure */
     va_copy(args2, args);
-    for (i = name1; i; i = va_arg(args2, char*)) {
-        protocol_t *protocol;
-        protocol = protocol_search(i);
-        if (!protocol)
-            goto error;
+    for (i = name1; i; i = va_arg(args2, char *)) {
+        protocol_t * protocol = protocol_search(i);
+        if (!protocol) goto ERROR;
         buflen += protocol->header_len; 
     }
     va_end(args2);
-
     buffer_resize(probe->buffer, buflen);
 
+    // Create each layer
     offset = 0;
     prev_layer = NULL;
-    for (i = name1; i; i = va_arg(args, char*)) {
-        protocol_field_t *pfield;
-        protocol_t *protocol;
+    for (i = name1; i; i = va_arg(args, char *)) {
+        protocol_field_t * pfield;
+        protocol_t       * protocol;
 
-        /* Associate protocol to the layer */
+        // Associate protocol to the layer
         layer = layer_create();
         protocol = protocol_search(i);
-        if (!protocol)
-            goto error;
+        if (!protocol) goto ERROR_LAYER;
 
         layer_set_protocol(layer, protocol);
 
-        /* Initialize the buffer with default protocol values */
+        // Initialize the buffer with default protocol values
         protocol->write_default_header(buffer_get_data(probe->buffer) + offset);
         layer_set_header_size(layer, protocol->header_len);
 
-        // TODO consider variable length headers */
+        // TODO consider variable length headers
         layer_set_buffer(layer, buffer_get_data(probe->buffer) + offset);
         layer_set_buffer_size(layer, buflen - offset);
         layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);
@@ -417,19 +418,17 @@ int probe_set_protocols(probe_t *probe, char *name1, ...)
         if (prev_layer) {
             pfield = protocol_get_field(layer->protocol, "protocol");
             if (pfield) {
-                layer_set_field(layer, I16("protocol", (uint16_t)prev_layer->protocol->protocol));
+                layer_set_field(layer, I16("protocol", (uint16_t) prev_layer->protocol->protocol));
             }
         }
 
         offset += protocol->header_len; 
-
         dynarray_push_element(probe->layers, layer);
-
         prev_layer = layer;
     }
     va_end(args);
 
-    /* Payload : initially empty */
+    // Payload : initially empty
     layer = layer_create();
     layer_set_buffer(layer, buffer_get_data(probe->buffer) + buflen);
     layer_set_buffer_size(layer, 0); // XXX unless otherwise specified
@@ -442,7 +441,9 @@ int probe_set_protocols(probe_t *probe, char *name1, ...)
     
     return 0;
 
-error: // TODO free()
+ERROR_LAYER:
+    dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
+ERROR:
     return -1;
 }
 
@@ -466,10 +467,13 @@ int probe_set_field_ext(probe_t *probe, field_t *field, unsigned int depth)
     }
 
     return res;
-
 }
 
+<<<<<<< HEAD
 int probe_set_field(probe_t * probe, field_t * field)
+=======
+inline int probe_set_field(probe_t *probe, field_t *field)
+>>>>>>> origin/master
 {
     return probe_set_field_ext(probe, field, 0);
 }
@@ -542,6 +546,7 @@ int probe_resize_buffer(probe_t * probe, unsigned int size)
 
 int probe_set_payload_size(probe_t * probe, unsigned int payload_size)
 {
+    // TODO factorize with probe_set_min_payload_size
     unsigned int size;
     unsigned int old_buffer_size, old_payload_size;
     layer_t * payload_layer;
@@ -629,16 +634,17 @@ int probe_write_payload(probe_t *probe, buffer_t * payload, unsigned int offset)
     return 0;
 }
 
-
-field_t * probe_get_metafield(probe_t *probe, const char *name)
+// Internal use
+const field_t * probe_get_metafield(const probe_t * probe, const char * name)
 {
-    field_t *field, *ret_field;
+    const field_t * field;
+    field_t       * ret_field;
 
-    if (strcmp(name, "flow_id") != 0)
-        return NULL;
+    // TODO to generalize to any metafield
+    if (strcmp(name, "flow_id") != 0) return NULL;
 
+    // TODO to adapt for IPv6 support 
     field = probe_get_field(probe, "src_port");
-
     ret_field = IMAX("flow_id", field->value.int16 - 24000);
     return ret_field;
 }
@@ -675,24 +681,24 @@ int probe_set_fields(probe_t *probe, field_t *field1, ...) {
     return res;
 }
 
-int probe_set_caller(probe_t *probe, void *caller)
+int probe_set_caller(probe_t * probe, void * caller)
 {
     probe->caller = caller;
     return 0;
 }
 
-void *probe_get_caller(probe_t *probe)
+inline void * probe_get_caller(probe_t * probe)
 {
     return probe->caller;
 }
 
-int probe_set_sending_time(probe_t *probe, double time)
+inline int probe_set_sending_time(probe_t * probe, double time)
 {
     probe->sending_time = time;
     return 0;
 }
 
-double probe_get_sending_time(probe_t *probe)
+inline double probe_get_sending_time(probe_t * probe)
 {
     return probe->sending_time;
 }
@@ -742,31 +748,27 @@ field_t ** probe_get_fields(probe_t *probe)
     return NULL; // TODO
 }
 
-field_t * probe_get_field_ext(probe_t * probe, const char * name, unsigned int depth)
+const field_t * probe_get_field_ext(const probe_t * probe, const char * name, unsigned int depth)
 {
-    size_t size;
-    unsigned int i;
-    layer_t *layer;
-    field_t *field;
+    size_t          size;
+    size_t          i;
+    layer_t       * layer;
+    const field_t * field;
 
-    /* We go through the layers until we get the required field */
+    // We go through the layers until we get the required field
     size = dynarray_get_size(probe->layers);
     for(i = depth; i < size; i++) {
         
         layer = dynarray_get_ith_element(probe->layers, i);
 
-        field = layer_get_field(layer, name);
-        if (field)
-            break;
+        if ((field = layer_get_field(layer, name))) return field;
     }
 
-    if (!field)
-        return probe_get_metafield(probe, name);
-
-    return field;
+    // Not found, this is maybe a metafield
+    return probe_get_metafield(probe, name);
 }
 
-field_t * probe_get_field(probe_t * probe, const char * name)
+const field_t * probe_get_field(const probe_t * probe, const char * name)
 {
     return probe_get_field_ext(probe, name, 0);
 }

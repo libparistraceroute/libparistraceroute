@@ -17,52 +17,43 @@ static inline size_t min(size_t x, size_t y) {
 
 // alloc
 
-bitfield_t * bitfield_create(size_t size_in_bits) {
-
+bitfield_t * bitfield_create(size_t size_in_bits)
+{
     // Allocate bitfield structure
     bitfield_t * bitfield = calloc(1, sizeof(bitfield_t));
-    if (!bitfield) goto err;
+    if (!bitfield) goto ERROR;
 
     // Allocate bitfield mask
     if (size_in_bits > 0) {
         bitfield->mask = malloc(size_in_bits / 8);
-        if (!bitfield->mask) goto err_mask;
+        if (!bitfield->mask) goto ERROR_MASK;
     }
 
     // Set size
     bitfield->size_in_bits = size_in_bits;
     return bitfield;    
-
-err_mask:
+ERROR_MASK:
     bitfield_free(bitfield);
-err:
+ERROR:
     return NULL;
 }
 
 // dup
 
-bitfield_t * bitfield_dup(bitfield_t *bitfield)
+bitfield_t * bitfield_dup(const bitfield_t * bitfield)
 {
     bitfield_t *bf;
 
-    if (!bitfield)
-        return NULL;
-
-    bf = bitfield_create(bitfield->size_in_bits);
-    if (!bf)
-        goto error;
-
+    if (!bitfield) return NULL;
+    if (!(bf = bitfield_create(bitfield->size_in_bits))) return NULL; 
     memcpy(bf->mask, bitfield->mask, bitfield->size_in_bits / 8);
-
     return bf;
-
-error:
-    return NULL;
 }
 
 // free
 
-void bitfield_free(bitfield_t * bitfield) {
+void bitfield_free(bitfield_t * bitfield)
+{
     if (bitfield) {
         if (bitfield->mask) free(bitfield->mask);
         free(bitfield);

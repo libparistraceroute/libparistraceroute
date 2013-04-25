@@ -38,6 +38,7 @@ traceroute/.deps/
 
 libparistraceroute/test
 paris-traceroute/paris-traceroute
+traceroute/traceroute
 
 .libs
 *.pc

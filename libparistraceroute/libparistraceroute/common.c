@@ -22,7 +22,8 @@ double get_timestamp(void)
 void print_indent(unsigned int indent)
 {
     int i;
-    for(i = 0; i < indent; i++)
+    for(i = 0; i < indent; i++) {
         printf("    ");
+    }
 }
 
