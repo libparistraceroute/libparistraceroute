@@ -1,14 +1,17 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 /**
  * \struct buffer_t
  * \brief A buffer structure.
  */
 
 typedef struct {
-    unsigned char * data;     /**< Data stored in the buffer   */
-    size_t          size;     /**< Size of the data (in bytes) */
+    uint8_t * data; /**< Data stored in the buffer   */
+    size_t    size; /**< Size of the data (in bytes) */
 } buffer_t;
 
 //-----------------------------------------------------------------
@@ -47,10 +50,11 @@ void buffer_free(buffer_t * buffer);
 /**
  * \brief Retrieve the address where data is stored
  * \param buffer A pointer to the buffer
- * \return The address of the data
+ * \return The address of the data. Returns NULL
+ *   if buffer == NULL or if it is empty.
  */
 
-unsigned char * buffer_get_data(const buffer_t * buffer);
+uint8_t * buffer_get_data(buffer_t * buffer);
 
 /**
  * \brief Retrieve the size of the allocated memory area
@@ -65,18 +69,19 @@ size_t buffer_get_size(const buffer_t * buffer);
  * \brief (Re)allocate the buffer to a specified size.
  * \param buffer Pointer to a buffer_t structure to (re)allocate
  * \param size new size of the buffer
- * \return 0 if success, -1 otherwise
+ * \return true iif successfull
  */
 
-int buffer_resize(buffer_t * buffer, size_t size);
+bool buffer_resize(buffer_t * buffer, size_t size);
 
 /**
  * \brief Change the address of the memory managed by the buffer.
  *   The old address but be freed before if not more used.
  * \param buffer The address of the buffer
+ * \return true iif successfull
  */
 
-void buffer_set_data(buffer_t * buffer, unsigned char * data, unsigned int size);
+bool buffer_set_data(buffer_t * buffer, uint8_t * data, size_t size);
 
 /**
  * \brief Alter the size declared in the buffer structure.

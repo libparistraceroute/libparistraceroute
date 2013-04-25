@@ -84,7 +84,7 @@ int layer_set_field(layer_t * layer, field_t * field)
     size_t             protocol_field_size;
 
     if (!layer->protocol){
-        // This layer has a nested layer, so we cannot alter its payload
+        // The layer embeds a nested layer
         return -1;
     }
 
@@ -99,7 +99,7 @@ int layer_set_field(layer_t * layer, field_t * field)
     // variable len (such as IPv4 with options, etc.).
     protocol_field_size = field_get_type_size(protocol_field->type);
     if (protocol_field->offset + protocol_field_size > layer->header_size) {
-        // The allocated buffer is not sufficient
+        // The buffer allocated to this layer is too small
         return -2;
     }
 
@@ -120,29 +120,18 @@ int layer_set_field(layer_t * layer, field_t * field)
 
 bool layer_set_payload(layer_t * layer, buffer_t * payload)
 {
-    /*
-    if (layer->protocol)
-        return -1; // can only set the payload layer
-
-    if (buffer_get_size(payload) > layer->buffer_size)
-        return -1; // not enough buffer space
-
-    // This could be some buffer helper function
-    memcpy(layer->buffer, buffer_get_data(payload), buffer_get_size(payload));
-    return 0;
-    */
     return layer_write_payload(layer, payload, 0);
 }
 
 bool layer_write_payload(layer_t * layer, const buffer_t * payload, unsigned int offset)
 {
     if (layer->protocol) {
-        // The payload embeds a nested layer
+        // The layer embeds a nested layer
         return false;
     }
 
     if (offset + buffer_get_size(payload) > layer->buffer_size) {
-        // The payload's buffer is to small
+        // The buffer allocated to this layer is too small
         return false;
     }
 
@@ -155,21 +144,21 @@ void layer_dump(layer_t *layer, unsigned int indent)
     protocol_field_t *pfield;
     print_indent(indent);
 
+    // There is no nested layer, so data carried by this layer is the payload
     if (!layer->protocol) {
         printf("PAYLOAD size = %lu\n", layer->buffer_size);
-        return;
-    }
-
-    printf("LAYER: %s\n", layer->protocol->name);
-    print_indent(indent);
-    printf("----------\n");
-    
-    /* We loop through all the fields of the protocol and dump them */
-    for(pfield = layer->protocol->fields; pfield->key; pfield++) {
-        const field_t * field = layer_get_field(layer, pfield->key);
+    } else {
+        printf("LAYER: %s\n", layer->protocol->name);
         print_indent(indent);
-        printf("%s\t", pfield->key);
-        field_dump(field);    
-        printf("\n");
+        printf("----------\n");
+        
+        // Dump each field
+        for(pfield = layer->protocol->fields; pfield->key; pfield++) {
+            const field_t * field = layer_get_field(layer, pfield->key);
+            print_indent(indent);
+            printf("%s\t", pfield->key);
+            field_dump(field);    
+            printf("\n");
+        }
     }
 }

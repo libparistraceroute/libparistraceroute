@@ -220,7 +220,7 @@ int network_process_sendq(network_t *network)
     int res;
     unsigned int num_probes;
 
-    probe = queue_pop_element(network->sendq);
+    probe = queue_pop_element(network->sendq, NULL); // TODO pass cb element_free
     //probe_update_fields(probe);
     
     res = network_tag_probe(network, probe);
@@ -365,7 +365,7 @@ int network_process_recvq(network_t *network)
     packet_t *packet;
     probe_reply_t *pr;
     
-    packet = queue_pop_element(network->recvq);
+    packet = queue_pop_element(network->recvq, NULL); // TODO pass cb element_free
     reply = probe_create();
     probe_set_buffer(reply, packet->buffer);
 

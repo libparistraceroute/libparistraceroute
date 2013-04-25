@@ -3,12 +3,17 @@
 
 /**
  * \file layer.h
- * \brief Header for layers. A packet is made of one ore more layers.
- *   Each layer corresponds to a network protocol.
- *   For instance a IPv4/ICMP/IPv4/UDP packet is made of 4 layers.
- *   A layer is made of a header part (containing information related
- *   to its network protocol) and a payload part (containing the data
- *   carried by this layer).
+ * \brief Header for layers.
+ *
+ *   A packet is made of several layers.
+ *   The last layer corresponds to the payload of the packet and
+ *   is not related to a network protocol (layer->protocol == NULL).
+ *   The other layers correspond to each protocol header involved
+ *   in the packet.
+ *
+ *   For instance a IPv4/ICMP packet is made of 3 layers
+ *   (namely an IPv4 layer nesting an ICMP layer nesting
+ *   a "payload" layer.
  */
 
 #include <stdbool.h>
@@ -22,14 +27,13 @@
  * \brief Structure describing a layer
  */
 
+// TODO we could use buffer_t instead of uint8_t + size_t if we update probe.c
 typedef struct {
     protocol_t * protocol;    /**< Protocol implemented in this layer */
     uint8_t    * buffer;      /**< Payload carried by this layer      */
-    /* TODO we should simply use a buffer_t ?! */
     uint8_t    * mask;        /**< Indicates which bits have been set. TODO: not yet implemented */
     size_t       header_size; /**< Size of the header                 */
-    size_t       buffer_size; /**< Size of the payload. */
-    /* TODO we should simply use buffer->size ?! */
+    size_t       buffer_size; /**< Size of data carried by the layer */
 } layer_t;
 
 /**
@@ -94,8 +98,10 @@ int layer_set_field(layer_t * layer, field_t * field);
 
 /**
  * \brief Sets the specified layer as payload
- * \param layer Pointer to a layer_t structure
- * \param payload The payload to affect to the probe, or NULL.
+ * \param layer Pointer to a layer_t structure. This layer must
+ *   have layer->protocol == NULL, otherwise this layer is related
+ *   to a network protocol layer.
+ * \param payload The payload to write in the data, or NULL.
  * \return true iif successful
  */
 

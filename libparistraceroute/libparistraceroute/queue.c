@@ -1,65 +1,63 @@
-#include <unistd.h>
-#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+
 #include "queue.h"
 
 queue_t * queue_create(void)
 {
-    queue_t *queue;
+    queue_t * queue;
 
-    queue = malloc(sizeof(queue_t));
-    if (!queue)
-        goto err_queue;
+    // Alloc queue
+    if (!(queue = malloc(sizeof(queue_t)))) {
+        errno = ENOMEM;
+        goto ERR_QUEUE;
+    }
 
-    /* Create an eventfd */
-    queue->eventfd = eventfd(0, EFD_SEMAPHORE);
-    if (queue->eventfd == -1)
-        goto err_eventfd;
+    // Create an eventfd
+    if ((queue->eventfd = eventfd(0, EFD_SEMAPHORE)) == -1) {
+        goto ERR_EVENTFD;
+    }
 
-    /* Create the list that will contain the elements */
-    queue->elements = list_create();
-    if (!queue->elements)
-        goto err_elements;
-
+    // Create the list that will contain the elements
+    if (!(queue->elements = list_create())) {
+        goto ERR_ELEMENTS;
+    }
     return queue;
 
-err_elements:
+ERR_ELEMENTS:
     close(queue->eventfd);
-err_eventfd:
+ERR_EVENTFD:
     free(queue);
-    queue = NULL;
-err_queue:
+ERR_QUEUE:
     return NULL;
 }
 
-void queue_free(queue_t *queue, void (*element_free) (void *element))
+void queue_free(queue_t * queue, void (*element_free) (void * element))
 {
-    list_free(queue->elements, element_free);
-    close(queue->eventfd);
-    free(queue);
-    queue = NULL;
+    if (queue) {
+        if (queue->elements) list_free(queue->elements, element_free);
+        close(queue->eventfd);
+        free(queue);
+    }
 }
 
-int queue_push_element(queue_t *queue, void *element)
+inline bool queue_push_element(queue_t *queue, void * element)
 {
-
-    list_push_element(queue->elements, element);
-    eventfd_write(queue->eventfd, 1);
-
-    return 0;
+    // Push an element in the queue
+    // If successfull, write 1 in the file descriptor.
+    return list_push_element(queue->elements, element)
+        && (eventfd_write(queue->eventfd, 1) != -1);
 }
 
-void * queue_pop_element(queue_t *queue)
+void * queue_pop_element(queue_t *queue, void (*element_free)(void * element))
 {
-    uint64_t ret;
-    ssize_t count;
-    
-    count = read(queue->eventfd, &ret, sizeof(ret));
-    if (count == -1)
-        return NULL;
-    return list_pop_element(queue->elements);
+    eventfd_t value;
+    return (read(queue->eventfd, &value, sizeof(value)) != -1) ?
+        list_pop_element(queue->elements, element_free) :
+        NULL;
 }
 
-int queue_get_fd(queue_t *queue)
+inline int queue_get_fd(const queue_t * queue)
 {
     return queue->eventfd;
 }
