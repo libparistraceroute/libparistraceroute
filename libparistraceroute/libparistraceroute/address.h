@@ -9,13 +9,11 @@
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
-typedef enum {
-        /* Address family AF_INET */
+/*typedef enum {
     TYPE_SOCKADDR_IN,
-        /* Address family AF_INET6 */
     TYPE_SOCKADDR_IN6,
 } sockaddrtype_t;
-
+*/
 typedef union {
     struct sockaddr     sa;
     struct sockaddr_in  sin;
@@ -23,21 +21,20 @@ typedef union {
 } sockaddr_any;
 
 typedef struct {
-    char           * ipaddr;
+    char           * ipaddress;
     int              af;
-    sockaddr_any     addr;
-    sockaddrtype_t   type;
-    
-}sockaddr_t;
-
+    sockaddr_any     address;
+  //  sockaddrtype_t   type;
+} sockaddr_t;
 
 //typedef union common_sockaddr sockaddr_any;
 int address_get_by_name (const char * name, sockaddr_any * addr);
 
-int address_set_host (char * hostname, sockaddr_any * dst_addr);
+int address_set_host (const char * hostname, sockaddr_any * saddr);
 
+char * address_to_string (const sockaddr_any * addr); 
 
-char * address_resolv(char * name);
+char * address_resolv(const char * name);
 
 
 

@@ -120,7 +120,6 @@ void mda_flow_dump(mda_interface_t * interface)
     }
 }
 
-<<<<<<< HEAD
 void mda_link_dump(mda_interface_t * link[2], unsigned res) {
 
     if (!link[1]) {

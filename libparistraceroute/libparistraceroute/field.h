@@ -21,32 +21,14 @@ typedef union{
  */
 
 typedef enum {
-<<<<<<< HEAD
-	/** 4 bit integer */
-    TYPE_INT4,
-	/** 8 bit integer */
-    TYPE_INT8,
-	/** 16 bit integer */
-    TYPE_INT16,
-	/** 32 bit integer */
-    TYPE_INT32,
-	/** 64 bit integer */
-    TYPE_INT64,
-	/** 128 bit */
-    TYPE_INT128,
-    /** max integer */
-    TYPE_INTMAX,
-	/** String */
-    TYPE_STRING
-=======
     TYPE_INT4,             /**< 4 bit integer  */
     TYPE_INT8,             /**< 8 bit integer  */
     TYPE_INT16,            /**< 16 bit integer */
     TYPE_INT32,            /**< 32 bit integer */
     TYPE_INT64,            /**< 64 bit integer */
+    TYPE_INT128,           /**< 128 bit integer*/
     TYPE_INTMAX,           /**< max integer    */
     TYPE_STRING            /**< string         */
->>>>>>> origin/master
 } fieldtype_t;
 
 /**
@@ -55,35 +37,15 @@ typedef enum {
  */
 
 typedef union {
-<<<<<<< HEAD
-	/** Pointer to raw data */
-    void          * value;
-	/** Value of data as a 4 bit integer */
-    unsigned int    int4:4; 
-	/** Value of data as an 8 bit integer */
-    uint8_t         int8;
-	/** Value of data as a 16 bit integer */
-    uint16_t        int16;
-	/** Value of data as a 32 bit integer */
-    uint32_t        int32;
-    /** Value of data as a 64 bit integer */
-    uint64_t        int64;
-    /** Value of data of a 128 Bit bitfield as 4x uint32_t, 2x uint64_t */
-    uint128_t		int128;
-    /** Value of data as a max integer */
-    uintmax_t       intmax;
-	/** Pointer to string data */
-    char          * string;
-=======
     void         * value;  /**< Pointer to raw data               */
     unsigned int   int4:4; /**< Value of data as a 4 bit integer  */
     uint8_t        int8;   /**< Value of data as an 8 bit integer */
     uint16_t       int16;  /**< Value of data as a 16 bit integer */
     uint32_t       int32;  /**< Value of data as a 32 bit integer */
     uint64_t       int64;  /**< Value of data as a 64 bit integer */
+    uint128_t      int128; /**< Value of data as a 128 bit integer */
     uintmax_t      intmax; /**< Value of data as a max integer    */
     char         * string; /**< Pointer to string data            */
->>>>>>> origin/master
 } value_t;
 
 /**
@@ -92,17 +54,9 @@ typedef union {
  */
 
 typedef struct {
-<<<<<<< HEAD
-	/** Pointer to a unique identifier key */
-    char      * key;
-	/** Union of all field data */
-    value_t     value;
-    fieldtype_t type;
-=======
     char * key;           /**< Pointer to a unique identifier key */
     value_t value;        /**< Union of all field data            */
     fieldtype_t type;     /**< Type of data stored in the field   */
->>>>>>> origin/master
 } field_t;
 
 /**
@@ -139,12 +93,6 @@ field_t * field_create_int32(const char * key, uint32_t value);
  * \return Structure containing the newly created field
  */
 
-<<<<<<< HEAD
-field_t * field_create_int128(const char * key, uint128_t value);
-
-
-field_t * field_create_intmax (const char * key, uintmax_t value);
-=======
 field_t * field_create_int64(const char * key, uint64_t value);
 
 /**
@@ -155,7 +103,6 @@ field_t * field_create_int64(const char * key, uint64_t value);
  */
 
 field_t * field_create_intmax(const char * key, uintmax_t value);
->>>>>>> origin/master
 
 /**
  * \brief Create a field structure to hold a string
@@ -227,9 +174,6 @@ void field_free(field_t *field);
  */
 
 #define I64(x, y) field_create_int64(x, y)
-<<<<<<< HEAD
-#define I128(x, y) field_create_int128(x, y)
-=======
 
 /**
  * \brief Macro shorthand for field_create_intmax
@@ -238,7 +182,6 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
->>>>>>> origin/master
 #define IMAX(x, y) field_create_intmax(x, y)
 
 /**

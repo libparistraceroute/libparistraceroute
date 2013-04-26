@@ -52,23 +52,8 @@ field_t * field_create_int64(const char * key, uint64_t value)
     return field;
 }
 
-<<<<<<< HEAD
-field_t *field_create_int128(const char *key, uint128_t value) {
-    field_t * field = malloc(sizeof(field_t));
-
-    if (field) {
-        field->key = strdup(key);
-        field->value.int128 = value;
-        field->type = TYPE_INT128;
-    }
-    return field;
-}
-
-field_t *field_create_intmax(const char *key, uintmax_t value) {
-=======
 field_t * field_create_intmax(const char * key, uintmax_t value)
 {
->>>>>>> origin/master
     field_t * field = malloc(sizeof(field_t));
 
     if (field) {
@@ -101,13 +86,7 @@ field_t * field_create(fieldtype_t type, const char * key, void * value)
         case TYPE_INT32:
             return field_create_int32(key, *(uint32_t *) value);
         case TYPE_INT64:
-<<<<<<< HEAD
-            return field_create_int64(key, *(uint64_t*)value);
-        case TYPE_INT128:
-            return field_create_int128(key, *(uint128_t*)value);
-=======
             return field_create_int64(key, *(uint64_t *) value);
->>>>>>> origin/master
         case TYPE_INTMAX:
             return field_create_intmax(key, *(uintmax_t *) value);
         case TYPE_STRING:
@@ -130,17 +109,7 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
         case TYPE_INT32:
             return field_create_int32(key, ntohl(*(uint32_t *) value));
         case TYPE_INT64:
-<<<<<<< HEAD
-            return field_create_int64(key, ntohl(*(uint64_t*)value));
-        case TYPE_INT128:
-        	temp128.d64[0] = ntohl(((uint128_t *) value)->d64[1]);
-        	temp128.d64[1] = ntohl(((uint128_t *) value)->d64[0]);
-        	((uint128_t *) value)->d64[0] = temp128.d64[0];
-        	((uint128_t *) value)->d64[1] = temp128.d64[1];
-            return field_create_int128(key, *(uint128_t *) value);
-=======
             return field_create_int64(key, ntohl(*(uint64_t *) value));
->>>>>>> origin/master
         case TYPE_INTMAX:
             return field_create_intmax(key, ntohl(*(uintmax_t *) value));
         case TYPE_STRING:
@@ -194,18 +163,11 @@ size_t field_get_type_size(fieldtype_t type)
 
 int field_compare(const field_t * field1, const field_t * field2)
 {
-<<<<<<< HEAD
-
-	int result = 0;
-    if (field1->type != field2->type)
-        return -2; // Field are not of the same type !!
-=======
     if (field1->type != field2->type) {
         printf("field_compare: field are not of the same type");
         return -2;
     }
 
->>>>>>> origin/master
     switch (field1->type) {
         case TYPE_INT8:
             return field1->value.int8 - field2->value.int8;
@@ -215,11 +177,6 @@ int field_compare(const field_t * field1, const field_t * field2)
             return field1->value.int32 - field2->value.int32;
         case TYPE_INT64:
             return field1->value.int64 - field2->value.int64;
-        case TYPE_INT128:
-        	result = field1->value.int128.d64[0] - field2->value.int128.d64[0];
-        	if (result == 0)
-        		result = field1->value.int128.d64[1] - field2->value.int128.d64[1];
-        	return result;
         case TYPE_INTMAX:
             return field1->value.intmax - field2->value.intmax;
         case TYPE_INT4:

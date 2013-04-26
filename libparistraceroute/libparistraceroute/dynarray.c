@@ -17,11 +17,7 @@ dynarray_t * dynarray_create(void)
     return dynarray;
 }
 
-<<<<<<< HEAD
-dynarray_t * dynarray_dup (dynarray_t * dynarray, void * (*element_dup)(void *))
-=======
 dynarray_t * dynarray_dup(const dynarray_t * dynarray, void * (*element_dup)(void *))
->>>>>>> origin/master
 {
     dynarray_t   * da;
     unsigned int   i, size;
@@ -69,10 +65,6 @@ void dynarray_push_element(dynarray_t * dynarray, void * element)
     // If the dynarray is full, allocate DYNARRAY_SIZE_INC
     // cells in the dynarray
     if (dynarray->size == dynarray->max_size) {
-<<<<<<< HEAD
-        dynarray->elements = realloc(dynarray->elements, (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *));
-        memset(dynarray->elements + dynarray->size, 0, DYNARRAY_SIZE_INC * sizeof(void *));
-=======
         dynarray->elements = realloc(
             dynarray->elements,
             (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *)
@@ -81,7 +73,6 @@ void dynarray_push_element(dynarray_t * dynarray, void * element)
             dynarray->elements + dynarray->size, 0,
             DYNARRAY_SIZE_INC * sizeof(void *)
         );
->>>>>>> origin/master
         dynarray->max_size += DYNARRAY_SIZE_INC;
     }
 
@@ -141,15 +132,7 @@ void ** dynarray_get_elements(dynarray_t * dynarray)
 
 void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i)
 {
-<<<<<<< HEAD
-    if (i >= dynarray->size){
-        return NULL; // out of range
-    }
-
-    return dynarray->elements[i];
-=======
     return (i >= dynarray->size) ? NULL : dynarray->elements[i];
->>>>>>> origin/master
 }
 
 int dynarray_set_ith_element(dynarray_t * dynarray, unsigned int i, void * element)

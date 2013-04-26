@@ -294,17 +294,13 @@ ERROR:
  * MDA HANDLERS
  */
 
-<<<<<<< HEAD
 int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * poption)
-=======
-int mda_handler_init(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * poption)
->>>>>>> 94269790759e34a6a43d2b9841337b1680ce591d
 {
     mda_data_t    * data;
     mda_options_t * options;
     
     /* Create local data structure */
-    *pdata = mda_data_create();
+    *pdata = mda_data_create(loop, skel);
     if (!*pdata) return -1;
     data = *pdata;
     options = poption;
@@ -324,7 +320,7 @@ int mda_handler_init(pt_loop_t *loop, event_t *event, void **pdata, probe_t *ske
             options->max_branch
         );
         */
-    data->skel = skel;
+    //data->skel = skel;
 
     /* Create a dummy first hop, root of a lattice of discovered interfaces:
      *  . not a tree since some interfaces might have several predecessors
@@ -626,6 +622,7 @@ int mda_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, vo
     int ret;
     mda_data_t             * data;
 
+    printf("%d ALGORITHM_INIT = %d PROBE_REPLY = %d PROBE_TIMEOUT = %d\n", event->type, ALGORITHM_INIT, PROBE_REPLY, PROBE_TIMEOUT);
     switch (event->type) {
         case ALGORITHM_INIT:       mda_handler_init(loop, event, pdata, skel, options);    break;
         case PROBE_REPLY:          mda_handler_reply(loop, event, pdata, skel, options);   break;

@@ -46,7 +46,6 @@ static int algorithm_instance_compare(
     const algorithm_instance_t * instance1,
     const algorithm_instance_t * instance2
 );
-
 /**
  * \brief Register an algorithm instance in the main loop
  * \param instance The instance that we register
@@ -199,7 +198,7 @@ void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
     // Execute algorithm handler for events of each algorithm
     num_events = dynarray_get_size(instance->events);
     for (i = 0; i < num_events; i++) {
-        event_t *event;
+        event_t * event;
 
         count = read(instance->loop->eventfd_algorithm, &ret, sizeof(ret));
         if (count == -1)

@@ -16,7 +16,7 @@
  ******************************************************************************/
 
 static int    af = 0; // ? address family
-static char * dst_name = NULL;
+//static char * dst_name = NULL;
 
 /******************************************************************************
  * Helper functions
@@ -32,9 +32,9 @@ int address_get_by_name(const char * name, sockaddr_any * addr) {
     hints.ai_family = af;
     hints.ai_flags = AI_IDN;
 
-    ret = getaddrinfo (name, NULL, &hints, &res);
+    ret = getaddrinfo(name, NULL, &hints, &res);
     if (ret) {
-        fprintf (stderr, "%s: %s\n", name, gai_strerror (ret));
+        fprintf(stderr, "%s: %s\n", name, gai_strerror (ret));
         return -1;
     }
 
@@ -55,13 +55,13 @@ int address_get_by_name(const char * name, sockaddr_any * addr) {
     return 0;
 }
 
-int address_set_host (char *hostname, sockaddr_any *dst_addr)
+int address_set_host (const char * hostname, sockaddr_any * dst_addr)
 {
 
     if (address_get_by_name (hostname, dst_addr) < 0)
         return -1;
 
-    dst_name = hostname;
+  //  dst_name = hostname;
 
     /*  i.e., guess it by the addr in cmdline...  */
     if (!af)  af = dst_addr->sa.sa_family;
@@ -69,20 +69,19 @@ int address_set_host (char *hostname, sockaddr_any *dst_addr)
     return 0;
 }
 
-static char addr2str_buf[INET6_ADDRSTRLEN];
+static char addr_to_string_buf[INET6_ADDRSTRLEN];
 
-const char * address_2_str (const sockaddr_any *addr) 
+char * address_to_string (const sockaddr_any * addr) 
 {
 
-    getnameinfo (&addr->sa, sizeof (*addr), addr2str_buf, sizeof (addr2str_buf), 0, 0, NI_NUMERICHOST);
+    getnameinfo (&addr->sa, sizeof (*addr), addr_to_string_buf, sizeof (addr_to_string_buf), 0, 0, NI_NUMERICHOST);
 
-    return addr2str_buf;
+    return addr_to_string_buf;
 }
 
-char * address_resolv(char * name) {
+char * address_resolv(const char * name) {
     sockaddr_any      res;
     struct hostent  * hp;
-    unsigned          i;
     int               af_type;
     
     if(strchr(name, '.') != NULL) {

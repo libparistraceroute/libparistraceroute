@@ -109,7 +109,6 @@ field_t ** probe_get_fields(const probe_t *probe);
  *
  * What about allocation ?
  */
-<<<<<<< HEAD
 const field_t * probe_get_field(const probe_t * probe, const char * name);
 const field_t * probe_get_field_ext(const probe_t * probe, const char * name, unsigned int depth);
 
@@ -155,7 +154,7 @@ unsigned int probe_get_num_proto(const probe_t *probe);
 field_t ** probe_get_fields(const probe_t *probe);
 
 int probe_set_caller(probe_t *probe, void *caller);
-void *probe_get_caller(const probe_t *probe);
+//void * probe_get_caller(const probe_t *probe);
 int probe_set_sending_time(probe_t *probe, double time);
 double probe_get_sending_time(const probe_t *probe);
 int probe_set_queueing_time(probe_t *probe, double time);

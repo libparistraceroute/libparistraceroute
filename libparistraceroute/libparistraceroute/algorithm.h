@@ -49,19 +49,15 @@ typedef struct algorithm_instance_s {
  */
 
 typedef struct algorithm_s {
-<<<<<<< HEAD
-    const char        * name;                                                                       /*!< Algorithm name */
-    int              (* handler)(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * options);      /*!< Main handler function */
-    struct opt_spec   * options;                                                                    /*!< Options related to the algorithm */
-=======
     const char * name;                        /**< Algorithm name */
     int (*handler)(
         pt_loop_t *  loop,
         event_t   *  event,
         void      ** pdata,
-        probe_t   *  skel
+        probe_t   *  skel,
+        void      *  poptions
     );                                        /**< Main handler function */
->>>>>>> origin/master
+    struct opt_spec  options;
 } algorithm_t;
 
 //--------------------------------------------------------------------

@@ -97,11 +97,7 @@ unsigned int udp_get_header_size(void) {
  * \param data The address of an allocated buffer that will store the header
  */
 
-<<<<<<< HEAD
-void udp_write_default_header(unsigned char *data) {
-=======
-inline void udp_write_default_header(uint8_t *data) {
->>>>>>> origin/master
+void udp_write_default_header(uint8_t *data) {
     memcpy(data, &udp_default, sizeof(struct udphdr));
 }
 
@@ -155,42 +151,16 @@ bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
 
 // TODO define struct ipv4_psh_t ? 
 
-<<<<<<< HEAD
-#define HD_UDP6_DADDR 16
-#define HD_UDP6_LEN 32
-#define HD_UDP6_PAD 36
-#define HD_UDP6_NXH 39
-
-
-buffer_t * udp_create_psh_ipv4(unsigned char* ipv4_buffer)
-//unsigned char** pseudo_header, int* size)
-=======
 buffer_t * udp_create_psh_ipv4(uint8_t * ipv4_buffer)
->>>>>>> origin/master
 {
     buffer_t     * ipv4_psh;
     struct iphdr * ip_hdr = (struct iphdr *) ipv4_buffer;
     uint8_t      * data;
     
-<<<<<<< HEAD
-    psh = buffer_create();
-    buffer_resize(psh, 12);
-
-    data = buffer_get_data(psh);
-
-
-    iph = (struct iphdr*) ipv4_buffer;
-    *(( u_int32_t *)  data                ) = (u_int32_t) iph->saddr;
-    *(( u_int32_t *) (data + HD_UDP_DADDR)) = (u_int32_t) iph->daddr;
-    *(( u_int8_t  *) (data + HD_UDP_PAD  )) =             0;
-    *(( u_int8_t  *) (data + HD_UDP_PROT )) = (u_int8_t)  iph->protocol;
-    *(( u_int16_t *) (data + HD_UDP_LEN  )) = (u_int16_t) htons(ntohs(iph->tot_len)-4*iph->ihl);
-=======
     if (!(ipv4_psh = buffer_create())) {
         errno = ENOMEM;
         return NULL;
     }
->>>>>>> origin/master
 
     // The IPv4 part of a pseudo header is made of 12 bytes:
     // {
@@ -213,7 +183,16 @@ buffer_t * udp_create_psh_ipv4(uint8_t * ipv4_buffer)
     return ipv4_psh;
 }
 
-<<<<<<< HEAD
+#define HD_UDP_DADDR 4
+#define HD_UDP_PAD 8
+#define HD_UDP_PROT 9
+#define HD_UDP_LEN 10
+
+#define HD_UDP6_DADDR 16
+#define HD_UDP6_LEN 32
+#define HD_UDP6_PAD 36
+#define HD_UDP6_NXH 39
+
 buffer_t * udp_create_psh_ipv6(unsigned char* ipv6_buffer)
 {
 	/* http://tools.ietf.org/html/rfc2460
@@ -266,10 +245,7 @@ buffer_t * udp_create_psh_ipv6(unsigned char* ipv6_buffer)
 
 }
 
-buffer_t * udp_create_psh(unsigned char * buffer)
-=======
 buffer_t * udp_create_psh(uint8_t * buffer)
->>>>>>> origin/master
 {
     // TODO dispatch IPv4 and IPv6 header
     // http://www.networksorcery.com/enp/protocol/udp.htm#Checksum

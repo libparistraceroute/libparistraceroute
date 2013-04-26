@@ -32,14 +32,9 @@ buffer_t * buffer_dup(const buffer_t * buffer)
     return buf;
 
 
-error_buffer:
-    free(buffer);
-error:
-=======
 ERROR_BUFFER:
     free(buf);
 ERROR:
->>>>>>> origin/master
     return NULL;
 }
 
@@ -63,7 +58,6 @@ int buffer_resize(buffer_t * buffer, size_t size)
         if (!buffer->data) return -1; // no allocation could be made
     } else {
         tmp = realloc(buffer->data, size * sizeof(unsigned char));
-<<<<<<< HEAD
         if (!tmp)
             return -1; // cannot realloc, orig still valid
         memset(tmp + buffer->size, 0 , size * sizeof(unsigned char) - buffer->size);

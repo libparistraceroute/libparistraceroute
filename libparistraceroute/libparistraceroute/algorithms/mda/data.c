@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "data.h"
 
-mda_data_t* mda_data_create(void)
+mda_data_t* mda_data_create(pt_loop_t * loop, probe_t * skel)
 {
     mda_data_t *data;
 
@@ -17,8 +17,8 @@ mda_data_t* mda_data_create(void)
     data->confidence = 95;
 
     /* internal data */
-    data->loop = NULL;
-    data->skel = NULL;
+    data->loop = loop;
+    data->skel = skel;
 
     return data;
 

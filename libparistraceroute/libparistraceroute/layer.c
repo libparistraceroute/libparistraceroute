@@ -80,39 +80,6 @@ const field_t * layer_get_field(const layer_t * layer, const char * name)
 
 int layer_set_field(layer_t * layer, field_t * field)
 {
-<<<<<<< HEAD
-    protocol_field_t *pfield;
-    size_t pfield_size;
-
-    if (!layer->protocol)
-        return -1; // payload
-
-    pfield = protocol_get_field(layer->protocol, field->key);
-    if (!pfield){
-		return -1; // field not found
-    }
-
-
-    /* Check we have enough room in the probe buffer */
-    pfield_size = field_get_type_size(pfield->type);
-    if (pfield->offset + pfield_size > layer->header_size) {
-        /* NOTE the allocation of the buffer might be tricky for headers with
-         * variable len (such as IPv4 with options, etc.).
-         */
-    	printf("The allocated buffer is not sufficient\n");
-        return -2; // the allocated buffer is not sufficient
-    }
-
-    /* 
-     * Copy the field value into the buffer 
-     * If we have a setter function, we use it, otherwise write the value
-     * directly
-     */
-    if (pfield->set)
-    	pfield->set(layer->buffer, field);
-    else
-        protocol_field_set(pfield, layer->buffer, field);
-=======
     protocol_field_t * protocol_field;
     size_t             protocol_field_size;
 
@@ -143,7 +110,6 @@ int layer_set_field(layer_t * layer, field_t * field)
     } else {
         protocol_field_set(protocol_field, layer->buffer, field);
     }
->>>>>>> origin/master
 
     // TODO update mask here
     // TODO use protocol_field_get_offset

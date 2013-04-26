@@ -92,12 +92,7 @@ inline buffer_t * probe_get_buffer(const probe_t * probe) {
     return probe ? probe->buffer : NULL;
 }
 
-<<<<<<< HEAD
-
-int probe_set_buffer(probe_t *probe, buffer_t *buffer)
-=======
 int probe_set_buffer(probe_t * probe, buffer_t * buffer)
->>>>>>> origin/master
 {
     size_t          size; // to prevent underflow
     size_t          offset;
@@ -469,8 +464,7 @@ int probe_set_field_ext(probe_t *probe, field_t *field, unsigned int depth)
     return res;
 }
 
-int probe_set_field(probe_t * probe, field_t * field)
-inline int probe_set_field(probe_t *probe, field_t *field)
+inline int probe_set_field(probe_t * probe, field_t * field)
 {
     return probe_set_field_ext(probe, field, 0);
 }
@@ -637,10 +631,6 @@ const field_t * probe_get_metafield(const probe_t * probe, const char * name)
     const field_t * field;
     field_t       * ret_field;
 
-field_t * probe_get_metafield(const probe_t *probe, const char *name)
-{
-    field_t * field, * ret_field;
-
     // TODO to generalize to any metafield
     if (strcmp(name, "flow_id") != 0) return NULL;
 
@@ -688,18 +678,18 @@ int probe_set_caller(probe_t * probe, void * caller)
     return 0;
 }
 
-inline void * probe_get_caller(probe_t * probe)
+void * probe_get_caller(probe_t * probe)
 {
     return probe->caller;
 }
 
-inline int probe_set_sending_time(probe_t * probe, double time)
+int probe_set_sending_time(probe_t * probe, double time)
 {
     probe->sending_time = time;
     return 0;
 }
 
-inline double probe_get_sending_time(probe_t * probe)
+double probe_get_sending_time(const probe_t * probe)
 {
     return probe->sending_time;
 }
@@ -760,10 +750,9 @@ const field_t * probe_get_field_ext(const probe_t * probe, const char * name, un
     size = dynarray_get_size(probe->layers);
     for(i = depth; i < size; i++) {
         layer = dynarray_get_ith_element(probe->layers, i);
-<<<<<<< HEAD
 
         if ((field = layer_get_field(layer, name))) return field;
-
+    }
     // Not found, this is maybe a metafield
     return probe_get_metafield(probe, name);
 }
@@ -813,24 +802,24 @@ void probe_reply_free(probe_reply_t *probe_reply)
 
 // Accessors
 
-int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe)
+int probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe)
 {
     probe_reply->probe = probe;
     return 0;
 }
 
-probe_t * probe_reply_get_probe(const probe_reply_t *probe_reply)
+probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply)
 {
     return probe_reply->probe;
 }
 
-int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply)
+int probe_reply_set_reply(probe_reply_t * probe_reply, probe_t * reply)
 {
     probe_reply->reply = reply;
     return 0;
 }
 
-probe_t * probe_reply_get_reply(const probe_reply_t *probe_reply)
+probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply)
 {
     return probe_reply->reply;
 }

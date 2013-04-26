@@ -16,15 +16,9 @@
  */
 
 typedef struct {
-<<<<<<< HEAD
-    void         ** elements;  /**< Pointer to the array of elements */
-    unsigned int    size;      /**< Current size of the array */
-    unsigned int    max_size;  /**< Current maximum size of the array */
-=======
     void   ** elements;  /**< Pointer to the array of elements */
     size_t    size;      /**< Size of the array (in bytes) (should be always <= to max_size) */
     size_t    max_size;  /**< Size of the allocated buffer (in bytes) */ 
->>>>>>> origin/master
 } dynarray_t;
 
 /**
@@ -32,15 +26,6 @@ typedef struct {
  * \return A dynarray_t structure representing an empty dynamic array
  */
 
-<<<<<<< HEAD
-dynarray_t * dynarray_create();
-
-/**
- *
- */
-
-dynarray_t * dynarray_dup(dynarray_t* dynarray, void * (*element_dup)(void *));
-=======
 dynarray_t * dynarray_create(void);
 
 /**
@@ -52,7 +37,6 @@ dynarray_t * dynarray_create(void);
  */
 
 dynarray_t * dynarray_dup(const dynarray_t * dynarray, void * (*element_dup)(void *));
->>>>>>> origin/master
 
 /**
  * \brief Free a dynamic array structure.
@@ -61,30 +45,13 @@ dynarray_t * dynarray_dup(const dynarray_t * dynarray, void * (*element_dup)(voi
  *     (can be NULL)
  */
 
-<<<<<<< HEAD
-void dynarray_free(dynarray_t *dynarray , void (*element_free)(void *element));
-=======
 void dynarray_free(dynarray_t * dynarray , void (*element_free) (void * element));
->>>>>>> origin/master
 
 /**
  * \brief Add a new element at the end of the dynamic array.
  * \param dynarray Pointer to a dynamic array structure
  * \param element Pointer to the element to add
  */
-<<<<<<< HEAD
-
-void dynarray_push_element(dynarray_t *dynarray, void *element);
-
-/**
- * \brief Remove the i-th element from a dynarray
- * \param dynarray The dynarray to update
- * \param i The index of the element to remove
- * \return ...
- */
-
-int dynarray_del_ith_element(dynarray_t *dynarray, unsigned int i);
-=======
 
 void dynarray_push_element(dynarray_t * dynarray, void * element);
 
@@ -98,7 +65,6 @@ void dynarray_push_element(dynarray_t * dynarray, void * element);
  */
 
 int dynarray_del_ith_element(dynarray_t * dynarray, unsigned int i);
->>>>>>> origin/master
 
 /**
  * \brief Clear a dynamic array.
@@ -107,11 +73,7 @@ int dynarray_del_ith_element(dynarray_t * dynarray, unsigned int i);
  *     (can be NULL)
  */
 
-<<<<<<< HEAD
-void dynarray_clear(dynarray_t *dynarray, void (*element_free)(void *element));
-=======
 void dynarray_clear(dynarray_t * dynarray, void (*element_free)(void * element));
->>>>>>> origin/master
 
 /**
  * \brief Get the current size of a dynamic array.
@@ -119,11 +81,7 @@ void dynarray_clear(dynarray_t * dynarray, void (*element_free)(void * element))
  * \return Current size of the dynamic array
  */
 
-<<<<<<< HEAD
-size_t dynarray_get_size(dynarray_t *dynarray);
-=======
 size_t dynarray_get_size(const dynarray_t * dynarray);
->>>>>>> origin/master
 
 /**
  * \brief Get all the elements inside a dynamic array.
@@ -131,18 +89,6 @@ size_t dynarray_get_size(const dynarray_t * dynarray);
  * \return An array of pointer to the dynamic array elements
  */
 
-<<<<<<< HEAD
-void ** dynarray_get_elements(dynarray_t *dynarray);
-
-/**
- * \brief Retrieve the i-th element from a dynarray
- * \param dynarray The dynarray to query 
- * \param i The index of the element to retrieve 
- * \return ...
- */
-
-void * dynarray_get_ith_element(dynarray_t *dynarray, unsigned int i);
-=======
 void ** dynarray_get_elements(dynarray_t * dynarray);
 
 /**
@@ -154,6 +100,5 @@ void ** dynarray_get_elements(dynarray_t * dynarray);
  */
 
 void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i);
->>>>>>> origin/master
 
 #endif

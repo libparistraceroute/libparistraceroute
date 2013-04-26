@@ -32,8 +32,6 @@ static unsigned    do_res = 1;
 const char *protocols[] = {
     "udp", NULL
 };
-
-<<<<<<< HEAD
 //                              def    min  max
 static unsigned first_ttl[3] = {1,     1,   255};
 static unsigned max_ttl[3]   = {30,    1,   255};
@@ -111,8 +109,6 @@ void result_dump(lattice_elt_t * elt)
 
     }
 }
-=======
->>>>>>> 94269790759e34a6a43d2b9841337b1680ce591d
 
 // TODO manage properly event allocation and desallocation
 void paris_traceroute_handler(pt_loop_t * loop, event_t * event, void * user_data)
@@ -169,7 +165,7 @@ int main(int argc, char ** argv)
     address_set_host(argv[i - 1], &dst_addr);
     data = malloc(sizeof(paris_traceroute_data_t));
     if (!data) goto ERROR;
-    data->dst_ip = address_2_str(&dst_addr);
+    data->dst_ip = address_to_string(&dst_addr);
     data->algorithm = algorithms[0];
     prot = protocols[0];   
     printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
@@ -232,7 +228,7 @@ int main(int argc, char ** argv)
          if (max_ttl[0] != traceroute_options.max_ttl) { 
             traceroute_options.max_ttl = max_ttl[0];
         }
-        traceroute_options.dst_ip = address_2_str(&dst_addr);
+        traceroute_options.dst_ip = address_to_string(&dst_addr);
         data->options = &traceroute_options;
 
     } else if (strcmp(data->algorithm, "mda") == 0 || mda[6]) {
@@ -252,7 +248,7 @@ int main(int argc, char ** argv)
         if (max_ttl[0] != mda_options.traceroute_options.max_ttl) { 
             mda_options.traceroute_options.max_ttl = max_ttl[0];
         }
-        traceroute_options.dst_ip = address_2_str(&dst_addr);
+        traceroute_options.dst_ip = address_to_string(&dst_addr);
         if (mda[0] != mda_options.bound) { 
             mda_options.bound = mda[0];
         }
