@@ -2,6 +2,8 @@
 #include <stdio.h> // XXX
 #include <stdarg.h>
 #include <string.h>
+#include <netinet/in.h> // IPPROTO_ICMPV6
+
 #include "buffer.h"
 #include "probe.h"
 #include "protocol.h"
@@ -9,7 +11,6 @@
 #include "common.h"
 #include "metafield.h"
 #include "bitfield.h"
-#define IPV4FLOW 2400
 
 // TODO update bitfield
 
@@ -110,7 +111,7 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
     /* Remove the former layer structure */
     dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
 
-  unsigned char ip_version = buffer_guess_ip_version(buffer);
+    unsigned char ip_version = buffer_guess_ip_version(buffer);
              
 ////////////////////////:
     protocol = ip_version == 6 ? protocol_search("ipv6") :
@@ -129,6 +130,7 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
         protocol_t    * protocol;
         const field_t * field;
         size_t          hdrlen;
+        printf("-------> coucou\n");
 
         layer = layer_create();
         layer_set_buffer(layer, data + offset);
@@ -158,29 +160,32 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
         if (field) {
             protocol_id = field->value.int8;
             continue;
-        } else if  (protocol_id != 58) { // MARKERIP
-//	    printf(" we think this is payload\n");
+        } else {
+            protocol_id = 6; /* ICMP6 + IPv6*/
+        } 
+        
+        if (strcmp(layer->protocol->name, "icmp") != 0) {
             protocol_id = 0; /* payload */
+            printf("break 2");
             break;
-         }     else {
-            		protocol_id = 6; /* ICMP6 + IPv6*/
-            
-	}  if (strcmp(layer->protocol->name, "icmp") != 0) {
+        } else if (protocol_id != IPPROTO_ICMPV6) { // MARKERIP
+            // printf(" we think this is payload\n");
             protocol_id = 0; /* payload */
+            printf("break 1");
             break;
-        	} else {
+        } else {
             /* FIXME: special treatment : Do we have an ICMP header ? */
             field = layer_get_field(layer, "type");
-           		 if (!field) {
-               			 return -1; // weird icmp packet !
-           		 }
-            		if ((field->value.int8 == 3) || (field->value.int8 == 11)) { // TTL expired, an IP packet header is repeated !
+            if (!field) {
+                return -1; // weird icmp packet !
+            }
+            if ((field->value.int8 == 3) || (field->value.int8 == 11)) { // TTL expired, an IP packet header is repeated !
                 // Length will be wrong !!!
                 protocol_id = ipv4_protocol_id;
-            		} else {
+            } else {
                 protocol_id = 0; /* payload */
-           		 }
-        	}
+            }
+        }
     }
 
     /* payload */
