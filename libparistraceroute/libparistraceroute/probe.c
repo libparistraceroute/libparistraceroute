@@ -2,6 +2,7 @@
 #include <stdio.h> // XXX
 #include <stdarg.h>
 #include <string.h>
+#include <netinet/ip_icmp.h> // ICMP_DEST_UNREACH, ICMP_TIME_EXCEEDED
 
 #include "probe.h"
 #include "protocol.h"
@@ -143,32 +144,43 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
         if (size < 0)
             return -1; 
 
-        /* In the case of ICMP, while protocol is not really a field, we might
-         * provide it by convenience
-         * Need for heuristics // source port hook to parse packet content
-         */
+        // In the case of ICMP, while protocol is not really a field, we might
+        // provide it by convenience
+        // Need for heuristics // source port hook to parse packet content
+
+        // Loop until reaching the payload or an ICMP layer
+        // layer_get_field returns NULL iif we've reached an ICMP layer or the payload 
         field = layer_get_field(layer, "protocol");
         if (field) {
             protocol_id = field->value.int8;
             continue;
-        } else if (strcmp(layer->protocol->name, "icmp") != 0) {
-            protocol_id = 0; /* payload */
-            break;
-        } else {
-            /* FIXME: special treatment : Do we have an ICMP header ? */
+        } else if (strcmp(layer->protocol->name, "icmp") == 0) {
+            // We are in an ICMP layer
             field = layer_get_field(layer, "type");
+
             if (!field) {
-                return -1; // weird icmp packet !
+                // Weird ICMP packet !
+                return -1; 
             }
-            if ((field->value.int8 == 3) || (field->value.int8 == 11)) { // TTL expired, an IP packet header is repeated !
+
+            // 3 == Destination unreachable
+            // 11 == Time exceed 
+            if ((field->value.int8 == ICMP_DEST_UNREACH)
+            ||  (field->value.int8 == ICMP_TIME_EXCEEDED)) {
                 // Length will be wrong !!!
                 protocol_id = ipv4_protocol_id;
             } else {
-                protocol_id = 0; /* payload */
+                // Set protocol_id to payload
+                protocol_id = 0;
             }
+        } else {
+            // We are in the payload
+            protocol_id = 0;
+            break;
         }
     }
-    /* payload */
+
+    // payload
     if (protocol_id == 0) {
         // XXX some icmp packets do not have payload
         // Happened with type 3 !
@@ -189,7 +201,7 @@ void probe_dump(probe_t *probe)
     size_t size;
     unsigned int i;
 
-    /* Let's loop through the layers and print all fields */
+    // Let's loop through the layers and print all fields
     printf("\n\n** PROBE **\n\n");
     size = dynarray_get_size(probe->layers);
     for(i = 0; i < size; i++) {
@@ -208,11 +220,11 @@ int probe_finalize(probe_t * probe)
 
     size = dynarray_get_size(probe->layers);
 
-    /* Allow the protocol to do some processing before checksumming */
-    for (i = 0; i<size; i++) {
+    // Allow the protocol to do some processing before checksumming
+    for (i = 0; i < size; i++) {
         layer = dynarray_get_ith_element(probe->layers, i);
 
-        /* finalize callback */
+        // finalize callback
         if (!layer->protocol)
             continue;
         if (layer->protocol->finalize)
@@ -249,13 +261,13 @@ int probe_update_protocol(probe_t * probe)
 
 int probe_update_length(probe_t * probe)
 {
-    unsigned int   i, size;
+    unsigned int       i, size;
     protocol_field_t * pfield;
-    layer_t      * layer;
+    layer_t          * layer;
 
     size = dynarray_get_size(probe->layers);
 
-    /* Allow the protocol to do some processing before checksumming */
+    // Allow the protocol to do some processing before checksumming
     for (i = 0; i<size; i++) {
         layer = dynarray_get_ith_element(probe->layers, i);
 
