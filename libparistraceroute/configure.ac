@@ -42,7 +42,7 @@ AC_DEFINE([BSDSOCKET], [1], [BSD socket interface])
 #jo#trpt_buggy="no"
 
 #CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
-CFLAGS="-g -Wall -fno-strict-aliasing  -fno-omit-frame-pointer -g -std=gnu99 -Wall -Wsign-compare -Wpointer-arith -Wbad-function-cast -Wwrite-strings -Wmissing-prototypes -Wmissing-declarations -Wchar-subscripts -Wcast-qual"
+CFLAGS="-g -Wall -fno-strict-aliasing  -fno-omit-frame-pointer -g -std=gnu99 -Wall -Wsign-compare -Wpointer-arith -Wbad-function-cast -Wwrite-strings -Wmissing-declarations -Wchar-subscripts -Wcast-qual"
 # -Werror
 
 #############

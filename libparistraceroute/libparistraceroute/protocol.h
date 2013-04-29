@@ -95,7 +95,7 @@ typedef struct {
  */
 protocol_t* protocol_search_by_buffer(buffer_t *buffer);
 
-protocol_t* protocol_search(char *name);
+protocol_t* protocol_search(const char * name);
 
 protocol_t* protocol_search_by_id(uint8_t id);
 

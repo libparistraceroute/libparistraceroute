@@ -23,7 +23,7 @@ int protocol_compare_id(const void *protocol1, const void *protocol2)
 
      
 
-protocol_t* protocol_search(char *name)
+protocol_t* protocol_search(const char * name)
 {
     protocol_t **protocol, search;
 
