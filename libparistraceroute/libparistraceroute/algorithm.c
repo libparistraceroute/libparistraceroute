@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <search.h>
+#include <errno.h>
 
 #include "algorithm.h"
 #include "dynarray.h"
@@ -106,20 +107,18 @@ static algorithm_instance_t * algorithm_instance_create(
         instance->events     = dynarray_create();
         instance->caller     = NULL;
         instance->loop       = loop;
-    }
+    } else errno = ENOMEM;
     return instance;
 }
 
+/**
+ * \brief Release an instance of algorithm from the memory
+ * \param instance A pointer to an algorithm_instance_t structure
+ */
+
 static void algorithm_instance_free(algorithm_instance_t * instance)
 {
-    // caller may have to free 
-    // - the options passed to this instance (only if instanciated by libparistraceroute)
-    // - the probes related to this instance
-
     if (instance) {
-        if (instance->probe_skel) {
-            probe_free(instance->probe_skel);
-        }
         dynarray_free(instance->events, (ELEMENT_FREE) event_free);
         free(instance);
     }
@@ -215,6 +214,15 @@ void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
     algorithm_instance_clear_events(instance);
 }
 
+void pt_free_algorithms_instance(
+    const void * node,
+    VISIT        visit,
+    int          level
+) {
+    algorithm_instance_t * instance = *((algorithm_instance_t **) node);
+    pt_algorithm_free(instance);
+}
+
 // Notify the called algorithm that it can start
 
 algorithm_instance_t * pt_algorithm_add(
@@ -223,28 +231,38 @@ algorithm_instance_t * pt_algorithm_add(
     void             * options,
     probe_t          * probe_skel
 ) {
+    bool                   probe_allocated = false;
     algorithm_t          * algorithm;
-    algorithm_instance_t * instance;
+    algorithm_instance_t * instance = NULL;
 
     if (!(algorithm = algorithm_search(name))) {
-        return NULL;  // No such algorithm
+        goto ERR_ALGORITHM_NOT_FOUND;
     }
     
     // If the probe skeleton does not exist, create it.
     if (!probe_skel) {
         probe_skel = probe_create();
+        probe_allocated = (probe_skel != NULL);
+        if (!probe_allocated) goto ERR_PROBE_SKEL;
     }
 
     // Create a new instance of a running algorithm
-    instance = algorithm_instance_create(loop, algorithm, options, probe_skel);
+    if (!(instance = algorithm_instance_create(loop, algorithm, options, probe_skel))) {
+        goto ERR_INSTANCE; 
+    }
 
     // We need to queue a new event for the algorithm: it has been started
     pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL, NULL));
 
     // Add this algorithms to the list of handled algorithms
     pt_algorithm_instance_add(loop, instance);
-
     return instance;
+
+ERR_INSTANCE:
+ERR_PROBE_SKEL:
+    if (probe_allocated) probe_free(probe_skel);
+ERR_ALGORITHM_NOT_FOUND:
+    return NULL;
 }
 
 void pt_algorithm_throw(

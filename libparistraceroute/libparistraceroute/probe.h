@@ -194,7 +194,7 @@ struct pt_loop_s;
 void pt_probe_reply_callback(struct pt_loop_s * loop, probe_t * probe, probe_t * reply);
 
 
-int probe_set_protocols(probe_t * probe, char * name1, ...);
+int probe_set_protocols(probe_t * probe, const char * name1, ...);
 
 int probe_update_fields(probe_t * probe);
 

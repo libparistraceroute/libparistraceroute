@@ -71,11 +71,9 @@ int address_set_host (const char * hostname, sockaddr_any * dst_addr)
 
 static char addr_to_string_buf[INET6_ADDRSTRLEN];
 
-char * address_to_string (const sockaddr_any * addr) 
+char * address_to_string(const sockaddr_any * addr) 
 {
-
     getnameinfo (&addr->sa, sizeof (*addr), addr_to_string_buf, sizeof (addr_to_string_buf), 0, 0, NI_NUMERICHOST);
-
     return addr_to_string_buf;
 }
 

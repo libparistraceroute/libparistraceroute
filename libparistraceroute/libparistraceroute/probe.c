@@ -375,12 +375,12 @@ error:
 
 // TODO A similar function should allow hooking into the layer structure
 // and not at the top layer
-int probe_set_protocols(probe_t * probe, char * name1, ...)
+int probe_set_protocols(probe_t * probe, const char * name1, ...)
 {
-    va_list   args, args2;
-    size_t    buflen, offset;
-    char    * i;
-    layer_t * layer, *prev_layer;
+    va_list      args, args2;
+    size_t       buflen, offset;
+    const char * i;
+    layer_t    * layer, *prev_layer;
 
     // Remove the former layer structure
     dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
