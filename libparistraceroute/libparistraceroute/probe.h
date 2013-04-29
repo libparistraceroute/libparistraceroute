@@ -132,52 +132,52 @@ int probe_write_payload(probe_t *probe, buffer_t * payload, unsigned int offset)
  * \param probe Pointer to a probe_t structure to get the payload size from
  * \return 0 (NYI - Will be Size of the probe's payload)
  */
-unsigned int probe_get_payload_size(const probe_t *probe);
+unsigned int probe_get_payload_size(const probe_t * probe);
 /**
  * \brief Get the protocol from the probe with the given index
  * \param i Integer index of the probe to use
  * \return NULL (NYI - Will be Pointer to the name of the protocol)
  */
-char* probe_get_protocol_by_index(unsigned int i);
+char * probe_get_protocol_by_index(unsigned int i);
 
 /**
  * \brief Get the protocol number (?) from a probe
  * \param probe Pointer to a probe_t structure to use
  * \return 0 (NYI)
  */
-unsigned int probe_get_num_proto(const probe_t *probe);
+unsigned int probe_get_num_proto(const probe_t * probe);
 /**
  * \brief Get the header fields from a probe
  * \param probe Pointer to a probe_t structure to use
  * \return NULL (NYI - Will be Array of pointers to the field_t structures contained in the given probe)
  */
-field_t ** probe_get_fields(const probe_t *probe);
+field_t ** probe_get_fields(const probe_t * probe);
 
-int probe_set_caller(probe_t *probe, void *caller);
-//void * probe_get_caller(const probe_t *probe);
-int probe_set_sending_time(probe_t *probe, double time);
-double probe_get_sending_time(const probe_t *probe);
-int probe_set_queueing_time(probe_t *probe, double time);
-double probe_get_queueing_time(const probe_t *probe);
+int probe_set_caller(probe_t * probe, void * caller);
+void * probe_get_caller(const probe_t * probe);
+int probe_set_sending_time(probe_t * probe, double time);
+double probe_get_sending_time(const probe_t * probe);
+int probe_set_queueing_time(probe_t * probe, double time);
+double probe_get_queueing_time(const probe_t * probe);
 
 /******************************************************************************
  * probe_reply_t
  ******************************************************************************/
 
 typedef struct {
-    probe_t *probe;
-    probe_t *reply;
+    probe_t * probe;
+    probe_t * reply;
 } probe_reply_t;
 
-probe_reply_t *probe_reply_create(void);
-void probe_reply_free(probe_reply_t *probe_reply);
+probe_reply_t * probe_reply_create(void);
+void probe_reply_free(probe_reply_t * probe_reply);
 
 // Accessors
 
-int probe_reply_set_probe(probe_reply_t *probe_reply, probe_t *probe);
-probe_t * probe_reply_get_probe(const probe_reply_t *probe_reply);
-int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t *reply);
-probe_t * probe_reply_get_reply(const probe_reply_t *probe_reply);
+int probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe);
+probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
+int probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
+probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
 
 /******************************************************************************
  * pt_loop_t
@@ -191,11 +191,11 @@ struct pt_loop_s;
  * \param reply Pointer to an empty probe_t structure to hold the reply (?)
  * \return None
  */
-void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *reply);
+void pt_probe_reply_callback(struct pt_loop_s * loop, probe_t * probe, probe_t * reply);
 
 
 int probe_set_protocols(probe_t * probe, char * name1, ...);
 
-int probe_update_fields(probe_t *probe);
+int probe_update_fields(probe_t * probe);
 
 #endif

@@ -98,7 +98,8 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
     size_t          offset;
     unsigned char * data;
     protocol_t    * protocol;
-    uint8_t         protocol_id,ipv4_protocol_id;
+    uint8_t         protocol_id,
+                    ipv4_protocol_id = 4;
     probe->buffer = buffer;
 
     // buffer_dump(probe->buffer);
@@ -181,6 +182,7 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
            		 }
         	}
     }
+
     /* payload */
     if (protocol_id == 0) {
         // XXX some icmp packets do not have payload
@@ -678,7 +680,7 @@ int probe_set_caller(probe_t * probe, void * caller)
     return 0;
 }
 
-void * probe_get_caller(probe_t * probe)
+void * probe_get_caller(const probe_t * probe)
 {
     return probe->caller;
 }
@@ -694,7 +696,7 @@ double probe_get_sending_time(const probe_t * probe)
     return probe->sending_time;
 }
 
-int probe_set_queueing_time(probe_t *probe, double time)
+int probe_set_queueing_time(probe_t * probe, double time)
 {
     probe->queueing_time = time;
     return 0;
@@ -734,7 +736,7 @@ unsigned int probe_get_num_proto(const probe_t *probe)
     return 0; // TODO
 }
 
-field_t ** probe_get_fields(const probe_t *probe)
+field_t ** probe_get_fields(const probe_t * probe)
 {
     return NULL; // TODO
 }
@@ -746,6 +748,7 @@ const field_t * probe_get_field_ext(const probe_t * probe, const char * name, un
     layer_t       * layer;
     const field_t * field;
 
+    
     // We go through the layers until we get the required field
     size = dynarray_get_size(probe->layers);
     for(i = depth; i < size; i++) {
@@ -762,18 +765,18 @@ const field_t * probe_get_field(const probe_t * probe, const char * name)
     return probe_get_field_ext(probe, name, 0);
 }
 
-unsigned char *probe_get_payload(const probe_t *probe)
+unsigned char * probe_get_payload(const probe_t * probe)
 {
     // point into the packet structure
     return NULL; // TODO
 }
 
-unsigned int probe_get_payload_size(const probe_t *probe)
+unsigned int probe_get_payload_size(const probe_t * probe)
 {
     return 0; // TODO
 }
 
-char* probe_get_protocol_by_index(unsigned int i)
+char * probe_get_protocol_by_index(unsigned int i)
 {
     return NULL; // TODO
 }

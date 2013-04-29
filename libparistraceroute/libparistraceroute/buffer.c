@@ -46,16 +46,17 @@ void buffer_free(buffer_t * buffer)
     }
 }
 
-int buffer_resize(buffer_t * buffer, size_t size)
+bool buffer_resize(buffer_t * buffer, size_t size)
 {
+    /*
     unsigned char * tmp;
 
-    if (buffer->size == size) return 0;
+    if (buffer->size == size) return true;
 
     if (!buffer->data) {
         // First time allocation
         buffer->data = calloc(size, sizeof(unsigned char));
-        if (!buffer->data) return -1; // no allocation could be made
+        if (!buffer->data) return false; // no allocation could be made
     } else {
         tmp = realloc(buffer->data, size * sizeof(unsigned char));
         if (!tmp)
@@ -65,20 +66,35 @@ int buffer_resize(buffer_t * buffer, size_t size)
     }
     buffer->size = size;
     return 0;
+ */  
+    uint8_t * data2;
+    bool      ret = true;
+
+    if (buffer->size != size) {
+        data2 = buffer->data ?
+            realloc(buffer->data, size * sizeof(uint8_t)):
+            calloc(size, sizeof(uint8_t));
+        if (data2) {
+            buffer->data = data2;
+            buffer->size = size;
+        }
+    }
+    return ret;
 }
 
-inline unsigned char * buffer_get_data(const buffer_t * buffer) {
-    return buffer->data;
+inline uint8_t * buffer_get_data(buffer_t * buffer) {
+    return buffer ? buffer->data : 0;
 }
 
 inline size_t buffer_get_size(const buffer_t * buffer) {
-    return buffer->size;
+    return buffer ? buffer->size : 0;
 }
 
-inline void buffer_set_data(buffer_t * buffer, unsigned char * data, unsigned int size)
+bool buffer_set_data(buffer_t * buffer, uint8_t * data, size_t size)
 {
-    buffer_resize(buffer, size);
-    memcpy(buffer->data, data, size);
+    bool ret = buffer_resize(buffer, size);
+    if (ret) memcpy(buffer->data, data, size);
+    return ret;
 }
 
 inline void buffer_set_size(buffer_t * buffer, size_t size) {
@@ -93,10 +109,10 @@ unsigned char buffer_guess_ip_version(buffer_t * buffer) {
 
 void buffer_dump(const buffer_t * buffer)
 {
-    unsigned int i;
-    char c;
+    size_t i;
+    char   c;
 
-    /* print data byte by byte */
+    // Print data byte by byte
     for (i = 0; i < buffer->size; i++)
     {
         c = buffer->data[i];

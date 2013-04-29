@@ -27,73 +27,73 @@ double network_get_timeout() {
     return timeout;
 }
 
-void network_sniffer_handler(network_t *network, packet_t *packet)
+void network_sniffer_handler(network_t * network, packet_t * packet)
 {
     queue_push_element(network->recvq, packet);
 }
 
-network_t* network_create(void)
+network_t * network_create(void)
 {
-    network_t *network;
+    network_t * network;
 
     network = malloc(sizeof(network_t));
     if (!network)
-        goto err_network;
+        goto ERR_NETWORK;
 
     /* create a socket pool */
     network->socketpool = socketpool_create();
     if (!network->socketpool)
-        goto err_socketpool;
+        goto ERR_SOCKETPOOL;
 
     /* create the send queue: probes */
     network->sendq = queue_create();
     if (!network->sendq)
-        goto err_sendq;
+        goto ERR_SENDQ;
 
     /* create the receive queue: packets */
     network->recvq = queue_create();
     if (!network->recvq)
-        goto err_recvq;
+        goto ERR_RECVQ;
 
     /* create the sniffer */
     network->sniffer = sniffer_create(network, network_sniffer_handler);
     if (!network->sniffer) 
-        goto err_sniffer;
+        goto ERR_SNIFFER;
 
     /* create the timerfd to handle probe timeouts */
     network->timerfd = timerfd_create(CLOCK_REALTIME, 0);
     if (network->timerfd == -1)
-        goto err_timerfd;
+        goto ERR_TIMERFD;
 
     /* create a list to store probes */
     network->probes = dynarray_create();
     if (!network->probes)
-        goto err_probes;
+        goto ERR_PROBES;
 
     network->last_tag = 0;
 
     return network;
 
-err_probes:
+ERR_PROBES:
     close(network->timerfd);
-err_timerfd:
+ERR_TIMERFD:
     sniffer_free(network->sniffer);
-err_sniffer:
+ERR_SNIFFER:
     queue_free(network->recvq, (ELEMENT_FREE) packet_free);
-err_recvq:
+ERR_RECVQ:
     printf("> network_create: call probe_free\n");
     queue_free(network->sendq, (ELEMENT_FREE) probe_free);
-err_sendq:
+ERR_SENDQ:
     socketpool_free(network->socketpool);
-err_socketpool:
+ERR_SOCKETPOOL:
     free(network);
     network = NULL;
-err_network:
+ERR_NETWORK:
     return NULL;
 }
 
-void network_free(network_t *network)
-{
+void network_free(network_t * network)
+{ 
     //printf("> network_free: call probe_free(network->probes = %d)\n", network->probes);
     dynarray_free(network->probes, (ELEMENT_FREE) probe_free);
     close(network->timerfd);
@@ -105,32 +105,32 @@ void network_free(network_t *network)
     network = NULL;
 }
 
-inline int network_get_sendq_fd(network_t *network) {
+inline int network_get_sendq_fd(network_t * network) {
     return queue_get_fd(network->sendq);
 }
 
-inline int network_get_recvq_fd(network_t *network) {
+inline int network_get_recvq_fd(network_t * network) {
     return queue_get_fd(network->recvq);
 }
 
-inline int network_get_sniffer_fd(network_t *network) {
+inline int network_get_sniffer_fd(network_t * network) {
     return sniffer_get_fd(network->sniffer);
 }
 
-inline int network_get_timerfd(network_t *network) {
+inline int network_get_timerfd(network_t * network) {
     return network->timerfd;
 }
 
 /* TODO we need a function to return the set of fd used by the network */
 
-packet_t *packet_create_from_probe(probe_t *probe)
+packet_t * packet_create_from_probe(probe_t * probe)
 {
     //unsigned char  * payload;
     //size_t           payload_size;
     char           * dip;
     unsigned short   dport;
-    packet_t *packet;
-    field_t *field;
+    packet_t       * packet;
+    field_t        * field;
     
     // XXX assert ipv4/udp/no payload (encode tag into checksum) 
 
@@ -159,7 +159,7 @@ packet_t *packet_create_from_probe(probe_t *probe)
 
 }
 
-int network_get_available_tag(network_t *network)
+int network_get_available_tag(network_t * network)
 {
     // XXX
     return ++network->last_tag;
@@ -234,13 +234,13 @@ int network_process_sendq(network_t *network)
     int res;
     unsigned int num_probes;
 
-    probe = queue_pop_element(network->sendq);
+    probe = queue_pop_element(network->sendq, NULL); // TODO pass cb element_free
     //probe_update_fields(probe);
     
     res = network_tag_probe(network, probe);
 
     if (res < 0)
-        goto error;
+        goto ERROR;
     
 
     /* Make a packet from the probe structure */
@@ -271,11 +271,11 @@ int network_process_sendq(network_t *network)
         new_value.it_interval.tv_nsec = 0;
 
         if (timerfd_settime(network->timerfd, 0, &new_value, NULL) == -1)
-            goto error;
+            goto ERROR;
     }
 
     return 0;
-error:
+ERROR:
 printf("error\n");
     return -1;
 }
@@ -297,11 +297,11 @@ int network_schedule_probe_timeout(network_t * network, probe_t * probe)
     new_value.it_interval.tv_nsec = 0;
 
     if (timerfd_settime(network->timerfd, 0, &new_value, NULL) == -1)
-        goto error;
+        goto ERROR;
 
     return 0;
 
-error:
+ERROR:
     return -1;
 }
 
@@ -319,17 +319,14 @@ int network_schedule_next_probe_timeout(network_t * network)
 /**
  * \brief matches a reply with a probe
  */
-probe_t *network_match_probe(network_t *network, probe_t *reply)
+probe_t * network_match_probe(network_t * network, probe_t * reply)
 {
     field_t    * reply_checksum_field;
     probe_t    * probe;
     size_t       size;
     unsigned int i;
 
-   // probe_dump(reply);
-
-
-
+    probe_dump(reply);
     reply_checksum_field = probe_get_field_ext(reply, "checksum", 3);
 
 
@@ -388,20 +385,19 @@ probe_t *network_match_probe(network_t *network, probe_t *reply)
  *
  * Typically, the receive queue stores all the packets received by the sniffer.
  */
-int network_process_recvq(network_t *network)
+int network_process_recvq(network_t * network)
 {
-    probe_t *probe, *reply;
-    packet_t *packet;
-    probe_reply_t *pr;
-
-
-    packet = queue_pop_element(network->recvq);
-
+    probe_t       * probe,
+                  * reply;
+    packet_t      * packet;
+    probe_reply_t * pr;
+    
+    packet = queue_pop_element(network->recvq, NULL); // TODO pass cb element_free
     reply = probe_create();
 
 
     probe_set_buffer(reply, packet->buffer);
-    //probe_dump(probe);
+    //probe_dump(reply);
 
 
 
@@ -430,7 +426,7 @@ int network_process_recvq(network_t *network)
     return 0;
 }
 
-int network_process_sniffer(network_t *network)
+int network_process_sniffer(network_t * network)
 {
     sniffer_process_packets(network->sniffer);
     return 0;
@@ -444,7 +440,7 @@ int network_process_timeout(network_t * network)
 
     num_probes = dynarray_get_size(network->probes);
     if (num_probes == 0)
-        goto error;
+        goto ERROR;
 
     probe = dynarray_get_ith_element(network->probes, 0);
     dynarray_del_ith_element(network->probes, 0);
@@ -454,6 +450,6 @@ int network_process_timeout(network_t * network)
     network_schedule_next_probe_timeout(network);
 
     return 0;
-error:
+ERROR:
     return -1;
 }

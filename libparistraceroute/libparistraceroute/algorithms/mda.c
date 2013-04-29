@@ -300,11 +300,14 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t *
     mda_options_t * options;
     
     /* Create local data structure */
-    *pdata = mda_data_create(loop, skel);
+    *pdata = mda_data_create();
     if (!*pdata) return -1;
     data = *pdata;
     options = poption;
-    //printf("mda_handler_init %s\n", probe_get_field(skel, "dst_ip")->value.string);
+    printf("mda_handler_init %s\n", probe_get_field(skel, "dst_ip")->value.string);
+    data->dst_ip = probe_get_field(skel, "dst_ip")->value.string; 
+    data->skel = skel;
+    data->loop = loop;   
     probe_dump(skel);
     //printf("W: mda.c: set dport to 53 \n"); // TOFIX
     //probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
@@ -320,7 +323,6 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t *
             options->max_branch
         );
         */
-    //data->skel = skel;
 
     /* Create a dummy first hop, root of a lattice of discovered interfaces:
      *  . not a tree since some interfaces might have several predecessors
@@ -340,7 +342,7 @@ typedef struct {
 int mda_search_source(lattice_elt_t * elt, void * data)
 {
     mda_interface_t     * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t * search    = data;
+    mda_ttl_flow_t      * search    = data;
 
     if (interface->ttl == search->ttl) {
         unsigned int i, size;
@@ -403,14 +405,14 @@ int mda_timeout_flow(lattice_elt_t * elt, void * data)
 }
 
 typedef struct {
-    char * address;
+    char          * address;
     lattice_elt_t * result;
 } mda_address_t;
 
 int mda_search_interface(lattice_elt_t * elt, void * data)
 {
     mda_interface_t        * interface = lattice_elt_get_data(elt);
-    mda_address_t * search    = data;
+    mda_address_t          * search    = data;
 
     if (interface->address && strcmp(interface->address, search->address) == 0) {
         search->result = elt;
@@ -542,7 +544,7 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *
     ttl     = probe_get_field(probe, "ttl"    )->value.int8;
     flow_id = probe_get_field(probe, "flow_id")->value.intmax;
 
-    //printf("Probe timeout received: %hhu [%ju]\n", ttl, flow_id);
+    printf("Probe timeout received: %hhu [%ju]\n", ttl, flow_id);
 
     search_ttl_flow.ttl = ttl - 1;
     search_ttl_flow.flow_id = flow_id;

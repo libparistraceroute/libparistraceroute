@@ -15,7 +15,8 @@ typedef struct {
     probe_t     * skel;
 } mda_data_t;
 
-mda_data_t* mda_data_create(pt_loop_t * loop, probe_t * probe);
+//mda_data_t* mda_data_create(pt_loop_t * loop, probe_t * probe);
+mda_data_t* mda_data_create(void);
 void mda_data_free(mda_data_t *data);
 
 #endif /* MDA_DATA_H */
