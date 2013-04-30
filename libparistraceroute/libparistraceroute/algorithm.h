@@ -157,6 +157,12 @@ void pt_process_algorithms_instance(
     int          level
 );
 
+void pt_free_algorithms_instance(
+    const void * node,
+    VISIT        visit,
+    int          level
+);
+
 /**
  * \brief process algorithm events (internal usage, see visitor for twalk)
  * \param loop The libparistraceroute loop

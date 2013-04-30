@@ -13,17 +13,20 @@ static void pt_loop_clear_user_events(pt_loop_t * loop);
 
 pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *), void * user_data)
 {
-    int s, network_sendq_fd, network_recvq_fd, network_sniffer_fd, network_timerfd;
-    pt_loop_t * loop;
-    struct epoll_event network_sendq_event;
-    struct epoll_event network_recvq_event;
-    struct epoll_event network_sniffer_event;
-    struct epoll_event algorithm_event;
-    struct epoll_event user_event;
-    struct epoll_event network_timerfd_event;
-    /* Signal management */
-    sigset_t mask;
-    struct epoll_event signal_event;
+    int                  s,
+                         network_sendq_fd,
+                         network_recvq_fd,
+                         network_sniffer_fd,
+                         network_timerfd;
+    pt_loop_t          * loop;
+    struct epoll_event   network_sendq_event;
+    struct epoll_event   network_recvq_event;
+    struct epoll_event   network_sniffer_event;
+    struct epoll_event   algorithm_event;
+    struct epoll_event   user_event;
+    struct epoll_event   network_timerfd_event;
+    struct epoll_event   signal_event;
+    sigset_t             mask; // Signal management
 
     loop = malloc(sizeof(pt_loop_t));
     if(!loop) goto ERR_MALLOC;
@@ -157,15 +160,21 @@ ERR_MALLOC:
 
 void pt_loop_free(pt_loop_t * loop)
 {
-    free(loop->events_user);
-    free(loop->epoll_events);
-    network_free(loop->network);
-    close(loop->sfd);
-    close(loop->eventfd_user);
-    close(loop->eventfd_algorithm);
-    close(loop->efd);
-    pt_loop_clear_user_events(loop);
-    free(loop);
+    if (loop) {
+        if (loop->events_user)  free(loop->events_user);
+        if (loop->epoll_events) free(loop->epoll_events);
+        network_free(loop->network);
+        close(loop->sfd);
+        close(loop->eventfd_user);
+        close(loop->eventfd_algorithm);
+        close(loop->efd);
+
+        // They should be cleared while destroying algorithm instances
+        //pt_loop_clear_user_events(loop);
+        pt_algorithm_instance_iter(loop, pt_free_algorithms_instance);
+
+        free(loop);
+    }
 }
 
 // Accessors
@@ -185,7 +194,7 @@ inline unsigned pt_loop_get_num_user_events(pt_loop_t * loop)
 inline void pt_loop_clear_user_events(pt_loop_t * loop)
 {
     if (loop) {
-        dynarray_clear(loop->events_user, (void (*)(void *)) event_free);
+        dynarray_clear(loop->events_user, (ELEMENT_FREE) event_free);
     }
 }
 
