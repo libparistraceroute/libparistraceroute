@@ -97,17 +97,27 @@ static algorithm_instance_t * algorithm_instance_create(
     void        * options,
     probe_t     * probe_skel
 ) {
-    algorithm_instance_t * instance = malloc(sizeof(algorithm_instance_t));
-    if (instance) {
-        instance->id         = loop->next_algorithm_id++;
-        instance->algorithm  = algorithm;
-        instance->options    = options;
-        instance->probe_skel = probe_skel;
-        instance->data       = NULL;
-        instance->events     = dynarray_create();
-        instance->caller     = NULL;
-        instance->loop       = loop;
-    } else errno = ENOMEM;
+    algorithm_instance_t * instance;
+
+    if (!loop) {
+        errno = EINVAL;
+        perror("algorithm_instance_create: Invalid loop");
+        return NULL;
+    }
+
+    if (!(instance = malloc(sizeof(algorithm_instance_t)))) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    instance->id         = loop->next_algorithm_id++;
+    instance->algorithm  = algorithm;
+    instance->options    = options;
+    instance->probe_skel = probe_skel;
+    instance->data       = NULL;
+    instance->events     = dynarray_create();
+    instance->caller     = NULL;
+    instance->loop       = loop;
     return instance;
 }
 

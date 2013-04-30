@@ -188,13 +188,6 @@ int main(int argc, char ** argv)
     network_set_timeout(wait[0]);
     printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
 
-    // Create libparistraceroute loop
-    if (!(loop = pt_loop_create(user_handler, data))) {
-        errno = ENOMEM;
-        perror("E: Cannot create libparistraceroute loop");
-        goto ERR_LOOP_CREATE;
-    }
-
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe_skel = probe_create())) {
         errno = ENOMEM;
@@ -255,6 +248,13 @@ int main(int argc, char ** argv)
         ptraceroute_options->min_ttl = first_ttl[0];
         ptraceroute_options->max_ttl = max_ttl[0];
         ptraceroute_options->dst_ip  = data->dst_ip;
+    }
+
+    // Create libparistraceroute loop
+    if (!(loop = pt_loop_create(user_handler, data))) {
+        errno = ENOMEM;
+        perror("E: Cannot create libparistraceroute loop");
+        goto ERR_LOOP_CREATE;
     }
 
     // Add an algorithm instance in the main loop
