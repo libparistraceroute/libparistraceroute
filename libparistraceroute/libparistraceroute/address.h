@@ -1,45 +1,44 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>  // getaddrinfo etc.
-#include <sys/socket.h>
-#include <netdb.h>
-#include <string.h> // memcpy
-
-
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
-/*typedef enum {
-    TYPE_SOCKADDR_IN,
-    TYPE_SOCKADDR_IN6,
-} sockaddrtype_t;
-*/
+#include <string.h>     // memcpy
+#include <netinet/in.h>
+
 typedef union {
-    struct sockaddr     sa;
-    struct sockaddr_in  sin;
-    struct sockaddr_in6 sin6;
-} sockaddr_any;
+    struct in_addr  sin;
+    struct in6_addr sin6;
+} sin_union_t;
 
 typedef struct {
-    char           * ipaddress;
-    int              af;
-    sockaddr_any     address;
-  //  sockaddrtype_t   type;
-} sockaddr_t;
+    int         family;  /**< Address family: AF_INET or AF_INET6 */
+    sin_union_t address; /**< IP address (binary) */
+} address_t;
 
-//typedef union common_sockaddr sockaddr_any;
-int address_get_by_name (const char * name, sockaddr_any * addr);
+/**
+ * \brief Initialize an address_t according to a string
+ * \param string An IP address (human readable format) or a hostname)
+ * \return see getaddrinfo's returned values 
+ */
 
-int address_set_host (const char * hostname, sockaddr_any * saddr);
+int address_from_string(const char * string, address_t * address);
 
-char * address_to_string (const sockaddr_any * addr); 
+/**
+ * \brief Convert an IP address into a human readable string
+ * \param addr The address that must be converted
+ * \param pbuffer The address of a char * that will be updated to point
+ *    to an allocated buffer.
+ * \return The value returned by getnameinfo
+ */
 
-char * address_resolv(const char * name);
+int address_to_string(const address_t * addr, char ** pbuffer); 
 
+/**
+ * \brief Converts an IP stored in a string into its corresponding hostname
+ * \param str_ip A string containing either an IPv4 or either an IPv6 address
+ * \return NULL if no hostname has been successfully resolv, the corresponding
+ *    hostname otherwise
+ */
 
-
-#ifndef DEF_AF
-#define DEF_AF      AF_INET
-#endif
+char * address_resolv(const char * str_ip);
 
 #endif 

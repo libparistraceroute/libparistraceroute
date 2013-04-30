@@ -1,22 +1,17 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>  // getaddrinfo etc.
-#include <sys/socket.h>
-#include <netdb.h>
-#include <string.h> // memcpy
-#include <arpa/inet.h>
-
 #include "address.h"
 
+#include <stdlib.h>
+#include <errno.h>      // errno, ENOMEM, EINVAL
+#include <netdb.h>
+#include <string.h>     // memcpy
+#include <sys/types.h>  // getaddrinfo etc.
+#include <sys/socket.h> // sockaddr_*
+#include <netinet/in.h> // INET_ADDRSTRLEN, INET6_ADDRSTRLEN
+#include <arpa/inet.h>  // inet_pton
 
-#define AI_IDN 0x0040
-
-/******************************************************************************
- * Static variables 
- ******************************************************************************/
-
-static int    af = 0; // ? address family
-//static char * dst_name = NULL;
+#define AI_IDN        0x0040
+#define SIZEOF_INET   32
+#define SIZEOF_INET6  128
 
 /******************************************************************************
  * Helper functions
@@ -24,74 +19,102 @@ static int    af = 0; // ? address family
 
 // CPPFLAGS += -D_GNU_SOURCE
 
-int address_get_by_name(const char * name, sockaddr_any * addr) {
-    int    ret;
-    struct addrinfo hints, *ai, *res = NULL;
+int address_guess_family(const char * str_ip) {
+    return (strchr(str_ip, '.') != NULL) ?
+        AF_INET :
+        AF_INET6;
+}
 
-    memset (&hints, 0, sizeof (hints));
+int address_from_string(const char * hostname, address_t * address)
+{
+    struct addrinfo   hints,
+                    * ai,
+                    * res = NULL;
+    int               ret;
+    int               af = address_guess_family(hostname);
+
+    // Initialize hints
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = af;
     hints.ai_flags = AI_IDN;
 
-    ret = getaddrinfo(name, NULL, &hints, &res);
-    if (ret) {
-        fprintf(stderr, "%s: %s\n", name, gai_strerror (ret));
-        return -1;
+    // Convert string hostname / IP into a sequence of addrinfo instances
+    if ((ret = getaddrinfo(hostname, NULL, &hints, &res)) == 0) {
+        // Find the first addrinfo with the appropriate family
+        for (ai = res; ai; ai = ai->ai_next) {
+            if (ai->ai_family == af) break;
+        }
+
+        // Not found! Pass the last addrinfo
+        if (!ai) ai = res;
+
+        memcpy(&address->address, ai->ai_addr, ai->ai_addrlen);
+        address->family = af;
+        freeaddrinfo(res);
     }
 
-    for (ai = res; ai; ai = ai->ai_next) {
-        if (ai->ai_family == af)  break;
-        /*  when af not specified, choose DEF_AF if present   */
-        if (!af && ai->ai_family == DEF_AF)
+    return ret;
+}
+
+int address_to_string(const address_t * address, char ** pbuffer)
+{
+    struct sockaddr     * sa;
+    struct sockaddr_in    sin4;
+    struct sockaddr_in6   sin6;
+    socklen_t             salen;
+    size_t                hostlen;
+    int ret;
+
+    switch (address->family) {
+        case AF_INET:
+            sa = (struct sockaddr *) &sin4;
+            sin4.sin_family = address->family;
+            sin4.sin_port   = 0;
+            sin4.sin_addr   = address->address.sin;
+            salen = SIZEOF_INET;
+            hostlen = INET_ADDRSTRLEN;
             break;
+        case AF_INET6:
+            sa = (struct sockaddr *) &sin6;
+            sin6.sin6_family = address->family;
+            sin6.sin6_port   = 0;
+            sin6.sin6_addr   = address->address.sin6;
+            salen = SIZEOF_INET6;
+            hostlen = INET6_ADDRSTRLEN;
+            break;
+        default:
+            *pbuffer = NULL;
+            return EINVAL;
     }
-    if (!ai)  ai = res; /*  anything...  */
 
-    if (ai->ai_addrlen > sizeof (*addr))
-        return -1;  /*  paranoia   */
-    memcpy (addr, ai->ai_addr, ai->ai_addrlen);
+    if (!(*pbuffer = malloc(hostlen))) {
+        return ENOMEM;
+    }
 
-    freeaddrinfo (res);
-
-    return 0;
+    ret = getnameinfo(sa, salen, *pbuffer, hostlen, NULL, 0, NI_NUMERICHOST);
+    return ret;
 }
 
-int address_set_host (const char * hostname, sockaddr_any * dst_addr)
-{
-
-    if (address_get_by_name (hostname, dst_addr) < 0)
-        return -1;
-
-  //  dst_name = hostname;
-
-    /*  i.e., guess it by the addr in cmdline...  */
-    if (!af)  af = dst_addr->sa.sa_family;
-
-    return 0;
-}
-
-static char addr_to_string_buf[INET6_ADDRSTRLEN];
-
-char * address_to_string(const sockaddr_any * addr) 
-{
-    getnameinfo (&addr->sa, sizeof (*addr), addr_to_string_buf, sizeof (addr_to_string_buf), 0, 0, NI_NUMERICHOST);
-    return addr_to_string_buf;
-}
-
-char * address_resolv(const char * name) {
-    sockaddr_any      res;
-    struct hostent  * hp;
-    int               af_type;
+char * address_resolv(const char * str_ip) {
+    sin_union_t      address;
+    struct hostent * hp;
+    int              af_type;
+    size_t           len;
     
-    if(strchr(name, '.') != NULL) {
+    if (strchr(str_ip, '.') != NULL) {
+        len = SIZEOF_INET;
         af_type = AF_INET;
-    }
-    else {
+    } else {
+        len = SIZEOF_INET6;
         af_type = AF_INET6;
     }
-    if (!inet_pton(af_type, name, &res)) {
-        printf("can't parse IP address %s", name);
+
+    if (!inet_pton(af_type, str_ip, &address)) {
+        // Can't parse address
+        errno = EINVAL;
+        return NULL;
     }
-    hp = gethostbyaddr((const void *)&res, sizeof(res), af_type);
-    //printf("ip: %s -> name : %s \n ", name, hp->h_name ? hp);
-    return hp ? hp->h_name : " ";
+
+    hp = gethostbyaddr(&address, len, af_type);
+    return hp ? hp->h_name : NULL;
 }

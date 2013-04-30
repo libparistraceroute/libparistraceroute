@@ -296,13 +296,12 @@ ERROR:
 int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * poption)
 {
     mda_data_t    * data;
-    mda_options_t * options;
+    //mda_options_t * options = poptions;
     
     /* Create local data structure */
     *pdata = mda_data_create();
     if (!*pdata) return -1;
     data = *pdata;
-    options = poption;
     printf("mda_handler_init %s\n", probe_get_field(skel, "dst_ip")->value.string);
     data->dst_ip = probe_get_field(skel, "dst_ip")->value.string; 
     data->skel = skel;

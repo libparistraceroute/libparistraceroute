@@ -101,7 +101,6 @@ static algorithm_instance_t * algorithm_instance_create(
 
     if (!loop) {
         errno = EINVAL;
-        perror("algorithm_instance_create: Invalid loop");
         return NULL;
     }
 

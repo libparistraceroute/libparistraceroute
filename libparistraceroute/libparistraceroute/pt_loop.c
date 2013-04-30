@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdio.h> // DEBUG
 #include <sys/signalfd.h>
@@ -28,8 +29,11 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     struct epoll_event   signal_event;
     sigset_t             mask; // Signal management
 
-    loop = malloc(sizeof(pt_loop_t));
-    if(!loop) goto ERR_MALLOC;
+    if (!(loop = malloc(sizeof(pt_loop_t)))) {
+        errno = ENOMEM;
+        goto ERR_LOOP;
+    }
+
     loop->handler_user = handler_user;
 
     /* epoll file descriptor */
@@ -53,12 +57,11 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
         goto ERR_EVENTFD_USER;
     user_event.data.fd = loop->eventfd_user;
     user_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, loop->eventfd_user, &user_event);
+    s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_user, &user_event);
     if (s == -1)
         goto ERR_EVENTFD_ADD_USER;
   
     /* Signal processing */
-
     sigemptyset(&mask);
     sigaddset(&mask, SIGINT);
     sigaddset(&mask, SIGQUIT);
@@ -114,24 +117,26 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     if (s == -1)
         goto ERR_TIMERFD_ADD;
 
-    /* Buffer where events are returned */
-    loop->epoll_events = calloc(MAXEVENTS, sizeof(struct epoll_event));
-    if (!loop->epoll_events) goto ERR_EVENTS;
+    // Buffer where events are returned
+    if (!(loop->epoll_events = calloc(MAXEVENTS, sizeof(struct epoll_event)))) {
+        errno = ENOMEM;
+        goto ERR_EVENTS;
+    }
 
-    loop->events_user = dynarray_create();
-    if (!loop->events_user) goto ERR_EVENTS_USER;
+    if (!(loop->events_user = dynarray_create())) {
+        errno = ENOMEM;
+        goto ERR_EVENTS_USER;
+    }
 
     loop->user_data = user_data;
     loop->stop = PT_LOOP_CONTINUE;
-
     loop->next_algorithm_id = 1; // 0 means unaffected ?
     loop->cur_instance = NULL;
-
     loop->algorithm_instances_root = NULL;
 
     return loop;
 
-//free(loop->events_user);
+    // dynarray_free(loop->events_user);
 ERR_EVENTS_USER:
     free(loop->epoll_events);
 ERR_EVENTS:
@@ -154,7 +159,7 @@ ERR_EVENTFD_ALGORITHM:
     close(loop->efd);
 ERR_EPOLL:
     free(loop);
-ERR_MALLOC:
+ERR_LOOP:
     return NULL;
 }
 
@@ -169,10 +174,8 @@ void pt_loop_free(pt_loop_t * loop)
         close(loop->eventfd_algorithm);
         close(loop->efd);
 
-        // They should be cleared while destroying algorithm instances
-        //pt_loop_clear_user_events(loop);
+        // Events are cleared while destroying algorithm instances
         pt_algorithm_instance_iter(loop, pt_free_algorithms_instance);
-
         free(loop);
     }
 }

@@ -156,8 +156,9 @@ int main(int argc, char ** argv)
     algorithm_instance_t    * instance;
     probe_t                 * probe_skel;
     pt_loop_t               * loop      = NULL;
-    int                       exit_code = EXIT_FAILURE, i;
-    static sockaddr_any       dst_addr  = {{ 0, }, };
+    int                       exit_code = EXIT_FAILURE, i, ret;
+    //sockaddr_any              dst_addr  = {{ 0, }, };
+    address_t                 dst_addr;
 
     // Retrieve values passed in the command-line
     opt_options1st();
@@ -169,18 +170,21 @@ int main(int argc, char ** argv)
     if (!(data = malloc(sizeof(paris_traceroute_data_t)))) {
         errno = ENOMEM;
         perror("E: No enough memory");
-        goto ERROR_DATA;
+        goto ERR_DATA;
     }
 
     // Iterate on argv to retrieve the target IP address
     for(i = 0; argv[i] && i < argc; ++i);
-    address_set_host(argv[i - 1], &dst_addr);
+    //address_string_to_sockaddr(argv[i - 1], &dst_addr);
+    if ((ret = address_from_string(argv[i - 1], &dst_addr)) != 0) {
+        perror(gai_strerror(ret));
+        goto ERR_ADDRESS_FROM_STRING;
+    }
 
     // Convert target IP from address to string
-    if (!(data->dst_ip = address_to_string(&dst_addr))) {
-        errno = EINVAL;
-        perror("E: Invalid target address");
-        goto ERR_INVALID_TARGET_ADDRESS;
+    if ((ret = address_to_string(&dst_addr, &data->dst_ip)) != 0) {
+        perror(gai_strerror(ret));
+        goto ERR_ADDRESS_TO_STRING;
     }
 
     // Assign parameters in the algorithm data structure
@@ -283,9 +287,11 @@ ERR_PROBE_SKEL:
     // Options and probe_skel must be manually removed.
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
-ERR_INVALID_TARGET_ADDRESS:
+ERR_ADDRESS_TO_STRING:
+    if (data->dst_ip) free(data->dst_ip);
     free(data);
-ERROR_DATA:
+ERR_ADDRESS_FROM_STRING:
+ERR_DATA:
     exit(exit_code);
 }
 
