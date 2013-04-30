@@ -357,7 +357,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
     /* No match found if we reached the end of the array */
     if (i == size) {
         printf("Reply discarded:\n");
-        probe_dump(reply);
+        //probe_dump(reply);
         return NULL;
     }
 

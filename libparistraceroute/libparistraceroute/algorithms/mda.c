@@ -85,10 +85,10 @@ static int mda_stopping_points(unsigned int num_interfaces, unsigned int confide
 
 int mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst)
 {
-    mda_event_t * mda_event;
+    mda_event_t      * mda_event;
     mda_interface_t ** link;
 
-    mda_event = malloc(sizeof(mda_event));
+    mda_event = malloc(sizeof(mda_event_t));
     if (!mda_event) goto ERROR;
     link = malloc(2 * sizeof(mda_interface_t));
     if (!link) goto ERROR;
@@ -125,17 +125,18 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
 {
     mda_interface_t * interface = lattice_elt_get_data(elt);
     /* Number of interfaces at the same TTL */
-    unsigned int num_next;
+    unsigned int num_next = 0;
     /* Probe to send */
-    probe_t *probe;
+    probe_t * probe;
     /* Probe information */
-    uintmax_t flow_id;
+    uintmax_t flow_id = 0;
 
-    int i;
+    int i = 0;
     int tosend = 0;
-    int num_flows_missing = 0, num_flows_avail = 0;
-    int num_flows_testing;
-    int num_siblings;
+    int num_flows_missing = 0;
+    int num_flows_avail = 0;
+    int num_flows_testing = 0;
+    int num_siblings = 0;
 
     //printf("Processing interface %s at ttl %hhu\n", interface->address, interface->ttl);
 
@@ -174,7 +175,6 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
             // potentially divided by num_siblings
             num_flows_testing = mda_interface_get_num_flows(interface, MDA_FLOW_TESTING);
             num_flows_missing = tosend - num_flows_avail - num_flows_testing;
-
             for (i = 0; i < num_flows_missing; i++) {
                 /* Note: we are not sure all probes will go to the right interface, and
                  * we might go though us, though it might alimentate other interfaces at
@@ -213,7 +213,6 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
         //printf("Sent probe at ttl %hhu with flow_id %ju\n", interface->ttl + 1, flow_id);
         interface->sent++;
     }
-
     return LATTICE_INTERRUPT_NEXT; // OK, but enumeration not complete, interrupt walk
 }
 
