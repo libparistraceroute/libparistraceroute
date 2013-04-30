@@ -326,7 +326,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
     size_t       size;
     unsigned int i;
 
-    probe_dump(reply);
+    //probe_dump(reply);
     reply_checksum_field = probe_get_field_ext(reply, "checksum", 3);
 
 
@@ -337,7 +337,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
     size = dynarray_get_size(network->probes);
 
     for(i = 0; i < size; i++) {
-        field_t *probe_checksum_field;
+        field_t * probe_checksum_field;
 
         probe = dynarray_get_ith_element(network->probes, i);
 

@@ -308,7 +308,7 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t *
     data->dst_ip = probe_get_field(skel, "dst_ip")->value.string; 
     data->skel = skel;
     data->loop = loop;   
-    probe_dump(skel);
+    //probe_dump(skel);
     //printf("W: mda.c: set dport to 53 \n"); // TOFIX
     //probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
     /* printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
@@ -624,7 +624,7 @@ int mda_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, vo
     int ret;
     mda_data_t             * data;
 
-    printf("%d ALGORITHM_INIT = %d PROBE_REPLY = %d PROBE_TIMEOUT = %d\n", event->type, ALGORITHM_INIT, PROBE_REPLY, PROBE_TIMEOUT);
+    //printf("%d ALGORITHM_INIT = %d PROBE_REPLY = %d PROBE_TIMEOUT = %d\n", event->type, ALGORITHM_INIT, PROBE_REPLY, PROBE_TIMEOUT);
     switch (event->type) {
         case ALGORITHM_INIT:       mda_handler_init(loop, event, pdata, skel, options);    break;
         case PROBE_REPLY:          mda_handler_reply(loop, event, pdata, skel, options);   break;

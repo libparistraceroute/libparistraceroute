@@ -44,7 +44,7 @@ ERR_PROBE:
     return NULL;
 }
 
-probe_t *probe_dup(probe_t *skel)
+probe_t * probe_dup(probe_t * skel)
 {
     unsigned int ret;
     probe_t * probe;
@@ -131,7 +131,7 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
         protocol_t    * protocol;
         const field_t * field;
         size_t          hdrlen;
-        printf("-------> coucou\n");
+        //printf("-------> coucou\n");
 
         layer = layer_create();
         layer_set_buffer(layer, data + offset);
@@ -163,11 +163,11 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
         if (field) {
             protocol_id = field->value.int8;
             continue;
-        }/* else {
-            protocol_id = 6; // ICMP6 + IPv6
-        } */
+        } //else {
+            //protocol_id = 6; // ICMP6 + IPv6
+        //} 
 
-        if (strcmp(layer->protocol->name, "icmp") == 0) {
+        else if (strcmp(layer->protocol->name, "icmp") == 0) {
             // We are in an ICMP layer
             field = layer_get_field(layer, "type");
 
@@ -185,18 +185,20 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
             } else {
                 // Set protocol_id to payload
                 protocol_id = 0;
+                break;
             }
-        } else if (protocol_id != IPPROTO_ICMPV6) { // MARKERIP
+        } else if (protocol_id == IPPROTO_ICMPV6) { // MARKERIP
             // printf(" we think this is payload\n");
-            protocol_id = 0; /* payload */
-            printf("break 1");
+            protocol_id = IPPROTO_IPV6; // ICMP6 + IPv6            
+          //  protocol_id = 0; // payload 
+           // printf("break 1");
             break;
         } else {
             // We are in the payload
             protocol_id = 0;
             break;
         }
-    }
+    } 
 
     // payload
     if (protocol_id == 0) {
