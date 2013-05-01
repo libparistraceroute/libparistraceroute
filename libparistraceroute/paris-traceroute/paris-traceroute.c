@@ -45,7 +45,7 @@ static double   wait[3]      = {5,     0,   INT_MAX};
 static unsigned dst_port[3]  = {30000, 0,   65535};
 static unsigned src_port[3]  = {3083,  0,   65535};
 
-// Bounded pairs parameters  | def1 min1 max1 def2 min2 max2      mda_enabled
+// Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
 static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
 #define HELP_4 "Use IPv4"
@@ -82,37 +82,53 @@ struct opt_spec cl_options[] = {
 // Main program data structure
 //---------------------------------------------------------------------------
 
+// TODO remove this structure which seems to be useless
 typedef struct {
-    const char * algorithm;
-    char       * dst_ip;
-    void       * options;
+    char * algorithm;
+    char * dst_ip;
+    void * options;
 } paris_traceroute_data_t;
+
+paris_traceroute_data_t * paris_traceroute_data_create(
+    const char      * algorithm_name,
+    const address_t * dst_addr
+) {
+    paris_traceroute_data_t * data;
+
+    if (!(data = calloc(1, sizeof(paris_traceroute_data_t)))) {
+        goto ERROR_DATA;
+    }
+
+    // Convert target IP from address to string
+    if (address_to_string(dst_addr, &data->dst_ip) != 0) {
+        goto ERR_ADDRESS_TO_STRING;
+    }
+
+    // Assign parameters in the algorithm data structure
+    if (!(data->algorithm = strdup(algorithm_name))) {
+        goto ERR_DATA_ALGORITHM;
+    }
+
+    return data;
+ERR_DATA_ALGORITHM:
+    free(data->dst_ip);
+ERR_ADDRESS_TO_STRING:
+    free(data);
+ERROR_DATA:
+    return NULL;
+}
+
+void paris_traceroute_data_free(paris_traceroute_data_t * data) {
+    if (data) {
+        if (data->algorithm) free(data->algorithm);
+        if (data->dst_ip)    free(data->dst_ip);
+        free(data);
+    }
+}
 
 //---------------------------------------------------------------------------
 // Main program 
 //---------------------------------------------------------------------------
-
-
-/*
-void result_dump(lattice_elt_t * elt)
-{
-    unsigned int      i, num_next;
-    mda_interface_t * link[2];
-    
-    link[0] = lattice_elt_get_data(elt);
-
-    num_next = dynarray_get_size(elt->next);
-    if (num_next == 0) {
-        link[1] = NULL;
-        mda_link_dump(link, do_resolv);
-    }
-    for (i = 0; i < num_next; i++) {
-        lattice_elt_t *iter_elt;
-        iter_elt = dynarray_get_ith_element(elt->next, i);
-        link[1] = lattice_elt_get_data(iter_elt);
-        mda_link_dump(link, do_resolv);
-    }
-}*/
 
 /**
  * \brief Handle events raised by libparistraceroute
@@ -158,7 +174,6 @@ int main(int argc, char ** argv)
     traceroute_options_t    * ptraceroute_options;
     mda_options_t             mda_options;
     paris_traceroute_data_t * data;
-    algorithm_instance_t    * instance;
     probe_t                 * probe_skel;
     pt_loop_t               * loop      = NULL;
     int                       exit_code = EXIT_FAILURE, i, ret;
@@ -170,37 +185,32 @@ int main(int argc, char ** argv)
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
         exit(EXIT_FAILURE);
     }
-    
-    if (!(data = malloc(sizeof(paris_traceroute_data_t)))) {
-        errno = ENOMEM;
-        perror("E: No enough memory");
-        goto ERR_DATA;
+
+    // Verify that the user pass option related to mda iif this is the chosen algorithm.
+    if (mda[6]) {
+        if (strcmp(algorithm_names[0], "mda") != 0) {
+            perror("E: You cannot pass options related to mda when using another algorithm ");
+            goto ERR_INVALID_ALGORITHM;
+        }
     }
 
     // Iterate on argv to retrieve the target IP address
     for(i = 0; argv[i] && i < argc; ++i);
-    //address_string_to_sockaddr(argv[i - 1], &dst_addr);
-    if ((ret = address_from_string(argv[i - 1], &dst_addr)) != 0) {
-        perror(gai_strerror(ret));
+    if (address_from_string(argv[i - 1], &dst_addr) != 0) {
         goto ERR_ADDRESS_FROM_STRING;
     }
-    address_dump(&dst_addr);
 
-    // Convert target IP from address to string
-    if ((ret = address_to_string(&dst_addr, &data->dst_ip)) != 0) {
-        printf("%d\n", ret);
-        perror(gai_strerror(ret));
-        goto ERR_ADDRESS_TO_STRING;
+    // Prepare data
+    if (!(data = paris_traceroute_data_create(algorithm_names[0], &dst_addr))) {
+        goto ERR_DATA;
     }
-
-    // Assign parameters in the algorithm data structure
-    data->algorithm = algorithm_names[0];
-    network_set_timeout(wait[0]);
     printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
+
+    // Set network timeout
+    network_set_timeout(wait[0]);
 
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe_skel = probe_create())) {
-        errno = ENOMEM;
         perror("E: Cannot create probe skeleton");
         goto ERR_PROBE_SKEL;
     }
@@ -228,14 +238,6 @@ int main(int argc, char ** argv)
         probe_set_fields(probe_skel, I16("dst_port", 53), NULL);
     }
  
-    // Verify that the user pass option related to mda iif this is the chosen algorithm.
-    if (mda[6]) {
-        if (data->algorithm && strcmp(data->algorithm, "mda") != 0) {
-            perror("E: You cannot pass options related to mda when using another algorithm ");
-            goto ERR_INVALID_ALGORITHM;
-        } else data->algorithm = "mda";
-    }
-
     // Dedicated options 
     if (strcmp(data->algorithm, "traceroute") == 0
     ||  strcmp(data->algorithm, "paris-traceroute") == 0) {
@@ -262,15 +264,13 @@ int main(int argc, char ** argv)
 
     // Create libparistraceroute loop
     if (!(loop = pt_loop_create(user_handler, data))) {
-        errno = ENOMEM;
         perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
 
     // Add an algorithm instance in the main loop
-    if (!(instance = pt_algorithm_add(loop, data->algorithm, data->options, probe_skel))) {
+    if (!pt_algorithm_add(loop, data->algorithm, data->options, probe_skel)) {
         perror("E: Cannot add the chosen algorithm");
-        errno = ENOMEM;
         goto ERR_INSTANCE;
     }
 
@@ -293,12 +293,10 @@ ERR_PROBE_SKEL:
     // Options and probe_skel must be manually removed.
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
-ERR_ADDRESS_TO_STRING:
-    // TODO paris_traceroute_data_free(data)
-    if (data->dst_ip) free(data->dst_ip);
-    free(data);
-ERR_ADDRESS_FROM_STRING:
+    paris_traceroute_data_free(data);
 ERR_DATA:
+ERR_ADDRESS_FROM_STRING:
+    if (errno) perror(errno);
     exit(exit_code);
 }
 
