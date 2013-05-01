@@ -16,35 +16,36 @@ typedef enum {
     LATTICE_ERROR
 } lattice_return_t;
 
+// lattice_elt_t 
+
 typedef struct {
-    /* Next hop elements */
-    dynarray_t *next;
-    /* Sibling elements */
-    dynarray_t *siblings;
-    /* Local data */
-    void *data;
+    dynarray_t *next;     /**< Next hop elements */
+    dynarray_t *siblings; /**< Sibling elements */
+    void *data;           /**< Local data */
 } lattice_elt_t;
+
+lattice_elt_t * lattice_elt_create(void *id);
+void lattice_elt_free(lattice_elt_t *le);
+
+// lattice_t
 
 typedef struct {
     //lattice_elt_t *root;
     dynarray_t * roots;
     void *data;
-    int (*cmp)(void*, void*);
+    int (*cmp)(const void *, const void *);
 } lattice_t;
 
-lattice_elt_t * lattice_elt_create(void *id);
-void lattice_elt_free(lattice_elt_t *le);
-
-void * lattice_elt_get_data(lattice_elt_t * elt);
-unsigned int lattice_elt_get_num_next(lattice_elt_t * elt);
-unsigned int lattice_elt_get_num_siblings(lattice_elt_t * elt);
 
 lattice_t * lattice_create(void);
 void lattice_free(lattice_t * lattice, void (*lattice_element_free)(void *element));
-int lattice_set_data(lattice_t * lattice, void * data);
-void * lattice_get_data(lattice_t * lattice);
 
-int lattice_set_cmp(lattice_t * lattice, int (*cmp)(void *, void *));
+const void * lattice_elt_get_data(const lattice_elt_t * elt);
+size_t lattice_elt_get_num_next(const lattice_elt_t * elt);
+size_t lattice_elt_get_num_siblings(const lattice_elt_t * elt);
+
+int lattice_set_data(lattice_t * lattice, void * data);
+int lattice_set_cmp(lattice_t * lattice, int (*cmp)(const void *, const void *));
 
 int lattice_walk(lattice_t *lattice, int (*visitor)(lattice_elt_t *, void *), void * data, lattice_traversal_t traversal);
 void * lattice_find(lattice_t * lattice, void * data);

@@ -3,6 +3,10 @@
 #include <errno.h>                   // EINVAL, ENOMEM, errno
 #include <libgen.h>                  // basename
 #include <limits.h>                  // INT_MAX
+#include <string.h>                  // strcmp
+#include <sys/types.h>               // gai_strerror
+#include <sys/socket.h>              // gai_strerror
+#include <netdb.h>                   // gai_strerror
 
 #include "optparse.h"                // opt_*()
 #include "pt_loop.h"                 // pt_loop_t
@@ -13,9 +17,9 @@
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "address.h"                 // address_to_string, address_set_host
 
-/******************************************************************************
- * Command line stuff                                                         *
- ******************************************************************************/
+//---------------------------------------------------------------------------
+// Command line stuff
+//---------------------------------------------------------------------------
 
 const char * algorithm_names[] = {
     "mda",
@@ -74,21 +78,22 @@ struct opt_spec cl_options[] = {
     {OPT_NO_ACTION},
 };
 
-/******************************************************************************
- * Program data
- ******************************************************************************/
+//---------------------------------------------------------------------------
+// Main program data structure
+//---------------------------------------------------------------------------
 
 typedef struct {
     const char * algorithm;
-    const char * dst_ip;
+    char       * dst_ip;
     void       * options;
 } paris_traceroute_data_t;
 
+//---------------------------------------------------------------------------
+// Main program 
+//---------------------------------------------------------------------------
 
-/******************************************************************************
- * Main
- ******************************************************************************/
 
+/*
 void result_dump(lattice_elt_t * elt)
 {
     unsigned int      i, num_next;
@@ -107,7 +112,7 @@ void result_dump(lattice_elt_t * elt)
         link[1] = lattice_elt_get_data(iter_elt);
         mda_link_dump(link, do_resolv);
     }
-}
+}*/
 
 /**
  * \brief Handle events raised by libparistraceroute
@@ -126,7 +131,7 @@ void user_handler(pt_loop_t * loop, event_t * event, void * user_data)
         case ALGORITHM_TERMINATED:
             // Dump full lattice, only when MDA_NEW_LINK is not handled
             if (strcmp(data->algorithm, "mda") != 0) {
-                lattice_dump(event->data, (ELEMENT_DUMP) result_dump);
+                mda_interface_dump(event->data, do_resolv);
             }
             pt_loop_terminate(loop);
             break;
@@ -289,6 +294,7 @@ ERR_PROBE_SKEL:
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
 ERR_ADDRESS_TO_STRING:
+    // TODO paris_traceroute_data_free(data)
     if (data->dst_ip) free(data->dst_ip);
     free(data);
 ERR_ADDRESS_FROM_STRING:

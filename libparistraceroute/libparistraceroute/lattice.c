@@ -39,17 +39,17 @@ void lattice_elt_free(lattice_elt_t *le)
     free(le);
 }
 
-unsigned int lattice_elt_get_num_next(lattice_elt_t * elt)
+size_t lattice_elt_get_num_next(const lattice_elt_t * elt)
 {
     return dynarray_get_size(elt->next);
 }
 
-unsigned int lattice_elt_get_num_siblings(lattice_elt_t * elt)
+size_t lattice_elt_get_num_siblings(const lattice_elt_t * elt)
 {
     return dynarray_get_size(elt->siblings);
 }
 
-void * lattice_elt_get_data(lattice_elt_t * elt)
+const void * lattice_elt_get_data(const lattice_elt_t * elt)
 {
     return elt->data;
 }
@@ -95,7 +95,7 @@ void * lattice_get_data(lattice_t * lattice)
     return lattice->data;
 }
 
-int lattice_set_cmp(lattice_t * lattice, int (*cmp)(void * data1, void * data2))
+int lattice_set_cmp(lattice_t * lattice, int (*cmp)(const void * data1, const void * data2))
 {
     lattice->cmp = cmp;
     return 0;
@@ -178,7 +178,7 @@ int lattice_walk(lattice_t *lattice, int (*visitor)(lattice_elt_t *, void * data
     }
 }
 
-lattice_elt_t * lattice_find_elt(lattice_elt_t * elt, void * data, int (*cmp)(void *elt1, void *elt2))
+lattice_elt_t * lattice_find_elt(lattice_elt_t * elt, void * data, int (*cmp)(const void * elt1, const void * elt2))
 {
     unsigned int i, num_next;
 
@@ -198,16 +198,16 @@ lattice_elt_t * lattice_find_elt(lattice_elt_t * elt, void * data, int (*cmp)(vo
 
 void * lattice_find(lattice_t * lattice, void * data)
 {
-    lattice_elt_t * elt, * root;
-    unsigned int    i, num_roots;
+    lattice_elt_t * elt,
+                  * root;
+    size_t          i, num_roots;
     
     /* Process all roots */
     num_roots = dynarray_get_size(lattice->roots);
     for (i = 0; i < num_roots; i++) {
         root = dynarray_get_ith_element(lattice->roots, i);
         elt = lattice_find_elt(root, data, lattice->cmp);
-        if (elt)
-            return elt->data;
+        if (elt) return elt->data;
     }
 
     return NULL;
@@ -215,9 +215,7 @@ void * lattice_find(lattice_t * lattice, void * data)
 
 int lattice_add_element(lattice_t * lattice, lattice_elt_t * prev, void * data)
 {
-    lattice_elt_t * elt;
-
-    elt =  lattice_elt_create(data);
+    lattice_elt_t * elt = lattice_elt_create(data);
 
     if (!prev) {
         dynarray_push_element(lattice->roots, elt);
@@ -230,16 +228,17 @@ int lattice_add_element(lattice_t * lattice, lattice_elt_t * prev, void * data)
 int lattice_connect(lattice_t *lattice, lattice_elt_t * prev, lattice_elt_t * elt)
 {
     unsigned int i, j, num_next, num_siblings;
-    void * data = lattice_elt_get_data(elt);
+    const void * data = lattice_elt_get_data(elt);
     
     // Return if the element already existing in next hops
     num_next = dynarray_get_size(prev->next);
     for (i = 0; i < num_next; i++) {
         lattice_elt_t * elt_iter = dynarray_get_ith_element(prev->next, i);
-        void * local_data = lattice_elt_get_data(elt_iter);
-        if ((lattice->cmp && (lattice->cmp(local_data, data) == 0)) ||
-            (local_data == data))
+        const void * local_data = lattice_elt_get_data(elt_iter);
+        if ((lattice->cmp && (lattice->cmp(local_data, data) == 0))
+        ||  (local_data == data)) {
             return 0;
+        }
     }
     
     /* We need to update all siblings: the siblings of my child are the children

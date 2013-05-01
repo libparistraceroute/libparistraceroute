@@ -1,7 +1,7 @@
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
-#include <string.h>     // memcpy
+#include <stdbool.h>    // bool
 #include <netinet/in.h>
 
 typedef struct in_addr  ipv4_t;
@@ -52,10 +52,15 @@ int address_to_string(const address_t * addr, char ** pbuffer);
 /**
  * \brief Converts an IP stored in a string into its corresponding hostname
  * \param str_ip A string containing either an IPv4 or either an IPv6 address
- * \return NULL if no hostname has been successfully resolv, the corresponding
- *    hostname otherwise
+ * \param phostname Pass a pointer initialized to NULL.
+ *    *phostname is automatically allocated if it is required.
+ *    If the resolution fails, *phostname remains equal to NULL.
+ *    Otherwise, *phostname points to the FQDN and must be freed once it is no more used.
+ * \return true iif successfull 
  */
 
-char * address_resolv(const char * str_ip);
+bool address_resolv(const char * str_ip, char ** phostname);
+
+// TODO address_resolv(const address_t * address, char ** phostname)
 
 #endif 

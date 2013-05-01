@@ -184,7 +184,7 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
                  * flight by the number of interface (might overestimate ?)*/
                 probe = probe_dup(data->skel);
                 flow_id = ++data->last_flow_id;
-                mda_interface_add_flow_id(interface, flow_id, MDA_FLOW_TESTING);
+                mda_interface_add_flow_id(interface, flow_id, MDA_FLOW_TESTING); // TODO control returned value
                 probe_set_fields(probe, I8("ttl", interface->ttl), IMAX("flow_id", flow_id), NULL);
                 pt_send_probe(data->loop, probe);
             }

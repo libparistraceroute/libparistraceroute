@@ -1,20 +1,20 @@
 #include <stdlib.h>
+#include <errno.h>
 #include "flow.h"
 
 mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state)
 {
-    mda_flow_t *flow;
+    mda_flow_t * flow;
 
-    flow = malloc(sizeof(mda_flow_t));
-    if (!flow)
-        goto error;
+    if (!(flow = malloc(sizeof(mda_flow_t)))) {
+        errno = ENOMEM;
+        goto ERR_FLOW; 
+    }
 
     flow->flow_id = flow_id;
     flow->state = state;
-
     return flow;
-
-error:
+ERR_FLOW:
     return NULL;
 }
 

@@ -55,13 +55,16 @@ int address_from_string(const char * hostname, address_t * address)
     if (!ai) ai = res;
 
     // Extract from sockaddr the address where is stored the IP
-    addr = family == AF_INET  ? &(((struct sockaddr_in  *) ai->ai_addr)->sin_addr ):
-           family == AF_INET6 ? &(((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr):
-           NULL;
-
-    if (!addr) {
-        ret = EINVAL;
-        goto ERROR_FAMILY;
+    switch (family) {
+        case AF_INET:
+            addr = &(((struct sockaddr_in  *) ai->ai_addr)->sin_addr );
+            break;
+        case AF_INET6:
+            addr = &(((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr);
+            break;
+        default:
+            ret = EINVAL;
+            goto ERROR_FAMILY;
     }
 
     // Fill the address_t structure
@@ -111,28 +114,39 @@ int address_to_string(const address_t * address, char ** pbuffer)
     return getnameinfo(sa, sa_len, *pbuffer, buffer_len, NULL, 0, NI_NUMERICHOST);
 }
 
-char * address_resolv(const char * str_ip)
+bool address_resolv(const char * str_ip, char ** phostname)
 {
     ip_t             ip;
     struct hostent * hp;
     int              family;
     size_t           ip_len;
+    bool             ret;
     
+    if (!str_ip) goto ERROR;
+
     family = address_guess_family(str_ip);
 
-    ip_len = family == AF_INET  ? sizeof(ipv4_t) :
-             family == AF_INET6 ? sizeof(ipv6_t) :
+    ip_len = family == AF_INET  ? sizeof(struct sockaddr_in)  :
+             family == AF_INET6 ? sizeof(struct sockaddr_in6) :
              0;
 
     // Invalid family
-    if (!ip_len) goto ERROR;
+    if (!ip_len) {
+        perror("address_resolv: Invalid family");
+        goto ERROR;
+    }
 
     // Can't parse str_ip
-    if (!inet_pton(family, str_ip, &ip)) goto ERROR;
+    if (!inet_pton(family, str_ip, &ip)) {
+        perror("address_resolv: Can't parse IP address");
+        goto ERROR;
+    }
 
-    hp = gethostbyaddr(&ip, ip_len, family);
-    return hp ? hp->h_name : NULL;
+    if ((ret = (hp = gethostbyaddr(&ip, ip_len, family)) != NULL)) {
+        *phostname = strdup(hp->h_name);
+    }
+    return ret; 
 ERROR:
     errno = EINVAL;
-    return NULL;
+    return false;
 }
