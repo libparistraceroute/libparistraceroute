@@ -4,14 +4,17 @@
 #include <string.h>     // memcpy
 #include <netinet/in.h>
 
+typedef struct in_addr  ipv4_t;
+typedef struct in6_addr ipv6_t;
+
 typedef union {
-    struct in_addr  sin;
-    struct in6_addr sin6;
-} sin_union_t;
+    ipv4_t ipv4;
+    ipv6_t ipv6;
+} ip_t;
 
 typedef struct {
-    int         family;  /**< Address family: AF_INET or AF_INET6 */
-    sin_union_t address; /**< IP address (binary) */
+    int  family;  /**< Address family: AF_INET or AF_INET6 */
+    ip_t ip;      /**< IP address (binary) */
 } address_t;
 
 /**
@@ -21,6 +24,20 @@ typedef struct {
  */
 
 int address_from_string(const char * string, address_t * address);
+
+/**
+ * \brief Print an address
+ * \param ipThe address to print
+ */
+
+void ipv4_dump(ipv4_t ip);
+
+/**
+ * \brief Print an address
+ * \param address The address to print
+ */
+
+void address_dump(const address_t * address);
 
 /**
  * \brief Convert an IP address into a human readable string

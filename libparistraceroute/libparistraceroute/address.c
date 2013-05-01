@@ -1,28 +1,28 @@
 #include "address.h"
 
-#include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>     // malloc
 #include <errno.h>      // errno, ENOMEM, EINVAL
-#include <netdb.h>
 #include <string.h>     // memcpy
-#include <sys/types.h>  // getaddrinfo etc.
-#include <sys/socket.h> // sockaddr_*
+#include <netdb.h>      // getnameinfo, getaddrinfo
+#include <sys/socket.h> // getnameinfo, getaddrinfo, sockaddr_*
 #include <netinet/in.h> // INET_ADDRSTRLEN, INET6_ADDRSTRLEN
 #include <arpa/inet.h>  // inet_pton
 
 #define AI_IDN        0x0040
-#define SIZEOF_INET   32
-#define SIZEOF_INET6  128
-
-/******************************************************************************
- * Helper functions
- ******************************************************************************/
 
 // CPPFLAGS += -D_GNU_SOURCE
 
-int address_guess_family(const char * str_ip) {
-    return (strchr(str_ip, '.') != NULL) ?
-        AF_INET :
-        AF_INET6;
+int address_guess_family(const char * str_ip)
+{
+    return (strchr(str_ip, '.') != NULL) ? AF_INET : AF_INET6;
+}
+
+void address_dump(const address_t * address)
+{
+    char buffer[INET6_ADDRSTRLEN];
+    inet_ntop(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
+    printf("%s", buffer);
 }
 
 int address_from_string(const char * hostname, address_t * address)
@@ -31,90 +31,108 @@ int address_from_string(const char * hostname, address_t * address)
                     * ai,
                     * res = NULL;
     int               ret;
-    int               af = address_guess_family(hostname);
+    void            * addr;
+
+    // This is not wonderful because "www.google.fr" will be considered as IPv4
+    int               family = address_guess_family(hostname);
 
     // Initialize hints
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = af;
+    hints.ai_family = family;
     hints.ai_flags = AI_IDN;
 
     // Convert string hostname / IP into a sequence of addrinfo instances
-    if ((ret = getaddrinfo(hostname, NULL, &hints, &res)) == 0) {
-        // Find the first addrinfo with the appropriate family
-        for (ai = res; ai; ai = ai->ai_next) {
-            if (ai->ai_family == af) break;
-        }
-
-        // Not found! Pass the last addrinfo
-        if (!ai) ai = res;
-
-        memcpy(&address->address, ai->ai_addr, ai->ai_addrlen);
-        address->family = af;
-        freeaddrinfo(res);
+    if ((ret = getaddrinfo(hostname, NULL, &hints, &res)) != 0) {
+        goto ERROR_GETADDRINFO;
     }
 
+    // Find the first addrinfo with the appropriate family
+    for (ai = res; ai; ai = ai->ai_next) {
+        if (ai->ai_family == family) break;
+    }
+
+    // Not found! Pass the last addrinfo
+    if (!ai) ai = res;
+
+    // Extract from sockaddr the address where is stored the IP
+    addr = family == AF_INET  ? &(((struct sockaddr_in  *) ai->ai_addr)->sin_addr ):
+           family == AF_INET6 ? &(((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr):
+           NULL;
+
+    if (!addr) {
+        ret = EINVAL;
+        goto ERROR_FAMILY;
+    }
+
+    // Fill the address_t structure
+    memcpy(&address->ip, addr, ai->ai_addrlen);
+    address->family = family;
+ERROR_FAMILY:
+    freeaddrinfo(res);
+    return ret;
+ERROR_GETADDRINFO:
     return ret;
 }
 
 int address_to_string(const address_t * address, char ** pbuffer)
 {
     struct sockaddr     * sa;
-    struct sockaddr_in    sin4;
-    struct sockaddr_in6   sin6;
-    socklen_t             salen;
-    size_t                hostlen;
-    int ret;
+    struct sockaddr_in    sa4;
+    struct sockaddr_in6   sa6;
+    socklen_t             sa_len;
+    size_t                buffer_len;
 
     switch (address->family) {
         case AF_INET:
-            sa = (struct sockaddr *) &sin4;
-            sin4.sin_family = address->family;
-            sin4.sin_port   = 0;
-            sin4.sin_addr   = address->address.sin;
-            salen = SIZEOF_INET;
-            hostlen = INET_ADDRSTRLEN;
+            sa = (struct sockaddr *) &sa4;
+            sa4.sin_family = address->family;
+            sa4.sin_port   = 0;
+            sa4.sin_addr   = address->ip.ipv4;
+            sa_len         = sizeof(struct sockaddr_in);
+            buffer_len     = INET_ADDRSTRLEN;
             break;
         case AF_INET6:
-            sa = (struct sockaddr *) &sin6;
-            sin6.sin6_family = address->family;
-            sin6.sin6_port   = 0;
-            sin6.sin6_addr   = address->address.sin6;
-            salen = SIZEOF_INET6;
-            hostlen = INET6_ADDRSTRLEN;
+            sa = (struct sockaddr *) &sa6;
+            sa6.sin6_family = address->family;
+            sa6.sin6_port   = 0;
+            sa6.sin6_addr   = address->ip.ipv6;
+            sa_len          = sizeof(struct sockaddr_in6);
+            buffer_len      = INET6_ADDRSTRLEN;
             break;
         default:
             *pbuffer = NULL;
             return EINVAL;
     }
 
-    if (!(*pbuffer = malloc(hostlen))) {
+    if (!(*pbuffer = malloc(buffer_len))) {
         return ENOMEM;
     }
 
-    ret = getnameinfo(sa, salen, *pbuffer, hostlen, NULL, 0, NI_NUMERICHOST);
-    return ret;
+    return getnameinfo(sa, sa_len, *pbuffer, buffer_len, NULL, 0, NI_NUMERICHOST);
 }
 
-char * address_resolv(const char * str_ip) {
-    sin_union_t      address;
+char * address_resolv(const char * str_ip)
+{
+    ip_t             ip;
     struct hostent * hp;
-    int              af_type;
-    size_t           len;
+    int              family;
+    size_t           ip_len;
     
-    if (strchr(str_ip, '.') != NULL) {
-        len = SIZEOF_INET;
-        af_type = AF_INET;
-    } else {
-        len = SIZEOF_INET6;
-        af_type = AF_INET6;
-    }
+    family = address_guess_family(str_ip);
 
-    if (!inet_pton(af_type, str_ip, &address)) {
-        // Can't parse address
-        errno = EINVAL;
-        return NULL;
-    }
+    ip_len = family == AF_INET  ? sizeof(ipv4_t) :
+             family == AF_INET6 ? sizeof(ipv6_t) :
+             0;
 
-    hp = gethostbyaddr(&address, len, af_type);
+    // Invalid family
+    if (!ip_len) goto ERROR;
+
+    // Can't parse str_ip
+    if (!inet_pton(family, str_ip, &ip)) goto ERROR;
+
+    hp = gethostbyaddr(&ip, ip_len, family);
     return hp ? hp->h_name : NULL;
+ERROR:
+    errno = EINVAL;
+    return NULL;
 }

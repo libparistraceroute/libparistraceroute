@@ -157,7 +157,6 @@ int main(int argc, char ** argv)
     probe_t                 * probe_skel;
     pt_loop_t               * loop      = NULL;
     int                       exit_code = EXIT_FAILURE, i, ret;
-    //sockaddr_any              dst_addr  = {{ 0, }, };
     address_t                 dst_addr;
 
     // Retrieve values passed in the command-line
@@ -180,9 +179,11 @@ int main(int argc, char ** argv)
         perror(gai_strerror(ret));
         goto ERR_ADDRESS_FROM_STRING;
     }
+    address_dump(&dst_addr);
 
     // Convert target IP from address to string
     if ((ret = address_to_string(&dst_addr, &data->dst_ip)) != 0) {
+        printf("%d\n", ret);
         perror(gai_strerror(ret));
         goto ERR_ADDRESS_TO_STRING;
     }
