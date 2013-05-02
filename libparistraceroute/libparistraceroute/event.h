@@ -54,7 +54,8 @@ typedef struct {
 /** 
  * \brief Create a new event structure
  * \param type Event type
- * \param params Pointer to event parameters
+ * \param data Data that must be carried by this event 
+ * \param issuer
  * \return Newly created event structure
  */
 

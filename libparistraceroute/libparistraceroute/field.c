@@ -163,6 +163,8 @@ size_t field_get_type_size(fieldtype_t type)
 
 int field_compare(const field_t * field1, const field_t * field2)
 {
+    int ret;
+
     if (field1->type != field2->type) {
         printf("field_compare: field are not of the same type");
         return -2;
@@ -170,24 +172,31 @@ int field_compare(const field_t * field1, const field_t * field2)
 
     switch (field1->type) {
         case TYPE_INT8:
-            return field1->value.int8 - field2->value.int8;
-        case TYPE_INT16:
-            return field1->value.int16 - field2->value.int16;
-        case TYPE_INT32:
-            return field1->value.int32 - field2->value.int32;
-        case TYPE_INT64:
-            return field1->value.int64 - field2->value.int64;
-        case TYPE_INTMAX:
-            return field1->value.intmax - field2->value.intmax;
-        case TYPE_INT4:
-            return field1->value.int4 - field2->value.int4;
-        case TYPE_STRING:
-            return strcmp(field1->value.string, field2->value.string);
-        default:
+            ret = field1->value.int8 - field2->value.int8;
             break;
+        case TYPE_INT16:
+            ret = field1->value.int16 - field2->value.int16;
+            break;
+        case TYPE_INT32:
+            ret = field1->value.int32 - field2->value.int32;
+            break;
+        case TYPE_INT64:
+            ret = field1->value.int64 - field2->value.int64;
+            break;
+        case TYPE_INTMAX:
+            ret = field1->value.intmax - field2->value.intmax;
+            break;
+        case TYPE_INT4:
+            ret = field1->value.int4 - field2->value.int4;
+            break;
+        case TYPE_STRING:
+            ret = strcmp(field1->value.string, field2->value.string);
+            break;
+        default:
+            return -3; // Unknown comparison
     }
-    printf("field_compare: unknown field type %d", field1->type); 
-    return -3; // Unknown comparison
+    if (ret) return ret > 0 ? 1 : -1;
+    return 0;
 }
 
 // Dump

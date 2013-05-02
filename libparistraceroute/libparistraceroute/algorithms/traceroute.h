@@ -39,7 +39,6 @@ typedef struct {
 
 // Default options
 
-
 traceroute_options_t traceroute_get_default_options(void);
 
 /* --------------------------------------------------------------------
@@ -71,32 +70,45 @@ traceroute_options_t traceroute_get_default_options(void);
  */
 
 typedef enum {
-    TRACEROUTE_DESTINATION_REACHED,
-    TRACEROUTE_ALL_STARS,
-    TRACEROUTE_PROBE_REPLY,
-    TRACEROUTE_ICMP_ERROR
+    TRACEROUTE_DESTINATION_REACHED, // data: NULL 
+    TRACEROUTE_PROBE_REPLY,         // data: probe_reply_t *
+    TRACEROUTE_ICMP_ERROR,          // data: probe_reply_t *
+    TRACEROUTE_MAX_TTL_REACHED      // data: probe_reply_t *
 } traceroute_event_type_t;
 
 // This structure gathers the information passed to the
 // user-defined handler
 
-typedef struct {
-    // Mandatory field
-    const traceroute_options_t * options;  /**< Options passed to this instance */
-    // Event-specific fields
-    const char * discovered_ip;    /**< Discovered IP */
-    unsigned     current_ttl;      /**< Current TTL */
-    unsigned     num_sent_probes;  /**< This is i-th probe sent for this TTL */
-} traceroute_probe_reply_t;
+//typedef struct {
+//    // Mandatory field
+//    const traceroute_options_t * options;  /**< Options passed to this instance */
+//    // Event-specific fields
+//    const char * discovered_ip;    /**< Discovered IP */
+//    unsigned     current_ttl;      /**< Current TTL */
+//    unsigned     num_sent_probes;  /**< This is i-th probe sent for this TTL */
+//} traceroute_probe_reply_t;
+//
+//typedef union {
+//    traceroute_probe_reply_t probe_reply;
+//} traceroute_event_value_t;
+//
+//typedef struct {
+//    traceroute_event_type_t  type;
+//    traceroute_event_value_t value;
+//} traceroute_caller_data_t;
 
-typedef union {
-    traceroute_probe_reply_t probe_reply;
-} traceroute_event_value_t;
+typedef struct {
+    traceroute_event_type_t type;
+    void * data;
+} traceroute_event_t;
 
 typedef struct {
-    traceroute_event_type_t  type;
-    traceroute_event_value_t value;
-} traceroute_caller_data_t;
+    bool    destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
+    uint8_t ttl;                 /**< TTL currently explored                   */
+    size_t  num_sent_probes;     /**< Total of probe sent for this instance    */
+    size_t  num_undiscovered;    /**< Number of consecutive undiscovered hops  */
+    size_t  num_stars;           /**< Number of probe lost for the current hop */
+} traceroute_data_t;
 
 /* --------------------------------------------------------------------
  * Interpretation output

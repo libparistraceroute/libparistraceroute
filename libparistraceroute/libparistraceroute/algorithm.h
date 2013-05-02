@@ -13,7 +13,6 @@
 #include "pt_loop.h"
 #include "optparse.h"
 
-
 /**
  * \enum status_t
  * \brief Algorithm status constants
