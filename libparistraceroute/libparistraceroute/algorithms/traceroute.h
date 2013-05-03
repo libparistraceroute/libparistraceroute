@@ -11,39 +11,7 @@
  * live (TTL) field and * attempts to elicit an ICMP TIME_EXCEEDED
  * response from each gateway along the path to the host.
  * 
- * --------------------------------------------------------------------
- * Uses
- * --------------------------------------------------------------------
- *
- * - probe/reply: IP  / ICMP TTL expired
- *
- *      This means that we send IP packet and we're expecting ICMP TTL
- *      expired responses.
- *
- * - tag: TCP / UDP ports
- *
- *      Where we store the identifier of each sent probes.
- */
-
-/* --------------------------------------------------------------------
- * Options
- * --------------------------------------------------------------------
- */
-
-typedef struct {
-    unsigned     min_ttl;    /**< Minimum ttl at which to send probes */
-    unsigned     max_ttl;    /**< Maximum ttl at which to send probes */
-    unsigned     num_probes; /**< Number of probes per hop            */
-    const char * dst_ip;     /**< The target IP */
-} traceroute_options_t;
-
-// Default options
-
-traceroute_options_t traceroute_get_default_options(void);
-
-/* --------------------------------------------------------------------
- * Algorithm
- * --------------------------------------------------------------------
+ * Algorithm:
  *
  *     INIT:
  *         cur_ttl = min_ttl
@@ -61,46 +29,39 @@ traceroute_options_t traceroute_get_default_options(void);
  *             SEND
  */
 
-/* --------------------------------------------------------------------
- * Probe output
- * --------------------------------------------------------------------
- *
- *     A set of probes and their replies
- *
- */
+//--------------------------------------------------------------------
+// Options
+//--------------------------------------------------------------------
+
+typedef struct {
+    unsigned     min_ttl;    /**< Minimum ttl at which to send probes */
+    unsigned     max_ttl;    /**< Maximum ttl at which to send probes */
+    unsigned     num_probes; /**< Number of probes per hop            */
+    const char * dst_ip;     /**< The target IP */
+} traceroute_options_t;
+
+// Default options
+
+traceroute_options_t traceroute_get_default_options(void);
+
+//--------------------------------------------------------------------
+// Custom-events raised by traceroute algorithm
+//--------------------------------------------------------------------
 
 typedef enum {
-    TRACEROUTE_DESTINATION_REACHED, // data: NULL 
-    TRACEROUTE_PROBE_REPLY,         // data: probe_reply_t *
-    TRACEROUTE_ICMP_ERROR,          // data: probe_reply_t *
-    TRACEROUTE_MAX_TTL_REACHED      // data: probe_reply_t *
+    // event_type                      | data (type)     | data (meaning)
+    // --------------------------------+-----------------+--------------------------------------------
+    TRACEROUTE_DESTINATION_REACHED, // | NULL            | N/A
+    TRACEROUTE_PROBE_REPLY,         // | probe_reply_t * | The probe and its corresponding reply
+    TRACEROUTE_ICMP_ERROR,          // | probe_t *       | The probe which has provoked the ICMP error
+    TRACEROUTE_STAR,                // | probe_t *       | The probe which has been lost
+    TRACEROUTE_MAX_TTL_REACHED      // | NULL            | N/A
 } traceroute_event_type_t;
-
-// This structure gathers the information passed to the
-// user-defined handler
-
-//typedef struct {
-//    // Mandatory field
-//    const traceroute_options_t * options;  /**< Options passed to this instance */
-//    // Event-specific fields
-//    const char * discovered_ip;    /**< Discovered IP */
-//    unsigned     current_ttl;      /**< Current TTL */
-//    unsigned     num_sent_probes;  /**< This is i-th probe sent for this TTL */
-//} traceroute_probe_reply_t;
-//
-//typedef union {
-//    traceroute_probe_reply_t probe_reply;
-//} traceroute_event_value_t;
-//
-//typedef struct {
-//    traceroute_event_type_t  type;
-//    traceroute_event_value_t value;
-//} traceroute_caller_data_t;
 
 typedef struct {
     traceroute_event_type_t type;
     void * data;
-} traceroute_event_t;
+} traceroute_event_t; // TODO should fit with event_t structure
 
 typedef struct {
     bool    destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
@@ -109,13 +70,5 @@ typedef struct {
     size_t  num_undiscovered;    /**< Number of consecutive undiscovered hops  */
     size_t  num_stars;           /**< Number of probe lost for the current hop */
 } traceroute_data_t;
-
-/* --------------------------------------------------------------------
- * Interpretation output
- * --------------------------------------------------------------------
- *
- *     The set of interfaces met at each ttl, in order, annotated with
- *     DNS and RTT or ICMP errors * or stars
- */
 
 #endif

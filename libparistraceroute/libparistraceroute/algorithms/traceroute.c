@@ -1,5 +1,6 @@
 #include <errno.h>       // errno, EINVAL
 #include <stdlib.h>      // malloc
+#include <stdio.h>       // TODO debug 
 #include <stdbool.h>     // bool
 #include <string.h>      // memset()
 
@@ -7,7 +8,6 @@
 #include "../event.h"
 #include "../pt_loop.h"
 #include "../algorithm.h"
-//#include "../dynarray.h"
 
 #include "traceroute.h"
 
@@ -88,7 +88,7 @@ bool send_traceroute_probe(pt_loop_t * loop, probe_t * probe_skel, uint8_t ttl) 
 
 int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
 {
-    size_t i;
+    size_t                 i;
     traceroute_data_t    * data = NULL; // Current state of the algorithm instance
     const probe_t        * probe;
     const probe_t        * reply;
@@ -103,23 +103,23 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
                 goto FAILURE;
             }
 
-            // Prepare structure storing current state information
+            // Allocate structure storing current state information and update *pdata
             if (!(data = malloc(sizeof(traceroute_data_t)))) {
                 goto FAILURE;
-            }
+            } else *pdata = data;
+
+            // Initialize traceroute_data_t structure
             memset(data, 0, sizeof(traceroute_data_t));
             data->ttl = options->min_ttl;
 
-            // Send a first packet 
+            // Send first probe
             if (!send_traceroute_probe(loop, probe_skel, data->ttl)) {
                 goto FAILURE;
             }
             (data->num_sent_probes)++;
-            *pdata = data;
             break;
 
         case PROBE_REPLY:
-            printf(">> PROBE_REPLY\n");
 
             data  = *pdata;
             probe = ((const probe_reply_t *) event->data)->probe;
@@ -131,23 +131,31 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
 
             // Move to traceroute_user_handler
             // Print reply (i-th reply corresponding to the current hop)
-            i = (data->num_sent_probes % options->num_probes);
             data->destination_reached |= destination_reached(options->dst_ip, reply); 
 
             pt_algorithm_throw(
                 loop,
                 loop->cur_instance->caller,
-                event_create(TRACEROUTE_PROBE_REPLY, event->data, loop->cur_instance->caller)
+                event_create(
+                    ALGORITHM_EVENT,
+                    event_create(TRACEROUTE_PROBE_REPLY, event->data, loop->cur_instance),
+                    loop->cur_instance
+                )
             );
 
             // We've sent num_probes packets for the current hop
+            i = (data->num_sent_probes % options->num_probes);
             if (i == 0) {
                 // We've reached the destination
                 if (data->destination_reached) {
                     pt_algorithm_throw(
                         loop,
                         loop->cur_instance->caller,
-                        event_create(TRACEROUTE_DESTINATION_REACHED, event->data, loop->cur_instance->caller)
+                        event_create(
+                            ALGORITHM_EVENT,
+                            event_create(TRACEROUTE_DESTINATION_REACHED, NULL, loop->cur_instance),
+                            loop->cur_instance
+                        )
                     );
                     break;
                 }
@@ -161,7 +169,11 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
                 pt_algorithm_throw(
                     loop,
                     loop->cur_instance->caller,
-                    event_create(TRACEROUTE_MAX_TTL_REACHED, event->data, loop->cur_instance->caller)
+                    event_create(
+                        ALGORITHM_EVENT,
+                        event_create(TRACEROUTE_MAX_TTL_REACHED, event->data, loop->cur_instance),
+                        loop->cur_instance
+                    )
                 );
             } else {
                 if (!send_traceroute_probe(loop, probe_skel, data->ttl)) {
@@ -173,6 +185,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             break;
 
         case PROBE_TIMEOUT:
+
             data  = *pdata;
             i = (data->num_sent_probes % options->num_probes);
             ++(data->num_stars);
@@ -196,7 +209,11 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
                 pt_algorithm_throw(
                     loop,
                     loop->cur_instance->caller,
-                    event_create(TRACEROUTE_MAX_TTL_REACHED, event->data, loop->cur_instance->caller)
+                    event_create(
+                        ALGORITHM_EVENT,
+                        event_create(TRACEROUTE_MAX_TTL_REACHED, NULL, loop->cur_instance),
+                        loop->cur_instance
+                    )
                 );
             } else {
                 if (!send_traceroute_probe(loop, probe_skel, data->ttl)) {
@@ -204,7 +221,6 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
                 }
                 (data->num_sent_probes)++;
             }
-
 
             break;
         case ALGORITHM_TERMINATED:

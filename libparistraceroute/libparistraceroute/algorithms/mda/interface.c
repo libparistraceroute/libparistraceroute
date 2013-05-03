@@ -171,7 +171,7 @@ void mda_interface_dump(const lattice_elt_t * lattice_elt, bool do_resolv)
 
     // Current hop
     curr_hop = lattice_elt_get_data(lattice_elt);
-    if (do_resolv) address_resolv(curr_hop->address, hostname);
+    if (do_resolv) address_resolv(curr_hop->address, &hostname);
     mda_hop_dump(curr_hop, hostname);
     
     // Get next hops

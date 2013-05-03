@@ -21,11 +21,10 @@ void my_traceroute_handler(
     const traceroute_options_t * traceroute_options,
     const traceroute_data_t    * traceroute_data
 ) {
-    size_t i;
     const probe_t * probe;
     const probe_t * reply;
+    static size_t   num_probes_printed = 0;
 
-    printf("traceroute_handler\n");
     switch (traceroute_event->type) {
         case TRACEROUTE_PROBE_REPLY:
             // Retrieve the probe and its corresponding reply
@@ -33,18 +32,19 @@ void my_traceroute_handler(
             reply = ((const probe_reply_t *) traceroute_event->data)->reply;
 
             // Print reply (i-th reply corresponding to the current hop)
-            i = (traceroute_data->num_sent_probes % traceroute_options->num_probes);
-            if (i == 1) {
+            if (num_probes_printed % traceroute_options->num_probes == 0) {
                 printf("%d ", probe_get_field(probe, "ttl")->value.int8);
             }
-            printf("%s ", probe_get_field(reply, "src_ip")->value.string);
-            if (i == 0) {
-                printf("\n");
-            }
-
+            printf("%10s ", probe_get_field(reply, "src_ip")->value.string);
+            num_probes_printed++;
+            break;
+        case TRACEROUTE_STAR:
+            printf("*");
+            num_probes_printed++;
             break;
         case TRACEROUTE_ICMP_ERROR:
-            printf("ICMP error\n");
+            printf("!");
+            num_probes_printed++;
             break;
         case TRACEROUTE_DESTINATION_REACHED:
             // The traceroute algorithm has terminated.
@@ -54,10 +54,11 @@ void my_traceroute_handler(
             pt_loop_terminate(loop);
             break;
         default:
-            // should never happens
-            printf("Unhandled event\n");
-            pt_loop_terminate(loop);
+            // Unhandled event
             break;
+    }
+    if (num_probes_printed % traceroute_options->num_probes == 0) {
+        printf("\n");
     }
 }
 
@@ -75,22 +76,22 @@ void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
     const traceroute_event_t   * traceroute_event;
     const char                 * algorithm_name;
 
-    printf("main_handler\n");
     switch (event->type) {
         case ALGORITHM_TERMINATED:
+            printf("> ALGORITHM_TERMINATED\n");
             pt_loop_terminate(loop);
             break;
         case ALGORITHM_EVENT: // an traceroute-specific event has been raised
-            algorithm_name = loop->cur_instance->algorithm->name;
-            printf("algorithm_name = %s\n", algorithm_name);
-            if (strcmp(algorithm_name, "traceroute") != 0) {
+            algorithm_name = event->issuer->algorithm->name;
+            if (strcmp(algorithm_name, "traceroute") == 0) {
                 traceroute_event   = event->data;
-                traceroute_options = loop->cur_instance->options;
-                traceroute_data    = loop->cur_instance->data;
+                traceroute_options = event->issuer->options;
+                traceroute_data    = event->issuer->data;
                 my_traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
             }
             break;
         default:
+            perror("main_handler: Unhandled event\n");
             break;
     }
 }

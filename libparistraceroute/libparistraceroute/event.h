@@ -1,6 +1,8 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+// Do not include "algorithm.h" to avoid mutual inclusion
+
 /**
  * \file event.h
  * \brief
@@ -15,22 +17,24 @@
  *   Specific-algorithm event are nested in a ALGORITHM_ANSWER event.
  */
 
-#include "probe.h"
-
 /**
  * \enum event_type_t
  * \brief Enum to denote type of event
  */
 
 typedef enum {
+    // Events raised by the network layer
+    // Such events are dispatched to the appropriate algorithm instances
+    PROBE_REPLY,           /**< A reply has been sniffed           */
+    PROBE_TIMEOUT,         /**< No reply sniffed for a given probe */
 
-    PROBE_REPLY,
-    PROBE_TIMEOUT,
+    // Events handled the algorithm layer
+    ALGORITHM_INIT,        /**< An algorithm can start             */
+    ALGORITHM_TERMINATED,  /**< An algorithm must terminate        */
 
-    ALGORITHM_INIT,
-    ALGORITHM_TERMINATED,
-    ALGORITHM_EVENT,
-    ALGORITHM_ERROR
+    // Events raised by the algorithm layer
+    ALGORITHM_EVENT,       /**< An algorithm has raised an event   */
+    ALGORITHM_ERROR        /**< An error has occured               */
 } event_type_t;
 
 /**
@@ -39,16 +43,10 @@ typedef enum {
  */
 
 typedef struct {
-    event_type_t type;    /**< Enum holding the event type */
-    
-    /**
-     * Pointer to event parameters.
-     * PROBE_REPLY_RECEIVED : reply_received_params_t *
-     * ALGORITHM_ANSWER     : see called algorithm implementation
-     */
-    void * data;
-
-    struct algorithm_instance_s * issuer;
+    event_type_t                  type;   /**< Event type */
+    void                        * data;   /**< Data carried by the event */
+    struct algorithm_instance_s * issuer; /**< Instance which has raised the event. NULL if raised by pt_loop. */
+    // TODO add cb_free. If not NULL data are not freed by event_free
 } event_t;
 
 /** 

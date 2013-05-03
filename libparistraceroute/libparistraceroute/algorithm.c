@@ -47,6 +47,7 @@ static int algorithm_instance_compare(
     const algorithm_instance_t * instance1,
     const algorithm_instance_t * instance2
 );
+
 /**
  * \brief Register an algorithm instance in the main loop
  * \param instance The instance that we register
@@ -56,7 +57,6 @@ static algorithm_instance_t * pt_algorithm_instance_add(
     struct pt_loop_s     * loop,
     algorithm_instance_t * instance
 );
-
 
 //--------------------------------------------------------------------
 // algorithm_t
@@ -70,9 +70,9 @@ int algorithm_compare(const void * algorithm1, const void * algorithm2)
     );
 }
 
-algorithm_t* algorithm_search(const char * name)
+algorithm_t * algorithm_search(const char * name)
 {
-    algorithm_t **algorithm, search;
+    algorithm_t ** algorithm, search;
 
     if (!name) return NULL;
     search.name = name;
@@ -105,7 +105,6 @@ static algorithm_instance_t * algorithm_instance_create(
     }
 
     if (!(instance = malloc(sizeof(algorithm_instance_t)))) {
-        errno = ENOMEM;
         return NULL;
     }
 
