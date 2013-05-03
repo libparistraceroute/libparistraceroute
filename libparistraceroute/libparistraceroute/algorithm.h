@@ -56,7 +56,7 @@ typedef struct algorithm_instance_s {
     void                        * data;       /**< Internal algorithm data */
     void                        * outputs;    /**< Data exposed to the caller and filled by the instance */ 
     dynarray_t                  * events;     /**< An array of events received by the algorithm */
-    struct algorithm_instance_s * caller;     /**< Reference to the entity that called the algorithm (NULL if called by pt_loop) */
+    struct algorithm_instance_s * caller;     /**< Reference to the entity that called the algorithm (NULL if called by user program) */
     struct pt_loop_s            * loop;       /**< Pointer to a library context */
 } algorithm_instance_t;
 

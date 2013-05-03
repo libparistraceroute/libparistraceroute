@@ -140,20 +140,21 @@ void paris_traceroute_data_free(paris_traceroute_data_t * data) {
 
 void user_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
-    mda_event_t             * mda_event;
-    paris_traceroute_data_t * data = user_data;
+    mda_event_t * mda_event;
+    const char  * algorithm_name;
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
-            // Dump full lattice, only when MDA_NEW_LINK is not handled
-            // TODO loop->cur_instance->algorithm->name
-            if (strcmp(data->algorithm, "mda") != 0) {
-                mda_interface_dump(event->data, do_resolv);
+            algorithm_name = event->issuer->algorithm->name;
+            if (strcmp(algorithm_name, "mda") != 0) {
+                // Dump full lattice, only when MDA_NEW_LINK is not handled
+                mda_interface_dump(event->issuer->data, do_resolv);
             }
             pt_loop_terminate(loop);
             break;
         case ALGORITHM_EVENT:
-            if (strcmp(data->algorithm, "mda") == 0) {
+            algorithm_name = event->issuer->algorithm->name;
+            if (strcmp(algorithm_name, "mda") == 0) {
                 mda_event = event->data;
                 switch (mda_event->type) {
                     case MDA_NEW_LINK:

@@ -43,10 +43,10 @@ typedef enum {
  */
 
 typedef struct {
-    event_type_t                  type;   /**< Event type */
-    void                        * data;   /**< Data carried by the event */
-    struct algorithm_instance_s * issuer; /**< Instance which has raised the event. NULL if raised by pt_loop. */
-    // TODO add cb_free. If not NULL data are not freed by event_free
+    event_type_t                  type;               /**< Event type */
+    void                        * data;               /**< Data carried by the event */
+    void                       (* data_free)(void *); /**< Called in event_free to release data. Ignored if NULL. */
+    struct algorithm_instance_s * issuer;             /**< Instance which has raised the event. NULL if raised by pt_loop. */
 } event_t;
 
 /** 
@@ -57,13 +57,18 @@ typedef struct {
  * \return Newly created event structure
  */
 
-event_t *event_create(event_type_t type, void * data, struct algorithm_instance_s * issuer);
+event_t * event_create(
+    event_type_t type,
+    void * data,
+    struct algorithm_instance_s * issuer,
+    void (*data_free) (void * data)
+);
 
 /**
  * \brief Release an event when done
  * \param event The event to destroy
  */
 
-void event_free(event_t *event);
+void event_free(event_t * event);
 
 #endif

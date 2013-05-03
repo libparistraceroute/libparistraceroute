@@ -80,25 +80,32 @@ static int mda_stopping_points(unsigned int num_interfaces, unsigned int confide
     #define TRACELB_CONFIDENCE_NLIMIT(v) \
     ((v) <= TRACELB_CONFIDENCE_MAX_N ? (v) : TRACELB_CONFIDENCE_MAX_N)
 
-    return k[num_interfaces][(confidence==95)?0:1];
+    return k[num_interfaces][(confidence == 95) ? 0 : 1];
 }
 
-int mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst)
+bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst)
 {
     mda_event_t      * mda_event;
     mda_interface_t ** link;
 
-    mda_event = malloc(sizeof(mda_event_t));
-    if (!mda_event) goto ERROR;
-    link = malloc(2 * sizeof(mda_interface_t));
-    if (!link) goto ERROR;
+    /*
+    if (!(mda_event = malloc(sizeof(mda_event_t))))    goto ERR_MDA_EVENT;
+    if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
     link[0] = src;
     link[1] = dst;
     mda_event->type = MDA_NEW_LINK;
     mda_event->data = link;
-    return pt_raise_event(loop, ALGORITHM_EVENT, mda_event);
-ERROR:
-    return -1;
+    */
+    if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
+    link[0] = src;
+    link[1] = dst;
+    if (!(mda_event = event_create((unsigned) MDA_NEW_LINK, link, NULL, free)))    goto ERR_MDA_EVENT;
+
+    return pt_raise_event(loop, mda_event);
+ERR_MDA_EVENT:
+    free(link);
+ERR_LINK:
+    return false;
 }
 
 /*******************************************************************************
@@ -616,31 +623,30 @@ error:
  * \param probe_skel a skeleton of a probe that will be used as a model
  * \param data a personal structure that can be used by the algorithm
  * \param events an array of events that have occured since last invocation
+ * \return 0 iif successful
  */
+
 int mda_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * options)
 { 
-    int ret;
-    mda_data_t             * data;
+    mda_data_t * data;
 
-    //printf("%d ALGORITHM_INIT = %d PROBE_REPLY = %d PROBE_TIMEOUT = %d\n", event->type, ALGORITHM_INIT, PROBE_REPLY, PROBE_TIMEOUT);
     switch (event->type) {
-        case ALGORITHM_INIT:       mda_handler_init(loop, event, pdata, skel, options);    break;
-        case PROBE_REPLY:          mda_handler_reply(loop, event, pdata, skel, options);   break;
-        case PROBE_TIMEOUT:        mda_handler_timeout(loop, event, pdata, skel, options); break;
-        default:                   return -1; // EINVAL;
+        case ALGORITHM_INIT: mda_handler_init   (loop, event, pdata, skel, options); break;
+        case PROBE_REPLY:    mda_handler_reply  (loop, event, pdata, skel, options); break;
+        case PROBE_TIMEOUT:  mda_handler_timeout(loop, event, pdata, skel, options); break;
+        default:             return -1; // EINVAL;
     }
 
     data = *pdata;
 
-    /* Process available interfaces */
-    ret = lattice_walk(data->lattice, mda_process_interface, data, LATTICE_WALK_DFS);
-    switch(ret) {
+    // Process available interfaces
+    switch (lattice_walk(data->lattice, mda_process_interface, data, LATTICE_WALK_DFS)) {
         case LATTICE_ERROR: return -1;
         case LATTICE_DONE:  break;
         default:            return 0;
     }
 
-    pt_raise_event(loop, ALGORITHM_TERMINATED, data->lattice);
+    pt_raise_terminated(loop);
     return 0;
 }
 

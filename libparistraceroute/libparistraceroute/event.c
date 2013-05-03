@@ -1,22 +1,26 @@
-#include <stdlib.h>
 #include "event.h"
+#include <stdlib.h> // malloc
 
-// XXX We should allocate the params here
-event_t * event_create(event_type_t type, void * data, struct algorithm_instance_s * issuer)
-{
+event_t * event_create(
+    event_type_t type,
+    void * data,
+    struct algorithm_instance_s * issuer,
+    void (*data_free) (void * data)
+) {
     event_t * event;
     if ((event = malloc(sizeof(event_t)))) {
         event->type = type;
         event->data = data;
         event->issuer = issuer;
+        event->data_free = data_free;
     }
     return event;
 }
 
-// XXX We should free the params here
-void event_free(event_t *event)
+void event_free(event_t * event)
 {
     if (event) {
+        if (event->data && event->data_free) event->data_free(event->data);
         free(event);
     }
 }

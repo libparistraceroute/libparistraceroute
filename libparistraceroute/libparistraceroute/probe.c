@@ -805,19 +805,12 @@ char * probe_get_protocol_by_index(unsigned int i)
 
 probe_reply_t * probe_reply_create(void)
 {
-    probe_reply_t * probe_reply;
-
-    probe_reply = malloc(sizeof(probe_reply_t));
-    probe_reply->probe = NULL;
-    probe_reply->reply = NULL;
-
-    return probe_reply;
+    return calloc(1, sizeof(probe_reply_t));
 }
 
-void probe_reply_free(probe_reply_t *probe_reply)
+void probe_reply_free(probe_reply_t * probe_reply)
 {
-    free(probe_reply);
-    probe_reply = NULL;
+    if (probe_reply) free(probe_reply);
 }
 
 // Accessors
