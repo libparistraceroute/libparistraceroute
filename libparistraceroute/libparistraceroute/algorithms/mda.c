@@ -306,7 +306,7 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t *
     data->dst_ip = probe_get_field(skel, "dst_ip")->value.string; 
     data->skel = skel;
     data->loop = loop;   
-    //probe_dump(skel);
+    probe_dump(skel);
     //printf("W: mda.c: set dport to 53 \n"); // TOFIX
     //probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
     /* printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
@@ -340,7 +340,7 @@ typedef struct {
 int mda_search_source(lattice_elt_t * elt, void * data)
 {
     mda_interface_t     * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t      * search    = data;
+    mda_ttl_flow_t            * search    = data;
 
     if (interface->ttl == search->ttl) {
         unsigned int i, size;
@@ -363,7 +363,7 @@ int mda_search_source(lattice_elt_t * elt, void * data)
 int mda_delete_flow(lattice_elt_t * elt, void * data)
 {
     mda_interface_t     * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t * search    = data;
+    mda_ttl_flow_t            * search    = data;
 
     if (interface->ttl == search->ttl) {
         unsigned int i, size;
@@ -384,7 +384,7 @@ int mda_delete_flow(lattice_elt_t * elt, void * data)
 int mda_timeout_flow(lattice_elt_t * elt, void * data)
 {
     mda_interface_t     * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t      * search    = data;
+    mda_ttl_flow_t            * search    = data;
 
     if (interface->ttl == search->ttl) {
         unsigned int i, size;
@@ -419,7 +419,7 @@ int mda_search_interface(lattice_elt_t * elt, void * data)
     return LATTICE_CONTINUE;
 }
 
-int mda_handler_reply(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * options)
+int mda_handler_reply(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * options)
 {
     // manage this XXX
     mda_data_t             * data;
@@ -527,14 +527,14 @@ error:
 
 int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * options)
 {
-    mda_data_t      * data;
-    probe_t         * probe;
-    lattice_elt_t   * source_elt;
-    mda_interface_t * source_interface;
-    mda_ttl_flow_t    search_ttl_flow;
-    uintmax_t         flow_id;
-    uint8_t           ttl;
-    int               ret;
+    mda_data_t            * data;
+    probe_t               * probe;
+    lattice_elt_t         * source_elt;
+    mda_interface_t       * source_interface;
+    mda_ttl_flow_t          search_ttl_flow;
+    uintmax_t               flow_id;
+    uint8_t                 ttl;
+    int                     ret;
 
     data  = * pdata;
     probe = event->data;
@@ -570,13 +570,13 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *
                 new->ttl = ttl;
                 new->nb_stars = source_interface->nb_stars + 1;
                 ret = lattice_add_element(data->lattice, source_elt, new);
-                if (ret < 0) goto error;
+                if (ret < 0) goto ERROR;
 
                 ret = mda_event_new_link(loop, source_interface, new);
-                if (ret < 0) goto error;
+                if (ret < 0) goto ERROR;
             } else {
                 ret = mda_event_new_link(loop, source_interface, NULL);
-                if (ret < 0) goto error;
+                if (ret < 0) goto ERROR;
             }
         } else if (source_interface->timeout + source_interface->received == source_interface->sent) {
             unsigned int i, num_next;
@@ -587,7 +587,7 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *
                 lattice_elt_t * next_elt = dynarray_get_ith_element(source_elt->next, i);
                 mda_interface_t * next_iface = lattice_elt_get_data(next_elt);
                 ret = mda_event_new_link(loop, source_interface, next_iface);
-                if (ret < 0) goto error;
+                if (ret < 0) goto ERROR;
             }
         }
 
@@ -601,7 +601,7 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *
     }
 
     return 0;
-error:
+ERROR:
     return -1;
 
 }
@@ -647,7 +647,7 @@ int mda_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, vo
 static algorithm_t mda = {
     .name     = "mda",
     .handler  = mda_handler,
-    .options  = mda_options
+    .options  = mda_options,
 };
 
 ALGORITHM_REGISTER(mda);

@@ -40,7 +40,7 @@ typedef struct {
 lattice_t * lattice_create(void);
 void lattice_free(lattice_t * lattice, void (*lattice_element_free)(void *element));
 
-const void * lattice_elt_get_data(const lattice_elt_t * elt);
+void * lattice_elt_get_data(const lattice_elt_t * elt);
 size_t lattice_elt_get_num_next(const lattice_elt_t * elt);
 size_t lattice_elt_get_num_siblings(const lattice_elt_t * elt);
 

@@ -42,8 +42,10 @@ const char * protocol_names[] = {
 static unsigned first_ttl[3] = {1,     1,   255};
 static unsigned max_ttl[3]   = {30,    1,   255};
 static double   wait[3]      = {5,     0,   INT_MAX};
-static unsigned dst_port[3]  = {30000, 0,   65535};
-static unsigned src_port[3]  = {3083,  0,   65535};
+
+// Bounded integer parameters | def    min  max    option_enabled
+static unsigned dst_port[4]  = {30000, 0,   65535, 0};
+static unsigned src_port[4]  = {3083,  0,   65535, 1};
 
 // Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
 static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
@@ -59,22 +61,23 @@ static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 #define HELP_a "Traceroute algorithm: one of  'mda' [default],'traceroute', 'paris-traceroute'"
 #define HELP_d "set PORT as destination port (default: 30000)"
 #define HELP_s "set PORT as source port (default: 3083)"
+#define HELP_V "version 1.0"
 
 struct opt_spec cl_options[] = {
-    // action               sf   lf                   metavar             help         data
-    {opt_help,              "h", "--help"   ,         OPT_NO_METAVAR,     OPT_NO_HELP, OPT_NO_DATA},
-    {opt_version,           "V", "--version",         OPT_NO_METAVAR,     OPT_NO_HELP, "version 1.0"},
-    {opt_store_choice,      "a", "--algo",            "ALGORITHM",        HELP_a,      algorithm_names},
-    {opt_store_1,           "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
-    {opt_store_choice,      "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
-    {opt_store_1,           "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
-    {opt_store_int_lim,     "f", "--first",           "first_ttl",        HELP_f,      first_ttl},
-    {opt_store_int_lim,     "m", "--max-hops",        "max_ttl",          HELP_m,      max_ttl},
-    {opt_store_0,           "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_resolv},
-    {opt_store_double_lim,  "w", "--wait",            "waittime",         HELP_w,      wait},
-    {opt_store_int_2,       "M", "--mda",             "bound,max_branch", HELP_M,      mda},
-    {opt_store_int_lim,     "s", "--source_port",     "PORT",             HELP_s,      src_port},
-    {opt_store_int_lim,     "d", "--dest_port",       "PORT",             HELP_d,      dst_port},
+    // action                  sf   lf                   metavar             help         data
+    {opt_help,                 "h", "--help"   ,         OPT_NO_METAVAR,     OPT_NO_HELP, OPT_NO_DATA},
+    {opt_version,              "V", "--version",         OPT_NO_METAVAR,     OPT_NO_HELP, HELP_V},
+    {opt_store_choice,         "a", "--algo",            "ALGORITHM",        HELP_a,      algorithm_names},
+    {opt_store_1,              "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
+    {opt_store_choice,         "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
+    {opt_store_1,              "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
+    {opt_store_int_lim,        "f", "--first",           "first_ttl",        HELP_f,      first_ttl},
+    {opt_store_int_lim,        "m", "--max-hops",        "max_ttl",          HELP_m,      max_ttl},
+    {opt_store_0,              "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_resolv},
+    {opt_store_double_lim,     "w", "--wait",            "waittime",         HELP_w,      wait},
+    {opt_store_int_2,          "M", "--mda",             "bound,max_branch", HELP_M,      mda},
+    {opt_store_int_lim_en,     "s", "--source_port",     "PORT",             HELP_s,      src_port},
+    {opt_store_int_lim_en,     "d", "--dest_port",       "PORT",             HELP_d,      dst_port},
     {OPT_NO_ACTION},
 };
 
@@ -176,7 +179,7 @@ int main(int argc, char ** argv)
     paris_traceroute_data_t * data;
     probe_t                 * probe_skel;
     pt_loop_t               * loop      = NULL;
-    int                       exit_code = EXIT_FAILURE, i, ret;
+    int                       exit_code = EXIT_FAILURE, i;
     address_t                 dst_addr;
 
     // Retrieve values passed in the command-line
@@ -233,8 +236,7 @@ int main(int argc, char ** argv)
     );
 
     // Option -U sets port to 53 (DNS)
-    // TODO Do not override dst_port if it set by the user
-    if (is_udp) {
+    if (is_udp && !dst_port[3]) {
         probe_set_fields(probe_skel, I16("dst_port", 53), NULL);
     }
  
@@ -296,7 +298,7 @@ ERR_LOOP_CREATE:
     paris_traceroute_data_free(data);
 ERR_DATA:
 ERR_ADDRESS_FROM_STRING:
-    if (errno) perror(errno);
+    if (errno) perror("Error in transforming a string to an address");
     exit(exit_code);
 }
 

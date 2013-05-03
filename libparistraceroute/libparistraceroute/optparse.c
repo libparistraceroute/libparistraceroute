@@ -1,4 +1,3 @@
-
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
@@ -327,6 +326,29 @@ int opt_store_int_lim(char *arg, void *data)
     p[0] = val;
     return 0;
 }
+
+int opt_store_int_lim_en(char *arg, void *data)
+{
+    char *end;
+    long val;
+    int *p = data;
+
+    assert(arg && data);
+    errno = 0;
+    val = strtol(arg, &end, 10);
+    if (end == arg || end[0])
+        opt_err("the value of %s must be an integer");
+    if (errno == ERANGE || val < p[1] || val > p[2]) {
+        opt_err_pfx();
+        fprintf(stderr, "the value of %s must be in the range %d to %d",
+                opt_name(), p[1], p[2]);
+        opt_err_sfx();
+    }
+    p[0] = val;
+    p[3] = 1;
+    return 0;
+}    
+        
 
 int opt_store_double(char *arg, void *data)
 {

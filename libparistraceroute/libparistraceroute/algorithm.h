@@ -152,7 +152,7 @@ algorithm_instance_t * pt_algorithm_add(
  */
 
 void pt_process_algorithms_instance(
-    const void * node,
+    void * node,
     VISIT        visit,
     int          level
 );

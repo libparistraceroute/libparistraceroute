@@ -40,7 +40,7 @@ int socketpool_create_raw_socket(socketpool_t *socketpool)
 socketpool_t *socketpool_create(void)
 {
     socketpool_t *socketpool;
-    unsigned int ret;
+    int ret;
     
     socketpool = (socketpool_t*)malloc(sizeof(socketpool_t));
     ret = socketpool_create_raw_socket(socketpool);

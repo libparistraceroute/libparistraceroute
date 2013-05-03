@@ -48,10 +48,10 @@
 
 // Accessors
 
-int ipv4_set_dst_ip(unsigned char *buffer, field_t *field)
+int ipv4_set_dst_ip(unsigned char * buffer, field_t * field)
 {
     int res;
-	struct iphdr *ip_hed;
+	struct iphdr * ip_hed;
     
     ip_hed = (struct iphdr *)buffer;
     res = inet_pton(AF_INET, (char*)field->value.string, &ip_hed->daddr);
@@ -61,10 +61,10 @@ int ipv4_set_dst_ip(unsigned char *buffer, field_t *field)
 }
 
 
-field_t *ipv4_get_dst_ip(unsigned char *buffer)
+field_t * ipv4_get_dst_ip(const unsigned char * buffer)
 {
     char res[IPV4_STRSIZE];
-	struct iphdr *ip_hed;
+	struct iphdr * ip_hed;
     
     ip_hed = (struct iphdr *)buffer;
 
@@ -74,7 +74,7 @@ field_t *ipv4_get_dst_ip(unsigned char *buffer)
     return field_create_string(IPV4_FIELD_DST_IP, res);
 }
 
-int ipv4_set_src_ip(unsigned char *buffer, field_t *field)
+int ipv4_set_src_ip(unsigned char * buffer, field_t * field)
 {
     int res;
 	struct iphdr *ip_hed;

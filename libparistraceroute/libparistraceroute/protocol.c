@@ -23,9 +23,9 @@ int protocol_compare_id(const void *protocol1, const void *protocol2)
 
      
 
-protocol_t* protocol_search(const char * name)
+protocol_t * protocol_search(const char * name)
 {
-    protocol_t **protocol, search;
+    protocol_t ** protocol, search;
 
     if (!name) return NULL;
 
@@ -36,7 +36,7 @@ protocol_t* protocol_search(const char * name)
     return protocol ? *protocol : NULL;
 }
 
-protocol_t* protocol_search_by_id(uint8_t id)
+protocol_t * protocol_search_by_id(uint8_t id)
 {
     protocol_t **protocol, search;
    // Ugly hack XXX

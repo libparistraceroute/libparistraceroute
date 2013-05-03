@@ -54,7 +54,7 @@ void buffer_free(buffer_t * buffer);
  *   if buffer == NULL or if it is empty.
  */
 
-uint8_t * buffer_get_data(buffer_t * buffer);
+uint8_t * buffer_get_data(const buffer_t * buffer);
 
 /**
  * \brief Retrieve the size of the allocated memory area

@@ -27,7 +27,7 @@ int address_from_string(const char * string, address_t * address);
 
 /**
  * \brief Print an address
- * \param ipThe address to print
+ * \param ip The address to print
  */
 
 void ipv4_dump(ipv4_t ip);

@@ -49,7 +49,7 @@ size_t lattice_elt_get_num_siblings(const lattice_elt_t * elt)
     return dynarray_get_size(elt->siblings);
 }
 
-const void * lattice_elt_get_data(const lattice_elt_t * elt)
+void * lattice_elt_get_data(const lattice_elt_t * elt)
 {
     return elt->data;
 }

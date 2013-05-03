@@ -82,7 +82,7 @@ bool buffer_resize(buffer_t * buffer, size_t size)
     return ret;
 }
 
-inline uint8_t * buffer_get_data(buffer_t * buffer) {
+inline uint8_t * buffer_get_data(const buffer_t * buffer) {
     return buffer ? buffer->data : 0;
 }
 

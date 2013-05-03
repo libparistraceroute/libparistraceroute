@@ -127,10 +127,10 @@ packet_t * packet_create_from_probe(probe_t * probe)
 {
     //unsigned char  * payload;
     //size_t           payload_size;
-    char           * dip;
-    unsigned short   dport;
-    packet_t       * packet;
-    field_t        * field;
+    char                 * dip;
+    unsigned short         dport;
+    packet_t             * packet;
+    const field_t        * field;
     
     // XXX assert ipv4/udp/no payload (encode tag into checksum) 
 
@@ -321,10 +321,10 @@ int network_schedule_next_probe_timeout(network_t * network)
  */
 probe_t * network_match_probe(network_t * network, probe_t * reply)
 {
-    field_t    * reply_checksum_field;
-    probe_t    * probe;
-    size_t       size;
-    unsigned int i;
+    const field_t    * reply_checksum_field;
+    probe_t          * probe;
+    size_t             size;
+    unsigned int       i;
 
     //probe_dump(reply);
     reply_checksum_field = probe_get_field_ext(reply, "checksum", 3);
@@ -337,7 +337,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
     size = dynarray_get_size(network->probes);
 
     for(i = 0; i < size; i++) {
-        field_t * probe_checksum_field;
+        const field_t * probe_checksum_field;
 
         probe = dynarray_get_ith_element(network->probes, i);
 
