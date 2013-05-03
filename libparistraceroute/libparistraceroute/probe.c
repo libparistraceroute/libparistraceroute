@@ -336,7 +336,7 @@ int probe_update_checksum(probe_t * probe)
 
             // XXX todo compute udp checksum !!!!
             //
-            /* for example, udp gets a pointer to the upper ipv4 layer */
+            // for example, udp gets a pointer to the upper ipv4 layer 
             layer_prev = dynarray_get_ith_element(probe->layers, i-1);
 
             // XXX We should specify which layer we have

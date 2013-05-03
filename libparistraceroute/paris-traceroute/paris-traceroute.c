@@ -44,7 +44,7 @@ static unsigned max_ttl[3]   = {30,    1,   255};
 static double   wait[3]      = {5,     0,   INT_MAX};
 
 // Bounded integer parameters | def    min  max    option_enabled
-static unsigned dst_port[4]  = {30000, 0,   65535, 0};
+static unsigned dst_port[4]  = {6969, 0,   65535, 0};
 static unsigned src_port[4]  = {3083,  0,   65535, 1};
 
 // Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
