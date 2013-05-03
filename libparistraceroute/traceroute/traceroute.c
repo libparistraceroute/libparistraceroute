@@ -92,7 +92,7 @@ void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
             break;
         default:
             // Unhandled event 
-            event_free(event);
+            //TODO event_free(event);
             break;
     }
 }

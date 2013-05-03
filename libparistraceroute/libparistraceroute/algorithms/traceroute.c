@@ -191,27 +191,21 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
         case ALGORITHM_ERROR:
             goto FAILURE;
         default:
-            // Unhandled event
-            event_free(event);
+            // Unhandled events
+            break;
     }
 
-    // Forward the event to the caller.
-    // The caller may then handle this event for example to print information
-    // related to the raised event.
-/*
-    pt_algorithm_throw(
-        loop,
-        loop->cur_instance->caller,
-        event_create(event->type, event, loop->cur_instance->caller)
-    );
-*/
+    // Forward event to the caller
+    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
     return 0;
 FAILURE:
+    // This event is not forwarded to the caller, so we have to release it
+    // from the memory
+    event_free(event);
+
     // Sent to the current instance a ALGORITHM_FAILURE notification.
     // The caller has to free the data allocated by the algorithm.
-/*    
-    pt_algorithm_throw(loop, loop->cur_instance, event_create(ALGORITHM_ERROR, NULL));
-*/
+    pt_raise_error(loop);
     return EINVAL;
 }
 
