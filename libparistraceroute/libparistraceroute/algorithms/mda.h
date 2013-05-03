@@ -22,7 +22,7 @@ typedef struct {
 } mda_event_t;
 
 mda_options_t mda_get_default_options(void);
-int mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst);
+bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst);
 int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data);
 int mda_classify_interface(lattice_elt_t * elt, mda_data_t * data);
 int mda_process_interface(lattice_elt_t * elt, void * data);

@@ -4,7 +4,7 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
-//#include "algorithm.h"
+// Do not include "algorithm.h" to avoid mutual inclusion
 #include "network.h"
 #include "event.h"
 
@@ -13,7 +13,7 @@
 
 typedef struct pt_loop_s {
     // Network
-    network_t            * network;
+    network_t            * network;                  /**< The network layer */
 
     // Algorithms
     void                 * algorithm_instances_root;
@@ -21,14 +21,19 @@ typedef struct pt_loop_s {
     int                    eventfd_algorithm;
 
     // User
-    int                    eventfd_user;            /**< User notification */
-    dynarray_t           * events_user;             /**< User events queue */
-    void (*handler_user)(struct pt_loop_s *, event_t *, void *); /**< User handler */
-    void                 * user_data;
+    int                    eventfd_user;             /**< User notification */
+    dynarray_t           * events_user;              /**< User events queue (events raised from the library to a program */
 
-    int                    stop;
+    void (*handler_user)(
+        struct pt_loop_s *,
+        event_t *,
+        void *
+    );                                               /**< Points to a user-defined handler called whenever the library raised an event for a program */
+    void                 * user_data;                /**< Data shared by the all algorithms running thanks to this pt_loop */
+
+    int                    stop;                     /**< State of the loop. The loop remains active while stop == PT_LOOP_CONTINUE */
     // Signal data
-    int                    sfd; // signalfd
+    int                    sfd;                      // signalfd
     // Epoll data
     int                    efd;
     struct epoll_event   * epoll_events;
@@ -129,9 +134,39 @@ unsigned pt_loop_get_num_user_events(pt_loop_t * loop);
  *     (Does not appear to be used currently)
  * \return 0
  */
+
 int pt_send_probe(pt_loop_t *loop, probe_t *probe);
 
-int pt_loop_terminate(pt_loop_t * loop);
-int pt_raise_event(pt_loop_t * loop, event_type_t event_type, void * data);
+/**
+ * \brief Stop the main loop
+ * \param loop The main loop
+ */
+
+void pt_loop_terminate(pt_loop_t * loop);
+
+/**
+ * \brief Raise an ALGORITHM_EVENT event to the calling instance (if any).
+ * \param loop The main loop
+ * \param event The event nested in the ALGORITHM_EVENT event we will raise
+ * \return true iif successful
+ */
+
+bool pt_raise_event(pt_loop_t * loop, event_t * event);
+
+/**
+ * \brief Raise an ALGORITHM_ERROR event to the calling instance (if any).
+ * \param loop The main loop
+ * \return true iif successful
+ */
+
+bool pt_raise_error(pt_loop_t * loop);
+
+/**
+ * \brief Raise an ALGORITHM_TERMINATED event to the calling instance (if any).
+ * \param loop The main loop
+ * \return true iif successful
+ */
+
+bool pt_raise_terminated(pt_loop_t * loop);
 
 #endif

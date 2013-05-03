@@ -194,7 +194,7 @@ inline unsigned int algorithm_instance_get_num_events(algorithm_instance_t * ins
 
 void pt_process_algorithms_instance(void * node, VISIT visit, int level)
 {
-    algorithm_instance_t * instance = *((algorithm_instance_t **) node);
+    algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
     unsigned int i, num_events;
     uint64_t        ret;
     ssize_t         count;
@@ -227,7 +227,7 @@ void pt_free_algorithms_instance(
     VISIT        visit,
     int          level
 ) {
-    algorithm_instance_t * instance = *((algorithm_instance_t **) node);
+    algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
     pt_algorithm_free(instance);
 }
 
@@ -260,7 +260,7 @@ algorithm_instance_t * pt_algorithm_add(
     }
 
     // We need to queue a new event for the algorithm: it has been started
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL, NULL));
+    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL, NULL, NULL));
 
     // Add this algorithms to the list of handled algorithms
     pt_algorithm_instance_add(loop, instance);
@@ -293,7 +293,7 @@ void pt_algorithm_throw(
 
 inline void pt_algorithm_free(algorithm_instance_t * instance) {
     // Notify the called algorithm that it can free its data
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL));
+    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL));
 
     // Release this instance from the memory
     algorithm_instance_free(instance);
@@ -319,7 +319,7 @@ inline void pt_algorithm_terminate(
     pt_algorithm_throw(
         instance->caller ? NULL : loop,
         instance->caller,
-        event_create(ALGORITHM_TERMINATED, NULL, NULL)
+        event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL)
     );
 }
 

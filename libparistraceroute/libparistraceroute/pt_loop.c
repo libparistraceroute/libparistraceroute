@@ -1,15 +1,20 @@
+#include "algorithm.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
-#include <stdio.h> // DEBUG
 #include <sys/signalfd.h>
 #include <signal.h>
 #include "pt_loop.h"
-#include "algorithm.h"
 
 #define MAXEVENTS 100
 
-// Internal usage
+/**
+ * \brief (Internal usage) Release from the memory loop->user_events;
+ * \parma loop The main loop
+ */
+
 static void pt_loop_clear_user_events(pt_loop_t * loop);
 
 pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *), void * user_data)
@@ -30,7 +35,6 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     sigset_t             mask; // Signal management
 
     if (!(loop = malloc(sizeof(pt_loop_t)))) {
-        errno = ENOMEM;
         goto ERR_LOOP;
     }
 
@@ -43,7 +47,7 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     
     /* eventfd for algorithms */
     loop->eventfd_algorithm = eventfd(0, EFD_SEMAPHORE);
-    if (loop->eventfd_algorithm == -1)
+    if ((loop->eventfd_algorithm = eventfd(0, EFD_SEMAPHORE)) == -1)
         goto ERR_EVENTFD_ALGORITHM;
     algorithm_event.data.fd = loop->eventfd_algorithm;
     algorithm_event.events = EPOLLIN; // | EPOLLET;
@@ -119,12 +123,10 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
 
     // Buffer where events are returned
     if (!(loop->epoll_events = calloc(MAXEVENTS, sizeof(struct epoll_event)))) {
-        errno = ENOMEM;
         goto ERR_EVENTS;
     }
 
     if (!(loop->events_user = dynarray_create())) {
-        errno = ENOMEM;
         goto ERR_EVENTS_USER;
     }
 
@@ -267,7 +269,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
             || !(loop->epoll_events[i].events & EPOLLIN)
             ) {
                 // An error has occured on this fd
-                fprintf(stderr, "epoll error\n");
+                perror("epoll error\n");
                 close(cur_fd);
                 continue;
             }
@@ -336,16 +338,34 @@ int pt_send_probe(pt_loop_t *loop, probe_t *probe)
     return 0;
 }
 
-int pt_loop_terminate(pt_loop_t * loop)
+void pt_loop_terminate(pt_loop_t * loop)
 {
     loop->stop = PT_LOOP_TERMINATE;
-    return 0;
 }
 
-int pt_raise_event(pt_loop_t * loop, event_type_t event_type, void * data)
-{
-    if (!loop->cur_instance)
-        return -1; /* user program cannot raise events */
-    pt_algorithm_throw(loop, loop->cur_instance->caller, event_create(event_type, data, loop->cur_instance));
-    return 0;
+bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
+    // Allocate the event
+    event_t * event = event_create(
+        type,
+        nested_event,
+        loop->cur_instance,
+        nested_event ? (ELEMENT_FREE) event_free : NULL
+    );
+    if (!event) return false; 
+
+    // Raise the event
+    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
+    return true;
+}
+
+bool pt_raise_event(pt_loop_t * loop, event_t * event) {
+    return pt_raise_impl(loop, ALGORITHM_EVENT, event);
+}
+
+bool pt_raise_error(pt_loop_t * loop) {
+    return pt_raise_impl(loop, ALGORITHM_ERROR, NULL);
+}
+
+bool pt_raise_terminated(pt_loop_t * loop) {
+    return pt_raise_impl(loop, ALGORITHM_TERMINATED, NULL);
 }

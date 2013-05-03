@@ -84,14 +84,15 @@ void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
         case ALGORITHM_EVENT: // an traceroute-specific event has been raised
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "traceroute") == 0) {
-                traceroute_event   = event->data;
+                traceroute_event   = event->data; // cast event_t -> traceroute_event_t
                 traceroute_options = event->issuer->options;
                 traceroute_data    = event->issuer->data;
                 my_traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
             }
             break;
         default:
-            perror("main_handler: Unhandled event\n");
+            // Unhandled event 
+            event_free(event);
             break;
     }
 }

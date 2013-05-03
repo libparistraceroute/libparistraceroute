@@ -104,10 +104,10 @@ inline int network_get_timerfd(network_t * network) {
 
 packet_t * packet_create_from_probe(probe_t * probe)
 {
-    char                 * dst_ip;
-    unsigned short         dst_port;
-    packet_t             * packet;
-    const field_t        * field;
+    char           * dst_ip;
+    unsigned short   dst_port;
+    packet_t       * packet;
+    const field_t  * field;
     
     // XXX assert ipv4/udp/no payload (encode tag into checksum) 
 
@@ -289,9 +289,10 @@ int network_schedule_next_probe_timeout(network_t * network)
 
 probe_t * network_match_probe(network_t * network, probe_t * reply)
 {
-    const field_t    * reply_checksum_field;
-    probe_t          * probe;
-    size_t             i, size;
+    const field_t * reply_checksum_field;
+    const field_t * probe_checksum_field;
+    probe_t       * probe;
+    size_t          i, size;
 
     // Get the 3-rd checksum field stored in the reply, since it stores our probe ID.
     //
@@ -309,7 +310,6 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
 
     size = dynarray_get_size(network->probes);
     for (i = 0; i < size; i++) {
-        const field_t * probe_checksum_field;
         probe = dynarray_get_ith_element(network->probes, i);
 
         // Reply / probe comparison. In our probe packet, the probe ID
@@ -374,7 +374,7 @@ int network_process_recvq(network_t * network)
     probe_reply_set_reply(probe_reply, reply);
 
     // Notify the instance which has build the probe that we've got the corresponding reply
-    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL));
+    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL));
     return 0;
 
 ERR_PROBE_REPLY_CREATE:
@@ -399,7 +399,7 @@ int network_process_timeout(network_t * network)
 
     probe = dynarray_get_ith_element(network->probes, 0);
     dynarray_del_ith_element(network->probes, 0);
-    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL));
+    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL));
     network_schedule_next_probe_timeout(network);
     return 0;
 }
