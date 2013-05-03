@@ -217,9 +217,9 @@ size_t field_get_size(const field_t * field);
  * \param field2 The second field instance
  * \return -2 if field1 and field2 cannot be compared
  *         -3 if the field type is not supported
- *         A negative value if field1 < field2
- *         A positive value if field1 > field2
- *         0 if field1 == field2
+ *          1 if field1 < field2
+ *         -1 if field1 > field2
+ *          0 if field1 == field2
  */
 
 // TODO the return values are not well-designed

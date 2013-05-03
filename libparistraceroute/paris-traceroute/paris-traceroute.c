@@ -39,7 +39,7 @@ const char * protocol_names[] = {
 };
 
 // Bounded integer parameters | def    min  max
-static unsigned first_ttl[3] = {1,     1,   255};
+static unsigned min_ttl[3] = {1,     1,   255};
 static unsigned max_ttl[3]   = {30,    1,   255};
 static double   wait[3]      = {5,     0,   INT_MAX};
 
@@ -53,7 +53,7 @@ static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 #define HELP_4 "Use IPv4"
 #define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
 #define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
-#define HELP_f "Start from the first_ttl hop (instead from 1), first_ttl must be between 1 and 255"
+#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
 #define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must must be between 1 and 255"
 #define HELP_n "Do not resolve IP addresses to their domain names"
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
@@ -71,7 +71,7 @@ struct opt_spec cl_options[] = {
     {opt_store_1,              "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
     {opt_store_choice,         "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
     {opt_store_1,              "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
-    {opt_store_int_lim,        "f", "--first",           "first_ttl",        HELP_f,      first_ttl},
+    {opt_store_int_lim,        "f", "--first",           "first_ttl",        HELP_f,      min_ttl},
     {opt_store_int_lim,        "m", "--max-hops",        "max_ttl",          HELP_m,      max_ttl},
     {opt_store_0,              "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_resolv},
     {opt_store_double_lim,     "w", "--wait",            "waittime",         HELP_w,      wait},
@@ -149,6 +149,7 @@ void user_handler(pt_loop_t * loop, event_t * event, void * user_data)
     switch (event->type) {
         case ALGORITHM_TERMINATED:
             // Dump full lattice, only when MDA_NEW_LINK is not handled
+            // TODO loop->cur_instance->algorithm->name
             if (strcmp(data->algorithm, "mda") != 0) {
                 mda_interface_dump(event->data, do_resolv);
             }
@@ -209,9 +210,7 @@ int main(int argc, char ** argv)
     }
     printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
 
-    // Set network timeout
-    network_set_timeout(wait[0]);
-
+   
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe_skel = probe_create())) {
         perror("E: Cannot create probe skeleton");
@@ -259,7 +258,7 @@ int main(int argc, char ** argv)
 
     // Common options
     if (ptraceroute_options) {
-        ptraceroute_options->min_ttl = first_ttl[0];
+        ptraceroute_options->min_ttl = min_ttl[0];
         ptraceroute_options->max_ttl = max_ttl[0];
         ptraceroute_options->dst_ip  = data->dst_ip;
     }
@@ -269,6 +268,9 @@ int main(int argc, char ** argv)
         perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
+    
+     // Set network timeout
+    network_set_timeout(loop->network, wait[0]);
 
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, data->algorithm, data->options, probe_skel)) {
@@ -298,7 +300,7 @@ ERR_LOOP_CREATE:
     paris_traceroute_data_free(data);
 ERR_DATA:
 ERR_ADDRESS_FROM_STRING:
-    if (errno) perror("Error in transforming a string to an address");
+    if (errno) perror(gai_strerror(errno));
     exit(exit_code);
 }
 

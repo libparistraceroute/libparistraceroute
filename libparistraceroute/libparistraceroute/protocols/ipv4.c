@@ -54,14 +54,14 @@ int ipv4_set_dst_ip(unsigned char * buffer, field_t * field)
 	struct iphdr * ip_hed;
     
     ip_hed = (struct iphdr *)buffer;
-    res = inet_pton(AF_INET, (char*)field->value.string, &ip_hed->daddr);
+    res = inet_pton(AF_INET, (char *)field->value.string, &ip_hed->daddr);
     if (res != 1)
         return -1; // Error while reading destination address
     return 0;
 }
 
 
-field_t * ipv4_get_dst_ip(const unsigned char * buffer)
+field_t * ipv4_get_dst_ip(unsigned char * buffer)
 {
     char res[IPV4_STRSIZE];
 	struct iphdr * ip_hed;

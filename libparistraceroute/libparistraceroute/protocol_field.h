@@ -17,7 +17,7 @@
  */
 
 typedef struct {
-    char        *   key;                                     /** Pointer to an identifying key */
+    const char  *   key;                                     /** Pointer to an identifying key */
     fieldtype_t     type;                                    /** Enum to set the type of data stored in the field */
     size_t          offset;                                  /** Offset from start of header data */
     field_t     * (*get)(uint8_t * buffer);                  /** Getter function */

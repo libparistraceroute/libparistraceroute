@@ -7,12 +7,12 @@
  */
 
 #include <search.h>
+
 #include "probe.h"
 #include "event.h"
 #include "dynarray.h"
 #include "pt_loop.h"
 #include "optparse.h"
-
 
 /**
  * \enum status_t
@@ -24,23 +24,6 @@ typedef enum {
     STOPPED,    /**< Algorithm instance is stopped */
     ERROR       /**< An error has occurred         */
 } status_t;
-
-/**
- * \struct algorithm_instance_t
- * \brief Structure describing a running instance of an algorithm.
- */
-
-typedef struct algorithm_instance_s {
-    unsigned int                  id;         /**< Unique identifier */
-    struct algorithm_s          * algorithm;  /**< Pointer to the type of algorithm */
-    void                        * options;    /**< Pointer to an option structure specific to the algorithm */
-    probe_t                     * probe_skel; /**< Skeleton for probes forged by this algorithm instance */
-    void                        * data;       /**< Internal algorithm data */
-    void                        * outputs;    /**< Data exposed to the caller and filled by the instance */ 
-    dynarray_t                  * events;     /**< An array of events received by the algorithm */
-    struct algorithm_instance_s * caller;     /**< Reference to the entity that called the algorithm (NULL if called by pt_loop) */
-    struct pt_loop_s            * loop;       /**< Pointer to a library context */
-} algorithm_instance_t;
 
 /**
  * \struct algorithm_t
@@ -57,8 +40,25 @@ typedef struct algorithm_s {
         probe_t   *  skel,
         void      *  poptions
     );                                        /**< Main handler function */
-    struct opt_spec  options;
+    struct opt_spec  options;                 /**< Options supported by this algorithm */ 
 } algorithm_t;
+
+/**
+ * \struct algorithm_instance_t
+ * \brief Structure describing a running instance of an algorithm.
+ */
+
+typedef struct algorithm_instance_s {
+    unsigned int                  id;         /**< Unique identifier */
+    algorithm_t                 * algorithm;  /**< Pointer to the type of algorithm */
+    void                        * options;    /**< Pointer to an option structure specific to the algorithm */
+    probe_t                     * probe_skel; /**< Skeleton for probes forged by this algorithm instance */
+    void                        * data;       /**< Internal algorithm data */
+    void                        * outputs;    /**< Data exposed to the caller and filled by the instance */ 
+    dynarray_t                  * events;     /**< An array of events received by the algorithm */
+    struct algorithm_instance_s * caller;     /**< Reference to the entity that called the algorithm (NULL if called by pt_loop) */
+    struct pt_loop_s            * loop;       /**< Pointer to a library context */
+} algorithm_instance_t;
 
 //--------------------------------------------------------------------
 // algorithm_t 
@@ -156,6 +156,13 @@ void pt_process_algorithms_instance(
     VISIT        visit,
     int          level
 );
+
+/**
+ * \brief Free algorithm instances (internal usage, see visitor for twalk)
+ * \param node Current instance
+ * \param visit Unused
+ * \param level Unused
+ */
 
 void pt_free_algorithms_instance(
     const void * node,

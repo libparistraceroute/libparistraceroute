@@ -34,31 +34,31 @@
  */
 
 typedef struct network_s {
-	
     socketpool_t * socketpool; /**< Pool of sockets used by this network */
     queue_t      * sendq;      /**< Queue for packets to send */
     queue_t      * recvq;      /**< Queue for packets to be received */
     sniffer_t    * sniffer;    /**< Sniffer to use on this network */
-    dynarray_t   * probes;     /**< List of probes in transit */
-    
-    // Timer data
-    int            timerfd; // used for probe timeouts, Linux specific
-
-    /* Temp */
-    uintmax_t      last_tag;
+    dynarray_t   * probes;     /**< Probes in transit, from the oldest one to the youngest one */
+    int            timerfd;    /**< Used for probe timeouts, Linux specific */
+    uintmax_t      last_tag;   /**< Last probe ID used */
+    double         timeout;    /**< The timeout value used by this network */
 } network_t;
 
 /**
- *
+ * \brief Set a new timeout for the network structure
+ * \param network a Pointer to the network structure to use
+ * \param new_timeout value of the new timeout to set
  */
 
-void network_set_timeout(double new_timeout);
+void network_set_timeout(network_t * network, double new_timeout);
 
 /**
- *
+ * \brief get the timeout used by a network structure
+ * \param network a Pointer to the used network structure
+ * \return the value of the timeout used by the network
  */
 
-double network_get_timeout(void);
+double network_get_timeout(const network_t * network);
 
 /**
  * \brief Create a new network structure
@@ -109,14 +109,20 @@ int network_get_timerfd(network_t *network);
 int network_process_sendq(network_t * network);
 
 /**
- * \brief Recieve the next packet on the queue
- * \param network The network to use for the queue and for receiving
- * \return 0
+ * \brief Process received packets: match them with a probe, or discard them.
+ * \param network Pointer to a network structure
+ * In practice, the receive queue stores all the packets received by the sniffer.
+ * \return -1 in case of failure 0 otherwise
  */
 
 int network_process_recvq(network_t * network);
 
 int network_process_sniffer(network_t *network);
+
+/**
+ * \brief Drop the oldest probe attached to a network instance 
+ * \param network Pointer to a network structure
+ */
 
 int network_process_timeout(network_t * network);
 
