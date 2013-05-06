@@ -16,9 +16,10 @@
 // DEBUG
 #include "../probe.h"
 
-/* MDA options */
+// MDA options
+
 struct opt_spec mda_options[] = {
-    /* action       short       long         metavar       help                   variable XXX */
+    // action       short       long         metavar       help                   variable
     {opt_store_int, OPT_NO_SF, "min-ttl",    "TTL",        "minimum TTL",         0},
     {opt_store_int, OPT_NO_SF, "max-ttl",    "TTL",        "maximum TTL",         0},
     {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
@@ -88,19 +89,10 @@ bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t
     event_t          * mda_event;
     mda_interface_t ** link;
 
-    /*
-    if (!(mda_event = malloc(sizeof(mda_event_t))))    goto ERR_MDA_EVENT;
-    if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
-    link[0] = src;
-    link[1] = dst;
-    mda_event->type = MDA_NEW_LINK;
-    mda_event->data = link;
-    */
     if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
     link[0] = src;
     link[1] = dst;
     if (!(mda_event = event_create((unsigned) MDA_NEW_LINK, link, NULL, free))) goto ERR_MDA_EVENT;
-
     return pt_raise_event(loop, mda_event);
 ERR_MDA_EVENT:
     free(link);
@@ -300,42 +292,34 @@ ERROR:
  * MDA HANDLERS
  */
 
-int mda_handler_init(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * poption)
+int mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pdata, probe_t * skel, const mda_options_t * options)
 {
     mda_data_t    * data;
-    //mda_options_t * options = poptions;
+
+    probe_dump(skel);
+
+    printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
+        options->traceroute_options.min_ttl,
+        options->traceroute_options.max_ttl,
+        options->traceroute_options.num_probes,
+        options->traceroute_options.dst_ip ? options->traceroute_options.dst_ip : "",
+        options->bound,
+        options->max_branch
+    );
     
-    /* Create local data structure */
-    *pdata = mda_data_create();
-    if (!*pdata) return -1;
-    data = *pdata;
-    printf("mda_handler_init %s\n", probe_get_field(skel, "dst_ip")->value.string);
+    // Create local data structure
+    if (!(data = mda_data_create())) goto ERR_MDA_DATA_CREATE;
     data->dst_ip = probe_get_field(skel, "dst_ip")->value.string; 
     data->skel = skel;
     data->loop = loop;   
-    //probe_dump(skel);
-    //printf("W: mda.c: set dport to 53 \n"); // TOFIX
-    //probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
-    /* printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
-    printf("W: mda.c: set dport to 53 \n"); // TOFIX
-    probe_set_field(skel, I16("dst_port", 53)); // TOFIX: we set port to 53 otherwise there is a segfault
-     printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
-            options->traceroute_options.min_ttl,
-            options->traceroute_options.max_ttl,
-            options->traceroute_options.num_probes,
-            options->traceroute_options.dst_ip ? options->traceroute_options.dst_ip : "",
-            options->bound,
-            options->max_branch
-        );
-        */
+    *pdata = data;
 
-    /* Create a dummy first hop, root of a lattice of discovered interfaces:
-     *  . not a tree since some interfaces might have several predecessors
-     *  (diamonds)
-     *  . we assume the initial hop is not a load balancer
-     */
-    return lattice_add_element(data->lattice, /*prev*/ NULL, mda_interface_create(NULL));
-
+    // Create a dummy first hop, root of a lattice of discovered interfaces:
+    // - not a tree since some interfaces might have several predecessors (diamonds)
+    // - we assume the initial hop is not a load balancer
+    return lattice_add_element(data->lattice, NULL, mda_interface_create(NULL));
+ERR_MDA_DATA_CREATE:
+    return -1;
 }
 
 typedef struct {
@@ -344,14 +328,15 @@ typedef struct {
     lattice_elt_t * result;
 } mda_ttl_flow_t;
 
+// TODO factorize mda_*_flow
+
 int mda_search_source(lattice_elt_t * elt, void * data)
 {
-    mda_interface_t     * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t            * search    = data;
+    mda_interface_t * interface = lattice_elt_get_data(elt);
+    mda_ttl_flow_t  * search    = data;
+    size_t            i, size;
 
     if (interface->ttl == search->ttl) {
-        unsigned int i, size;
-
         size = dynarray_get_size(interface->flows);
         for (i = 0; i < size; i++) {
             mda_flow_t *flow = dynarray_get_ith_element(interface->flows, i);
@@ -369,12 +354,11 @@ int mda_search_source(lattice_elt_t * elt, void * data)
 
 int mda_delete_flow(lattice_elt_t * elt, void * data)
 {
-    mda_interface_t     * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t            * search    = data;
+    mda_interface_t * interface = lattice_elt_get_data(elt);
+    mda_ttl_flow_t  * search    = data;
+    size_t            i, size;
 
     if (interface->ttl == search->ttl) {
-        unsigned int i, size;
-
         size = dynarray_get_size(interface->flows);
         for (i = 0; i < size; i++) {
             mda_flow_t *flow = dynarray_get_ith_element(interface->flows, i);
@@ -426,10 +410,9 @@ int mda_search_interface(lattice_elt_t * elt, void * data)
     return LATTICE_CONTINUE;
 }
 
-int mda_handler_reply(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * options)
+int mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * data, probe_t * skel, const mda_options_t * options)
 {
     // manage this XXX
-    mda_data_t             * data;
     probe_reply_t          * pr;
     lattice_elt_t          * source_elt, * dest_elt;
     mda_interface_t        * source_interface, * dest_interface;
@@ -441,9 +424,11 @@ int mda_handler_reply(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     uint8_t                  ttl;
     int                      ret;
 
-    data = *pdata;
-    pr = event->data;
+    printf("=====================================================\n");
+    lattice_dump(data->lattice, mda_interface_dump);
+    printf("\n");
 
+    pr = event->data;
     ttl     = probe_get_field(pr->probe, "ttl"    )->value.int8;
     flow_id = probe_get_field(pr->probe, "flow_id")->value.intmax;
     addr    = probe_get_field(pr->reply, "src_ip" )->value.string;
@@ -532,9 +517,8 @@ error:
     return -1;
 }
 
-int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * options)
+int mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * data, probe_t *skel, const mda_options_t * options)
 {
-    mda_data_t            * data;
     probe_t               * probe;
     lattice_elt_t         * source_elt;
     mda_interface_t       * source_interface;
@@ -543,9 +527,7 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, void **pdata, probe_t *
     uint8_t                 ttl;
     int                     ret;
 
-    data  = * pdata;
     probe = event->data;
-
     ttl     = probe_get_field(probe, "ttl"    )->value.int8;
     flow_id = probe_get_field(probe, "flow_id")->value.intmax;
 
@@ -626,18 +608,27 @@ ERROR:
  * \return 0 iif successful
  */
 
-int mda_handler(pt_loop_t *loop, event_t *event, void **pdata, probe_t *skel, void * options)
+int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * opts)
 { 
     mda_data_t * data;
+    const mda_options_t * options = opts;
 
     switch (event->type) {
-        case ALGORITHM_INIT: mda_handler_init   (loop, event, pdata, skel, options); break;
-        case PROBE_REPLY:    mda_handler_reply  (loop, event, pdata, skel, options); break;
-        case PROBE_TIMEOUT:  mda_handler_timeout(loop, event, pdata, skel, options); break;
-        default:             return -1; // EINVAL;
+        case ALGORITHM_INIT:
+            mda_handler_init(loop, event, (mda_data_t **) pdata, skel, options);
+            data = *pdata;
+            break;
+        case PROBE_REPLY:
+            data = *pdata;
+            mda_handler_reply(loop, event, data, skel, options);
+            break;
+        case PROBE_TIMEOUT: 
+            data = *pdata;
+            mda_handler_timeout(loop, event, data, skel, options);
+            break;
+        default:
+            return -1;
     }
-
-    data = *pdata;
 
     // Process available interfaces
     switch (lattice_walk(data->lattice, mda_process_interface, data, LATTICE_WALK_DFS)) {

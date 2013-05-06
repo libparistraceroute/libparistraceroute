@@ -61,12 +61,13 @@ inline void layer_set_mask(layer_t * layer, uint8_t * mask)
 
 const field_t * layer_get_field(const layer_t * layer, const char * name)
 {
-     const protocol_field_t * field;
+    const protocol_field_t * field;
     if (layer && layer->protocol) {
         if ((field = protocol_get_field(layer->protocol, name))) {
             if (field->get) {
                 return field->get(layer->buffer);
             } else {
+                // TODO This function either can allocate or points to existing data !!!!
                 return field_create_from_network(
                     field->type,
                     name,

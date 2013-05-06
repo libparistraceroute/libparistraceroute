@@ -144,8 +144,7 @@ int network_get_available_tag(network_t * network)
 int network_tag_probe(network_t * network, probe_t * probe)
 {
     uint16_t tag, checksum;
-    buffer_t * buffer;
-
+    buffer_t * payload;
 
     /* The probe gets assigned a unique tag. Currently we encode it in the UDP
      * checksum, but I guess the tag will be protocol dependent. Also, since the
@@ -161,33 +160,36 @@ int network_tag_probe(network_t * network, probe_t * probe)
      * free one... Also, we need to share tags between several instances ?
      * randomized tags ? Also, we need to determine how much size we have to
      * encode information. */
-    tag = network_get_available_tag(network);
 
-    buffer = buffer_create();
-    buffer_set_data(buffer, (unsigned char*)&tag, sizeof(uint16_t));
+    tag = network_get_available_tag(network);
+    payload = buffer_create();
+
+    // Write the probe ID in the buffer 
+    buffer_set_data(payload, (uint8_t *) &tag, sizeof(uint16_t));
 
     // Write the tag at offset zero of the payload
-    //printf("Write the tag %hu at offset zero of the payload\n", tag);
-    probe_write_payload(probe, buffer, 0);
+    probe_write_payload(probe, payload, 0);
     
-    /* 2) Compute checksum : should be done automatically by probe_set_fields */
-
+    // Update checksum (TODO: should be done automatically by probe_set_fields)
     probe_update_fields(probe);
 
-    /* 3) Swap checksum and payload : give explanations here ! */
+    // Retrieve the checksum of UDP checksum 
+    // TODO: this is the place where the probe ID is currently written.
+    //       but we must define a metafield "tag", which can be parametrized,
+    //       and match on this metafield
+    checksum = htons(probe_get_field_ext(probe, "checksum", 1)->value.int16);
 
-    checksum = htons(probe_get_field_ext(probe, "checksum", 1)->value.int16); // UDP checksum
+    // Write the probe ID in the UDP checksum
     probe_set_field_ext(probe, I16("checksum", htons(tag)), 1);
+    printf("Setting tag = %x\n", htons(tag));
 
-    buffer_set_data(buffer, (unsigned char*)&checksum, sizeof(uint16_t));
+    // Write the old checksum in the payload
+    buffer_set_data(payload, (uint8_t *) &checksum, sizeof(uint16_t));
+
     // We write the checksum at offset zero of the payload
-    probe_write_payload(probe, buffer, 0);
-
-    /* NOTE: we must define a metafield tag, which can be parametrized, and
-     * match on this metafield */
+    probe_write_payload(probe, payload, 0);
 
     return 0;
-
 }
 
 // TODO This could be replaced by watchers: FD -> action
@@ -229,7 +231,7 @@ int network_process_sendq(network_t * network)
         // There is no running timer, let's set one for this probe 
         struct itimerspec new_value;
 
-        new_value.it_value.tv_sec = (time_t)  network->timeout; 
+        new_value.it_value.tv_sec = (time_t) network->timeout; 
         new_value.it_value.tv_nsec = 0;
         new_value.it_interval.tv_sec = 0;
         new_value.it_interval.tv_nsec = 0;
@@ -305,6 +307,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
 
     if (!(reply_checksum_field = probe_get_field_ext(reply, "checksum", 3))) {
         // This is not an IP/ICMP/IP/* reply :( 
+        perror("Can't retrieve checksum from reply");
         return NULL;
     }
 
@@ -315,7 +318,6 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
         // Reply / probe comparison. In our probe packet, the probe ID
         // is stored in the checksum of the (first) IP layer. 
         probe_checksum_field = probe_get_field_ext(probe, "checksum", 1);
-                   
         if (field_compare(probe_checksum_field, reply_checksum_field) == 0) {
             break;
         }
@@ -323,8 +325,15 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
 
     // No match found if we reached the end of the array
     if (i == size) {
-        perror("network_match_probe: Reply discarded\n");
-       // probe_dump(reply);
+        fprintf(stderr, "network_match_probe: This reply (%x) has been discarded: tag = %x\n", reply, reply_checksum_field);
+        perror("Known probe-ID are:\n");
+        for (i = 0; i < size; i++) {
+            probe = dynarray_get_ith_element(network->probes, i);
+            if (probe) {
+                probe_checksum_field = probe_get_field_ext(probe, "checksum", 1);
+                field_dump(probe_checksum_field);
+            }
+        }
         return NULL;
     }
 

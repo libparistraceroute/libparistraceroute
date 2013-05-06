@@ -60,7 +60,7 @@ void dynarray_free(dynarray_t * dynarray, void (*element_free)(void *element)) {
     //printf(">> dynarray_free(%x): end\n", dynarray);
 }
 
-void dynarray_push_element(dynarray_t * dynarray, void * element)
+bool dynarray_push_element(dynarray_t * dynarray, void * element)
 {
     // If the dynarray is full, allocate DYNARRAY_SIZE_INC
     // cells in the dynarray
@@ -69,6 +69,7 @@ void dynarray_push_element(dynarray_t * dynarray, void * element)
             dynarray->elements,
             (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *)
         );
+        if (!dynarray->elements) return false;
         memset(
             dynarray->elements + dynarray->size, 0,
             DYNARRAY_SIZE_INC * sizeof(void *)
@@ -79,6 +80,7 @@ void dynarray_push_element(dynarray_t * dynarray, void * element)
     // Add the new element and update exposed size
     dynarray->elements[dynarray->size] = element;
     dynarray->size++;
+    return true;
 }
 
 /* void dynarray_add_element(dynarray_t * dynarray, void * element, size_t sizeof_element) {

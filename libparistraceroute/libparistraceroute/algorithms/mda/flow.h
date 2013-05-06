@@ -16,11 +16,24 @@ typedef enum {
  */
 
 typedef struct {
-    uintmax_t flow_id;
-    mda_flow_state_t state;
+    uintmax_t        flow_id; /**< Flow identifier            */
+    mda_flow_state_t state;   /**< Current state of this flow */
 } mda_flow_t;
 
-mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state);
-void mda_flow_free(mda_flow_t *flow);
+/**
+ * \brief Allocate a mda_data_t structure
+ * \param flow_id Flow identifier related to this flow
+ * \param state Current state of this flow
+ * \return A pointer to the mda_data_t structure, NULL otherwise
+ */
 
-#endif /* MDA_FLOW_H */
+mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state);
+
+/**
+ * \brief Release a mda_data_t structure from the memory
+ * \param A pointer to the mda_data_t instance
+ */
+
+void mda_flow_free(mda_flow_t * flow);
+
+#endif

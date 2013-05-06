@@ -1,6 +1,8 @@
 #ifndef DYNARRAY_H
 #define DYNARRAY_H
 
+#include <stdbool.h>
+
 /**
  * \file dynarray.h
  * \brief Header file: dynamic array structure
@@ -51,9 +53,10 @@ void dynarray_free(dynarray_t * dynarray , void (*element_free) (void * element)
  * \brief Add a new element at the end of the dynamic array.
  * \param dynarray Pointer to a dynamic array structure
  * \param element Pointer to the element to add
+ * \return true iif successful
  */
 
-void dynarray_push_element(dynarray_t * dynarray, void * element);
+bool dynarray_push_element(dynarray_t * dynarray, void * element);
 
 /**
  * \brief Delete the i-th element stored in a dynarray_t.

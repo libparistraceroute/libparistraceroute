@@ -19,18 +19,15 @@ typedef enum {
 } mda_lb_type_t;
 
 typedef struct {
-
-    char         * address;
-    unsigned int   sent, received, timeout;
-    unsigned int   nb_stars;
-
-    /* Stores flow information about the current interface */
-    dynarray_t   * flows;
-
+    char         * address;          /**< Interface attached to this hop */
+    size_t         sent,
+                   received,
+                   timeout,
+                   nb_stars;         /**< Number of probe timeout for this hop */
+    dynarray_t   * flows;            /**< Stores flow information related to this hop */
     bool           enumeration_done;
-    mda_lb_type_t  type;
-    unsigned int   ttl;
-
+    mda_lb_type_t  type;             /**< Type of load balancer */
+    unsigned int   ttl;              /**< Time to live related to this hop */
 } mda_interface_t;
 
 mda_interface_t * mda_interface_create(const char * str_ip);
