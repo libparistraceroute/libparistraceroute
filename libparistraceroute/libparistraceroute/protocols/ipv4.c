@@ -268,20 +268,6 @@ bool ipv4_write_checksum(unsigned char *buf, buffer_t * psh) {
     return true;
 }
 
-//bool ipv4_instance_of(unsigned char buffer)
-//{
-  // TYPE_INT4 version;
-   
-  // version=;
-
-   //if ( version == 4 ){
-     // return true
-  // else
-    //  return false;
-   //}
-//}
-
-
 static protocol_t ipv4 = {
     .name                 = "ipv4",
     .protocol             = 4, // XXX only IP over IP (encapsulation) 

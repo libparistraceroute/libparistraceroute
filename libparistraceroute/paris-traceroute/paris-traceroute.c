@@ -184,6 +184,7 @@ int main(int argc, char ** argv)
     pt_loop_t               * loop      = NULL;
     int                       exit_code = EXIT_FAILURE, i;
     address_t                 dst_addr;
+    int                     * errno_p = __errno_location();
 
     // Retrieve values passed in the command-line
     opt_options1st();
@@ -191,7 +192,6 @@ int main(int argc, char ** argv)
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
         exit(EXIT_FAILURE);
     }
-
     // Verify that the user pass option related to mda iif this is the chosen algorithm.
     if (mda[6]) {
         if (strcmp(algorithm_names[0], "mda") != 0) {
@@ -199,20 +199,17 @@ int main(int argc, char ** argv)
             goto ERR_INVALID_ALGORITHM;
         }
     }
-
     // Iterate on argv to retrieve the target IP address
     for(i = 0; argv[i] && i < argc; ++i);
     if (address_from_string(argv[i - 1], &dst_addr) != 0) {
         goto ERR_ADDRESS_FROM_STRING;
     }
-
     // Prepare data
     if (!(data = paris_traceroute_data_create(algorithm_names[0], &dst_addr))) {
         goto ERR_DATA;
     }
     printf("Traceroute to %s using algorithm %s\n\n", data->dst_ip, data->algorithm);
-
-   
+    
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe_skel = probe_create())) {
         perror("E: Cannot create probe skeleton");
@@ -240,7 +237,7 @@ int main(int argc, char ** argv)
     if (is_udp && !dst_port[3]) {
         probe_set_fields(probe_skel, I16("dst_port", 53), NULL);
     }
- 
+
     // Dedicated options 
     if (strcmp(data->algorithm, "traceroute") == 0
     ||  strcmp(data->algorithm, "paris-traceroute") == 0) {
@@ -257,23 +254,23 @@ int main(int argc, char ** argv)
         perror("E: Unknown algorithm ");
         goto ERR_UNKNOWN_ALGORITHM;
     }
-
+    
     // Common options
     if (ptraceroute_options) {
         ptraceroute_options->min_ttl = min_ttl[0];
         ptraceroute_options->max_ttl = max_ttl[0];
         ptraceroute_options->dst_ip  = data->dst_ip;
     }
-
+    
     // Create libparistraceroute loop
     if (!(loop = pt_loop_create(user_handler, data))) {
         perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
-    
-     // Set network timeout
+     
+    // Set network timeout
     network_set_timeout(loop->network, wait[0]);
-
+    
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, data->algorithm, data->options, probe_skel)) {
         perror("E: Cannot add the chosen algorithm");
