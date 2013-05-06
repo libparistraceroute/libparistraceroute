@@ -18,7 +18,9 @@ typedef enum {
 
 typedef struct {
     mda_event_type_t type;
-    void * data;
+    void           * data;
+    void          (* data_free)(void *); /**< Called in event_free to release data. Ignored if NULL. */
+    void           * zero;
 } mda_event_t;
 
 mda_options_t mda_get_default_options(void);

@@ -60,8 +60,10 @@ typedef enum {
 
 typedef struct {
     traceroute_event_type_t type;
-    void * data;
-} traceroute_event_t; // TODO should fit with event_t structure
+    void                  * data;
+    void                 (* data_free)(void *); /**< Called in event_free to release data. Ignored if NULL. */
+    void                  * zero;
+} traceroute_event_t;
 
 typedef struct {
     bool    destination_reached; /**< True iif the destination has been reached at least once for the current TTL */

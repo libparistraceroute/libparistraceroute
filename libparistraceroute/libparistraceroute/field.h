@@ -96,6 +96,15 @@ field_t * field_create_int32(const char * key, uint32_t value);
 field_t * field_create_int64(const char * key, uint64_t value);
 
 /**
+ * \brief Create a field structure to hold a 128 bit integer value
+ * \param key The name which identify the field to create
+ * \param value Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+field_t * field_create_int128(const char * key, uint128_t value);
+
+/**
  * \brief Create a field structure to hold a uintmax_t value
  * \param key The name which identify the field to create
  * \param value Value to store in the field

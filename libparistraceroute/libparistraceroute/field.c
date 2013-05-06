@@ -52,6 +52,18 @@ field_t * field_create_int64(const char * key, uint64_t value)
     return field;
 }
 
+field_t * field_create_int128(const char * key, uint128_t value)
+{
+    field_t * field = malloc(sizeof(field_t));
+
+    if (field) {
+        field->key = strdup(key);
+        field->value.int128 = value;
+        field->type = TYPE_INT128;
+    }
+    return field;
+}
+
 field_t * field_create_intmax(const char * key, uintmax_t value)
 {
     field_t * field = malloc(sizeof(field_t));
@@ -87,6 +99,8 @@ field_t * field_create(fieldtype_t type, const char * key, void * value)
             return field_create_int32(key, *(uint32_t *) value);
         case TYPE_INT64:
             return field_create_int64(key, *(uint64_t *) value);
+        case TYPE_INT128:
+            return field_create_int128(key, *(uint128_t *) value);
         case TYPE_INTMAX:
             return field_create_intmax(key, *(uintmax_t *) value);
         case TYPE_STRING:
@@ -100,7 +114,6 @@ field_t * field_create(fieldtype_t type, const char * key, void * value)
 
 field_t * field_create_from_network(fieldtype_t type, const char * key, void * value)
 {
-	uint128_t temp128;
     switch (type) {
         case TYPE_INT8:
             return field_create_int8(key, *(uint8_t *) value);
@@ -110,6 +123,10 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
             return field_create_int32(key, ntohl(*(uint32_t *) value));
         case TYPE_INT64:
             return field_create_int64(key, ntohl(*(uint64_t *) value));
+        case TYPE_INT128:
+        //    return field_create_int128(key, ntohl(*(uint128_t *) value));
+            perror("Not yet implemented");
+            return NULL;
         case TYPE_INTMAX:
             return field_create_intmax(key, ntohl(*(uintmax_t *) value));
         case TYPE_STRING:
@@ -183,6 +200,10 @@ int field_compare(const field_t * field1, const field_t * field2)
         case TYPE_INT64:
             ret = field1->value.int64 - field2->value.int64;
             break;
+        case TYPE_INT128:
+            perror("Not yet implemented\n");
+            //ret = field1->value.int128 - field2->value.int128;
+            break;
         case TYPE_INTMAX:
             ret = field1->value.intmax - field2->value.intmax;
             break;
@@ -217,12 +238,14 @@ void field_dump(const field_t * field)
             printf("%lu", field->value.int64);
             break;
         case TYPE_INT128:
-            printf("%llu", field->value.int128); //TODO does printf work this way for 128 bit ints?
+            perror("Not yet implemented");
+            //printf("%llu", field->value.int128); //TODO does printf work this way for 128 bit ints?
             break;
         case TYPE_INTMAX:
             printf("%ju", field->value.intmax);
             break;
         case TYPE_INT4:
+            perror("Not yet implemented");
             break;
         case TYPE_STRING:
             printf("%s", field->value.string);

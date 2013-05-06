@@ -192,7 +192,7 @@ inline unsigned int algorithm_instance_get_num_events(algorithm_instance_t * ins
 // pt_loop: user interface 
 //--------------------------------------------------------------------
 
-void pt_process_algorithms_instance(void * node, VISIT visit, int level)
+void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
 {
     algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
     unsigned int i, num_events;

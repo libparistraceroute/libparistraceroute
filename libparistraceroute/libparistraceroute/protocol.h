@@ -19,7 +19,7 @@
  * \brief Structure describing a protocol
  */
 typedef struct {
-    char * name; /**< Name of the protocol */
+    const char * name; /**< Name of the protocol */
     
     /**
      * Identifier of the protocol :

@@ -100,7 +100,7 @@ uint16_t csum(const uint16_t * buf, size_t size) {
         size -= sizeof(uint16_t);
     }
     if (size) {
-        sum += * (uint8_t *) buf;
+        sum += * (const uint8_t *) buf;
     }
     sum  = (sum >> 16) + (sum & 0xffff);
     sum += (sum >> 16);
