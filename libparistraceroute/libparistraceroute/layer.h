@@ -88,9 +88,9 @@ int layer_set_sublayer(layer_t * layer, layer_t * sublayer);
 //int layer_set_fields(layer_t * layer, field_t * field1, ...);
 
 /**
- * \brief Set the header fields for a layer
- * \param layer Pointer to the layer structure to change
- * \param arg1 Pointer to a field structure to use in the layer.
+ * \brief Set a field in a layer
+ * \param layer Pointer to the layer structure to update.
+ * \param field Pointer to the field we assign in this layer. 
  * \return 0 iif successful 
  */
 

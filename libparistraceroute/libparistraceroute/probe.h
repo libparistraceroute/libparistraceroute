@@ -58,7 +58,15 @@ void probe_free(probe_t * probe);
 
 buffer_t * probe_get_buffer(const probe_t * probe);
 
-int probe_set_buffer(probe_t * probe, buffer_t * buffer);
+/**
+ * \brief Update a probe (including its forming layers) according to a buffer. 
+ * \param probe A pointer to a preallocated probe that we're modifying
+ * \param buffer The buffer we're assigning to this probe. This buffer
+ *    is not duplicated.
+ * \return true iif successful
+ */
+
+bool probe_set_buffer(probe_t * probe, buffer_t * buffer);
 
 /**
  * \brief Print probe contents
@@ -71,10 +79,10 @@ void probe_dump(const probe_t * probe);
  * \brief Add a field to a probe
  * \param probe A pointer to a probe_t structure containing the probe
  * \param field A pointer to a field_t structure containing the field
- * \return None
  */
 
-void probe_add_field(probe_t *probe, field_t *field);
+// TODO should return bool
+void probe_add_field(probe_t * probe, field_t * field);
 
 /**
  * \brief Set a field according to a given field name. 
@@ -82,16 +90,20 @@ void probe_add_field(probe_t *probe, field_t *field);
  * \param name The name of the queried field
  * \param depth The index of the first layer from which the field
  *    can be set. 0 corresponds to the first layer.
- * \return 0 iif successfull  
+ * \return true iif successfull  
  */
 
-// TODO should return bool
-int probe_set_field_ext(probe_t *probe, field_t *field, unsigned int depth);
+bool probe_set_field_ext(probe_t * probe, field_t * field, size_t depth);
 
-// TODO should return bool
-int probe_set_field(probe_t *probe, field_t *field);
+bool probe_set_field(probe_t * probe, field_t * field);
 
-int probe_update_fields(probe_t *probe);
+/**
+ * \brief Update 'length', 'checksum' and 'protocol' fields for each
+ *   network protocol layer making the probe.
+ * \return true iif successful
+ */
+
+bool probe_update_fields(probe_t * probe);
 
 /**
  * \brief Assigns a set of fields to a probe
@@ -220,6 +232,7 @@ probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
 /******************************************************************************
  * pt_loop_t
  ******************************************************************************/
+
 struct pt_loop_s;
 
 /**
@@ -229,11 +242,10 @@ struct pt_loop_s;
  * \param reply Pointer to an empty probe_t structure to hold the reply (?)
  * \return None
  */
+
 void pt_probe_reply_callback(struct pt_loop_s * loop, probe_t * probe, probe_t * reply);
 
 
 int probe_set_protocols(probe_t * probe, const char * name1, ...);
-
-int probe_update_fields(probe_t * probe);
 
 #endif

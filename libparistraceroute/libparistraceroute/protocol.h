@@ -7,7 +7,6 @@
  */
 
 #include <stdbool.h>
-#include <sys/types.h> // u_int16_t
 
 #include "protocol_field.h"
 #include "buffer.h"

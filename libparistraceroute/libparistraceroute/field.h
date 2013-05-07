@@ -155,7 +155,7 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define I8(x, y)  field_create_int8(x, y)
+#define I8(x, y)  field_create_int8(x, (uint8_t) y)
 
 /**
  * \brief Macro shorthand for field_create_int16
@@ -164,7 +164,7 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define I16(x, y) field_create_int16(x, y)
+#define I16(x, y) field_create_int16(x, (uint16_t) y)
 
 /**
  * \brief Macro shorthand for field_create_int32
@@ -173,7 +173,7 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define I32(x, y) field_create_int32(x, y)
+#define I32(x, y) field_create_int32(x, (uint32_t) y)
 
 /**
  * \brief Macro shorthand for field_create_int64
@@ -182,7 +182,16 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define I64(x, y) field_create_int64(x, y)
+#define I64(x, y) field_create_int64(x, (uint64_t) y)
+
+/**
+ * \brief Macro shorthand for field_create_int128
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define I128(x, y) field_create_int64(x, (uint128_t) y)
 
 /**
  * \brief Macro shorthand for field_create_intmax
@@ -191,7 +200,7 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define IMAX(x, y) field_create_intmax(x, y)
+#define IMAX(x, y) field_create_intmax(x, (uintmax_t) y)
 
 /**
  * \brief Macro shorthand for field_create_string
@@ -231,7 +240,6 @@ size_t field_get_size(const field_t * field);
  *          0 if field1 == field2
  */
 
-// TODO the return values are not well-designed
 int field_compare(const field_t * field1, const field_t * field2);
 
 /**

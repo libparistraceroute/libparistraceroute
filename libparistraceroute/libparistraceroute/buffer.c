@@ -7,34 +7,30 @@
 
 buffer_t * buffer_create() {
     buffer_t * buffer;
-    buffer = malloc(sizeof(buffer_t));
-    if (buffer) {
+
+    if ((buffer = malloc(sizeof(buffer_t)))) {
         buffer->data = NULL;
         buffer->size = 0;
-    } else errno = ENOMEM;
+    }
     return buffer;
 }
 
 buffer_t * buffer_dup(const buffer_t * buffer)
 {
-    buffer_t * buf;
+    buffer_t * ret;
 
-    if (!buffer) return NULL;
+    if (!buffer) goto ERR_INVALID_PARAMETER;
+    if (!(ret = buffer_create())) goto ERR_BUFFER_CREATE;
+    if (!(ret->data = calloc(buffer->size, sizeof(uint8_t)))) goto ERR_BUFFER_DATA;
 
-    buf = buffer_create();
-    if (!buf) goto ERROR;
+    memcpy(ret->data, buffer->data, buffer->size);
+    ret->size = buffer->size;
+    return ret;
 
-    buf->data = calloc(buffer->size, sizeof(unsigned char));
-    if (!buf->data) goto ERROR_BUFFER;
-
-    memcpy(buf->data, buffer->data, buffer->size);
-    buf->size = buffer->size;
-    return buf;
-
-
-ERROR_BUFFER:
-    free(buf);
-ERROR:
+ERR_BUFFER_DATA:
+    free(ret);
+ERR_BUFFER_CREATE:
+ERR_INVALID_PARAMETER:
     return NULL;
 }
 
@@ -48,25 +44,6 @@ void buffer_free(buffer_t * buffer)
 
 bool buffer_resize(buffer_t * buffer, size_t size)
 {
-    /*
-    unsigned char * tmp;
-
-    if (buffer->size == size) return true;
-
-    if (!buffer->data) {
-        // First time allocation
-        buffer->data = calloc(size, sizeof(unsigned char));
-        if (!buffer->data) return false; // no allocation could be made
-    } else {
-        tmp = realloc(buffer->data, size * sizeof(unsigned char));
-        if (!tmp)
-            return -1; // cannot realloc, orig still valid
-        memset(tmp + buffer->size, 0 , size * sizeof(unsigned char) - buffer->size);
-        buffer->data = tmp;
-    }
-    buffer->size = size;
-    return 0;
- */  
     uint8_t * data2;
     bool      ret = true;
 
@@ -101,7 +78,7 @@ inline void buffer_set_size(buffer_t * buffer, size_t size) {
     buffer->size = size;
 }
 
-unsigned char buffer_guess_ip_version(buffer_t * buffer) {
+uint8_t buffer_guess_ip_version(buffer_t * buffer) {
     return buffer->data[0] >> 4;
 }
 

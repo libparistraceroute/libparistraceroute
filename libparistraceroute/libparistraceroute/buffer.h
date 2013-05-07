@@ -108,7 +108,8 @@ void buffer_dump(const buffer_t * buffer);
  * \return 4 for IPv4, 6 for IPv6, another value if the
  *   buffer is not well-formed.
  */
-unsigned char buffer_guess_ip_version(buffer_t * buffer);
+
+uint8_t buffer_guess_ip_version(buffer_t * buffer);
 
 
 #endif

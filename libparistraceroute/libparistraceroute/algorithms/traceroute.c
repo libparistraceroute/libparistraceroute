@@ -64,7 +64,7 @@ static inline bool destination_reached(const char * dst_ip, const probe_t * repl
  */
 
 bool send_traceroute_probe(pt_loop_t * loop, probe_t * probe_skel, uint8_t ttl) {
-    if (probe_set_fields(probe_skel, I8("ttl", ttl), NULL) == 0) {
+    if (probe_set_fields(probe_skel, I8("ttl", ttl), NULL)) {
         pt_send_probe(loop, probe_skel);
         return true;
     }

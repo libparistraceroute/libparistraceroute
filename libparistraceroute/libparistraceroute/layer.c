@@ -84,8 +84,9 @@ int layer_set_field(layer_t * layer, field_t * field)
     protocol_field_t * protocol_field;
     size_t             protocol_field_size;
 
+    if (!field) return -1;
     if (!layer->protocol){
-        // The layer embeds a nested layer
+        // We're in the payload! 
         return -1;
     }
 

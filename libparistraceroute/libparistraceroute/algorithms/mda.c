@@ -425,7 +425,7 @@ int mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * data, prob
     int                      ret;
 
     printf("=====================================================\n");
-    lattice_dump(data->lattice, mda_interface_dump);
+    lattice_dump(data->lattice, (ELEMENT_DUMP) mda_interface_dump);
     printf("\n");
 
     pr = event->data;
