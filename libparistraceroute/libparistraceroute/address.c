@@ -1,6 +1,6 @@
 #include "address.h"
 
-#include <stdio.h>
+#include <stdio.h>      // perror
 #include <stdlib.h>     // malloc
 #include <errno.h>      // errno, ENOMEM, EINVAL
 #include <string.h>     // memcpy
@@ -13,28 +13,40 @@
 
 // CPPFLAGS += -D_GNU_SOURCE
 
-int address_guess_family(const char * str_ip)
-{
+static int address_guess_family(const char * str_ip) {
     return (strchr(str_ip, '.') != NULL) ? AF_INET : AF_INET6;
 }
 
-void address_dump(const address_t * address)
-{
-    char buffer[INET6_ADDRSTRLEN];
-    inet_ntop(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
-    printf("%s", buffer);
+static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
+    if (inet_ntop(family, ip, buffer, buffer_len)) {
+        printf(buffer);
+    } else {
+        printf("???");
+    }
 }
 
-int address_from_string(const char * hostname, address_t * address)
+void ipv4_dump(const ipv4_t * ipv4) {
+    char buffer[INET_ADDRSTRLEN];
+    ip_dump(AF_INET, ipv4, buffer, INET_ADDRSTRLEN);
+}
+
+void ipv6_dump(const ipv6_t * ipv6) {
+    char buffer[INET6_ADDRSTRLEN];
+    ip_dump(AF_INET6, ipv6, buffer, INET6_ADDRSTRLEN);
+}
+
+void address_dump(const address_t * address) {
+    char buffer[INET6_ADDRSTRLEN];
+    ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
+}
+
+int address_ip_from_string(int family, const char * hostname, ip_t * ip)
 {
     struct addrinfo   hints,
                     * ai,
                     * res = NULL;
     int               ret;
     void            * addr;
-
-    // This is not wonderful because "www.google.fr" will be considered as IPv4
-    int               family = address_guess_family(hostname);
 
     // Initialize hints
     memset(&hints, 0, sizeof(hints));
@@ -68,13 +80,18 @@ int address_from_string(const char * hostname, address_t * address)
     }
 
     // Fill the address_t structure
-    memcpy(&address->ip, addr, ai->ai_addrlen);
-    address->family = family;
+    memcpy(ip, addr, ai->ai_addrlen);
 ERROR_FAMILY:
     freeaddrinfo(res);
     return ret;
 ERROR_GETADDRINFO:
     return ret;
+}
+
+int address_from_string(const char * hostname, address_t * address) {
+    int family = address_guess_family(hostname);
+    address->family = family;
+    return address_ip_from_string(family, hostname, &address->ip);
 }
 
 int address_to_string(const address_t * address, char ** pbuffer)

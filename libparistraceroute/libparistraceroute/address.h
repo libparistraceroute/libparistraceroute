@@ -18,19 +18,18 @@ typedef struct {
 } address_t;
 
 /**
- * \brief Initialize an address_t according to a string
- * \param string An IP address (human readable format) or a hostname)
- * \return see getaddrinfo's returned values 
+ * \brief Print an IPv4 address
+ * \param ipv4 The address to print
  */
 
-int address_from_string(const char * string, address_t * address);
+void ipv4_dump(const ipv4_t * ipv4);
 
 /**
- * \brief Print an address
- * \param ip The address to print
+ * \brief Print an IPv6 address
+ * \param ipv6 The address to print
  */
 
-void ipv4_dump(ipv4_t ip);
+void ipv6_dump(const ipv6_t * ipv6);
 
 /**
  * \brief Print an address
@@ -38,6 +37,26 @@ void ipv4_dump(ipv4_t ip);
  */
 
 void address_dump(const address_t * address);
+
+/**
+ * \brief Initialize an address_t according to a string. If hostname
+ *    contains a ".", it is considered as an IPv4 host. If hostname
+ *    is a FQDN you should use address_ip_from_string(). 
+ * \param hostname An IP address (string format). Do not pass a FQDN.
+ * \return see getaddrinfo's returned values 
+ */
+
+int address_from_string(const char * hostname, address_t * address);
+
+/**
+ * \brief Initialize an ip_t instance according to a string
+ * \param family Address family (AF_INET or AF_INET6)
+ * \param hostname An IP address (human readable format) or a hostname)
+ * \param ip A pre-allocated ip_t that we update
+ * \return see getaddrinfo's returned values 
+ */
+
+int address_ip_from_string(int family, const char * hostname, ip_t * ip);
 
 /**
  * \brief Convert an IP address into a human readable string

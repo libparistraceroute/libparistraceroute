@@ -42,7 +42,7 @@ inline void layer_set_header_size(layer_t * layer, size_t header_size) {
     layer->header_size = header_size;
 }
 
-inline unsigned char * layer_get_buffer(layer_t * layer) {
+inline uint8_t * layer_get_buffer(layer_t * layer) {
     return layer->buffer;
 }
 
@@ -84,6 +84,7 @@ bool layer_set_field(layer_t * layer, field_t * field)
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
     }
+
     if (!layer->protocol) {
         fprintf(stderr, "layer_set_field: trying to set '%s' field, but we're altering the payload\n", field->key); 
         goto ERR_IN_PAYLOAD;
@@ -105,7 +106,10 @@ bool layer_set_field(layer_t * layer, field_t * field)
     // Copy the field value into the buffer 
     // If we have a setter function, we use it, otherwise write the value directly
     if (protocol_field->set) {
-        protocol_field->set(layer->buffer, field);
+        if (!(protocol_field->set(layer->buffer, field))) {
+            fprintf(stderr, "layer_set_field: can't set field '%s'\n", field->key);
+            goto ERR_PROTOCOL_FIELD_SET;
+        }
     } else {
         protocol_field_set(protocol_field, layer->buffer, field);
     }
@@ -116,6 +120,7 @@ bool layer_set_field(layer_t * layer, field_t * field)
 
     return true;
 
+ERR_PROTOCOL_FIELD_SET:
 ERR_BUFFER_TOO_SMALL:
 ERR_FIELD_NOT_FOUND:
 ERR_IN_PAYLOAD:

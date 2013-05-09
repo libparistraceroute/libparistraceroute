@@ -125,8 +125,8 @@ int main(int argc, char ** argv)
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
-//    char dst_ip[] = "8.8.8.8";
-    char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "8.8.8.8";
+//    char dst_ip[] = "1.1.1.2";
     payload = buffer_create();
 //    buffer_set_data(payload, message, strlen(message) - 1);
     buffer_set_data(payload, "\0\0", 2);

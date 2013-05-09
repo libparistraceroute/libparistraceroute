@@ -59,10 +59,10 @@ typedef struct {
 	
     /** 
 	 * \brief Pointer to a function which writes the default header into data
-     * \param data Pointer to a pre-allocated header 
+     * \param header Pointer to a pre-allocated header 
 	 */
 
-    void (*write_default_header)(unsigned char * data);
+    void (*write_default_header)(uint8_t * header);
 
     size_t header_len;
     
@@ -75,11 +75,12 @@ typedef struct {
     size_t (*get_header_size)(void);
     
     /**
-     * Pointer to a function that allows the protocol to do further processing
-     * before the packet checksum is computed, and the packet is sent
+     * \brief Set unset parts of a header to coherent values 
+     * \param header The header that must be updated
+     * \return true iif successful
      */
 
-    int (*finalize)(uint8_t * packet);
+    bool (*finalize)(uint8_t * header);
 
     /**
      * Pointer to a function that detects the version of the protocol
@@ -129,6 +130,7 @@ void protocol_iter_fields(protocol_t * protocol, void * data, void (*callback)(p
  * \param protocol The queried network protocol
  * \return A pointer to the corresponding protocol_field_t instance if any, NULL otherwise
  */
+
 const protocol_field_t * protocol_get_field(const protocol_t * protocol, const char * name);
 
 /**

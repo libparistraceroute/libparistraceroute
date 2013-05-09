@@ -74,8 +74,7 @@ inline size_t buffer_get_size(const buffer_t * buffer) {
     return buffer ? buffer->size : 0;
 }
 
-bool buffer_set_data(buffer_t * buffer, const void * data, size_t size)
-{
+bool buffer_set_data(buffer_t * buffer, const void * data, size_t size) {
     bool ret = buffer_resize(buffer, size);
     if (ret) memcpy(buffer->data, data, size);
     return ret;
@@ -86,24 +85,17 @@ inline void buffer_set_size(buffer_t * buffer, size_t size) {
 }
 
 uint8_t buffer_guess_ip_version(buffer_t * buffer) {
+    // TODO This should be ipv4_get_version 
     return buffer->data[0] >> 4;
 }
 
 // Dump
 
-void buffer_dump(const buffer_t * buffer)
-{
-    size_t i;
-    char   c;
+void buffer_dump(const buffer_t * buffer) {
+    size_t i, n = buffer->size;
 
-    // Print data byte by byte
-    for (i = 0; i < buffer->size; i++)
-    {
-        c = buffer->data[i];
-        //if (c < ' ' && c != '\n' && c != '\t')
-        //    printf(".");
-        //else
-            printf("%2x ", c);
+    for (i = 0; i < n; i++) {
+        printf("%2x ", buffer->data[i]);
     }
 }
 

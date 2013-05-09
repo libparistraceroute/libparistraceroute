@@ -1,4 +1,3 @@
-
 #include <stdlib.h>                  // malloc...
 #include <stdio.h>                   // perror, printf
 #include <errno.h>                   // EINVAL, ENOMEM, errno
@@ -16,40 +15,11 @@
 #include "algorithm.h"               // algorithm_instance_t
 #include "algorithms/mda.h"          // mda_*_t
 #include "algorithms/traceroute.h"   // traceroute_options_t
-#include "address.h"                 // address_to_string, address_set_host
+#include "address.h"                 // address_to_string
 
 //---------------------------------------------------------------------------
 // Command line stuff
 //---------------------------------------------------------------------------
-
-const char * algorithm_names[] = {
-    "mda",
-    "traceroute",
-    "paris-traceroute",
-    NULL
-};
-
-// static variables, needed for command-line parsing
-static unsigned is_ipv4 = 1;
-static unsigned is_udp  = 0;
-static unsigned do_resolv  = 1;
-
-const char * protocol_names[] = {
-    "udp",
-    NULL
-};
-
-// Bounded integer parameters | def    min  max
-static unsigned min_ttl[3] = {1,     1,   255};
-static unsigned max_ttl[3]   = {30,    1,   255};
-static double   wait[3]      = {5,     0,   INT_MAX};
-
-// Bounded integer parameters | def    min  max    option_enabled
-static unsigned dst_port[4]  = {6969, 0,   65535, 0};
-static unsigned src_port[4]  = {3083,  0,   65535, 1};
-
-// Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
-static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
 #define HELP_4 "Use IPv4"
 #define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
@@ -63,6 +33,37 @@ static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 #define HELP_d "set PORT as destination port (default: 30000)"
 #define HELP_s "set PORT as source port (default: 3083)"
 #define HELP_V "version 1.0"
+
+const char * algorithm_names[] = {
+    "mda",
+    "traceroute",
+    "paris-traceroute",
+    NULL
+};
+
+// TODO use bool and update option parsing if required
+// static variables, needed for command-line parsing
+static unsigned is_ipv4   = 1;
+static unsigned is_udp    = 0;
+static unsigned do_resolv = 1;
+
+const char * protocol_names[] = {
+    "udp",
+    NULL
+};
+
+// TODO #define
+// Bounded integer parameters | def    min  max
+static unsigned min_ttl[3]   = {1,     1,   255};
+static unsigned max_ttl[3]   = {30,    1,   255};
+static double   wait[3]      = {5,     0,   INT_MAX};
+
+// Bounded integer parameters | def    min  max    option_enabled
+static unsigned dst_port[4]  = {6969,  0,   65535, 0};
+static unsigned src_port[4]  = {3083,  0,   65535, 1};
+
+// Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
+static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
 struct opt_spec cl_options[] = {
     // action                  sf   lf                   metavar             help         data
@@ -200,9 +201,12 @@ int main(int argc, char ** argv)
     }
     // Iterate on argv to retrieve the target IP address
     for(i = 0; argv[i] && i < argc; ++i);
+
+    // TODO check whether dst_addr is a FQDN. Use address_ip_from_string if address family is known.
     if (address_from_string(argv[i - 1], &dst_addr) != 0) {
         goto ERR_ADDRESS_FROM_STRING;
     }
+
     // Prepare data
     if (!(data = paris_traceroute_data_create(algorithm_names[0], &dst_addr))) {
         goto ERR_DATA;

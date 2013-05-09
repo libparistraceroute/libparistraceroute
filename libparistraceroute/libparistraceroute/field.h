@@ -38,7 +38,7 @@ typedef enum {
 
 typedef union {
     void         * value;  /**< Pointer to raw data                */
-    unsigned int   int4:4; /**< Value of data as a   4 bit integer */
+    uint8_t        int4:4; /**< Value of data as a   4 bit integer */
     uint8_t        int8;   /**< Value of data as a   8 bit integer */
     uint16_t       int16;  /**< Value of data as a  16 bit integer */
     uint32_t       int32;  /**< Value of data as a  32 bit integer */
@@ -58,6 +58,15 @@ typedef struct {
     value_t       value; /**< Union of all field data            */
     fieldtype_t   type;  /**< Type of data stored in the field   */
 } field_t;
+
+/**
+ * \brief Create a field structure to hold an 4 bit integer value
+ * \param key The name which identify the field to create
+ * \param value Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+field_t * field_create_int4(const char * key, uint8_t value);
 
 /**
  * \brief Create a field structure to hold an 8 bit integer value
@@ -147,6 +156,15 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
  */
 
 void field_free(field_t *field);
+
+/**
+ * \brief Macro shorthand for field_create_int4
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define I4(x, y)  field_create_int4(x, (uint8_t) y)
 
 /**
  * \brief Macro shorthand for field_create_int8

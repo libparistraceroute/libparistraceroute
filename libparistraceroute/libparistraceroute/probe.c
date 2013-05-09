@@ -20,7 +20,8 @@
 
 /**
  * \brief (Internal use) Call for each layer its 'finalize'
- *    callback before checksuming
+ *    callback before checksuming. Finalize unset
+ *    fields to a coherent value (for example src_ip in ipv4).
  * \param probe The probe we're finalizing
  * \return true iif successfull
  */
@@ -128,6 +129,7 @@ static bool probe_buffer_resize(probe_t * probe, size_t size);
 
 static bool probe_finalize(probe_t * probe)
 {
+    bool      ret = true;
     size_t    i, num_layers = probe_get_num_layers(probe);
     layer_t * layer;
 
@@ -135,10 +137,12 @@ static bool probe_finalize(probe_t * probe)
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         if (layer->protocol && layer->protocol->finalize) {
-            layer->protocol->finalize(layer->buffer);
+            if (!(ret &= layer->protocol->finalize(layer->buffer))) {
+                fprintf(stderr, "W: Can't finalize layer %s\n", layer->protocol->name);
+            }
         }
     }
-    return true;
+    return ret;
 }
 
 static bool probe_update_protocol(probe_t * probe)
@@ -656,7 +660,6 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size)
 
     // Compare payload lenths
     if (old_payload_size != payload_size) {
-        printf("Resizing payload %d -> %d\n", old_payload_size, payload_size);
         old_buffer_size = buffer_get_size(probe->buffer);
         if (old_payload_size > old_buffer_size) {
             perror("Invalid probe buffer\n");
@@ -669,8 +672,6 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size)
 
         // Update 'checksum' and 'length' fields to remain the probe consistant
         probe_update_fields(probe);
-        printf("Resized probe\n");
-        probe_dump(probe);
     }
     return true;
 
@@ -790,8 +791,8 @@ bool probe_set_fields(probe_t * probe, field_t * field1, ...) {
     va_end(args);
     probe_update_fields(probe);
 
-//    printf("2222222222222222222222222222222\n");
-//    probe_dump(probe);
+    printf("111111111111111\n");
+    probe_dump(probe);
 
     return ret;
 }

@@ -33,6 +33,7 @@ typedef struct {
     uint8_t    * buffer;            /**< Points to the begining of the layer in the packet */
 //    uint8_t    * mask;            /**< Indicates which bits have been set. TODO: not yet implemented, use a bitfield_t. Maybe probe_t is sufficient? */
     size_t       header_size;       /**< Size of the header (0 if this layer is related to the payload */
+    // TODO rename data_size
     size_t       buffer_size;       /**< Size of data carried by the layer (header + data) */
 } layer_t;
 
@@ -78,6 +79,7 @@ void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
  * \return 
  */
 
+// TODO should return bool
 int layer_set_sublayer(layer_t * layer, layer_t * sublayer);
 
 /**
@@ -101,7 +103,7 @@ int layer_set_sublayer(layer_t * layer, layer_t * sublayer);
 bool layer_set_field(layer_t * layer, field_t * field);
 
 /**
- * \brief Sets the specified layer as payload
+ * \brief Update bytes managed  
  * \param layer Pointer to a layer_t structure. This layer must
  *   have layer->protocol == NULL, otherwise this layer is related
  *   to a network protocol layer.
@@ -109,6 +111,8 @@ bool layer_set_field(layer_t * layer, field_t * field);
  * \return true iif successful
  */
 
+// TODO rename layer_write_payload -> layer_write_payload_ext
+// TODO rename layer_set_payload -> layer_write_payload
 bool layer_set_payload(layer_t * layer, buffer_t * payload);
 
 /**
@@ -139,9 +143,16 @@ void layer_set_buffer_size(layer_t * layer, size_t buffer_size);
  * \param layer A pointer to a layer instance.
  */ 
 
+// TODO rename get_data_size
 size_t layer_get_buffer_size(const layer_t * layer);
 void layer_set_header_size(layer_t * layer, size_t header_size);
+
+// TODO rename set_segment_address
 void layer_set_buffer(layer_t * layer, uint8_t * buffer);
+
+// TODO rename get_segment_address
+uint8_t * layer_get_buffer(layer_t * layer);
+
 //void layer_set_mask(layer_t * layer, uint8_t * mask);
 
 /**
