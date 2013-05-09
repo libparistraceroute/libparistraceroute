@@ -12,8 +12,8 @@
  *   in the packet.
  *
  *   For instance a IPv4/ICMP packet is made of 3 layers
- *   (namely an IPv4 layer nesting an ICMP layer nesting
- *   a "payload" layer.
+ *   (namely an IPv4 layer, nesting an ICMP layer, nesting
+ *   a "payload" layer).
  */
 
 #include <stdbool.h>
@@ -29,11 +29,11 @@
 
 // TODO we could use buffer_t instead of uint8_t + size_t if we update probe.c
 typedef struct {
-    protocol_t * protocol;    /**< Protocol implemented in this layer */
-    uint8_t    * buffer;      /**< Payload carried by this layer      */
-    uint8_t    * mask;        /**< Indicates which bits have been set. TODO: not yet implemented */
-    size_t       header_size; /**< Size of the header                 */
-    size_t       buffer_size; /**< Size of data carried by the layer */
+    const protocol_t * protocol;    /**< Points to the protocol implemented in this layer. Set to NULL if this layer is the payload */
+    uint8_t    * buffer;            /**< Points to the begining of the layer in the packet */
+//    uint8_t    * mask;            /**< Indicates which bits have been set. TODO: not yet implemented, use a bitfield_t. Maybe probe_t is sufficient? */
+    size_t       header_size;       /**< Size of the header (0 if this layer is related to the payload */
+    size_t       buffer_size;       /**< Size of data carried by the layer (header + data) */
 } layer_t;
 
 /**
@@ -52,7 +52,10 @@ layer_t * layer_create(void);
 //layer_t * layer_dup(const layer_t * layer);
 
 /**
- * \brief Delete a layer structure
+ * \brief Delete a layer structure.
+ *   layer->protocol and layer->buffer are not freed (a layer usually points
+ *   to a bytes allocated by a probe, so this buffer will be freed by the
+ *   probe_free function.
  * \param layer Pointer to the layer structure to delete
  */
 
@@ -66,7 +69,7 @@ void layer_free(layer_t * layer);
  * \param name Name of the protocol to use
  */
 
-void layer_set_protocol(layer_t * layer, protocol_t * protocol);
+void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
 
 /**
  * \brief Set the sublayer for a layer
@@ -88,13 +91,14 @@ int layer_set_sublayer(layer_t * layer, layer_t * sublayer);
 //int layer_set_fields(layer_t * layer, field_t * field1, ...);
 
 /**
- * \brief Set a field in a layer
+ * \brief Update the buffer of a layer according to a field
+ *    passed as a parameter. 
  * \param layer Pointer to the layer structure to update.
- * \param field Pointer to the field we assign in this layer. 
- * \return 0 iif successful 
+ * \param field Pointer to the field we assign in this layer.
+ * \return true iif successfull 
  */
 
-int layer_set_field(layer_t * layer, field_t * field);
+bool layer_set_field(layer_t * layer, field_t * field);
 
 /**
  * \brief Sets the specified layer as payload
@@ -138,9 +142,17 @@ void layer_set_buffer_size(layer_t * layer, size_t buffer_size);
 size_t layer_get_buffer_size(const layer_t * layer);
 void layer_set_header_size(layer_t * layer, size_t header_size);
 void layer_set_buffer(layer_t * layer, uint8_t * buffer);
-void layer_set_mask(layer_t * layer, uint8_t * mask);
+//void layer_set_mask(layer_t * layer, uint8_t * mask);
 
-const field_t * layer_get_field(const layer_t * layer, const char * name);
+/**
+ * \brief Allocate a field instance based on the content related
+ *   to a given field belonging to a layer
+ * \param layer The queried layer
+ * \param name The name of the queried field
+ * \return A pointer to the allocated field, NULL in case of failure
+ */
+
+field_t * layer_create_field(const layer_t * layer, const char * name);
 
 /**
  * \brief Print the content of a layer

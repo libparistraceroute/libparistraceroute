@@ -33,9 +33,20 @@ void my_traceroute_handler(
 
             // Print reply (i-th reply corresponding to the current hop)
             if (num_probes_printed % traceroute_options->num_probes == 0) {
-                printf("%d ", probe_get_field(probe, "ttl")->value.int8);
+                uint8_t ttl;
+                if (probe_extract(probe, "ttl", &ttl)) {
+                    printf("%d ", ttl);
+                }
             }
-            printf("%10s ", probe_get_field(reply, "src_ip")->value.string);
+
+            // Print discovered IP
+            {
+                char * discovered_ip;
+                if (probe_extract(reply, "src_ip", &discovered_ip)) {
+                    printf("%10s ", discovered_ip);
+                    free(discovered_ip);
+                }
+            }
             num_probes_printed++;
             break;
         case TRACEROUTE_STAR:
@@ -109,10 +120,16 @@ int main(int argc, char ** argv)
     algorithm_instance_t * instance;
     probe_t              * probe_skel;
     pt_loop_t            * loop;
-    int ret = EXIT_FAILURE;
+    int                    ret = EXIT_FAILURE;
+    buffer_t             * payload;
+//    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
+//    char dst_ip[] = "8.8.8.8";
     char dst_ip[] = "1.1.1.2";
+    payload = buffer_create();
+//    buffer_set_data(payload, message, strlen(message) - 1);
+    buffer_set_data(payload, "\0\0", 2);
 
     // Prepare options related to the 'traceroute' algorithm
     traceroute_options_t options = traceroute_get_default_options();
@@ -121,7 +138,7 @@ int main(int argc, char ** argv)
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
     if (!(loop = pt_loop_create(main_handler, NULL))) {
-        perror("E: Cannot create libparistraceroute loop ");
+        perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP;
     }
 
@@ -132,8 +149,9 @@ int main(int argc, char ** argv)
     }
 
     probe_set_protocols(probe_skel, "ipv4", "udp", NULL);
+    probe_write_payload(probe_skel, payload, 0);
     probe_set_fields(probe_skel, STR("dst_ip", dst_ip), NULL);
-   
+
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe_skel))) {
         perror("E: Cannot add 'traceroute' algorithm");

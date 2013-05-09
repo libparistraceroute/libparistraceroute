@@ -5,53 +5,29 @@
 #include "protocol.h"
 #include "probe.h"
 
-/**
- * \brief Allocate a packet
- *
- */
-packet_t * packet_create(void)
-{
-    packet_t * packet = malloc(sizeof(packet_t));
-    if (!packet)
-        goto error;
-    packet->buffer = NULL;
-    packet->dip = NULL;
-    packet->dport = 0;
-
-    return packet;
-
-error:
-    return NULL;
+packet_t * packet_create(void) {
+    return calloc(1, sizeof(packet_t));
 }
 
-void packet_free(packet_t *packet)
-{
+void packet_free(packet_t * packet) {
+    if (packet->dip) free(packet->dip);
     free(packet);
-    packet = NULL;
 }
 
 // Accessors
 
-buffer_t * packet_get_buffer(packet_t *packet)
-{
+buffer_t * packet_get_buffer(packet_t *packet) {
     return packet->buffer;
 }
 
-int packet_set_buffer(packet_t *packet, buffer_t *buffer)
-{
+void packet_set_buffer(packet_t * packet, buffer_t * buffer) {
     packet->buffer = buffer;
-
-    return 0;
 }
 
-int packet_set_dip(packet_t *packet, char *dip)
-{
+void packet_set_dip(packet_t * packet, char * dip) {
     packet->dip = dip;
-    return 0;
 }
 
-int packet_set_dport(packet_t *packet, unsigned short dport)
-{
+void packet_set_dport(packet_t * packet, uint16_t dport) {
     packet->dport = dport;
-    return 0;
 }

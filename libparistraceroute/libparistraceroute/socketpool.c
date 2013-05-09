@@ -29,7 +29,7 @@ int socketpool_create_raw_socket(socketpool_t *socketpool)
         perror("init_raw_socket :: Error creating socket :");
         return -1;
     }
-	if (setsockopt(s,IPPROTO_IP,IP_HDRINCL,&one,sizeof(int)) < 0){
+	if (setsockopt(s, IPPROTO_IP, IP_HDRINCL, &one, sizeof(int)) < 0){
 		perror("init_raw_socket : Cannot set IP_HDRINCL option :");
         return -1;
 	}
@@ -37,33 +37,32 @@ int socketpool_create_raw_socket(socketpool_t *socketpool)
     return 0;
 }
 
-socketpool_t *socketpool_create(void)
+socketpool_t * socketpool_create(void)
 {
-    socketpool_t *socketpool;
-    int ret;
+    socketpool_t * socketpool;
     
-    socketpool = (socketpool_t*)malloc(sizeof(socketpool_t));
-    ret = socketpool_create_raw_socket(socketpool);
-    if (ret == -1) {
-        free(socketpool);
-        socketpool = NULL;
+    socketpool = malloc(sizeof(socketpool_t));
+    if (socketpool_create_raw_socket(socketpool) == -1) {
+        goto ERROR;
     }
-
     return socketpool;
+
+ERROR:
+    free(socketpool);
+    return NULL;
 }
 
-void socketpool_free(socketpool_t *socketpool)
+void socketpool_free(socketpool_t * socketpool)
 {
-	if(close(socketpool->socket)<0){
+	if (close(socketpool->socket) < 0) {
 		perror("close_socket");
 	}
     free(socketpool);
-    socketpool = NULL;
 }
 
 int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
 {
-	struct addrinfo* addrinf;
+	struct addrinfo * addrinf;
 	int get_error;
     size_t size;
 	sockaddr_u sock;
@@ -87,6 +86,7 @@ int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
 		sock.sin6.sin6_port = htons(packet->dport);
 		inet_pton(AF_INET6, (char*)packet->dip, &sock.sin6.sin6_addr);
 	} else {
+        perror("Invalid address family\n");
         return -1; // error
     }
     // here we have the sockaddr

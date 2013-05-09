@@ -37,15 +37,15 @@ typedef enum {
  */
 
 typedef union {
-    void         * value;  /**< Pointer to raw data               */
-    unsigned int   int4:4; /**< Value of data as a 4 bit integer  */
-    uint8_t        int8;   /**< Value of data as an 8 bit integer */
-    uint16_t       int16;  /**< Value of data as a 16 bit integer */
-    uint32_t       int32;  /**< Value of data as a 32 bit integer */
-    uint64_t       int64;  /**< Value of data as a 64 bit integer */
+    void         * value;  /**< Pointer to raw data                */
+    unsigned int   int4:4; /**< Value of data as a   4 bit integer */
+    uint8_t        int8;   /**< Value of data as a   8 bit integer */
+    uint16_t       int16;  /**< Value of data as a  16 bit integer */
+    uint32_t       int32;  /**< Value of data as a  32 bit integer */
+    uint64_t       int64;  /**< Value of data as a  64 bit integer */
     uint128_t      int128; /**< Value of data as a 128 bit integer */
-    uintmax_t      intmax; /**< Value of data as a max integer    */
-    char         * string; /**< Pointer to string data            */
+    uintmax_t      intmax; /**< Value of data as a max integer     */
+    char         * string; /**< Pointer to string data             */
 } value_t;
 
 /**
@@ -54,9 +54,9 @@ typedef union {
  */
 
 typedef struct {
-    char * key;           /**< Pointer to a unique identifier key */
-    value_t value;        /**< Union of all field data            */
-    fieldtype_t type;     /**< Type of data stored in the field   */
+    char        * key;   /**< Pointer to a unique identifier key */
+    value_t       value; /**< Union of all field data            */
+    fieldtype_t   type;  /**< Type of data stored in the field   */
 } field_t;
 
 /**

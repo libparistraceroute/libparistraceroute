@@ -25,13 +25,13 @@ typedef struct {
      * http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
      */
 
-    unsigned int protocol;
+    uint8_t protocol;
 	
     /**
      * Pointer to a function that will return the number of fields this protocol has
      */
 
-    unsigned int (*get_num_fields)(void);
+    size_t (*get_num_fields)(void);
 	
     /**
      * Pointer to a function that will return true if an external checksum
@@ -72,31 +72,36 @@ typedef struct {
      * Pointer to a function that returns the size of the protocol header
      */
 
-    unsigned int (*get_header_size)(void);
+    size_t (*get_header_size)(void);
     
     /**
      * Pointer to a function that allows the protocol to do further processing
      * before the packet checksum is computed, and the packet is sent
      */
 
-    int (*finalize)(unsigned char *buffer);
+    int (*finalize)(uint8_t * packet);
 
     /**
      * Pointer to a function that detects the version of the protocol
      */
-    bool (*instance_of)(unsigned char *buffer);
+    bool (*instance_of)(uint8_t * packet);
 } protocol_t;
 
 /**
- * \brief Search for a protocol by name
- * \param name String containing the name to search for
- * \return Pointer to a protocol_t structure containing the desired protocol or NULL if not found
+ * \brief Search a registered protocol in the library according to its name
+ * \param name The name of the protocol (for example "udp", "ipv4", etc.)
+ * \return A pointer to the corresponding protocol if any, NULL othewise
  */
-protocol_t* protocol_search_by_buffer(buffer_t *buffer);
 
-protocol_t* protocol_search(const char * name);
+const protocol_t * protocol_search(const char * name);
 
-protocol_t* protocol_search_by_id(uint8_t id);
+/**
+ * \brief Search a registered protocol in the library according to its ID 
+ * \param name The ID of the protocol (for example 17 corrresponds to UDP)
+ * \return A pointer to the corresponding protocol if any, NULL othewise
+ */
+
+const protocol_t * protocol_search_by_id(uint8_t id);
 
 /**
  * \brief Register a protocol
@@ -116,14 +121,20 @@ void protocol_register(protocol_t *protocol);
  *    'data' to the data from the field
  */
 
-void protocol_iter_fields(protocol_t *protocol, void *data, void (*callback)(protocol_field_t *field, void *data));
-
-protocol_field_t * protocol_get_field(protocol_t *protocol, const char *name);
+void protocol_iter_fields(protocol_t * protocol, void * data, void (*callback)(protocol_field_t * field, void * data));
 
 /**
- * \brief Function to calculate checksums (may be multi protocol)
- * \param size The size of buffer in bytes. 
- * \param buff The buffer. It contains for instance a pseudo-header.
+ * \brief Retrieve a field belonging to a protocol according to its name
+ * \param name The field name
+ * \param protocol The queried network protocol
+ * \return A pointer to the corresponding protocol_field_t instance if any, NULL otherwise
+ */
+const protocol_field_t * protocol_get_field(const protocol_t * protocol, const char * name);
+
+/**
+ * \brief Calculate an Internet checksum.
+ * \param bytes Bytes used to compute the checksum 
+ * \param size Number of bytes to consider
  * \return The corresponding checksum
  */
 

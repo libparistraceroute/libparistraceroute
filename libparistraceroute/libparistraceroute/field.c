@@ -141,7 +141,7 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
 void field_free(field_t * field)
 {
     if (field) {
-        if(field->key) free(field->key);
+        if (field->key) free(field->key);
         free(field);
     }
 }
@@ -226,13 +226,13 @@ void field_dump(const field_t * field)
 {
     switch (field->type) {
         case TYPE_INT8:
-            printf("%hhu", field->value.int8);
+            printf("%-10hhu (0x%02x)", field->value.int8, field->value.int8);
             break;
         case TYPE_INT16:
-            printf("%hu", field->value.int16);
+            printf("%-10hu (0x%04x)", field->value.int16, field->value.int16);
             break;
         case TYPE_INT32:
-            printf("%u", field->value.int32);
+            printf("%-10u (0x%08lx)", field->value.int32, field->value.int32);
             break;
         case TYPE_INT64:
             printf("%lu", field->value.int64);

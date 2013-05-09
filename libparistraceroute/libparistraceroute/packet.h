@@ -14,11 +14,10 @@
  */
 
 typedef struct {
-    buffer_t     * buffer; /**< Buffer to hold the packet data */
-
-    /* Redundant information : temporary */
-    char         * dip;
-    unsigned short dport;
+    buffer_t * buffer; /**< Buffer to hold the packet data */
+    /* Redundant information : temporary (while we are not sure that the dst_ip and dst_port have been explicitly set in the buffer (see probe) */
+    char     * dip;
+    uint16_t   dport;
 } packet_t;
 
 /**
@@ -27,7 +26,6 @@ typedef struct {
  */
 
 packet_t * packet_create(void);
-
 
 /**
  * \brief Create a new packet from a probe
@@ -48,9 +46,8 @@ void packet_free(packet_t * packet);
 
 buffer_t * packet_get_buffer(packet_t * packet);
 
-int packet_set_buffer(packet_t * packet, buffer_t * buffer);
-
-int packet_set_dip(packet_t * packet, char * dip);
-int packet_set_dport(packet_t * packet, unsigned short dport);
+void packet_set_buffer(packet_t * packet, buffer_t * buffer);
+void packet_set_dip(packet_t * packet, char * dip);
+void packet_set_dport(packet_t * packet, uint16_t dport);
 
 #endif

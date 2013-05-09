@@ -46,15 +46,22 @@ bool buffer_resize(buffer_t * buffer, size_t size)
 {
     uint8_t * data2;
     bool      ret = true;
+    size_t    old_size = buffer->size;
 
-    if (buffer->size != size) {
-        data2 = buffer->data ?
-            realloc(buffer->data, size * sizeof(uint8_t)):
-            calloc(size, sizeof(uint8_t));
+    if (old_size != size) {
+        if (buffer->data) {
+            data2 = realloc(buffer->data, size * sizeof(uint8_t));
+            if (data2 && size > old_size) {
+                memset(data2 + old_size, 0, size - old_size); 
+            }
+        } else {
+            data2 = calloc(size, sizeof(uint8_t));
+        }
         if (data2) {
             buffer->data = data2;
             buffer->size = size;
         }
+        ret = (data2 != NULL);
     }
     return ret;
 }
@@ -67,7 +74,7 @@ inline size_t buffer_get_size(const buffer_t * buffer) {
     return buffer ? buffer->size : 0;
 }
 
-bool buffer_set_data(buffer_t * buffer, uint8_t * data, size_t size)
+bool buffer_set_data(buffer_t * buffer, const void * data, size_t size)
 {
     bool ret = buffer_resize(buffer, size);
     if (ret) memcpy(buffer->data, data, size);

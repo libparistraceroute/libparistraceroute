@@ -63,8 +63,7 @@ static struct icmphdr icmp_default = {
  * \return The number of fields
  */
 
-unsigned int icmp_get_num_fields(void)
-{
+size_t icmp_get_num_fields(void) {
     return sizeof(icmp_fields) / sizeof(protocol_field_t);
 }
 
@@ -73,8 +72,7 @@ unsigned int icmp_get_num_fields(void)
  * \return The size of an ICMP header
  */
 
-unsigned int icmp_get_header_size(void)
-{
+size_t icmp_get_header_size(void) {
     return sizeof(struct icmphdr);
 }
 

@@ -25,7 +25,7 @@ inline traceroute_options_t traceroute_get_default_options() {
     traceroute_options_t traceroute_options = {
         .min_ttl    = 1,
         .max_ttl    = 30,
-        .num_probes = 3,
+        .num_probes = 1,
         .dst_ip     = NULL
     };
     return traceroute_options;
@@ -52,7 +52,14 @@ void traceroute_update_options(dynarray_t * options) {
  */
 
 static inline bool destination_reached(const char * dst_ip, const probe_t * reply) {
-    return !strcmp(probe_get_field(reply, "src_ip")->value.string, dst_ip);
+    bool   ret = false;
+    char * discovered_ip;
+    
+    if (probe_extract(reply, "src_ip", &discovered_ip)) {
+        ret = !strcmp(discovered_ip, dst_ip);
+        free(discovered_ip);
+    }
+    return ret;
 }
 
 /**

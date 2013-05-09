@@ -184,7 +184,6 @@ int main(int argc, char ** argv)
     pt_loop_t               * loop      = NULL;
     int                       exit_code = EXIT_FAILURE, i;
     address_t                 dst_addr;
-    int                     * errno_p = __errno_location();
 
     // Retrieve values passed in the command-line
     opt_options1st();
@@ -222,7 +221,7 @@ int main(int argc, char ** argv)
         is_udp  ? "udp"  : protocol_names[0],
         NULL
     );
-    probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
+    probe_payload_resize(probe_skel, 32);
 
     // Set default values
     probe_set_fields(

@@ -275,7 +275,9 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
             }
             
             if (cur_fd == network_sendq_fd) {
-                network_process_sendq(loop->network);
+                if(!network_process_sendq(loop->network)) {
+                    perror("pt_loop: Can't send packet\n");
+                }
             } else if (cur_fd == network_recvq_fd) {
                 network_process_recvq(loop->network);
             } else if (cur_fd == network_sniffer_fd) {
@@ -309,11 +311,13 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 } else if (fdsi.ssi_signo == SIGQUIT) {
                     exit(EXIT_SUCCESS);
                 } else {
-                    printf("Read unexpected signal\n");
+                    perror("Read unexpected signal\n");
                 }
             } else if (cur_fd == network_timerfd) {
                 /* Timeout for first packet in network->probes */
-                network_process_timeout(loop->network);
+                if (!network_process_timeout(loop->network)) {
+                    perror("Error while processing timeout");
+                }
             }
         }
     } while (loop->stop == PT_LOOP_CONTINUE);

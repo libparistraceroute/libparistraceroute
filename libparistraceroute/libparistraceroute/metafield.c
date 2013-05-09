@@ -15,7 +15,7 @@ int metafield_compare(const void * metafield1, const void * metafield2)
     );
 }
 
-metafield_t* metafield_search(char * name)
+metafield_t* metafield_search(const char * name)
 {
     metafield_t **metafield, search;
 

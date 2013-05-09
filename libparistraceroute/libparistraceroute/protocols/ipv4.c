@@ -1,14 +1,12 @@
 #include <stdlib.h>
-#include <stddef.h> // offsetof()
-#include <string.h> // memcpy()
-#include <unistd.h> // close()
+#include <stddef.h>       // offsetof()
+#include <string.h>       // memcpy()
 #include <stdio.h>
-#include <arpa/inet.h> // inet_pton()
-//#include <netdb.h>
+#include <arpa/inet.h>    // inet_pton()
 #include <netinet/ip.h>
+#include <netinet/in.h>
 
 #include "../field.h"
-//#include "../protocol_field.h"
 #include "../protocol.h"
 
 /* Field names */
@@ -32,7 +30,7 @@
 #define IPV4_DEFAULT_IDENTIFICATION  1
 #define IPV4_DEFAULT_FRAGOFF         0
 #define IPV4_DEFAULT_TTL             255 
-#define IPV4_DEFAULT_PROTOCOL        17   // here UDP, http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers 
+#define IPV4_DEFAULT_PROTOCOL        IPPROTO_UDP
 #define IPV4_DEFAULT_CHECKSUM        0
 #define IPV4_DEFAULT_SRC_IP          0
 #define IPV4_DEFAULT_DST_IP          0
@@ -184,29 +182,29 @@ static struct iphdr ipv4_default = {
  * TODO we can generalize this to other transport protocols ?
  */
 uint32_t ipv4_get_default_sip(uint32_t dip) {
-        int sock;
-        struct sockaddr_in addr, name;
-        int len = sizeof(struct sockaddr_in);
+    int sock;
+    struct sockaddr_in addr, name;
+    int len = sizeof(struct sockaddr_in);
 
-        sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sock < 0)
-            return 0; // Cannot create datagram socket
-        
-        memset(&addr, 0, len);
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0)
+        return 0; // Cannot create datagram socket
 
-        addr.sin_family      = AF_INET;
-        addr.sin_addr.s_addr = dip;
-        addr.sin_port        = htons(32000); // XXX why 32000 ?
+    memset(&addr, 0, len);
 
-        if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in)) < 0)
-            return 0; // Cannot connect socket
+    addr.sin_family      = AF_INET;
+    addr.sin_addr.s_addr = dip;
+    addr.sin_port        = htons(32000); // XXX why 32000 ?
 
-        if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1)
-            return 0; // Cannot getsockname
-        
-        close(sock);
+    if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in)) < 0)
+        return 0; // Cannot connect socket
 
-        return name.sin_addr.s_addr;
+    if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1)
+        return 0; // Cannot getsockname
+
+    close(sock);
+
+    return name.sin_addr.s_addr;
 }
 
 /**
@@ -229,8 +227,7 @@ int ipv4_finalize(unsigned char *buffer) {
  * \return The number of fields
  */
 
-unsigned int ipv4_get_num_fields(void)
-{
+size_t ipv4_get_num_fields(void) {
     return sizeof(ipv4_fields) / sizeof(protocol_field_t);
 }
 
@@ -239,8 +236,7 @@ unsigned int ipv4_get_num_fields(void)
  * \return The size of an UDP header
  */
 
-unsigned int ipv4_get_header_size(void)
-{
+size_t ipv4_get_header_size(void) {
     return sizeof(struct iphdr);
 }
 

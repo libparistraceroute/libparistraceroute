@@ -294,10 +294,10 @@ ERROR:
 
 int mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pdata, probe_t * skel, const mda_options_t * options)
 {
-    mda_data_t    * data;
+    mda_data_t * data;
 
+    // DEBUG
     probe_dump(skel);
-
     printf("min_ttl = %d max_ttl = %d num_probes = %d dst_ip = %s bound = %d max_branch = %d\n",
         options->traceroute_options.min_ttl,
         options->traceroute_options.max_ttl,
@@ -308,8 +308,10 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pdata, pro
     );
     
     // Create local data structure
-    if (!(data = mda_data_create())) goto ERR_MDA_DATA_CREATE;
-    data->dst_ip = probe_get_field(skel, "dst_ip")->value.string; 
+    if (!(data = mda_data_create()))                     goto ERR_MDA_DATA_CREATE;
+    if (!(probe_extract(skel, "dst_ip", &data->dst_ip))) goto ERR_EXTRACT_DST_IP; 
+
+    // Initialize algorithm's data
     data->skel = skel;
     data->loop = loop;   
     *pdata = data;
@@ -318,6 +320,9 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pdata, pro
     // - not a tree since some interfaces might have several predecessors (diamonds)
     // - we assume the initial hop is not a load balancer
     return lattice_add_element(data->lattice, NULL, mda_interface_create(NULL));
+
+ERR_EXTRACT_DST_IP:
+    mda_data_free(data);
 ERR_MDA_DATA_CREATE:
     return -1;
 }
@@ -413,25 +418,28 @@ int mda_search_interface(lattice_elt_t * elt, void * data)
 int mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * data, probe_t * skel, const mda_options_t * options)
 {
     // manage this XXX
-    probe_reply_t          * pr;
-    lattice_elt_t          * source_elt, * dest_elt;
-    mda_interface_t        * source_interface, * dest_interface;
-    mda_ttl_flow_t           search_ttl_flow;
-    mda_address_t            search_interface;
-    mda_flow_t             * flow;
-    char                   * addr;
-    uintmax_t                flow_id;
-    uint8_t                  ttl;
-    int                      ret;
+    const probe_t    * probe,
+                     * reply;
+    lattice_elt_t    * source_elt, * dest_elt;
+    mda_interface_t  * source_interface, * dest_interface;
+    mda_ttl_flow_t     search_ttl_flow;
+    mda_address_t      search_interface;
+    mda_flow_t       * flow;
+    char             * addr; // src_ip
+    uintmax_t          flow_id;
+    uint8_t            ttl;
+    int                ret;
 
     printf("=====================================================\n");
     lattice_dump(data->lattice, (ELEMENT_DUMP) mda_interface_dump);
     printf("\n");
 
-    pr = event->data;
-    ttl     = probe_get_field(pr->probe, "ttl"    )->value.int8;
-    flow_id = probe_get_field(pr->probe, "flow_id")->value.intmax;
-    addr    = probe_get_field(pr->reply, "src_ip" )->value.string;
+    probe = ((const probe_reply_t *) event->data)->probe;
+    reply = ((const probe_reply_t *) event->data)->reply;
+
+    if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
+    if (!(probe_extract(probe, "flow_id", &flow_id))) goto ERR_EXTRACT_FLOW_ID;
+    if (!(probe_extract(reply, "src_ip",  &addr)))    goto ERR_EXTRACT_SRC_IP;
 
     //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id);
 
@@ -514,6 +522,10 @@ int mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * data, prob
     return 0;
 
 error:
+    // TODO free(addr) ?
+ERR_EXTRACT_SRC_IP:
+ERR_EXTRACT_FLOW_ID:
+ERR_EXTRACT_TTL:
     return -1;
 }
 
@@ -528,8 +540,9 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * data, prob
     int                     ret;
 
     probe = event->data;
-    ttl     = probe_get_field(probe, "ttl"    )->value.int8;
-    flow_id = probe_get_field(probe, "flow_id")->value.intmax;
+
+    if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
+    if (!(probe_extract(probe, "flow_id", &flow_id))) goto ERR_EXTRACT_FLOW_ID;
 
     printf("Probe timeout received: %hhu [%ju]\n", ttl, flow_id);
 
@@ -591,6 +604,8 @@ int mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * data, prob
 
     return 0;
 ERROR:
+ERR_EXTRACT_FLOW_ID:
+ERR_EXTRACT_TTL:
     return -1;
 
 }

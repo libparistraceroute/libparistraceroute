@@ -41,7 +41,7 @@ typedef struct network_s {
     dynarray_t   * probes;     /**< Probes in transit, from the oldest one to the youngest one */
     int            timerfd;    /**< Used for probe timeouts, Linux specific */
     uintmax_t      last_tag;   /**< Last probe ID used */
-    double         timeout;    /**< The timeout value used by this network */
+    double         timeout;    /**< The timeout value used by this network (in seconds) */
 } network_t;
 
 /**
@@ -103,10 +103,10 @@ int network_get_timerfd(network_t *network);
 /**
  * \brief Send the next packet on the queue
  * \param network The network to use for the queue and for sending
- * \return 0
+ * \return true iif successfull 
  */
 
-int network_process_sendq(network_t * network);
+bool network_process_sendq(network_t * network);
 
 /**
  * \brief Process received packets: match them with a probe, or discard them.
@@ -117,14 +117,15 @@ int network_process_sendq(network_t * network);
 
 int network_process_recvq(network_t * network);
 
-int network_process_sniffer(network_t *network);
+void network_process_sniffer(network_t *network);
 
 /**
  * \brief Drop the oldest probe attached to a network instance 
  * \param network Pointer to a network structure
+ * \return true iif successful
  */
 
-int network_process_timeout(network_t * network);
+bool network_process_timeout(network_t * network);
 
 // XXX
 int network_get_available_tag(network_t *network);

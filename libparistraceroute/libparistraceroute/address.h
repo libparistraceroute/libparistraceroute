@@ -2,7 +2,7 @@
 #define ADDRESS_H
 
 #include <stdbool.h>    // bool
-#include <netinet/in.h>
+#include <netinet/in.h> // in_addr, in6_addr
 
 typedef struct in_addr  ipv4_t;
 typedef struct in6_addr ipv6_t;
