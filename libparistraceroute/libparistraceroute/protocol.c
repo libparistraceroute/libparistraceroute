@@ -1,6 +1,8 @@
 #include <string.h>
 #include <search.h>
+
 #include "protocol.h"
+#include "common.h"
 #include "probe.h"
 #include "protocol_field.h"
 #include "field.h"
@@ -10,16 +12,18 @@
 /* static ? */
 void * protocols_root;
 
-int protocol_compare(const void * protocol1, const void * protocol2) {
-    return strcmp(
-        ((const protocol_t *) protocol1)->name,
-        ((const protocol_t *) protocol2)->name
-    );
+static int protocol_compare(
+    const protocol_t * protocol1,
+    const protocol_t * protocol2
+) {
+    return strcmp(protocol1->name, protocol2->name);
 }
 
-int protocol_compare_id(const void * protocol1, const void * protocol2) {
-    return ((const protocol_t *) protocol1)->protocol
-         - ((const protocol_t *) protocol2)->protocol;
+static int protocol_compare_id(
+    const protocol_t * protocol1,
+    const protocol_t * protocol2
+) {
+    return protocol1->protocol - protocol2->protocol;
 }
 
 const protocol_t * protocol_search(const char * name)
@@ -28,7 +32,7 @@ const protocol_t * protocol_search(const char * name)
 
     if (!name) return NULL;
     search.name = name;
-    protocol = tfind(&search, &protocols_root, protocol_compare);
+    protocol = tfind(&search, &protocols_root, (ELEMENT_COMPARE) protocol_compare);
 
     return protocol ? *protocol : NULL;
 }
@@ -43,7 +47,7 @@ const protocol_t * protocol_search_by_id(uint8_t id)
     }
 
     search.protocol = id;
-    protocol = tfind(&search, &protocols_root, protocol_compare_id);
+    protocol = tfind(&search, &protocols_root, (ELEMENT_COMPARE) protocol_compare_id);
 
     return protocol ? *protocol : NULL;
 }
@@ -51,7 +55,7 @@ const protocol_t * protocol_search_by_id(uint8_t id)
 void protocol_register(protocol_t * protocol)
 {
     // Insert the protocol in the tree if the keys does not exist yet
-    tsearch(protocol, &protocols_root, protocol_compare);
+    tsearch(protocol, &protocols_root, (ELEMENT_COMPARE) protocol_compare);
 }
 
 void protocol_write_header_callback(field_t * field, void * data)

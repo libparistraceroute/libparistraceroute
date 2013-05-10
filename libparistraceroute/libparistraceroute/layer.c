@@ -10,7 +10,7 @@
 layer_t * layer_create(void) {
     layer_t * layer = calloc(1, sizeof(layer_t));
     if (!layer) goto ERR_CALLOC; 
-//    layer->mask = NULL;
+    layer->mask = NULL;
     return layer;
 
 ERR_CALLOC:
@@ -19,8 +19,7 @@ ERR_CALLOC:
 
 void layer_free(layer_t * layer) {
     if (layer) {
-//        printf("layer->mask = %x\n", layer->mask);
-//        if (layer->mask)   free(layer->mask);
+        if (layer->mask)   free(layer->mask);
         free(layer);
     }
 }
@@ -86,7 +85,6 @@ bool layer_set_field(layer_t * layer, field_t * field)
     }
 
     if (!layer->protocol) {
-        fprintf(stderr, "layer_set_field: trying to set '%s' field, but we're altering the payload\n", field->key); 
         goto ERR_IN_PAYLOAD;
     }
 

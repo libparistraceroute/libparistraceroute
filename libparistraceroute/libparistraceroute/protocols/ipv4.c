@@ -1,6 +1,5 @@
 #include <stdbool.h>      // bool
 #include <unistd.h>       // close()
-#include <stdio.h>        // DEBUG
 #include <stddef.h>       // offsetof()
 #include <string.h>       // memcpy()
 #include <arpa/inet.h>    // inet_pton()
@@ -207,7 +206,7 @@ bool ipv4_get_default_src_ip(uint32_t dst_ipv4, uint32_t * psrc_ipv4) {
     }
 
     memset(&addr, 0, addrlen);
-    addr.sin_family      = family;
+    addr.sin_family = family;
     addr.sin_addr.s_addr = dst_ipv4;
 
     if (connect(sockfd, (struct sockaddr *) &addr, addrlen) == -1) {
@@ -220,21 +219,6 @@ bool ipv4_get_default_src_ip(uint32_t dst_ipv4, uint32_t * psrc_ipv4) {
 
     close(sockfd);
     *psrc_ipv4 = name.sin_addr.s_addr;
-
-    printf("dst_ipv4 = %d.%d.%d.%d\n",
-        ((uint8_t *) &dst_ipv4)[0],
-        ((uint8_t *) &dst_ipv4)[1],
-        ((uint8_t *) &dst_ipv4)[2],
-        ((uint8_t *) &dst_ipv4)[3]
-    );
-
-    printf("src_ipv4 = %d.%d.%d.%d\n",
-        ((uint8_t *) psrc_ipv4)[0],
-        ((uint8_t *) psrc_ipv4)[1],
-        ((uint8_t *) psrc_ipv4)[2],
-        ((uint8_t *) psrc_ipv4)[3]
-    );
-
     return true;
 
 ERR_GETSOCKNAME:
@@ -391,8 +375,6 @@ static struct iphdr ipv4_default = {
 void ipv4_write_default_header(uint8_t * ipv4_header) {
     memcpy(ipv4_header, &ipv4_default, sizeof(struct iphdr));
 }
-
-
 
 static protocol_t ipv4 = {
     .name                 = "ipv4",

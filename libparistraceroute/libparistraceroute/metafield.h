@@ -31,7 +31,6 @@ typedef struct metafield_s {
 
 } metafield_t;
 
-int metafield_compare(const void * metafield1, const void * metafield2);
 metafield_t* metafield_search(const char * name);
 void metafield_register(metafield_t * metafield);
 

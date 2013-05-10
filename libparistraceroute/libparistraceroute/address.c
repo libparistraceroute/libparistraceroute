@@ -13,10 +13,6 @@
 
 // CPPFLAGS += -D_GNU_SOURCE
 
-static int address_guess_family(const char * str_ip) {
-    return (strchr(str_ip, '.') != NULL) ? AF_INET : AF_INET6;
-}
-
 static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
     if (inet_ntop(family, ip, buffer, buffer_len)) {
         printf(buffer);
@@ -40,6 +36,29 @@ void address_dump(const address_t * address) {
     ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
 }
 
+bool address_guess_family(const char * str_ip, int * pfamily) {
+	struct addrinfo * addrinf;
+	int               err ;
+    
+    if (!(addrinf = malloc(sizeof(struct addrinfo)))) {
+        goto ERR_MALLOC;
+    }
+
+    if ((err = getaddrinfo(str_ip, NULL, NULL, &addrinf)) != 0) {
+        goto ERR_GETADDRINFO;
+    }
+
+    *pfamily = addrinf->ai_family;
+    free(addrinf);
+    return true;
+
+ERR_GETADDRINFO:
+    fprintf(stderr, "Invalid address (%s): %s\n", str_ip, gai_strerror(err));
+ERR_MALLOC:
+    return false;
+}
+
+
 int address_ip_from_string(int family, const char * hostname, ip_t * ip)
 {
     struct addrinfo   hints,
@@ -47,6 +66,7 @@ int address_ip_from_string(int family, const char * hostname, ip_t * ip)
                     * res = NULL;
     int               ret;
     void            * addr;
+    size_t            addr_len;
 
     // Initialize hints
     memset(&hints, 0, sizeof(hints));
@@ -69,10 +89,12 @@ int address_ip_from_string(int family, const char * hostname, ip_t * ip)
     // Extract from sockaddr the address where is stored the IP
     switch (family) {
         case AF_INET:
-            addr = &(((struct sockaddr_in  *) ai->ai_addr)->sin_addr );
+            addr = &(((struct sockaddr_in  *) ai->ai_addr)->sin_addr);
+            addr_len = sizeof(ipv4_t);
             break;
         case AF_INET6:
             addr = &(((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr);
+            addr_len = sizeof(ipv6_t);
             break;
         default:
             ret = EINVAL;
@@ -80,18 +102,16 @@ int address_ip_from_string(int family, const char * hostname, ip_t * ip)
     }
 
     // Fill the address_t structure
-    memcpy(ip, addr, ai->ai_addrlen);
+    memcpy(ip, addr, addr_len);
 ERROR_FAMILY:
     freeaddrinfo(res);
-    return ret;
 ERROR_GETADDRINFO:
     return ret;
 }
 
 int address_from_string(const char * hostname, address_t * address) {
-    int family = address_guess_family(hostname);
-    address->family = family;
-    return address_ip_from_string(family, hostname, &address->ip);
+    address->family = (strchr(hostname, '.') != NULL) ? AF_INET : AF_INET6;
+    return address_ip_from_string(address->family, hostname, &address->ip);
 }
 
 int address_to_string(const address_t * address, char ** pbuffer)
@@ -139,31 +159,45 @@ bool address_resolv(const char * str_ip, char ** phostname)
     size_t           ip_len;
     bool             ret;
     
-    if (!str_ip) goto ERROR;
+    if (!str_ip) goto ERR_INVALID_PARAMETER;
 
-    family = address_guess_family(str_ip);
+    if (!(address_guess_family(str_ip, &family))) {
+        goto ERR_ADDRESS_GUESS_FAMILY;
+    }
 
+    /*
     ip_len = family == AF_INET  ? sizeof(struct sockaddr_in)  :
              family == AF_INET6 ? sizeof(struct sockaddr_in6) :
              0;
 
-    // Invalid family
     if (!ip_len) {
         perror("address_resolv: Invalid family");
-        goto ERROR;
+        goto ERR_INVALID_FAMILY;
+    }
+    */
+    switch (family) {
+        case AF_INET:  ip_len = sizeof(ipv4_t); break;
+        case AF_INET6: ip_len = sizeof(ipv6_t); break;
+        default:
+            perror("address_resolv: Invalid family");
+            goto ERR_INVALID_FAMILY;
     }
 
     // Can't parse str_ip
     if (!inet_pton(family, str_ip, &ip)) {
         perror("address_resolv: Can't parse IP address");
-        goto ERROR;
+        goto ERR_INET_PTON;
     }
 
     if ((ret = (hp = gethostbyaddr(&ip, ip_len, family)) != NULL)) {
         *phostname = strdup(hp->h_name);
     }
-    return ret; 
-ERROR:
+    return ret;
+
+ERR_INET_PTON:
+ERR_INVALID_FAMILY:
+ERR_ADDRESS_GUESS_FAMILY:
+ERR_INVALID_PARAMETER:
     errno = EINVAL;
     return false;
 }

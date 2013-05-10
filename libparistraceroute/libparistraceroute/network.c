@@ -10,17 +10,44 @@
 #include "probe.h"       // probe_extract
 #include "algorithm.h"   // pt_algorithm_throw
 
-#define SEC_TO_NSEC 1000000
+/**
+ * \brief Extract the probe ID (tag) from a probe
+ * \param probe The queried probe
+ * \param ptag_probe Address of an uint16_t in which we will write the tag
+ * \return true iif successful
+ */
 
-void network_set_timeout(network_t * network, double new_timeout) {
-    network->timeout = new_timeout;
+static inline bool probe_extract_tag(const probe_t * probe, uint16_t * ptag_probe) {
+    return probe_extract_ext(probe, "checksum", 1, ptag_probe);
 }
 
-double network_get_timeout(const network_t * network) {
-    return network->timeout;
+/**
+ * \brief Set the probe ID (tag) from a probe
+ * \param probe The probe we want to update
+ * \param tag_probe The tag we're assigning to the probe 
+ * \return true iif successful
+ */
+
+static bool probe_set_tag(probe_t * probe, uint16_t tag_probe) {
+    bool      ret = false;
+    field_t * field;
+
+    if ((field = I16("checksum", tag_probe))) {
+        ret = probe_set_field_ext(probe, 1, field);
+        field_free(field);
+    }
+
+    return ret;
 }
 
-void network_sniffer_handler(network_t * network, packet_t * packet) {
+/**
+ * \brief Handler called by the sniffer to allow the network layer
+ *    to process sniffed packets.
+ * \param network The network layer
+ * \param packet The sniffed packet
+ */
+
+static void network_sniffer_handler(network_t * network, packet_t * packet) {
     queue_push_element(network->recvq, packet);
 }
 
@@ -43,8 +70,8 @@ network_t * network_create(void)
 
     if (!(network->probes = dynarray_create())) goto ERR_PROBES;
 
-    // Last probe ID used.
     network->last_tag = 0;
+    network->timeout = NETWORK_DEFAULT_TIMEOUT;
     return network;
 
 ERR_PROBES:
@@ -65,13 +92,23 @@ ERR_NETWORK:
 
 void network_free(network_t * network)
 { 
-    dynarray_free(network->probes, (ELEMENT_FREE) probe_free);
-    close(network->timerfd);
-    sniffer_free(network->sniffer);
-    queue_free(network->sendq, (ELEMENT_FREE) probe_free);
-    queue_free(network->recvq, (ELEMENT_FREE) probe_free);
-    socketpool_free(network->socketpool);
-    free(network);
+    if (network) {
+        dynarray_free(network->probes, (ELEMENT_FREE) probe_free);
+        close(network->timerfd);
+        sniffer_free(network->sniffer);
+        queue_free(network->sendq, (ELEMENT_FREE) probe_free);
+        queue_free(network->recvq, (ELEMENT_FREE) probe_free);
+        socketpool_free(network->socketpool);
+        free(network);
+    }
+}
+
+void network_set_timeout(network_t * network, double new_timeout) {
+    network->timeout = new_timeout;
+}
+
+double network_get_timeout(const network_t * network) {
+    return network->timeout;
 }
 
 inline int network_get_sendq_fd(network_t * network) {
@@ -92,42 +129,7 @@ inline int network_get_timerfd(network_t * network) {
 
 /* TODO we need a function to return the set of fd used by the network */
 
-packet_t * packet_create_from_probe(probe_t * probe)
-{
-    char     * dst_ip;
-    uint16_t   dst_port;
-    packet_t * packet;
-    
-    // The destination IP is a mandatory field
-    if (!(probe_extract(probe, "dst_ip", &dst_ip))) {
-        perror("packet_create_from_probe: this probe has no 'dst_ip' field\n");
-        goto ERR_EXTRACT_DST_IP;
-    }
-
-    // The destination port is a mandatory field
-    if (!(probe_extract(probe, "dst_port", &dst_port))) {
-        perror("packet_create_from_probe: this probe has no 'dst_port' field\n");
-        goto ERR_EXTRACT_DST_PORT;
-    }
-
-    // Create the corresponding packet
-    if (!(packet = packet_create())) {
-        goto ERR_PACKET_CREATE;
-    }
-    packet_set_dip(packet, dst_ip);
-    packet_set_dport(packet, dst_port);
-    packet_set_buffer(packet, probe_get_buffer(probe));
-    // do not free dst_ip since it is not dup in packet_set_dip
-    return packet;
-
-ERR_PACKET_CREATE:
-ERR_EXTRACT_DST_PORT:
-    free(dst_ip);
-ERR_EXTRACT_DST_IP:
-    return NULL;
-}
-
-int network_get_available_tag(network_t * network)
+uint16_t network_get_available_tag(network_t * network)
 {
     // XXX
     return ++network->last_tag;
@@ -178,18 +180,23 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     }
 
     // Retrieve the checksum of UDP checksum 
-    if (!(probe_extract_ext(probe, "checksum", 1, &checksum))) {
+    if (!(probe_extract_tag(probe, &checksum))) {
+        perror("Can't extract tag\n");
         goto ERR_PROBE_EXTRACT_CHECKSUM;
     }
 
     // Write the probe ID in the UDP checksum
-    probe_set_field_ext(probe, 1, I16("checksum", htons(tag)));
+    if (!(probe_set_tag(probe, htons(tag)))) {
+        perror("Can't set tag\n");
+        goto ERR_PROBE_SET_TAG;
+    }
 
     // Write the old checksum in the payload
     buffer_set_data(payload, &checksum, sizeof(uint16_t));
     probe_write_payload(probe, payload, 0);
     return true;
 
+ERR_PROBE_SET_TAG:
 ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:
 ERR_PROBE_WRITE_PAYLOAD:
@@ -199,6 +206,21 @@ ERR_BUFFER_CREATE:
     return false;
 }
 
+static void network_flying_probes_dump(network_t * network) {
+    size_t     i, num_probes = dynarray_get_size(network->probes);
+    uint16_t   tag_probe;
+    probe_t  * probe;
+
+    printf("\nFlying probes:\n");
+    for (i = 0; i < num_probes; i++) {
+        probe = dynarray_get_ith_element(network->probes, i);
+        probe_extract_tag(probe, &tag_probe) ?
+            printf(" 0x%x", tag_probe):
+            printf(" (invalid tag)");
+        printf("\n");
+    }
+}
+
 // TODO This could be replaced by watchers: FD -> action
 bool network_process_sendq(network_t * network)
 {
@@ -206,17 +228,27 @@ bool network_process_sendq(network_t * network)
     packet_t * packet;
     size_t     num_probes;
 
-    probe = queue_pop_element(network->sendq, NULL); // TODO pass cb element_free
-    //probe_update_fields(probe);
+    // Probe skeleton when entering the network layer.
+    // We have to duplicate the probe since the same address of skeleton
+    // may have been passed to pt_send_probe. 
+    // => We duplicate this probe in the
+    // network layer registry (network->probes) and then tagged.
 
+    // Do not free probe at the end of this function.
+    // Its address will be saved in network->probes and freed later.
+    probe = queue_pop_element(network->sendq, NULL);
+
+    /*
     printf("222222222222222222222222222222222");
     probe_dump(probe);
+    */
     
     if (!network_tag_probe(network, probe)) {
         perror("network_process_sendq: Can't tag probe");
         goto ERR_TAG_PROBE;
     }
 
+    /*
     printf("333333333333333333333333333333333");
     probe_dump(probe);
     printf("444444444444444444444444444444444");
@@ -228,6 +260,7 @@ bool network_process_sendq(network_t * network)
             probe_dump(probe_should_be);
         }
     }
+    */
 
     // Make a packet from the probe structure 
     if (!(packet = packet_create_from_probe(probe))) {
@@ -236,13 +269,14 @@ bool network_process_sendq(network_t * network)
     }
 
     // Send the packet 
-    if (socketpool_send_packet(network->socketpool, packet) < 0) {
+    if (!(socketpool_send_packet(network->socketpool, packet))) {
         perror("network_process_sendq: Can't send packet");
         goto ERR_SEND_PACKET;
     }
 
     // Update the sending time
     probe_set_sending_time(probe, get_timestamp());
+    printf("Check sending time\n");
 
     // Register this probe in the list of flying probes
     if (!(dynarray_push_element(network->probes, probe))) {
@@ -250,9 +284,12 @@ bool network_process_sendq(network_t * network)
         goto ERR_PUSH_PROBE;
     }
 
-    num_probes = dynarray_get_size(network->probes); // TODO this is strange
+    //network_flying_probes_dump(network);
+
+    // We've just sent a probe and currently, this is the only one in transit.
+    // So currently, there is no running timer, prepare timerfd. 
+    num_probes = dynarray_get_size(network->probes);
     if (num_probes == 1) {
-        // There is no running timer, let's set one for this probe 
         struct itimerspec new_value;
 
         new_value.it_value.tv_sec = (time_t) network->timeout; 
@@ -267,49 +304,50 @@ bool network_process_sendq(network_t * network)
     }
 
     return true;
+
 ERR_TIMERFD:
 ERR_PUSH_PROBE:
 ERR_SEND_PACKET:
     packet_free(packet);
 ERR_CREATE_PACKET:
 ERR_TAG_PROBE:
-    perror("network_process_sendq: error\n");
-    return false;
-}
-
-bool network_schedule_probe_timeout(network_t * network, probe_t * probe)
-{
-    struct itimerspec new_value;
-    if (probe) {
-        double d;
-        d = network_get_timeout(network) - (get_timestamp() - probe_get_sending_time(probe));
-        new_value.it_value.tv_sec = (time_t) d;
-        new_value.it_value.tv_nsec = (d - (time_t) d) * SEC_TO_NSEC;
-    } else {
-        /* timer disarmed */
-        new_value.it_value.tv_sec = 0;
-        new_value.it_value.tv_nsec = 0;
-    }
-    new_value.it_interval.tv_sec = 0;
-    new_value.it_interval.tv_nsec = 0;
-
-    if (timerfd_settime(network->timerfd, 0, &new_value, NULL) == -1) {
-        goto ERROR;
-    }
-    return true;
-
-ERROR:
     return false;
 }
 
 bool network_schedule_next_probe_timeout(network_t * network)
 {
-    probe_t * next = NULL;
+    struct itimerspec   timeout;
+    probe_t           * probe;
+    double              next_timeout;
+    time_t              next_timeout_sec;
 
-    if (dynarray_get_size(network->probes) > 0)
-        next = dynarray_get_ith_element(network->probes, 0);
+    if ((probe = dynarray_get_ith_element(network->probes, 0))) {
+        // The timer will updated according to the lifetime of the oldest flying probe 
+        next_timeout = network_get_timeout(network) - (get_timestamp() - probe_get_sending_time(probe));
 
-    return network_schedule_probe_timeout(network, next);
+        if (next_timeout <= 0) {
+            // This should not occurs, or you've set a network timeout too
+            // short and the probe timeouts are not processed "efficiently".
+            perror("Network timeout is too short\n");
+            goto ERR_INVALID_TIMEOUT;
+        }
+    } else {
+        // The timer will be disarmed since there is no more flying probes
+        next_timeout = 0;
+    }
+
+    // Prepare the itimerspec structure
+    next_timeout_sec            = (time_t) next_timeout;
+    timeout.it_value.tv_sec     = next_timeout_sec;
+    timeout.it_value.tv_nsec    = 1000000 * (next_timeout - next_timeout_sec);
+    timeout.it_interval.tv_sec  = 0;
+    timeout.it_interval.tv_nsec = 0;
+
+    // Update the timer
+    return (timerfd_settime(network->timerfd, 0, &timeout, NULL) != -1); 
+
+ERR_INVALID_TIMEOUT:
+    return false;
 }
 
 /**
@@ -331,7 +369,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
 
     uint16_t   tag_probe, tag_reply;
     probe_t  * probe;
-    size_t     i, size;
+    size_t     i, num_probes;
 
     // Get the 3-rd checksum field stored in the reply, since it stores our probe ID.
     if (!(probe_extract_ext(reply, "checksum", 3, &tag_reply))) {
@@ -340,8 +378,8 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
         return NULL;
     }
 
-    size = dynarray_get_size(network->probes);
-    for (i = 0; i < size; i++) {
+    num_probes = dynarray_get_size(network->probes);
+    for (i = 0; i < num_probes; i++) {
         probe = dynarray_get_ith_element(network->probes, i);
 
         // Reply / probe comparison. In our probe packet, the probe ID
@@ -352,15 +390,9 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
     }
 
     // No match found if we reached the end of the array
-    if (i == size) {
-        fprintf(stderr, "network_match_probe: This reply has been discarded: tag = %x. Known tags are\n", tag_reply);
-        for (i = 0; i < size; i++) {
-            probe = dynarray_get_ith_element(network->probes, i);
-            probe_extract_ext(probe, "checksum", 1, &tag_probe) ?
-                fprintf(stderr, " %d", tag_probe):
-                fprintf(stderr, " (invalid tag)");
-            fprintf(stderr, "\n");
-        }
+    if (i == num_probes) {
+        fprintf(stderr, "network_match_probe: This reply has been discarded: tag = 0x%x. Known tags are\n", tag_reply);
+        network_flying_probes_dump(network);
         return NULL;
     }
 
@@ -380,7 +412,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
     return probe;
 }
 
-int network_process_recvq(network_t * network)
+bool network_process_recvq(network_t * network)
 {
     probe_t       * probe,
                   * reply;
@@ -388,7 +420,9 @@ int network_process_recvq(network_t * network)
     probe_reply_t * probe_reply;
     
     // Pop the packet from the queue
-    packet = queue_pop_element(network->recvq, NULL); // TODO pass cb element_free
+    if (!(packet = queue_pop_element(network->recvq, NULL))) {
+        goto ERR_PACKET_POP;
+    }
 
     // Transform the reply into a probe_t instance
     if (!(reply = probe_create())) {
@@ -397,6 +431,7 @@ int network_process_recvq(network_t * network)
     probe_set_buffer(reply, packet->buffer);
 
     // Find the probe corresponding to this reply
+    // The corresponding pointer (if any) is removed from network->probes
     if (!(probe = network_match_probe(network, reply))) {
         perror("Reply discarded\n");
         goto ERR_PROBE_DISCARDED;
@@ -406,18 +441,20 @@ int network_process_recvq(network_t * network)
     if (!(probe_reply = probe_reply_create())) {
         goto ERR_PROBE_REPLY_CREATE;
     }
-    probe_reply_set_probe(probe_reply, probe);
-    probe_reply_set_reply(probe_reply, reply);
+    probe_reply_set_probe(probe_reply, probe_dup(probe));
+    probe_reply_set_reply(probe_reply, probe_dup(reply));
 
     // Notify the instance which has build the probe that we've got the corresponding reply
-    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL));
-    return 0;
+    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL)); // TODO probe_reply_deep_free));
+    return true;
 
 ERR_PROBE_REPLY_CREATE:
 ERR_PROBE_DISCARDED:
     probe_free(probe);
 ERR_PROBE_CREATE:
-    return -1;
+    packet_free(packet);
+ERR_PACKET_POP:
+    return false;
 }
 
 void network_process_sniffer(network_t * network) {
@@ -426,13 +463,24 @@ void network_process_sniffer(network_t * network) {
 
 bool network_process_timeout(network_t * network)
 {
+    bool      ret = false;
     size_t    num_probes = dynarray_get_size(network->probes);
     probe_t * probe;
 
-    if (num_probes == 0) return -1;
+    // Is there flying probe(s) ?
+    if (num_probes) { 
 
-    probe = dynarray_get_ith_element(network->probes, 0);
-    dynarray_del_ith_element(network->probes, 0);
-    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL));
-    return network_schedule_next_probe_timeout(network);
+        // Find the oldest probe
+        probe = dynarray_get_ith_element(network->probes, 0);
+
+        // Erase the pointer of the lost probe from the flying probe list
+        dynarray_del_ith_element(network->probes, 0);
+
+        // We raise an event to notify the caller. 
+        // The lost probe will be freed once the raised event will be freed.
+        pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
+        ret = network_schedule_next_probe_timeout(network);
+    }
+    return ret;
 }
+

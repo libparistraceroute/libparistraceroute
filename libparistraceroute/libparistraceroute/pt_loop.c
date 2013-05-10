@@ -138,7 +138,6 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
 
     return loop;
 
-    // dynarray_free(loop->events_user);
 ERR_EVENTS_USER:
     free(loop->epoll_events);
 ERR_EVENTS:
@@ -201,10 +200,6 @@ inline void pt_loop_clear_user_events(pt_loop_t * loop)
     if (loop) {
         dynarray_clear(loop->events_user, (ELEMENT_FREE) event_free);
     }
-}
-
-static inline int min(int x, int y) {
-    return x < y ? x : y;
 }
 
 /**
@@ -275,11 +270,13 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
             }
             
             if (cur_fd == network_sendq_fd) {
-                if(!network_process_sendq(loop->network)) {
+                if (!network_process_sendq(loop->network)) {
                     perror("pt_loop: Can't send packet\n");
                 }
             } else if (cur_fd == network_recvq_fd) {
-                network_process_recvq(loop->network);
+                if (!network_process_recvq(loop->network)) {
+                    perror("pt_loop: Cannot fetch packet\n");
+                }
             } else if (cur_fd == network_sniffer_fd) {
                 network_process_sniffer(loop->network);
             } else if (cur_fd == loop->eventfd_algorithm) {
@@ -327,19 +324,26 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 }
 
 // not the right callback here
-int pt_send_probe(pt_loop_t *loop, probe_t *probe)
+bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 {
-    /* We remember which algorithm has generated the probe */
-    probe_set_caller(probe, loop->cur_instance);
-    probe_set_queueing_time(probe, get_timestamp());
+    probe_t * probe_duplicated;
 
-    /* The probe gets assigned a unique ID for the algorithm */
-    /* TODO */
+    if (!(probe_duplicated = probe_dup(probe))) {
+        perror("pt_send_probe: Cannot duplicate probe\n");
+        goto ERR_PROBE_DUP;
+    }
 
-    //probe_dump(probe);
-    queue_push_element(loop->network->sendq, probe);
+    // Annotate which algorithm has generated this probe
+    probe_set_caller(probe_duplicated, loop->cur_instance);
+    probe_set_queueing_time(probe_duplicated, get_timestamp());
 
-    return 0;
+    // Assign a probe tag
+    // TODO for the moment, probe tagging is hardcoded in the network layer
+    queue_push_element(loop->network->sendq, probe_duplicated);
+
+    return true;
+ERR_PROBE_DUP:
+    return false;
 }
 
 void pt_loop_terminate(pt_loop_t * loop)

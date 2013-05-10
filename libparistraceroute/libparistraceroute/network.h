@@ -24,9 +24,12 @@
 #include "sniffer.h"
 #include "dynarray.h"
 
-/******************************************************************************
- * Network
- ******************************************************************************/
+// If no matching reply has been sniffed in the next 3 sec, we
+// consider that we won't never sniff such a reply. The
+// corresponding probe is discarded. This timer can be accessed
+// thanks to network_set_timeout() and network_get_timeout().
+
+#define NETWORK_DEFAULT_TIMEOUT 3
 
 /**
  * \struct network_t
@@ -35,12 +38,12 @@
 
 typedef struct network_s {
     socketpool_t * socketpool; /**< Pool of sockets used by this network */
-    queue_t      * sendq;      /**< Queue for packets to send */
-    queue_t      * recvq;      /**< Queue for packets to be received */
+    queue_t      * sendq;      /**< Queue containing packet to send  (probe_t instances) */
+    queue_t      * recvq;      /**< Queue containing received packet (packet_t instances) */
     sniffer_t    * sniffer;    /**< Sniffer to use on this network */
-    dynarray_t   * probes;     /**< Probes in transit, from the oldest one to the youngest one */
-    int            timerfd;    /**< Used for probe timeouts, Linux specific */
-    uintmax_t      last_tag;   /**< Last probe ID used */
+    dynarray_t   * probes;     /**< Probes in transit, from the oldest probe_t instance to the youngest one */
+    int            timerfd;    /**< Used for probe timeouts. Linux specific. Activated when a probe timeout occurs */
+    uint16_t       last_tag;   /**< Last probe ID used */
     double         timeout;    /**< The timeout value used by this network (in seconds) */
 } network_t;
 
@@ -112,15 +115,18 @@ bool network_process_sendq(network_t * network);
  * \brief Process received packets: match them with a probe, or discard them.
  * \param network Pointer to a network structure
  * In practice, the receive queue stores all the packets received by the sniffer.
- * \return -1 in case of failure 0 otherwise
+ * \return true iif successful 
  */
 
-int network_process_recvq(network_t * network);
+bool network_process_recvq(network_t * network);
 
 void network_process_sniffer(network_t *network);
 
 /**
- * \brief Drop the oldest probe attached to a network instance 
+ * \brief Drop the oldest probe attached to a network instance.
+ *    The oldest probe if any is removed from network->probe
+ *    and network->timerfd is refreshed to manage the next timeout
+ *    if there is still at least one flying probe. 
  * \param network Pointer to a network structure
  * \return true iif successful
  */
@@ -128,6 +134,6 @@ void network_process_sniffer(network_t *network);
 bool network_process_timeout(network_t * network);
 
 // XXX
-int network_get_available_tag(network_t *network);
+uint16_t network_get_available_tag(network_t *network);
 
 #endif

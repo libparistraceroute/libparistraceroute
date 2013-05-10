@@ -132,10 +132,10 @@ unsigned pt_loop_get_num_user_events(pt_loop_t * loop);
  * \param probe Pointer to the probe to use
  * \param callback Function pointer to a callback function
  *     (Does not appear to be used currently)
- * \return 0
+ * \return true iif successful 
  */
 
-int pt_send_probe(pt_loop_t *loop, probe_t *probe);
+bool pt_send_probe(pt_loop_t *loop, probe_t *probe);
 
 /**
  * \brief Stop the main loop

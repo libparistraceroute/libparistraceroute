@@ -1,8 +1,8 @@
 #include <stdlib.h>
-#include <stdio.h> // XXX
-#include <errno.h>
-#include <stdarg.h>
-#include <string.h>
+#include <stdio.h>           // perror 
+#include <errno.h>           // errno
+#include <stdarg.h>          // va_start, va_copy, va_arg
+#include <string.h>          // memcpy
 #include <netinet/in.h>      // IPPROTO_IPV6, IPPROTO_ICMPV6
 #include <netinet/ip_icmp.h> // ICMP_DEST_UNREACH, ICMP_TIME_EXCEEDED
 
@@ -120,7 +120,6 @@ static void probe_layers_clear(probe_t * probe);
  * \return true iif successfull
  */
 
-// TODO layer_set_field => call field_free!
 static bool probe_buffer_resize(probe_t * probe, size_t size);
 
 //-----------------------------------------------------------
@@ -145,6 +144,16 @@ static bool probe_finalize(probe_t * probe)
     return ret;
 }
 
+static bool layer_set_field_and_free(layer_t * layer, field_t * field) {
+    bool ret = false;
+
+    if (field) { 
+        ret = layer_set_field(layer, field);
+        field_free(field);
+    }
+    return ret;
+}
+
 static bool probe_update_protocol(probe_t * probe)
 {
     size_t    i, num_layers = probe_get_num_layers(probe);
@@ -155,7 +164,7 @@ static bool probe_update_protocol(probe_t * probe)
         layer = probe_get_layer(probe, i);
         if (layer->protocol && prev_layer) {
             // Update 'protocol' field (if any)
-            layer_set_field(layer, I16("protocol", prev_layer->protocol->protocol));
+            layer_set_field_and_free(layer, I16("protocol", prev_layer->protocol->protocol));
         }
     }
     return true;
@@ -177,7 +186,7 @@ static bool probe_update_length(probe_t * probe)
                 layer->buffer_size;
 
             // Update 'length' field (if any)
-            layer_set_field(layer, I16("length", length));
+            layer_set_field_and_free(layer, I16("length", length));
         }
     }
     return true;
@@ -315,8 +324,8 @@ static bool probe_buffer_resize(probe_t * probe, size_t size)
 
         if (layer->protocol) {
             // Update length field (if any)
-            if (!layer_set_field(layer, I16("length", size - offset))) {
-                return false;
+            if (!layer_set_field_and_free(layer, I16("length", size - offset))) {
+                fprintf(stderr, "Cannot update 'length' field in '%s' layer\n", layer->protocol->name);
             }
             offset += layer->protocol->header_len; 
         } else {
@@ -367,19 +376,15 @@ probe_t * probe_dup(probe_t * probe)
 {
     probe_t    * ret;
     buffer_t   * buffer;
-    bitfield_t * bitfield;
     
-    if (!(ret = probe_create()))                     goto ERR_PROBE;
-    if (!(buffer = buffer_dup(probe->buffer)))       goto ERR_BUFFER_DUP;
-    if (!(probe_set_buffer(ret, buffer)))            goto ERR_SET_BUFFER;
-    if (!(bitfield = bitfield_dup(probe->bitfield))) goto ERR_BITFIELD_DUP;
-    if (!(ret->bitfield = bitfield))                 goto ERR_BITFIELD;
+    if (!(ret = probe_create()))                          goto ERR_PROBE;
+    if (!(buffer = buffer_dup(probe->buffer)))            goto ERR_BUFFER_DUP;
+    if (!(probe_set_buffer(ret, buffer)))                 goto ERR_SET_BUFFER;
+    if (!(ret->bitfield = bitfield_dup(probe->bitfield))) goto ERR_BITFIELD_DUP;
 
     ret->caller = probe->caller;
     return ret;
 
-ERR_BITFIELD:
-    bitfield_free(bitfield);
 ERR_BITFIELD_DUP:
 ERR_SET_BUFFER:
     buffer_free(ret->buffer);
@@ -609,14 +614,14 @@ int probe_set_protocols(probe_t * probe, const char * name1, ...)
 //        layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);
 
         // Update 'length' field
-        if (!layer_set_field(layer, I16("length", buflen - offset))) {
+        if (!layer_set_field_and_free(layer, I16("length", buflen - offset))) {
             fprintf(stderr, "Can't set length in %s header\n", layer->protocol->name);
             goto ERR_SET_LENGTH;
         }
 
         if (prev_layer) {
             // Update 'protocol' field (if any)
-            layer_set_field(layer, I16("protocol", prev_layer->protocol->protocol));
+            layer_set_field_and_free(layer, I16("protocol", prev_layer->protocol->protocol));
         }
 
         offset += protocol->header_len; 
@@ -729,19 +734,31 @@ bool probe_set_field(probe_t * probe, field_t * field) {
 
 bool probe_set_metafield_ext(probe_t * probe, size_t depth, field_t * field)
 {
+    bool          ret = false;
     metafield_t * metafield;
+    field_t     * hacked_field;
 
     // TODO: TEMP HACK IPv4 flow id is encoded in src_port
-    if (strcmp(field->key, "flow_id") != 0) return false;
-    return probe_set_field(probe, I16("src_port", 24000 + field->value.int16));
+    if (strcmp(field->key, "flow_id") != 0) {
+        fprintf(stderr, "probe_set_metafield_ext: cannot set %s\n", field->key);
+        return false;
+    }
+
+    if ((hacked_field = I16("src_port", 24000 + field->value.int16))) {
+        ret = probe_set_field(probe, hacked_field);
+        field_free(hacked_field);
+    }
+
+    field_free(field);
+    return ret;
     
+    /*
     metafield = metafield_search(field->key);
     if (!metafield) return false; // Metafield not found
 
     // Does the probe verifies one metafield pattern ?
-    // TODO
     // Does the value conflict with a previously set field ?
-    // TODO
+    */
 }
 
 bool probe_set_metafield(probe_t * probe, field_t * field) {
@@ -791,8 +808,8 @@ bool probe_set_fields(probe_t * probe, field_t * field1, ...) {
     va_end(args);
     probe_update_fields(probe);
 
-    printf("111111111111111\n");
-    probe_dump(probe);
+//    printf("111111111111111\n");
+//    probe_dump(probe);
 
     return ret;
 }
@@ -897,7 +914,17 @@ probe_reply_t * probe_reply_create(void) {
 }
 
 void probe_reply_free(probe_reply_t * probe_reply) {
-    if (probe_reply) free(probe_reply);
+    if (probe_reply) {
+        free(probe_reply);
+    }
+}
+
+void probe_reply_deep_free(probe_reply_t * probe_reply) {
+    if (probe_reply) {
+        if (probe_reply->probe) probe_free(probe_reply->probe);
+        if (probe_reply->reply) probe_free(probe_reply->reply);
+        probe_reply_free(probe_reply);
+    }
 }
 
 // Accessors

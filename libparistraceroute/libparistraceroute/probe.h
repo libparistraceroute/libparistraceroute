@@ -24,6 +24,7 @@
  * \struct probe_t
  * \brief Structure representing a probe
  */
+
 typedef struct {
     dynarray_t * layers;        /**< List of layers forming the packet header */
     buffer_t   * buffer;        /**< Buffer containing the packet we're crafting */ 
@@ -271,6 +272,7 @@ typedef struct {
 
 probe_reply_t * probe_reply_create(void);
 void probe_reply_free(probe_reply_t * probe_reply);
+void probe_reply_deep_free(probe_reply_t * probe_reply);
 
 // Accessors
 

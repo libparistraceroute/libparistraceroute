@@ -31,7 +31,7 @@
 typedef struct {
     const protocol_t * protocol;    /**< Points to the protocol implemented in this layer. Set to NULL if this layer is the payload */
     uint8_t    * buffer;            /**< Points to the begining of the layer in the packet */
-//    uint8_t    * mask;            /**< Indicates which bits have been set. TODO: not yet implemented, use a bitfield_t. Maybe probe_t is sufficient? */
+    uint8_t    * mask;              /**< Indicates which bits have been set. TODO: not yet implemented, use a bitfield_t. Maybe probe_t is sufficient? */
     size_t       header_size;       /**< Size of the header (0 if this layer is related to the payload */
     // TODO rename data_size
     size_t       buffer_size;       /**< Size of data carried by the layer (header + data) */

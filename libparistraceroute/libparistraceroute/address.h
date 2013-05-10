@@ -39,6 +39,16 @@ void ipv6_dump(const ipv6_t * ipv6);
 void address_dump(const address_t * address);
 
 /**
+ * \brief Guess address family of an IP
+ * \param str_ip IP (string format)
+ * \param pfamily Address of an integer in which the address
+ *   family will be written
+ * \return true iif successfull
+ */
+
+bool address_guess_family(const char * str_ip, int * pfamily);
+
+/**
  * \brief Initialize an address_t according to a string. If hostname
  *    contains a ".", it is considered as an IPv4 host. If hostname
  *    is a FQDN you should use address_ip_from_string(). 

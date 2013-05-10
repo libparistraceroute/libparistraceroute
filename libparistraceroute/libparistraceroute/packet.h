@@ -15,9 +15,11 @@
 
 typedef struct {
     buffer_t * buffer; /**< Buffer to hold the packet data */
-    /* Redundant information : temporary (while we are not sure that the dst_ip and dst_port have been explicitly set in the buffer (see probe) */
-    char     * dip;
-    uint16_t   dport;
+    // TODO Redundant information : We use this temporary hack 
+    // while we are not sure that the dst_ip and dst_port
+    // have been explicitly set in the buffer (see probe) */
+    char     * dst_ip;   /**< Destination IP (string format) */
+    uint16_t   dst_port; /**< Destination port */
 } packet_t;
 
 /**
@@ -47,7 +49,14 @@ void packet_free(packet_t * packet);
 buffer_t * packet_get_buffer(packet_t * packet);
 
 void packet_set_buffer(packet_t * packet, buffer_t * buffer);
-void packet_set_dip(packet_t * packet, char * dip);
-void packet_set_dport(packet_t * packet, uint16_t dport);
+
+/**
+ * \brief Create a packet_t instance according to probe contents.
+ * \param probe The probe skeleton we used to build the packet.
+ * \return A pointer to the corresponding allocated packet_t
+ *    instance, NULL in case of failure.
+ */
+
+packet_t * packet_create_from_probe(probe_t * probe);
 
 #endif

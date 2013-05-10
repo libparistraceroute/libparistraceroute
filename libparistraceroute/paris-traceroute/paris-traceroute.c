@@ -199,8 +199,9 @@ int main(int argc, char ** argv)
             goto ERR_INVALID_ALGORITHM;
         }
     }
+
     // Iterate on argv to retrieve the target IP address
-    for(i = 0; argv[i] && i < argc; ++i);
+    for (i = 0; argv[i] && i < argc; ++i);
 
     // TODO check whether dst_addr is a FQDN. Use address_ip_from_string if address family is known.
     if (address_from_string(argv[i - 1], &dst_addr) != 0) {
@@ -225,7 +226,7 @@ int main(int argc, char ** argv)
         is_udp  ? "udp"  : protocol_names[0],
         NULL
     );
-    probe_payload_resize(probe_skel, 32);
+    probe_payload_resize(probe_skel, 2);
 
     // Set default values
     probe_set_fields(

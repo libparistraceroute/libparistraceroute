@@ -1,4 +1,5 @@
 #include "metafield.h"
+#include "common.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -7,12 +8,11 @@
 /* static ? */
 void *metafields_root;
 
-int metafield_compare(const void * metafield1, const void * metafield2)
-{
-    return strcmp(
-        ((const metafield_t *) metafield1)->name,
-        ((const metafield_t *) metafield2)->name
-    );
+static int metafield_compare(
+    const metafield_t * metafield1,
+    const metafield_t * metafield2
+) {
+    return strcmp(metafield1->name, metafield2->name);
 }
 
 metafield_t* metafield_search(const char * name)
@@ -21,7 +21,7 @@ metafield_t* metafield_search(const char * name)
 
     if (!name) return NULL;
     search.name = name;
-    metafield = tfind(&search, &metafields_root, metafield_compare);
+    metafield = tfind(&search, &metafields_root, (ELEMENT_COMPARE) metafield_compare);
 
     return metafield ? *metafield : NULL;
 }
@@ -32,17 +32,8 @@ void metafield_register(metafield_t * metafield)
     // XXX
 
     // Insert the metafield in the tree if the keys does not yet exist
-    tsearch(metafield, &metafields_root, metafield_compare);
+    tsearch(metafield, &metafields_root, (ELEMENT_COMPARE) metafield_compare);
 }
-
-
-
-
-
-
-
-
-
 
 ////--------------------------------------------------------------------------
 //// Allocation
