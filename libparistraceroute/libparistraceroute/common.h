@@ -44,7 +44,7 @@
 #define MAX(x, y) (x > y) ? x : y
 
 /**
- * \return The current timestamp
+ * \return The current timestamp (in seconds)
  */
 
 double get_timestamp(void);

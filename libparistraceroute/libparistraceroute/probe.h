@@ -14,12 +14,6 @@
 #include "bitfield.h"
 #include "dynarray.h"
 
-#define WAITING_RESP 0
-#define TTL_RESP 1
-#define NO_RESP 2
-#define END_RESP 3
-#define OTHER_RESP 4
-
 /**
  * \struct probe_t
  * \brief Structure representing a probe
@@ -30,8 +24,9 @@ typedef struct {
     buffer_t   * buffer;        /**< Buffer containing the packet we're crafting */ 
     bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     void       * caller;        /**< Algorithm instance which has created this probe */
-    double       sending_time;  /**< Timestamp */
-    double       queueing_time; /**< Timestamp */
+    double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) */
+    double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) */
+    double       recv_time;     /**< Only set if this instance is related to a reply. Timestamp set by network layer just after sniffing the reply */
 } probe_t;
 
 /**
@@ -169,6 +164,7 @@ bool probe_extract(const probe_t * probe, const char * name, void * dst);
  * \return true iif successful
  */
 
+// TODO depth should be 2nd parameter
 bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, void * dst); 
 
 /**
@@ -260,6 +256,8 @@ void probe_set_sending_time(probe_t * probe, double time);
 double probe_get_sending_time(const probe_t * probe);
 void probe_set_queueing_time(probe_t * probe, double time);
 double probe_get_queueing_time(const probe_t * probe);
+void probe_set_recv_time(probe_t * probe, double time);
+double probe_get_recv_time(const probe_t * probe);
 
 /******************************************************************************
  * probe_reply_t

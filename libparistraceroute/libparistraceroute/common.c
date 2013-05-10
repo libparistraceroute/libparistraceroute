@@ -14,9 +14,7 @@ double get_timestamp(void)
     double t;
     
     gettimeofday(&tim, NULL);
-    t = tim.tv_sec + (tim.tv_usec / 1000000.0);
-
-    return t;
+    return tim.tv_sec + (tim.tv_usec / 1000000.0);
 }
 
 void print_indent(unsigned int indent)

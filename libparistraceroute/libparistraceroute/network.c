@@ -22,6 +22,17 @@ static inline bool probe_extract_tag(const probe_t * probe, uint16_t * ptag_prob
 }
 
 /**
+ * \brief Extract the probe ID (tag) from a reply
+ * \param reply The queried reply
+ * \param ptag_reply Address of the uint16_t in which the tag is written
+ * \return true iif successful
+ */
+
+static inline bool reply_extract_tag(const probe_t * reply, uint16_t * ptag_reply) {
+    return probe_extract_ext(reply, "checksum", 3, ptag_reply);
+}
+
+/**
  * \brief Set the probe ID (tag) from a probe
  * \param probe The probe we want to update
  * \param tag_probe The tag we're assigning to the probe 
@@ -211,7 +222,7 @@ static void network_flying_probes_dump(network_t * network) {
     uint16_t   tag_probe;
     probe_t  * probe;
 
-    printf("\nFlying probes:\n");
+    printf("\n%d flying probe(s) :\n", num_probes);
     for (i = 0; i < num_probes; i++) {
         probe = dynarray_get_ith_element(network->probes, i);
         probe_extract_tag(probe, &tag_probe) ?
@@ -276,7 +287,6 @@ bool network_process_sendq(network_t * network)
 
     // Update the sending time
     probe_set_sending_time(probe, get_timestamp());
-    printf("Check sending time\n");
 
     // Register this probe in the list of flying probes
     if (!(dynarray_push_element(network->probes, probe))) {
@@ -372,7 +382,7 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
     size_t     i, num_probes;
 
     // Get the 3-rd checksum field stored in the reply, since it stores our probe ID.
-    if (!(probe_extract_ext(reply, "checksum", 3, &tag_reply))) {
+    if(!(reply_extract_tag(reply, &tag_reply))) {
         // This is not an IP/ICMP/IP/* reply :( 
         perror("Can't retrieve tag from reply");
         return NULL;
@@ -384,14 +394,14 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
 
         // Reply / probe comparison. In our probe packet, the probe ID
         // is stored in the checksum of the (first) IP layer. 
-        if (probe_extract_ext(probe, "checksum", 1, &tag_probe)) {
+        if (probe_extract_tag(probe, &tag_probe)) {
             if (tag_reply == tag_probe) break;
         }
     }
 
     // No match found if we reached the end of the array
     if (i == num_probes) {
-        fprintf(stderr, "network_match_probe: This reply has been discarded: tag = 0x%x. Known tags are\n", tag_reply);
+        fprintf(stderr, "network_match_probe: This reply has been discarded: tag = 0x%x.\n", tag_reply);
         network_flying_probes_dump(network);
         return NULL;
     }
@@ -405,6 +415,8 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
 
     dynarray_del_ith_element(network->probes, i);
 
+    // The matching probe is the oldest one, update the timer
+    // according to the next probe timeout.
     if (i == 0) {
         network_schedule_next_probe_timeout(network);
     }
@@ -429,6 +441,7 @@ bool network_process_recvq(network_t * network)
         goto ERR_PROBE_CREATE;
     }
     probe_set_buffer(reply, packet->buffer);
+    probe_set_recv_time(reply, get_timestamp());
 
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes

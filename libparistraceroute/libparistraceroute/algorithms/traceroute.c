@@ -104,6 +104,7 @@ bool send_traceroute_probe(
 int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
 {
     traceroute_data_t    * data = NULL;     // Current state of the algorithm instance
+    const probe_t        * probe;           // Probe 
     const probe_t        * reply;           // Reply
     probe_reply_t        * probe_reply;     // (Probe, Reply) pair
     traceroute_options_t * options = opts;  // Options passed to this instance
@@ -145,11 +146,14 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
 
         case PROBE_TIMEOUT:
             data  = *pdata;
+            probe = (probe_t *) event->data;
+
+            // Update counters
             ++(data->num_stars);
             ++(data->num_replies);
 
             // Notify the caller we've got a probe timeout 
-            pt_raise_event(loop, event_create(TRACEROUTE_STAR, probe_reply, NULL, NULL));
+            pt_raise_event(loop, event_create(TRACEROUTE_STAR, probe, NULL, (ELEMENT_FREE) probe_free));
             break;
 
         case ALGORITHM_TERMINATED:
@@ -202,11 +206,12 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
         pt_raise_terminated(loop);
     }
     
+    // Handled event must always been free when leaving the handler 
+    event_free(event);
     return 0;
 
 FAILURE:
-    // This event is not forwarded to the caller, so we have to release it
-    // from the memory
+    // Handled event must always been free when leaving the handler 
     event_free(event);
 
     // Sent to the current instance a ALGORITHM_FAILURE notification.

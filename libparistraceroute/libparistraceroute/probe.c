@@ -358,8 +358,10 @@ probe_t * probe_create(void)
     // For the moment this is an empty bitfield
     if (!(probe->bitfield = bitfield_create(0))) goto ERR_BITFIELD;
 
-    // Save which instance (caller) create this probe
-    probe->caller = NULL;
+    probe->sending_time  = 0;
+    probe->queueing_time = 0;
+    probe->recv_time     = 0;
+    probe->caller        = NULL;
     return probe;
 
 ERR_BITFIELD:
@@ -374,7 +376,7 @@ ERR_PROBE:
 
 probe_t * probe_dup(probe_t * probe)
 {
-    probe_t    * ret;
+    probe_t    * ret = NULL;
     buffer_t   * buffer;
     
     if (!(ret = probe_create()))                          goto ERR_PROBE;
@@ -382,7 +384,10 @@ probe_t * probe_dup(probe_t * probe)
     if (!(probe_set_buffer(ret, buffer)))                 goto ERR_SET_BUFFER;
     if (!(ret->bitfield = bitfield_dup(probe->bitfield))) goto ERR_BITFIELD_DUP;
 
-    ret->caller = probe->caller;
+    ret->sending_time  = probe->sending_time;
+    ret->queueing_time = probe->queueing_time;
+    ret->recv_time     = probe->recv_time;
+    ret->caller        = probe->caller;
     return ret;
 
 ERR_BITFIELD_DUP:
@@ -837,6 +842,15 @@ void probe_set_queueing_time(probe_t * probe, double time) {
 double probe_get_queueing_time(const probe_t *probe) {
     return probe->queueing_time;
 }
+
+void probe_set_recv_time(probe_t * probe, double time) {
+    probe->recv_time = time;
+}
+
+double probe_get_recv_time(const probe_t *probe) {
+    return probe->recv_time;
+}
+
 
 // Iterator
 

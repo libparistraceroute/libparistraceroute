@@ -31,11 +31,11 @@ void my_traceroute_handler(
             probe = ((const probe_reply_t *) traceroute_event->data)->probe;
             reply = ((const probe_reply_t *) traceroute_event->data)->reply;
 
-            // Print reply (i-th reply corresponding to the current hop)
+            // Print TTL (if this is the first probe related to this TTL) 
             if (num_probes_printed % traceroute_options->num_probes == 0) {
                 uint8_t ttl;
                 if (probe_extract(probe, "ttl", &ttl)) {
-                    printf("%d ", ttl);
+                    printf("%d", ttl);
                 }
             }
 
@@ -43,25 +43,29 @@ void my_traceroute_handler(
             {
                 char * discovered_ip;
                 if (probe_extract(reply, "src_ip", &discovered_ip)) {
-                    printf("%10s ", discovered_ip);
+                    printf(" %-16s ", discovered_ip);
                     free(discovered_ip);
                 }
+            }
+
+            // Print delay
+            {
+                double send_time = probe_get_sending_time(probe),
+                       recv_time = probe_get_recv_time(reply);
+                printf(" (%-05.2lfms) ", 1000 * (recv_time - send_time));
             }
             num_probes_printed++;
             break;
         case TRACEROUTE_STAR:
-            printf("*");
+            printf(" *");
             num_probes_printed++;
             break;
         case TRACEROUTE_ICMP_ERROR:
-            printf("!");
+            printf(" !");
             num_probes_printed++;
             break;
         case TRACEROUTE_TOO_MANY_STARS:
-            printf("too many stars\n");
-            break;
         case TRACEROUTE_MAX_TTL_REACHED:
-            printf("max ttl reached\n");
             break;
         case TRACEROUTE_DESTINATION_REACHED:
             // The traceroute algorithm has terminated.
@@ -136,8 +140,8 @@ int main(int argc, char ** argv)
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
-//    char dst_ip[] = "8.8.8.8";
-    char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "8.8.8.8";
+//    char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
@@ -149,7 +153,7 @@ int main(int argc, char ** argv)
     // Prepare options related to the 'traceroute' algorithm
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
-    options.num_probes = 3;
+    options.num_probes = 1;
     //options.max_ttl = 1;
 
     // Create libparistraceroute loop
