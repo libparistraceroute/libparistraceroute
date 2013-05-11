@@ -12,6 +12,7 @@
 
 #include "optparse.h"
 #include "../algorithm.h"
+#include "../pt_loop.h"    // pt_send_probe
 
 // DEBUG
 #include "../probe.h"

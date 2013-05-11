@@ -136,7 +136,7 @@ static bool probe_finalize(probe_t * probe)
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         if (layer->protocol && layer->protocol->finalize) {
-            if (!(ret &= layer->protocol->finalize(layer->buffer))) {
+            if (!(ret &= layer->protocol->finalize(layer->segment))) {
                 fprintf(stderr, "W: Can't finalize layer %s\n", layer->protocol->name);
             }
         }
@@ -182,8 +182,8 @@ static bool probe_update_length(probe_t * probe)
             // IPv6 stores in its header (made of 40 bytes) the payload length
             // whereas the other protocol stores the header + the payload length
             length = layer->protocol->protocol == IPPROTO_IPV6 ?
-                layer->buffer_size - 40 :
-                layer->buffer_size;
+                layer_get_segment_size(layer) - 40 :
+                layer_get_segment_size(layer);
 
             // Update 'length' field (if any)
             layer_set_field_and_free(layer, I16("length", length));
@@ -213,7 +213,7 @@ static bool probe_update_checksum(probe_t * probe)
                     return false;
                 } else {
                     layer_prev = probe_get_layer(probe, i - 1);
-                    if (!(pseudo_header = layer->protocol->create_pseudo_header(layer_prev->buffer))) {
+                    if (!(pseudo_header = layer->protocol->create_pseudo_header(layer_prev->segment))) {
                         return false;
                     }
                 }
@@ -221,7 +221,7 @@ static bool probe_update_checksum(probe_t * probe)
 
             // Compute the checksum according to the layer's buffer and
             // the pseudo header (if any).
-            layer->protocol->write_checksum(layer->buffer, pseudo_header);
+            layer->protocol->write_checksum(layer->segment, pseudo_header);
 
             // Release the pseudo header (if any) from the memory
             if (pseudo_header) free(pseudo_header);
@@ -267,11 +267,11 @@ static bool probe_push_payload(probe_t * probe, size_t payload_size) {
 
     // Retrieve the size of the probe packet before payload addition
     current_size = (first_layer = probe_get_layer(probe, 0)) ?
-        first_layer->buffer_size : 0;
+        first_layer->segment_size : 0;
 
     // Initialize the payload layer
-    layer_set_buffer(payload_layer, buffer_get_data(probe->buffer) + current_size);
-    layer_set_buffer_size(payload_layer, payload_size);
+    layer_set_segment(payload_layer, buffer_get_data(probe->buffer) + current_size);
+    layer_set_segment_size(payload_layer, payload_size);
     layer_set_header_size(payload_layer, 0);
 
     // Add the payload layer in the probe
@@ -319,8 +319,8 @@ static bool probe_buffer_resize(probe_t * probe, size_t size)
     // We must reset properly for each layer's buffer
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
-        layer_set_buffer(layer, buffer_get_data(probe->buffer) + offset);
-        layer_set_buffer_size(layer, size - offset);
+        layer_set_segment(layer, buffer_get_data(probe->buffer) + offset);
+        layer_set_segment_size(layer, size - offset);
 
         if (layer->protocol) {
             // Update length field (if any)
@@ -343,25 +343,13 @@ static bool probe_buffer_resize(probe_t * probe, size_t size)
 
 probe_t * probe_create(void)
 {
-    probe_t * probe = malloc(sizeof(probe_t));
-    if (!probe) goto ERR_PROBE;
+    probe_t * probe;
 
-    // Create the buffer to store the field content
-    probe->buffer = buffer_create();
-    if (!probe->buffer) goto ERR_BUFFER;
-
-    // Initially the probe has no layers
-    probe->layers = dynarray_create();
-    if (!probe->layers) goto ERR_LAYERS;
-
-    // Bitfield that manages which bits have already been set. 
-    // For the moment this is an empty bitfield
+    // We calloc probe to set *_time and caller members to 0
+    if (!(probe = calloc(1, sizeof(probe_t))))   goto ERR_PROBE;
+    if (!(probe->buffer = buffer_create()))      goto ERR_BUFFER;
+    if (!(probe->layers = dynarray_create()))    goto ERR_LAYERS;
     if (!(probe->bitfield = bitfield_create(0))) goto ERR_BITFIELD;
-
-    probe->sending_time  = 0;
-    probe->queueing_time = 0;
-    probe->recv_time     = 0;
-    probe->caller        = NULL;
     return probe;
 
 ERR_BITFIELD:
@@ -376,12 +364,12 @@ ERR_PROBE:
 
 probe_t * probe_dup(probe_t * probe)
 {
-    probe_t    * ret = NULL;
-    buffer_t   * buffer;
-    
-    if (!(ret = probe_create()))                          goto ERR_PROBE;
-    if (!(buffer = buffer_dup(probe->buffer)))            goto ERR_BUFFER_DUP;
-    if (!(probe_set_buffer(ret, buffer)))                 goto ERR_SET_BUFFER;
+    probe_t * ret;
+
+    if (!(ret           = probe_create()))                goto ERR_PROBE;
+    if (!(ret->buffer   = buffer_dup(probe->buffer)))     goto ERR_BUFFER_DUP;
+    // TODO recreate layers according to the new buffer
+    //fprintf(stderr, "probe_dup: not fully implemented\n");
     if (!(ret->bitfield = bitfield_dup(probe->bitfield))) goto ERR_BITFIELD_DUP;
 
     ret->sending_time  = probe->sending_time;
@@ -391,7 +379,6 @@ probe_t * probe_dup(probe_t * probe)
     return ret;
 
 ERR_BITFIELD_DUP:
-ERR_SET_BUFFER:
     buffer_free(ret->buffer);
 ERR_BUFFER_DUP:
     probe_free(ret);
@@ -414,7 +401,7 @@ void probe_dump(const probe_t * probe)
     size_t    i, num_layers = probe_get_num_layers(probe); 
     layer_t * layer;
 
-    printf("\n\n** PROBE **\n\n");
+    printf("** PROBE **\n\n");
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         layer_dump(layer, i);
@@ -431,61 +418,77 @@ inline buffer_t * probe_get_buffer(const probe_t * probe) {
     return probe ? probe->buffer : NULL;
 }
 
-bool probe_set_buffer(probe_t * probe, buffer_t * buffer)
+probe_t * probe_wrap_packet(packet_t * packet)
 {
-    size_t       size; // to prevent underflow
-    size_t       offset;
-    uint8_t    * data;
+    // TODO manage free and errors properly
+    probe_t          * probe;
+    uint8_t            protocol_id,
+                       ipv4_protocol_id = 4;
+    size_t             offset, header_size, segment_size;
+    layer_t          * layer;
+    uint8_t          * segment;
+    const field_t    * field;
     const protocol_t * protocol;
-    uint8_t      protocol_id,
-                 ipv4_protocol_id = 4;
+    const buffer_t   * buffer = packet->buffer;
 
+    if (!(probe = probe_create())) {
+        goto ERR_PROBE_CREATE;
+    }
+
+    // Clear the probe
     probe->buffer = buffer;
-    data = buffer_get_data(buffer);
-    size = buffer_get_size(buffer);
-
     probe_layers_clear(probe);
 
-    unsigned char ip_version = buffer_guess_ip_version(buffer);
-             
-////////////////////////:
-    protocol = ip_version == 6 ? protocol_search("ipv6") :
-               ip_version == 4 ? protocol_search("ipv4") :
-               NULL;
-    if (!protocol) {
-        perror("E: probe_set_buffer: cannot guess IP version");
-        return false;
+    // Guess what is the first protocol_id 
+    switch (packet_guess_address_family(packet)) {
+        case AF_INET:
+            protocol = protocol_search("ipv4");
+            break;
+        case AF_INET6:
+            protocol = protocol_search("ipv6");
+            break;
+        default:
+            perror("Cannot guess Internet address family\n");
+            goto ERR_GUESS_FAMILY;
     }
-    protocol_id = protocol-> protocol;
-///////////////
+    protocol_id = protocol->protocol;
 
     offset = 0;
+    segment = buffer_get_data(buffer);
+    segment_size = buffer_get_size(buffer);
 
     for(;;) {
-        layer_t       * layer;
-        const field_t * field;
-        size_t          hdrlen;
-        //printf("-------> coucou\n");
+        // Do we have specifications for this protocol?
+        if (!(protocol = protocol_search_by_id(protocol_id))) {
+            fprintf(stderr, "Unknown protocol ID: %d\n", protocol_id);
+            goto ERR_PROTOCOL_SEARCH_BY_ID;
+        }
 
-        layer = layer_create();
-        layer_set_buffer(layer, data + offset);
-        layer_set_buffer_size(layer, size);
+        header_size = protocol->header_len;
 
-        if (!probe_push_layer(probe, layer)) return false;
+        // TODO layer_t * create_layer_from_segment(uint8_t * segment, size_t segment_size)
+        {
+            // Create a new layer
+            if (!(layer = layer_create())) {
+                goto ERR_CREATE_LAYER;
+            }
 
-        protocol = protocol_search_by_id(protocol_id);
-        if (!protocol)
-            return false; // Cannot find matching protocol
+            // Initialize and install the new layer in the probe
+            layer_set_segment(layer, segment + offset);
+            layer_set_segment_size(layer, segment_size);
+            layer_set_protocol(layer, protocol);
+            layer_set_header_size(layer, header_size);
+            if (!probe_push_layer(probe, layer)) {
+                goto ERR_PUSH_LAYER;
+            }
+        }
 
-        hdrlen = protocol->header_len;
-
-        layer_set_protocol(layer, protocol);
-        layer_set_header_size(layer, hdrlen);
-
-        offset += hdrlen;
-        size -= hdrlen;
-        if (size < 0)
-            return false;
+        offset += header_size;
+        segment_size -= header_size;
+        if (segment_size < 0) {
+            perror("Truncated packet");
+            goto ERR_TRUNCATED_PACKET;
+        }
 
         // In the case of ICMP, while protocol is not really a field, we might
         // provide it by convenience
@@ -503,11 +506,9 @@ bool probe_set_buffer(probe_t * probe, buffer_t * buffer)
 
         else if (strcmp(layer->protocol->name, "icmp") == 0) {
             // We are in an ICMP layer
-            field = layer_create_field(layer, "type");
-
-            if (!field) {
+            if (!(field = layer_create_field(layer, "type"))) {
                 // Weird ICMP packet !
-                return false; 
+                return NULL; 
             }
 
             // 3 == Destination unreachable
@@ -532,6 +533,15 @@ bool probe_set_buffer(probe_t * probe, buffer_t * buffer)
             protocol_id = 0;
             break;
         }
+
+        continue;
+
+ERR_TRUNCATED_PACKET:
+ERR_PUSH_LAYER:
+        layer_free(layer);
+ERR_CREATE_LAYER:
+ERR_PROTOCOL_SEARCH_BY_ID:
+        goto ERR_LAYER_DISCOVER_LAYER;
     } 
 
     // payload
@@ -539,12 +549,18 @@ bool probe_set_buffer(probe_t * probe, buffer_t * buffer)
         // XXX some icmp packets do not have payload
         // Happened with type 3 !
         layer_t * layer = layer_create();
-        layer_set_buffer(layer, data + offset);
-        layer_set_buffer_size(layer, size);
+        layer_set_segment(layer, segment + offset);
+        layer_set_segment_size(layer, segment_size);
+        layer_set_protocol(layer, NULL);
         layer_set_header_size(layer, 0);
-        if (!probe_push_layer(probe, layer)) return false;
+        if (!probe_push_layer(probe, layer)) return NULL;
     }
-    return true; 
+    return probe; 
+
+ERR_LAYER_DISCOVER_LAYER:
+ERR_GUESS_FAMILY:
+ERR_PROBE_CREATE:
+    return NULL;
 }
 
 //-----------------------------------------------------------
@@ -557,12 +573,12 @@ size_t probe_get_num_layers(const probe_t * probe) {
 
 uint8_t * probe_get_payload(const probe_t * probe) {
     const layer_t * layer = probe_get_layer_payload(probe);
-    return layer ? layer->buffer : NULL;
+    return layer ? layer_get_segment(layer) : NULL;
 }
 
 size_t probe_get_payload_size(const probe_t * probe) {
     const layer_t * layer = probe_get_layer_payload(probe);
-    return layer ? layer->buffer_size : 0;
+    return layer ? layer_get_segment_size(layer) : 0;
 }
 
 const char * probe_get_protocol_name(const probe_t * probe, size_t i) {
@@ -577,7 +593,7 @@ int probe_set_protocols(probe_t * probe, const char * name1, ...)
     // and not at the top layer
 
     va_list            args, args2;
-    size_t             buflen, offset;
+    size_t             buflen, offset, header_size;
     const char       * name;
     layer_t          * layer, *prev_layer;
     const protocol_t * protocol;
@@ -603,19 +619,20 @@ int probe_set_protocols(probe_t * probe, const char * name1, ...)
     prev_layer = NULL;
     for (name = name1; name; name = va_arg(args, char *)) {
         // Associate protocol to the layer
-        layer = layer_create();
-        protocol = protocol_search(name);
-        if (!protocol) goto ERR_LAYER;
+        if (!(layer = layer_create()))           goto ERR_LAYER_CREATE;
+        if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH2;
 
         layer_set_protocol(layer, protocol);
 
-        // Initialize the buffer with default protocol values
+        // Initialize the buffer with default protocol values declared in the
+        // dedicated network protocol module (see libparistraceroute/procotols/)
         protocol->write_default_header(buffer_get_data(probe->buffer) + offset);
-        layer_set_header_size(layer, protocol->header_len);
+        header_size = protocol->header_len; // TODO should be set thanks to protocol->write_default_header
+        layer_set_header_size(layer, header_size);
 
         // TODO consider variable length headers
-        layer_set_buffer(layer, buffer_get_data(probe->buffer) + offset);
-        layer_set_buffer_size(layer, buflen - offset);
+        layer_set_segment(layer, buffer_get_data(probe->buffer) + offset);
+        layer_set_segment_size(layer, buflen - offset);
 //        layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);
 
         // Update 'length' field
@@ -650,8 +667,9 @@ int probe_set_protocols(probe_t * probe, const char * name1, ...)
 ERR_PUSH_PAYLOAD:
 ERR_PUSH_LAYER:
 ERR_SET_LENGTH:
+ERR_PROTOCOL_SEARCH2:
     layer_free(layer);
-ERR_LAYER:
+ERR_LAYER_CREATE:
     probe_layers_clear(probe);
 ERR_PROTOCOL_SEARCH:
     return -1;
@@ -666,7 +684,7 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size)
     
     if (!(payload_layer = probe_get_layer_payload(probe))) goto ERR_NO_PAYLOAD; 
 
-    old_payload_size = layer_get_buffer_size(payload_layer);
+    old_payload_size = layer_get_segment_size(payload_layer);
 
     // Compare payload lenths
     if (old_payload_size != payload_size) {
@@ -691,10 +709,12 @@ ERR_NO_PAYLOAD:
     return false;
 }
 
+// TODO rename probe_write_payload
 bool probe_set_payload(probe_t *probe, buffer_t * payload) {
     return probe_write_payload(probe, payload, 0);
 }
 
+// TODO rename probe_write_payload_ext
 bool probe_write_payload(probe_t * probe, buffer_t * payload, unsigned int offset)
 {
     layer_t * payload_layer;
@@ -740,7 +760,6 @@ bool probe_set_field(probe_t * probe, field_t * field) {
 bool probe_set_metafield_ext(probe_t * probe, size_t depth, field_t * field)
 {
     bool          ret = false;
-    metafield_t * metafield;
     field_t     * hacked_field;
 
     // TODO: TEMP HACK IPv4 flow id is encoded in src_port
@@ -904,7 +923,7 @@ bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, v
     if (!(field = probe_create_field_ext(probe, name, depth))) goto ERR_CREATE_FIELD;
 
     if (field->type == TYPE_STRING) {
-        *((char **) dst) = strdup(field->value.string);
+        *((char **) dst) = strdup(field->value.string); // TODO why strdup?
     } else {
         memcpy(dst, &field->value, field_get_size(field));
     } 
@@ -958,3 +977,41 @@ void probe_reply_set_reply(probe_reply_t * probe_reply, probe_t * reply) {
 probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply) {
     return probe_reply->reply;
 }
+
+packet_t * probe_create_packet(probe_t * probe)
+{
+    char     * dst_ip;
+    uint16_t   dst_port;
+    packet_t * packet;
+    
+    // The destination IP is a mandatory field
+    if (!(probe_extract(probe, "dst_ip", &dst_ip))) {
+        perror("packet_create_from_probe: this probe has no 'dst_ip' field\n");
+        goto ERR_EXTRACT_DST_IP;
+    }
+
+    // The destination port is a mandatory field
+    if (!(probe_extract(probe, "dst_port", &dst_port))) {
+        perror("packet_create_from_probe: this probe has no 'dst_port' field\n");
+        goto ERR_EXTRACT_DST_PORT;
+    }
+
+    // Create the corresponding packet
+    if (!(packet = packet_create())) {
+        goto ERR_PACKET_CREATE;
+    }
+    packet->dst_ip = dst_ip;
+    packet->dst_port = dst_port;
+    packet_set_buffer(packet, probe_get_buffer(probe));
+
+    // Do not free dst_ip since it is not dup in packet_set_dip()
+    return packet;
+
+ERR_PACKET_CREATE:
+ERR_EXTRACT_DST_PORT:
+    free(dst_ip);
+ERR_EXTRACT_DST_IP:
+    return NULL;
+}
+
+

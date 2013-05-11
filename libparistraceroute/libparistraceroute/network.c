@@ -150,6 +150,8 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 {
     uint16_t   tag, checksum;
     buffer_t * payload;
+    size_t     payload_size = probe_get_payload_size(probe);
+    size_t     tag_size = sizeof(uint16_t);
 
     /* The probe gets assigned a unique tag. Currently we encode it in the UDP
      * checksum, but I guess the tag will be protocol dependent. Also, since the
@@ -169,44 +171,56 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     // TODO: The UDP checksum is the place where the probe ID is currently written.
     //       but we must define a metafield "tag", which can be parametrized,
     //       and match on this metafield
+    if (payload_size < tag_size) {
+        fprintf(stderr, "Payload to short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
+        goto ERR_INVALID_PAYLOAD;
+    }
 
     tag = network_get_available_tag(network);
     if (!(payload = buffer_create())) {
+        fprintf(stderr, "Can't create buffer\n");
         goto ERR_BUFFER_CREATE;
     }
 
     // Write the probe ID in the buffer 
-    if (!(buffer_set_data(payload, &tag, sizeof(uint16_t)))) {
+    if (!(buffer_set_data(payload, &tag, tag_size))) {
+        fprintf(stderr, "Can't set data\n");
         goto ERR_BUFFER_SET_DATA;
     }
 
     // Write the tag at offset zero of the payload
     if (!(probe_write_payload(probe, payload, 0))) {
+        fprintf(stderr, "Can't write payload\n");
         goto ERR_PROBE_WRITE_PAYLOAD;
     }
     
     // Update checksum (TODO: should be done automatically by probe_set_fields)
     if (!(probe_update_fields(probe))) {
+        fprintf(stderr, "Can't update fields\n");
         goto ERR_PROBE_UPDATE_FIELDS;
     }
 
     // Retrieve the checksum of UDP checksum 
     if (!(probe_extract_tag(probe, &checksum))) {
-        perror("Can't extract tag\n");
+        fprintf(stderr, "Can't extract tag\n");
         goto ERR_PROBE_EXTRACT_CHECKSUM;
     }
 
     // Write the probe ID in the UDP checksum
     if (!(probe_set_tag(probe, htons(tag)))) {
-        perror("Can't set tag\n");
+        fprintf(stderr, "Can't set tag\n");
         goto ERR_PROBE_SET_TAG;
     }
 
     // Write the old checksum in the payload
-    buffer_set_data(payload, &checksum, sizeof(uint16_t));
-    probe_write_payload(probe, payload, 0);
+    buffer_set_data(payload, &checksum, tag_size);
+    if (!(probe_write_payload(probe, payload, 0))) {
+        fprintf(stderr, "Can't write payload (2)\n");
+        goto ERR_PROBE_WRITE_PAYLOAD2;
+    }
     return true;
 
+ERR_PROBE_WRITE_PAYLOAD2:
 ERR_PROBE_SET_TAG:
 ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:
@@ -214,6 +228,7 @@ ERR_PROBE_WRITE_PAYLOAD:
 ERR_BUFFER_SET_DATA:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
+ERR_INVALID_PAYLOAD:
     return false;
 }
 
@@ -222,7 +237,7 @@ static void network_flying_probes_dump(network_t * network) {
     uint16_t   tag_probe;
     probe_t  * probe;
 
-    printf("\n%d flying probe(s) :\n", num_probes);
+    printf("\n%lu flying probe(s) :\n", num_probes);
     for (i = 0; i < num_probes; i++) {
         probe = dynarray_get_ith_element(network->probes, i);
         probe_extract_tag(probe, &tag_probe) ?
@@ -250,8 +265,8 @@ bool network_process_sendq(network_t * network)
     probe = queue_pop_element(network->sendq, NULL);
 
     /*
-    printf("222222222222222222222222222222222");
-    probe_dump(probe);
+    //printf("222222222222222222222222222222222");
+    //probe_dump(probe);
     */
     
     if (!network_tag_probe(network, probe)) {
@@ -274,7 +289,7 @@ bool network_process_sendq(network_t * network)
     */
 
     // Make a packet from the probe structure 
-    if (!(packet = packet_create_from_probe(probe))) {
+    if (!(packet = probe_create_packet(probe))) {
         perror("network_process_sendq: Can't create packet");
     	goto ERR_CREATE_PACKET;
     }
@@ -437,10 +452,15 @@ bool network_process_recvq(network_t * network)
     }
 
     // Transform the reply into a probe_t instance
+    /*
     if (!(reply = probe_create())) {
         goto ERR_PROBE_CREATE;
     }
     probe_set_buffer(reply, packet->buffer);
+    */
+    if(!(reply = probe_wrap_packet(packet))) {
+        goto ERR_PROBE_WRAP_PACKET;
+    }
     probe_set_recv_time(reply, get_timestamp());
 
     // Find the probe corresponding to this reply
@@ -454,17 +474,19 @@ bool network_process_recvq(network_t * network)
     if (!(probe_reply = probe_reply_create())) {
         goto ERR_PROBE_REPLY_CREATE;
     }
-    probe_reply_set_probe(probe_reply, probe_dup(probe));
-    probe_reply_set_reply(probe_reply, probe_dup(reply));
+
+    // We're pass to the upper layer the probe and the reply to the upper layer.
+    probe_reply_set_probe(probe_reply, probe);
+    probe_reply_set_reply(probe_reply, reply);
 
     // Notify the instance which has build the probe that we've got the corresponding reply
-    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL)); // TODO probe_reply_deep_free));
+    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL)); // TODO probe_reply_free frees only the reply
     return true;
 
 ERR_PROBE_REPLY_CREATE:
 ERR_PROBE_DISCARDED:
-    probe_free(probe);
-ERR_PROBE_CREATE:
+    probe_free(reply);
+ERR_PROBE_WRAP_PACKET:
     packet_free(packet);
 ERR_PACKET_POP:
     return false;

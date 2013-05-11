@@ -5,6 +5,7 @@
 #include <sys/eventfd.h>
 
 // Do not include "algorithm.h" to avoid mutual inclusion
+#include "probe.h"
 #include "network.h"
 #include "event.h"
 
@@ -121,7 +122,7 @@ event_t ** pt_loop_get_user_events(pt_loop_t * loop);
  * \return The number of user events.
  */
 
-unsigned pt_loop_get_num_user_events(pt_loop_t * loop);
+size_t pt_loop_get_num_user_events(pt_loop_t * loop);
 
 //void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *reply);
 //void pt_probe_send(struct pt_loop_s *loop, probe_t *probe);
@@ -135,7 +136,7 @@ unsigned pt_loop_get_num_user_events(pt_loop_t * loop);
  * \return true iif successful 
  */
 
-bool pt_send_probe(pt_loop_t *loop, probe_t *probe);
+bool pt_send_probe(pt_loop_t * loop, probe_t * probe);
 
 /**
  * \brief Stop the main loop

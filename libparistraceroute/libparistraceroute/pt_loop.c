@@ -183,23 +183,18 @@ void pt_loop_free(pt_loop_t * loop)
 
 // Accessors
 
-inline event_t ** pt_loop_get_user_events(pt_loop_t * loop)
-{
+inline event_t ** pt_loop_get_user_events(pt_loop_t * loop) {
     return loop ?
-        (event_t**) dynarray_get_elements(loop->events_user) :
+        (event_t **) dynarray_get_elements(loop->events_user) :
         NULL;
 }
 
-inline unsigned pt_loop_get_num_user_events(pt_loop_t * loop)
-{
+inline size_t pt_loop_get_num_user_events(pt_loop_t * loop) {
     return loop->events_user->size;
 }
 
-inline void pt_loop_clear_user_events(pt_loop_t * loop)
-{
-    if (loop) {
-        dynarray_clear(loop->events_user, (ELEMENT_FREE) event_free);
-    }
+static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
+    dynarray_clear(loop->events_user, (ELEMENT_FREE) event_free);
 }
 
 /**
@@ -323,15 +318,23 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     return loop->stop == PT_LOOP_TERMINATE ? 0 : -1;
 }
 
-// not the right callback here
 bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 {
+    /*
     probe_t * probe_duplicated;
+
+    printf("In pt_send_probe:\n");
+    probe_dump(probe);
 
     if (!(probe_duplicated = probe_dup(probe))) {
         perror("pt_send_probe: Cannot duplicate probe\n");
         goto ERR_PROBE_DUP;
     }
+
+    printf("In pt_send_probe (duplicated probe):\n");
+    probe_dump(probe);
+    */
+    probe_t * probe_duplicated = probe;
 
     // Annotate which algorithm has generated this probe
     probe_set_caller(probe_duplicated, loop->cur_instance);
@@ -346,12 +349,11 @@ ERR_PROBE_DUP:
     return false;
 }
 
-void pt_loop_terminate(pt_loop_t * loop)
-{
+void pt_loop_terminate(pt_loop_t * loop) {
     loop->stop = PT_LOOP_TERMINATE;
 }
 
-bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
+static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
     // Allocate the event
     event_t * event = event_create(
         type,

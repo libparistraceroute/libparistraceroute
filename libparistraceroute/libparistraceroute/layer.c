@@ -28,25 +28,28 @@ inline void layer_set_protocol(layer_t * layer, const protocol_t * protocol) {
     layer->protocol = protocol;
 }
 
-inline void layer_set_buffer_size(layer_t * layer, size_t buffer_size) {
-    layer->buffer_size = buffer_size;
-    // TODO resize mask
+inline size_t layer_get_segment_size(const layer_t * layer) {
+    return layer->segment_size;
 }
 
-inline size_t layer_get_buffer_size(const layer_t * layer) {
-    return layer->buffer_size;
+inline void layer_set_segment_size(layer_t * layer, size_t segment_size) {
+    layer->segment_size = segment_size;
+}
+
+inline size_t layer_get_header_size(const layer_t * layer) {
+    return layer->header_size;
 }
 
 inline void layer_set_header_size(layer_t * layer, size_t header_size) {
     layer->header_size = header_size;
 }
 
-inline uint8_t * layer_get_buffer(layer_t * layer) {
-    return layer->buffer;
+inline uint8_t * layer_get_segment(const layer_t * layer) {
+    return layer->segment;
 }
 
-inline void layer_set_buffer(layer_t * layer, uint8_t * buffer) {
-    layer->buffer = buffer;
+inline void layer_set_segment(layer_t * layer, uint8_t * segment) {
+    layer->segment = segment;
 }
 
 /*
@@ -61,12 +64,12 @@ field_t * layer_create_field(const layer_t * layer, const char * name)
     if (layer && layer->protocol) {
         if ((protocol_field = protocol_get_field(layer->protocol, name))) {
             if (protocol_field->get) {
-                return protocol_field->get(layer->buffer);
+                return protocol_field->get(layer->segment);
             } else {
                 return field_create_from_network(
                     protocol_field->type,
                     name,
-                    layer->buffer + protocol_field->offset
+                    layer->segment + protocol_field->offset
                 );
             }
         }
@@ -104,12 +107,12 @@ bool layer_set_field(layer_t * layer, field_t * field)
     // Copy the field value into the buffer 
     // If we have a setter function, we use it, otherwise write the value directly
     if (protocol_field->set) {
-        if (!(protocol_field->set(layer->buffer, field))) {
+        if (!(protocol_field->set(layer->segment, field))) {
             fprintf(stderr, "layer_set_field: can't set field '%s'\n", field->key);
             goto ERR_PROTOCOL_FIELD_SET;
         }
     } else {
-        protocol_field_set(protocol_field, layer->buffer, field);
+        protocol_field_set(protocol_field, layer->segment, field);
     }
 
     // TODO update mask here
@@ -137,12 +140,12 @@ bool layer_write_payload(layer_t * layer, const buffer_t * payload, unsigned int
         return false;
     }
 
-    if (offset + buffer_get_size(payload) > layer->buffer_size) {
+    if (offset + buffer_get_size(payload) > layer->segment_size) {
         // The buffer allocated to this layer is too small
         return false;
     }
 
-    memcpy(layer->buffer + offset, buffer_get_data(payload), buffer_get_size(payload));
+    memcpy(layer->segment + offset, buffer_get_data(payload), buffer_get_size(payload));
     // TODO update mask
     return true;
 }
@@ -156,7 +159,7 @@ void layer_dump(layer_t * layer, unsigned int indent)
 
     // There is no nested layer, so data carried by this layer is the payload
     if (!layer->protocol) {
-        size = layer->buffer_size; 
+        size = layer->segment_size; 
         print_indent(indent);
         printf("PAYLOAD:\n");
         print_indent(indent);
@@ -166,7 +169,7 @@ void layer_dump(layer_t * layer, unsigned int indent)
         print_indent(indent);
         printf("%-15s", "data");
         for (i = 0; i < size; i++) {
-           printf(" %02x", layer->buffer[i]);
+           printf(" %02x", layer->segment[i]);
         }
         printf("\n");
     } else {

@@ -84,11 +84,6 @@ inline void buffer_set_size(buffer_t * buffer, size_t size) {
     buffer->size = size;
 }
 
-uint8_t buffer_guess_ip_version(buffer_t * buffer) {
-    // TODO This should be ipv4_get_version 
-    return buffer->data[0] >> 4;
-}
-
 // Dump
 
 void buffer_dump(const buffer_t * buffer) {

@@ -17,7 +17,7 @@
 
 void my_traceroute_handler(
     pt_loop_t                  * loop,
-    const traceroute_event_t   * traceroute_event,
+    traceroute_event_t         * traceroute_event,
     const traceroute_options_t * traceroute_options,
     const traceroute_data_t    * traceroute_data
 ) {
@@ -52,7 +52,7 @@ void my_traceroute_handler(
             {
                 double send_time = probe_get_sending_time(probe),
                        recv_time = probe_get_recv_time(reply);
-                printf(" (%-05.2lfms) ", 1000 * (recv_time - send_time));
+                printf(" (%-5.2lfms) ", 1000 * (recv_time - send_time));
             }
             num_probes_printed++;
             break;
@@ -65,7 +65,10 @@ void my_traceroute_handler(
             num_probes_printed++;
             break;
         case TRACEROUTE_TOO_MANY_STARS:
+            printf("Too many stars\n");
+            break;
         case TRACEROUTE_MAX_TTL_REACHED:
+            printf("Max ttl reached\n");
             break;
         case TRACEROUTE_DESTINATION_REACHED:
             // The traceroute algorithm has terminated.
@@ -96,9 +99,9 @@ void my_traceroute_handler(
 
 void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
+    traceroute_event_t         * traceroute_event;
     const traceroute_options_t * traceroute_options;
     const traceroute_data_t    * traceroute_data;
-    const traceroute_event_t   * traceroute_event;
     const char                 * algorithm_name;
 
     switch (event->type) {
@@ -140,8 +143,8 @@ int main(int argc, char ** argv)
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
-    char dst_ip[] = "8.8.8.8";
-//    char dst_ip[] = "1.1.1.2";
+//    char dst_ip[] = "8.8.8.8";
+    char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
@@ -154,7 +157,8 @@ int main(int argc, char ** argv)
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
     options.num_probes = 1;
-    //options.max_ttl = 1;
+//    options.max_ttl = 1;
+    printf("num_probes = %lu max_ttl = %lu\n", options.num_probes, options.max_ttl); 
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
@@ -190,7 +194,7 @@ int main(int argc, char ** argv)
 ERR_IN_PT_LOOP:
     // instance is freed by pt_loop_free
 ERR_INSTANCE:
-    probe_free(probe);
+    // probe_free(probe); // Cannot probe_free while probe_dup is not achieved in pt_send_probe
 ERR_PROBE_CREATE:
     pt_loop_free(loop);
 ERR_LOOP_CREATE:

@@ -13,14 +13,19 @@
 #include "buffer.h"
 #include "bitfield.h"
 #include "dynarray.h"
+#include "packet.h"
 
 /**
  * \struct probe_t
  * \brief Structure representing a probe
+ * A probe is made of one or several layer.
+ * The last layer is the payload (if any).
+ * Otherwise, a layer is always related to a network protocol.
+ * For instance a probe ipv4/udp/payload is made of 3 layers.
  */
 
 typedef struct {
-    dynarray_t * layers;        /**< List of layers forming the packet header */
+    dynarray_t * layers;        /**< List of layers forming the packet */
     buffer_t   * buffer;        /**< Buffer containing the packet we're crafting */ 
     bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     void       * caller;        /**< Algorithm instance which has created this probe */
@@ -55,14 +60,12 @@ void probe_free(probe_t * probe);
 buffer_t * probe_get_buffer(const probe_t * probe);
 
 /**
- * \brief Update a probe (including its forming layers) according to a buffer. 
- * \param probe A pointer to a preallocated probe that we're modifying
- * \param buffer The buffer we're assigning to this probe. This buffer
- *    is not duplicated.
- * \return true iif successful
+ * \brief Create a probe_t according to a packet_t instance
+ * \return A pointer to a newly allocated probe_t instance if
+ *   if successful, NULL otherwise
  */
 
-bool probe_set_buffer(probe_t * probe, buffer_t * buffer);
+probe_t * probe_wrap_packet(packet_t * packet);
 
 /**
  * \brief Print probe contents
@@ -297,5 +300,13 @@ void pt_probe_reply_callback(struct pt_loop_s * loop, probe_t * probe, probe_t *
 
 
 int probe_set_protocols(probe_t * probe, const char * name1, ...);
+
+/**
+ * \brief Create a new packet from a probe
+ * \param probe Pointer to the probe to use
+ * \return New packet_t structure
+ */
+
+packet_t * probe_create_packet(probe_t * probe);
 
 #endif

@@ -25,16 +25,22 @@
 /**
  * \struct layer_t
  * \brief Structure describing a layer
+ * A layer points to a segment of bytes transported by this probe_t instance.
+ * For a given probe_t instance, a layer can be either related
+ *  - to a network protocol
+ *    - in this case, the segment both covers the header and its data
+ *  - to its payload.
+ *    - in this case, the segment covers the whole payload
  */
 
-// TODO we could use buffer_t instead of uint8_t + size_t if we update probe.c
 typedef struct {
-    const protocol_t * protocol;    /**< Points to the protocol implemented in this layer. Set to NULL if this layer is the payload */
-    uint8_t    * buffer;            /**< Points to the begining of the layer in the packet */
-    uint8_t    * mask;              /**< Indicates which bits have been set. TODO: not yet implemented, use a bitfield_t. Maybe probe_t is sufficient? */
-    size_t       header_size;       /**< Size of the header (0 if this layer is related to the payload */
-    // TODO rename data_size
-    size_t       buffer_size;       /**< Size of data carried by the layer (header + data) */
+    const protocol_t * protocol;     /**< Points to the protocol implemented in this layer. Set to NULL if this layer is the payload */
+    uint8_t          * segment;      /**< Points to the begining of the segment (header + data) of this layer in the packet */
+    uint8_t          * mask;         /**< TODO (not yet implemented)
+                                          Indicates which bits have been set. 
+                                          Should points to probe's bitfield */
+    size_t             header_size;  /**< Size of the header (0 if this layer is related to the payload */
+    size_t             segment_size; /**< Size of segment (header + data) related to this layer */
 } layer_t;
 
 /**
@@ -71,16 +77,6 @@ void layer_free(layer_t * layer);
  */
 
 void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
-
-/**
- * \brief Set the sublayer for a layer
- * \param layer Pointer to the layer structure to change
- * \param sublayer Pointer to the sublayer to be used
- * \return 
- */
-
-// TODO should return bool
-int layer_set_sublayer(layer_t * layer, layer_t * sublayer);
 
 /**
  * \brief Set the header fields for a layer
@@ -129,29 +125,16 @@ bool layer_set_payload(layer_t * layer, buffer_t * payload);
 bool layer_write_payload(layer_t * layer, const buffer_t * payload, unsigned int offset);
 
 /**
- * \brief Set the size of the buffer stored in the layer.
- *    It does not resize the buffer itself.
- * \sa buffer_resize(buffer_t * buffer, size_t size)
- * \param layer A pointer to a layer instance
- * \param buffer_size The new size
- */
-
-void layer_set_buffer_size(layer_t * layer, size_t buffer_size);
-
-/**
  * \brief Retrieve the size of the buffer stored in the layer_t structure.
- * \param layer A pointer to a layer instance.
+ * \param layer A pointer to a layer_t instance.
  */ 
 
-// TODO rename get_data_size
-size_t layer_get_buffer_size(const layer_t * layer);
-void layer_set_header_size(layer_t * layer, size_t header_size);
-
-// TODO rename set_segment_address
-void layer_set_buffer(layer_t * layer, uint8_t * buffer);
-
-// TODO rename get_segment_address
-uint8_t * layer_get_buffer(layer_t * layer);
+size_t    layer_get_segment_size(const layer_t * layer);
+void      layer_set_segment_size(layer_t * layer, size_t segment_size);
+size_t    layer_get_header_size(const layer_t * layer);
+void      layer_set_header_size(layer_t * layer, size_t header_size);
+uint8_t * layer_get_segment(const layer_t * layer);
+void      layer_set_segment(layer_t * layer, uint8_t * segment);
 
 //void layer_set_mask(layer_t * layer, uint8_t * mask);
 

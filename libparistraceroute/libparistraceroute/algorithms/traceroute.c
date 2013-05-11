@@ -81,6 +81,10 @@ bool send_traceroute_probe(
     bool ret = true;
 
     if (probe_set_fields(probe_skel, I8("ttl", ttl), NULL)) {
+        if (num_probes > 1) {
+            printf("TODO: probe_dup");
+            num_probes = 1;
+        }
         for (i = 0; i < num_probes; ++i) {
             ret &= pt_send_probe(loop, probe_skel);
         }
