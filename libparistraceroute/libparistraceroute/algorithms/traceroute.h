@@ -34,9 +34,9 @@
 //--------------------------------------------------------------------
 
 typedef struct {
-    unsigned     min_ttl;    /**< Minimum ttl at which to send probes */
-    unsigned     max_ttl;    /**< Maximum ttl at which to send probes */
-    unsigned     num_probes; /**< Number of probes per hop            */
+    uint8_t      min_ttl;    /**< Minimum ttl at which to send probes */
+    uint8_t      max_ttl;    /**< Maximum ttl at which to send probes */
+    size_t       num_probes; /**< Number of probes per hop            */
     const char * dst_ip;     /**< The target IP */
 } traceroute_options_t;
 
@@ -69,12 +69,12 @@ typedef struct {
 } traceroute_event_t;
 
 typedef struct {
-    bool    destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
-    uint8_t ttl;                 /**< TTL currently explored                   */
-//    size_t  num_sent_probes;     /**< Total of probe sent for this instance    */
-    size_t  num_replies;         /**< Total of probe sent for this instance    */
-    size_t  num_undiscovered;    /**< Number of consecutive undiscovered hops  */
-    size_t  num_stars;           /**< Number of probe lost for the current hop */
+    bool         destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
+    uint8_t      ttl;                 /**< TTL currently explored                   */
+    size_t       num_replies;         /**< Total of probe sent for this instance    */
+    size_t       num_undiscovered;    /**< Number of consecutive undiscovered hops  */
+    size_t       num_stars;           /**< Number of probe lost for the current hop */
+    dynarray_t * probes;              /**< Probe instances allocated by traceroute  */
 } traceroute_data_t;
 
 #endif

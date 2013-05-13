@@ -43,6 +43,43 @@ void traceroute_update_options(dynarray_t * options) {
 }
 
 //-----------------------------------------------------------------
+// Traceroute algorithm's data
+//-----------------------------------------------------------------
+
+/**
+ * \brief Allocate a traceroute_data_t instance
+ * \return The newly allocated traceroute_data_t instance,
+ *    NULL in case of failure
+ */
+
+static traceroute_data_t * traceroute_data_create() {
+    traceroute_data_t * traceroute_data;
+
+    if (!(traceroute_data = calloc(1, sizeof(traceroute_data_t)))) goto ERR_MALLOC;
+    if (!(traceroute_data->probes = dynarray_create()))            goto ERR_PROBES;
+    return traceroute_data;
+
+ERR_PROBES:
+    free(traceroute_data);
+ERR_MALLOC:
+    return NULL;
+}
+
+/**
+ * \brief Release a traceroute_data_t instance from the memory
+ * \param traceroute_data The traceroute_data_t instance we want to release.
+ */
+
+static void traceroute_data_free(traceroute_data_t * traceroute_data) {
+    if (traceroute_data) {
+        if (traceroute_data->probes) {
+            dynarray_free(traceroute_data->probes, (ELEMENT_FREE) probe_free);
+        }
+        free(traceroute_data);
+    }
+}
+
+//-----------------------------------------------------------------
 // Traceroute algorithm
 //-----------------------------------------------------------------
 
@@ -62,6 +99,29 @@ static inline bool destination_reached(const char * dst_ip, const probe_t * repl
     return ret;
 }
 
+bool send_traceroute_probe(
+    pt_loop_t         * loop,
+    traceroute_data_t * traceroute_data,
+    const probe_t     * probe_skel,
+    uint8_t             ttl
+) {
+    probe_t * probe;
+
+    // Probe must be duplicated to avoid side effect. Indeed, once sent
+    // a probe must never be altered, otherwise the network layer may
+    // manage corrupted probes.
+    if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP; 
+    if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
+    if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;
+    return pt_send_probe(loop, probe);
+
+ERR_PROBE_PUSH_ELEMENT:
+ERR_PROBE_SET_FIELDS:
+    probe_free(probe);
+ERR_PROBE_DUP:
+    return false;
+}
+
 /**
  * \brief Send n traceroute probes toward a destination with a given TTL
  * \param pt_loop The paris traceroute loop
@@ -71,27 +131,22 @@ static inline bool destination_reached(const char * dst_ip, const probe_t * repl
  * \return true if successful
  */
 
-bool send_traceroute_probe(
-    pt_loop_t * loop,
-    probe_t   * probe_skel,
-    size_t num_probes,
-    uint8_t ttl
+bool send_traceroute_probes(
+    pt_loop_t         * loop,
+    traceroute_data_t * traceroute_data,
+    const probe_t     * probe_skel,
+    size_t              num_probes,
+    uint8_t             ttl
 ) {
-    size_t i;
-    bool ret = true;
+    size_t    i;
 
-    if (probe_set_fields(probe_skel, I8("ttl", ttl), NULL)) {
-        if (num_probes > 1) {
-            printf("TODO: probe_dup");
-            num_probes = 1;
+    for (i = 0; i < num_probes; ++i) {
+        if (!(send_traceroute_probe(loop, traceroute_data, probe_skel, ttl))) {
+            return false;
         }
-        for (i = 0; i < num_probes; ++i) {
-            ret &= pt_send_probe(loop, probe_skel);
-        }
-    } else ret = false;
-    return ret; 
+    }
+    return true;
 }
-
 
 
 /**
@@ -124,12 +179,10 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             }
 
             // Allocate structure storing current state information and update *pdata
-            if (!(data = malloc(sizeof(traceroute_data_t)))) {
+            if (!(data = traceroute_data_create())) {
                 goto FAILURE;
-            } else *pdata = data;
-
-            // Initialize traceroute_data_t structure
-            memset(data, 0, sizeof(traceroute_data_t));
+            }
+            *pdata = data;
             data->ttl = options->min_ttl;
             break;
 
@@ -162,7 +215,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
 
         case ALGORITHM_TERMINATED:
             // The caller allows us to free traceroute's data
-            if (*pdata) free(data);
+            traceroute_data_free(*pdata);
             *pdata = NULL;
             break;
 
@@ -196,7 +249,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             }
         } else {
             // Discover the next hop
-            if (!send_traceroute_probe(loop, probe_skel, options->num_probes, data->ttl)) {
+            if (!send_traceroute_probes(loop, data, probe_skel, options->num_probes, data->ttl)) {
                 goto FAILURE;
             }
             (data->ttl)++;

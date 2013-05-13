@@ -74,7 +74,7 @@ void my_traceroute_handler(
             // The traceroute algorithm has terminated.
             // We could print additional results.
             // Interrupt the main loop.
-            // TODO: should we notify the main loop and provoke pt_loop_terminate in main_handler?
+            // TODO: should we notify the main loop and provoke pt_loop_terminate in algorithm_handler?
             pt_loop_terminate(loop);
             break;
         default:
@@ -84,10 +84,6 @@ void my_traceroute_handler(
     if (num_probes_printed % traceroute_options->num_probes == 0) {
         printf("\n");
     }
-
-    // Custom event are event with a specific enum, so they can be freed
-    // thanks to event_free
-    event_free((event_t *) traceroute_event);
 }
 
 /**
@@ -97,7 +93,7 @@ void my_traceroute_handler(
  * \param user_data Data shared in pt_loop_create() 
  */
 
-void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
+void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
     traceroute_event_t         * traceroute_event;
     const traceroute_options_t * traceroute_options;
@@ -108,7 +104,6 @@ void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
         case ALGORITHM_TERMINATED:
             printf("> ALGORITHM_TERMINATED\n");
             pt_instance_stop(loop, event->issuer); // release traceroute's data from the memory
-            event_free(event);
             pt_loop_terminate(loop);               // we've only run one 'traceroute' algorithm, so we can break the main loop 
             break;
         case ALGORITHM_EVENT: // an traceroute-specific event has been raised
@@ -121,9 +116,11 @@ void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
             }
             break;
         default:
-            event_free(event);
             break;
     }
+
+    // Release the event, its nested traceroute_event (if any), its attached probe and reply (if any)
+    event_free(event);
 }
 
 /**
@@ -143,8 +140,8 @@ int main(int argc, char ** argv)
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
-    char dst_ip[] = "8.8.8.8";
-//    char dst_ip[] = "1.1.1.2";
+//    char dst_ip[] = "8.8.8.8";
+    char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
@@ -156,13 +153,13 @@ int main(int argc, char ** argv)
     // Prepare options related to the 'traceroute' algorithm
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
-    options.num_probes = 1;
-//    options.max_ttl = 1;
-    printf("num_probes = %lu max_ttl = %lu\n", options.num_probes, options.max_ttl); 
+    options.num_probes = 3;
+    options.max_ttl = 2;
+    printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl); 
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
-    if (!(loop = pt_loop_create(main_handler, NULL))) {
+    if (!(loop = pt_loop_create(algorithm_handler, NULL))) {
         perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
@@ -175,7 +172,8 @@ int main(int argc, char ** argv)
 
     probe_set_protocols(probe, "ipv4", "udp", NULL);
     probe_write_payload(probe, payload, 0);
-    probe_set_fields(probe, STR("dst_ip", dst_ip), NULL);
+    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
+    probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {

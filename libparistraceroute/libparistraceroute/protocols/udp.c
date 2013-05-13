@@ -177,7 +177,6 @@ buffer_t * udp_create_psh_ipv4(const uint8_t * ipv4_packet)
 {
     const struct iphdr * ip_hdr = (const struct iphdr *) ipv4_packet;
     buffer_t           * ipv4_psh;
-    uint8_t            * data;
     ipv4_pseudo_header_t ipv4_pseudo_header;
     
     if (!(ipv4_psh = buffer_create())) {

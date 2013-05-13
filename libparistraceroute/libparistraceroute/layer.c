@@ -79,8 +79,8 @@ field_t * layer_create_field(const layer_t * layer, const char * name)
 
 bool layer_set_field(layer_t * layer, field_t * field)
 {
-    protocol_field_t * protocol_field;
-    size_t             protocol_field_size;
+    const protocol_field_t * protocol_field;
+    size_t                   protocol_field_size;
 
     if (!field) {
         fprintf(stderr, "layer_set_field: invalid field\n");

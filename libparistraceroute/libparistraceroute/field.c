@@ -248,7 +248,7 @@ void field_dump(const field_t * field)
             printf("%-10hu (0x%04x)", field->value.int16, field->value.int16);
             break;
         case TYPE_INT32:
-            printf("%-10u (0x%08lx)", field->value.int32, field->value.int32);
+            printf("%-10u (0x%08x)", field->value.int32, field->value.int32);
             break;
         case TYPE_INT64:
             printf("%lu", field->value.int64);

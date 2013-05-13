@@ -9,6 +9,8 @@
 #include <stddef.h> // size_t
 #include <stdint.h>
 
+// TODO allow to define bit level fields (for instance for flags)
+// it could be use to manage properly i4 fields
 
 typedef union{
 	uint32_t	d32[4];

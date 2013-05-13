@@ -83,6 +83,7 @@ bool buffer_resize(buffer_t * buffer, size_t size);
  * \return true iif successfull
  */
 
+// TODO rename buffer_create_from_bytes
 bool buffer_set_data(buffer_t * buffer, const void * data, size_t size);
 
 /**

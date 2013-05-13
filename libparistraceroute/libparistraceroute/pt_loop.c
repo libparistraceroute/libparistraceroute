@@ -348,8 +348,10 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
     queue_push_element(loop->network->sendq, probe_duplicated);
 
     return true;
+    /*
 ERR_PROBE_DUP:
     return false;
+    */
 }
 
 void pt_loop_terminate(pt_loop_t * loop) {

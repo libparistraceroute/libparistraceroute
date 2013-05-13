@@ -24,10 +24,52 @@ typedef struct packet_s {
 
 /**
  * \brief Create a new packet
- * \return New packet_t structure
+ * \return The newly allocated packet_t instance, NULL in case of failure 
  */
 
 packet_t * packet_create(void);
+
+/**
+ * \brief Create a new packet
+ * \param bytes The bytes carried by the packet
+ * \param num_bytes The packet size (in bytes)
+ * \return The newly allocated packet_t instance, NULL in case of failure 
+ */
+
+packet_t * packet_wrap_bytes(uint8_t * bytes, size_t num_bytes);
+
+/**
+ * \brief Resize a packet
+ * \param new_size The new packet size
+ * \return true iif successful
+ */
+
+bool packet_resize(packet_t * packet, size_t new_size);
+
+/**
+ * \brief Retrieve the size of a given packet
+ * \param packet The queried packet
+ * \return The corresponding size (in bytes)
+ */
+
+size_t packet_get_size(const packet_t * packet);
+
+/**
+ * \brief Retrieve a pointer to the begining of bytes managed
+ *   by a packet_t instance
+ * \param packet A packet_t instance
+ * \return The corresponding pointer.
+ */
+
+uint8_t * packet_get_bytes(packet_t * packet);
+
+/**
+ * \brief Duplicate a packet
+ * \param packet The packet we're copying
+ * \return The newly allocated packet, NULL in case of failure 
+ */
+
+packet_t * packet_dup(const packet_t * packet);
 
 /**
  * \brief Delete a packet

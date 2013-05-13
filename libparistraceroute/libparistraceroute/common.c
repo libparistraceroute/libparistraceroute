@@ -11,7 +11,6 @@
 double get_timestamp(void)
 {
     struct timeval tim;
-    double t;
     
     gettimeofday(&tim, NULL);
     return tim.tv_sec + (tim.tv_usec / 1000000.0);

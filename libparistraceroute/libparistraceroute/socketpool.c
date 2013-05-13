@@ -9,6 +9,13 @@
 #include "socketpool.h"
 #include "address.h"
 
+
+/*
+If we send UDP packet, we could get a return error channel.
+Otherwise we require a raw socket in the sniffer to retrieve ICMP layers.
+TCP: see scamper
+*/
+
 union sockaddr_union {
 	struct sockaddr      sa;
 //	struct sockaddr_ll   sll;

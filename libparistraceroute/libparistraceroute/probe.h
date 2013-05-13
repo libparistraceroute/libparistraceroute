@@ -26,7 +26,8 @@
 
 typedef struct {
     dynarray_t * layers;        /**< List of layers forming the packet */
-    buffer_t   * buffer;        /**< Buffer containing the packet we're crafting */ 
+//    buffer_t   * buffer;        /**< Buffer containing the packet we're crafting */ 
+    packet_t   * packet;        /**< The packet we're crafting */ 
     bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     void       * caller;        /**< Algorithm instance which has created this probe */
     double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) */
@@ -46,7 +47,7 @@ probe_t * probe_create(void);
  * \return A pointer to a probe_t structure containing the probe
  */
 
-probe_t * probe_dup(probe_t * probe_skel);
+probe_t * probe_dup(const probe_t * probe_skel);
 
 /**
  * \brief Free a probe
@@ -55,12 +56,9 @@ probe_t * probe_dup(probe_t * probe_skel);
 
 void probe_free(probe_t * probe);
 
-// Accessors
-
-buffer_t * probe_get_buffer(const probe_t * probe);
-
 /**
- * \brief Create a probe_t according to a packet_t instance
+ * \brief Create a probe_t according to a packet_t instance.
+ *   The previous value of probe->packet (if any) is not freed.
  * \return A pointer to a newly allocated probe_t instance if
  *   if successful, NULL otherwise
  */
@@ -284,13 +282,18 @@ struct pt_loop_s;
  * \param loop Pointer to a pt_loop_s structure within which the probe is running (?)
  * \param probe Pointer to a probe_t structure containing the probe that was sent (?)
  * \param reply Pointer to an empty probe_t structure to hold the reply (?)
- * \return None
  */
 
 void pt_probe_reply_callback(struct pt_loop_s * loop, probe_t * probe, probe_t * reply);
 
+/**
+ * \brief Update a probe_t instance according to a set of protocol names.
+ * \param probe The probe we're altering
+ * \param name1 The name of the network protocol assigned to the first layer
+ * \return true iif successful
+ */
 
-int probe_set_protocols(probe_t * probe, const char * name1, ...);
+bool probe_set_protocols(probe_t * probe, const char * name1, ...);
 
 /**
  * \brief Create a new packet from a probe
