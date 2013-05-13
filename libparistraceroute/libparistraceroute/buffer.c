@@ -19,9 +19,9 @@ buffer_t * buffer_dup(const buffer_t * buffer)
 {
     buffer_t * ret;
 
-    if (!buffer) goto ERR_INVALID_PARAMETER;
-    if (!(ret = buffer_create())) goto ERR_BUFFER_CREATE;
-    if (!(ret->data = calloc(buffer->size, sizeof(uint8_t)))) goto ERR_BUFFER_DATA;
+    if (!buffer)                                goto ERR_INVALID_PARAMETER;
+    if (!(ret = buffer_create()))               goto ERR_BUFFER_CREATE;
+    if (!(ret->data = calloc(1, buffer->size))) goto ERR_BUFFER_DATA;
 
     memcpy(ret->data, buffer->data, buffer->size);
     ret->size = buffer->size;
@@ -37,7 +37,10 @@ ERR_INVALID_PARAMETER:
 void buffer_free(buffer_t * buffer)
 {
     if (buffer) {
-        if (buffer->data) free(buffer->data);
+        if (buffer->data) {
+            printf("buffer = %x: free buffer->data = %x\n", buffer, buffer->data);
+            free(buffer->data);
+        }
         free(buffer);
     }
 }

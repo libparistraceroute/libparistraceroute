@@ -35,7 +35,7 @@ void my_traceroute_handler(
             if (num_probes_printed % traceroute_options->num_probes == 0) {
                 uint8_t ttl;
                 if (probe_extract(probe, "ttl", &ttl)) {
-                    printf("%d", ttl);
+                    printf("%-2d", ttl);
                 }
             }
 
@@ -74,8 +74,7 @@ void my_traceroute_handler(
             // The traceroute algorithm has terminated.
             // We could print additional results.
             // Interrupt the main loop.
-            // TODO: should we notify the main loop and provoke pt_loop_terminate in algorithm_handler?
-            pt_loop_terminate(loop);
+            printf("Destination reached\n");
             break;
         default:
             break;
@@ -154,7 +153,7 @@ int main(int argc, char ** argv)
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
     options.num_probes = 3;
-    options.max_ttl = 2;
+    //options.max_ttl = 2;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl); 
 
     // Create libparistraceroute loop
@@ -171,7 +170,7 @@ int main(int argc, char ** argv)
     }
 
     probe_set_protocols(probe, "ipv4", "udp", NULL);
-    probe_write_payload(probe, payload, 0);
+    probe_write_payload(probe, payload);
     probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
     probe_dump(probe);
 
@@ -192,7 +191,7 @@ int main(int argc, char ** argv)
 ERR_IN_PT_LOOP:
     // instance is freed by pt_loop_free
 ERR_INSTANCE:
-    // probe_free(probe); // Cannot probe_free while probe_dup is not achieved in pt_send_probe
+    probe_free(probe);
 ERR_PROBE_CREATE:
     pt_loop_free(loop);
 ERR_LOOP_CREATE:

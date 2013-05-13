@@ -51,7 +51,10 @@ ERR_BUFFER_DUP:
 
 void packet_free(packet_t * packet) {
     if (packet) {
-        if (packet->buffer) buffer_free(packet->buffer);
+        if (packet->buffer) {
+            printf("packet = %x: free packet->buffer = %x\n", packet, packet->buffer);
+            buffer_free(packet->buffer);
+        }
         if (packet->dst_ip) free(packet->dst_ip);
         free(packet);
     }

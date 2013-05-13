@@ -319,7 +319,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     }
 
     // Write the tag at offset zero of the payload
-    if (!(probe_write_payload(probe, payload, 0))) {
+    if (!(probe_write_payload(probe, payload))) {
         fprintf(stderr, "Can't write payload\n");
         goto ERR_PROBE_WRITE_PAYLOAD;
     }
@@ -344,7 +344,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 
     // Write the old checksum in the payload
     buffer_set_data(payload, &checksum, tag_size);
-    if (!(probe_write_payload(probe, payload, 0))) {
+    if (!(probe_write_payload(probe, payload))) {
         fprintf(stderr, "Can't write payload (2)\n");
         goto ERR_PROBE_WRITE_PAYLOAD2;
     }
@@ -521,7 +521,7 @@ bool network_drop_oldest_flying_probe(network_t * network)
 
         // We raise an event to notify the caller. 
         // The lost probe will be freed once the raised event will be freed.
-        pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
+        pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
         ret = network_update_next_timeout(network);
     }
     return ret;

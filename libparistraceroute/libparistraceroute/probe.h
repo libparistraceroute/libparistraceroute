@@ -26,9 +26,8 @@
 
 typedef struct {
     dynarray_t * layers;        /**< List of layers forming the packet */
-//    buffer_t   * buffer;        /**< Buffer containing the packet we're crafting */ 
     packet_t   * packet;        /**< The packet we're crafting */ 
-    bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
+//    bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     void       * caller;        /**< Algorithm instance which has created this probe */
     double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) */
     double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) */
@@ -204,7 +203,7 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size);
  * \return true iif successfull
  */
 
-bool probe_set_payload(probe_t * probe, buffer_t * payload);
+bool probe_write_payload(probe_t * probe, buffer_t * payload);
 
 /**
  * \brief Write data in the probe's payload at a given offset
@@ -214,7 +213,7 @@ bool probe_set_payload(probe_t * probe, buffer_t * payload);
  * \return true iif successfull
  */
 
-bool probe_write_payload(probe_t * probe, buffer_t * payload, unsigned int offset);
+bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int offset);
 
 /**
  * \brief Get the size of the payload from a probe

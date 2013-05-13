@@ -12,7 +12,6 @@
 #include "pt_loop.h"
 #include "common.h"
 #include "metafield.h"
-#include "bitfield.h"
 
 //-----------------------------------------------------------
 // Probe consistency 
@@ -353,7 +352,7 @@ probe_t * probe_create(void)
         goto ERR_PACKET;
     }
     if (!(probe->layers = dynarray_create()))    goto ERR_LAYERS;
-    if (!(probe->bitfield = bitfield_create(0))) goto ERR_BITFIELD;
+//    if (!(probe->bitfield = bitfield_create(0))) goto ERR_BITFIELD;
     return probe;
 
 ERR_BITFIELD:
@@ -373,7 +372,7 @@ probe_t * probe_dup(const probe_t * probe)
 
     if (!(packet = packet_dup(probe->packet)))            goto ERR_PACKET_DUP;
     if (!(ret = probe_wrap_packet(packet)))               goto ERR_PROBE_WRAP_PACKET;
-    if (!(ret->bitfield = bitfield_dup(probe->bitfield))) goto ERR_BITFIELD_DUP;
+//    if (!(ret->bitfield = bitfield_dup(probe->bitfield))) goto ERR_BITFIELD_DUP;
 
     ret->sending_time  = probe->sending_time;
     ret->queueing_time = probe->queueing_time;
@@ -393,9 +392,12 @@ ERR_PACKET_DUP:
 void probe_free(probe_t * probe)
 {
     if (probe) {
-        bitfield_free(probe->bitfield);
+//        bitfield_free(probe->bitfield);
         probe_layers_free(probe);
-        packet_free(probe->packet);
+        if (probe->packet) {
+            printf("probe = %x probe->packet = %x\n", probe, probe->packet);
+            packet_free(probe->packet);
+        }
         free(probe);
     }
 }
@@ -742,20 +744,18 @@ ERR_NO_PAYLOAD:
     return false;
 }
 
-// TODO rename probe_write_payload
-bool probe_set_payload(probe_t *probe, buffer_t * payload) {
-    return probe_write_payload(probe, payload, 0);
+bool probe_write_payload(probe_t *probe, buffer_t * payload) {
+    return probe_write_payload_ext(probe, payload, 0);
 }
 
-// TODO rename probe_write_payload_ext
-bool probe_write_payload(probe_t * probe, buffer_t * payload, unsigned int offset)
+bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int offset)
 {
     layer_t * payload_layer;
     size_t    payload_size = buffer_get_size(payload);
 
     return (payload_layer = probe_get_layer_payload(probe))
         && (probe_payload_resize(probe, payload_size))
-        && (layer_write_payload(payload_layer, payload, offset));
+        && (layer_write_payload_ext(payload_layer, payload, offset));
 }
 
 //-----------------------------------------------------------
