@@ -93,7 +93,7 @@ void ** dynarray_get_elements(dynarray_t * dynarray);
 
 /**
  * \brief Retrieve the i-th element stored in a dynarray
- * \param i The index of the element to remove.
+ * \param i The index of the element to retrieve.
  *    Valid values are between 0 and dynarray_get_size() - 1
  * \return NULL if i-th refers to an element out of range 
  *    the address of the i-th element otherwise.

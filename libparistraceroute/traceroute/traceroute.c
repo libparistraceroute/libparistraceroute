@@ -112,7 +112,7 @@ int main(int argc, char ** argv)
     int ret = EXIT_FAILURE;
     
     // Harcoded command line parsing here
-    char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "1.1.1.1";
 
     // Prepare options related to the 'traceroute' algorithm
     traceroute_options_t options = traceroute_get_default_options();

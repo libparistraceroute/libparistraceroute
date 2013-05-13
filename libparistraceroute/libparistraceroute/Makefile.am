@@ -52,7 +52,8 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						pt_loop.h \
 						queue.h \
 						sniffer.h \
-						socketpool.h
+						socketpool.h \
+                        vector.h
 
 # where to install the headers on the system
 libparistraceroute_@LIBRARY_VERSION@_ladir = $(includedir)/paristraceroute
@@ -97,7 +98,8 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						pt_loop.c \
 						queue.c \
 						sniffer.c \
-						socketpool.c
+						socketpool.c \
+                        vector.c
 
 ## Instruct libtool to include ABI version information in the generated shared
 ## library file (.so).  The library ABI version is defined in configure.ac, so

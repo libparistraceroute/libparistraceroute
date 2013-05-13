@@ -9,23 +9,38 @@
 #include <stdbool.h>
 
 #include "mda.h"
-
+#include "vector.h"
 #include "optparse.h"
 #include "../algorithm.h"
 
 // DEBUG
 #include "../probe.h"
 
+#define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
+
 /* MDA options */
 struct opt_spec mda_options[] = {
-    /* action       short       long         metavar       help                   variable XXX */
-    {opt_store_int, OPT_NO_SF, "min-ttl",    "TTL",        "minimum TTL",         0},
-    {opt_store_int, OPT_NO_SF, "max-ttl",    "TTL",        "maximum TTL",         0},
-    {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
+    /* action         short       long      metavar              help          variable XXX */
+    {opt_store_int,   OPT_NO_SF, "min-ttl", "TTL",              "minimum TTL", 0},
+    {opt_store_int,   OPT_NO_SF, "max-ttl", "TTL",              "maximum TTL", 0},
+    {opt_store_int_2, "M",       "--mda",   "bound,max_branch", HELP_M,        0}    
+   // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest
     // max missing
-    {OPT_NO_ACTION}
+    //{OPT_NO_ACTION}
 };
+
+int mda_set_options(vector_t * vector) {
+    
+    if(vector) {
+    vector_push_element(vector, mda_options);
+    vector_push_element(vector, mda_options + 1);
+    return 0;
+    } else {
+        printf("fail to pass mda command line options");
+        return -1;
+    }
+};    
 
 inline mda_options_t mda_get_default_options() {
 

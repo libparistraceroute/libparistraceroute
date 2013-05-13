@@ -1,4 +1,3 @@
-
 #include <stdlib.h>                  // malloc...
 #include <stdio.h>                   // perror, printf
 #include <errno.h>                   // EINVAL, ENOMEM, errno
@@ -17,6 +16,7 @@
 #include "algorithms/mda.h"          // mda_*_t
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "address.h"                 // address_to_string, address_set_host
+#include "vector.h"
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -55,7 +55,7 @@ static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 #define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
 #define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
 #define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
-#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must must be between 1 and 255"
+#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
 #define HELP_n "Do not resolve IP addresses to their domain names"
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
 #define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
@@ -185,6 +185,13 @@ int main(int argc, char ** argv)
     int                       exit_code = EXIT_FAILURE, i;
     address_t                 dst_addr;
     int                     * errno_p = __errno_location();
+    vector_t                * vector    = NULL;
+    struct opt_spec         * help_op  = {opt_help, "h", "--help", OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA};
+
+    //building the command line options
+    vector = vector_create();
+    //vector_push_element(vector, help_op);
+    mda_set_options(vector);
 
     // Retrieve values passed in the command-line
     opt_options1st();
@@ -222,7 +229,7 @@ int main(int argc, char ** argv)
         is_udp  ? "udp"  : protocol_names[0],
         NULL
     );
-    probe_set_payload_size(probe_skel, 32); // probe_set_size XXX
+    probe_set_payload_size(probe_skel, 2); // probe_set_size XXX
 
     // Set default values
     probe_set_fields(

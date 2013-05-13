@@ -101,26 +101,31 @@ uintmax_t mda_interface_get_available_flow_id(mda_interface_t * interface, size_
 
 void mda_flow_dump(const mda_interface_t * interface)
 {
-    char c;
-    size_t i, size = dynarray_get_size(interface->flows);
+    char   c;
+    size_t i, size;
 
-    for (i = 0; i < size; i++) {
-        const mda_flow_t * flow = dynarray_get_ith_element(interface->flows, i);
+    if(!interface) {
+        printf("(null)");
+    } else {
+        size = dynarray_get_size(interface->flows);
+        for (i = 0; i < size; i++) {
+            const mda_flow_t * flow = dynarray_get_ith_element(interface->flows, i);
 
-        switch (flow->state) {
-            case MDA_FLOW_AVAILABLE:   c = ' '; break;
-            case MDA_FLOW_UNAVAILABLE: c = '*'; break;
-            case MDA_FLOW_TESTING:     c = '?'; break;
-            case MDA_FLOW_TIMEOUT:     c = '!'; break;
-            default:                   c = 'E'; break;
+            switch (flow->state) {
+                case MDA_FLOW_AVAILABLE:   c = ' '; break;
+                case MDA_FLOW_UNAVAILABLE: c = '*'; break;
+                case MDA_FLOW_TESTING:     c = '?'; break;
+                case MDA_FLOW_TIMEOUT:     c = '!'; break;
+                default:                   c = 'E'; break;
+            }
+
+            printf(
+                " %c%ju%c",
+                c,
+                flow->flow_id,
+                i + 1 < size ? ',' : ' '
+            );
         }
-
-        printf(
-            " %c%ju%c",
-            c,
-            flow->flow_id,
-            i + 1 < size ? ',' : ' '
-        );
     }
 }
 

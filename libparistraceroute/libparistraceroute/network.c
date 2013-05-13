@@ -162,7 +162,6 @@ int network_tag_probe(network_t * network, probe_t * probe)
      * randomized tags ? Also, we need to determine how much size we have to
      * encode information. */
     tag = network_get_available_tag(network);
-
     buffer = buffer_create();
     buffer_set_data(buffer, (unsigned char*)&tag, sizeof(uint16_t));
 
@@ -205,7 +204,8 @@ int network_process_sendq(network_t * network)
 
     if (res < 0)
         goto ERROR;
-    
+
+    probe_dump(probe);
 
     // Make a packet from the probe structure 
     packet = packet_create_from_probe(probe);
@@ -229,7 +229,7 @@ int network_process_sendq(network_t * network)
         // There is no running timer, let's set one for this probe 
         struct itimerspec new_value;
 
-        new_value.it_value.tv_sec = (time_t)  network->timeout; 
+        new_value.it_value.tv_sec = (time_t)network_get_timeout(network); 
         new_value.it_value.tv_nsec = 0;
         new_value.it_interval.tv_sec = 0;
         new_value.it_interval.tv_nsec = 0;
@@ -237,7 +237,7 @@ int network_process_sendq(network_t * network)
         if (timerfd_settime(network->timerfd, 0, &new_value, NULL) == -1)
             goto ERROR;
     }
-
+    
     return 0;
 ERROR:
 printf("error\n");
@@ -307,11 +307,11 @@ probe_t * network_match_probe(network_t * network, probe_t * reply)
         // This is not an IP/ICMP/IP/* reply :( 
         return NULL;
     }
-
+    //probe_dump(reply);
     size = dynarray_get_size(network->probes);
     for (i = 0; i < size; i++) {
         probe = dynarray_get_ith_element(network->probes, i);
-
+        //probe_dump(probe);
         // Reply / probe comparison. In our probe packet, the probe ID
         // is stored in the checksum of the (first) IP layer. 
         probe_checksum_field = probe_get_field_ext(probe, "checksum", 1);
@@ -353,16 +353,18 @@ int network_process_recvq(network_t * network)
     
     // Pop the packet from the queue
     packet = queue_pop_element(network->recvq, NULL); // TODO pass cb element_free
-
+    
     // Transform the reply into a probe_t instance
     if (!(reply = probe_create())) {
         goto ERR_PROBE_CREATE;
     }
     probe_set_buffer(reply, packet->buffer);
+    probe_dump(reply);
 
     // Find the probe corresponding to this reply
     if (!(probe = network_match_probe(network, reply))) {
         perror("Reply discarded\n");
+        probe_dump(reply);
         goto ERR_PROBE_DISCARDED;
     }
 
