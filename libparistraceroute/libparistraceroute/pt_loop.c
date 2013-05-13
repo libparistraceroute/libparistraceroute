@@ -208,9 +208,8 @@ static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
  */
 
 int pt_loop_process_user_events(pt_loop_t * loop) {
-    unsigned        i;
-    event_t      ** events     = pt_loop_get_user_events(loop); 
-    unsigned int    num_events = pt_loop_get_num_user_events(loop);
+    event_t      ** events        = pt_loop_get_user_events(loop); 
+    size_t          i, num_events = pt_loop_get_num_user_events(loop);
     uint64_t        ret;
     ssize_t         count;
 
@@ -251,6 +250,8 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
          */
         // Dispatch events
         for (i = 0; i < n; i++) {
+            // cur_fd has been activated, so we have to manage
+            // the corresponding event.
             cur_fd = loop->epoll_events[i].data.fd;
 
             // Handle errors on fds
@@ -306,8 +307,9 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                     perror("Read unexpected signal\n");
                 }
             } else if (cur_fd == network_timerfd) {
-                /* Timeout for first packet in network->probes */
-                if (!network_process_timeout(loop->network)) {
+
+                // Timer managing timeout in network layer has expired
+                if (!network_drop_oldest_flying_probe(loop->network)) {
                     perror("Error while processing timeout");
                 }
             }
@@ -321,6 +323,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 {
     /*
+    // See network.h: This code is relevant for 2nd approach
     probe_t * probe_duplicated;
 
     printf("In pt_send_probe:\n");

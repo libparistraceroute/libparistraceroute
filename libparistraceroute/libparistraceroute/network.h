@@ -94,7 +94,10 @@
 // network_free().  Each probe_t instance is only referenced once (either in
 // network->sendq if it is not yet sent, or either in network->probes if it is
 // in flight).
-
+//
+// Matching probes (see network_get_matching_probe) must be freed once
+// duplicated and raised to the upper layers, or move in a dedicated
+// dynarray for archive or duplicate detection purposes.
 
 typedef struct network_s {
     socketpool_t * socketpool; /**< Pool of sockets used by this network */
@@ -106,22 +109,6 @@ typedef struct network_s {
     uint16_t       last_tag;   /**< Last probe ID used */
     double         timeout;    /**< The timeout value used by this network (in seconds) */
 } network_t;
-
-/**
- * \brief Set a new timeout for the network structure
- * \param network a Pointer to the network structure to use
- * \param new_timeout value of the new timeout to set
- */
-
-void network_set_timeout(network_t * network, double new_timeout);
-
-/**
- * \brief get the timeout used by a network structure
- * \param network a Pointer to the used network structure
- * \return the value of the timeout used by the network
- */
-
-double network_get_timeout(const network_t * network);
 
 /**
  * \brief Create a new network structure
@@ -138,30 +125,56 @@ network_t* network_create(void);
 void network_free(network_t * network);
 
 /**
- * \brief Get file descriptor for sending to network
- * \param network Pointer to the network to use
- * \return SendQ file descriptor
+ * \brief Retrieve the timeout set in a network_t instance.
+ * \param network The network_t instance we're querying.
+ * \return The value of the timeout used by the network.
+ */
+
+double network_get_timeout(const network_t * network);
+
+/**
+ * \brief Set a new timeout for the network structure.
+ * \param network The network_t instance we're updating. 
+ * \param new_timeout The new timeout.
+ */
+
+void network_set_timeout(network_t * network, double new_timeout);
+
+/**
+ * \brief Retrieve the file descriptor activated whenever a
+ *   packet is ready to be sent. 
+ * \param network The network_t instance we're querying.
+ * \return The corresponding file descriptor.
  */
 
 int network_get_sendq_fd(network_t * network);
 
 /**
- * \brief Get file descriptor for receiving from network
- * \param network Pointer to the network to use
- * \return RecvQ file descriptor
+ * \brief Retrieve the file descriptor activated whenever a
+ *   packet_t instance has been sniffed 
+ * \param network The network_t instance we're querying 
+ * \return The corresponding file descriptor 
+ */
+
+int network_get_sniffer_fd(network_t * network);
+
+/**
+ * \brief Retrieve the file descriptor activated whenever a
+ *   packet_t instance has been pushed in the recv queue.
+ * \param network The network_t instance we're querying 
+ * \return The corresponding file descriptor 
  */
 
 int network_get_recvq_fd(network_t * network);
 
 /**
- * \brief Get file description for the sniffer.
- * \param network Pointer to the network to use
- * \return sniffer file descriptor
+ * \brief Retrieve the file descriptor activated whenever a
+ *   timeout occurs.
+ * \param network The network_t instance we're querying 
+ * \return The corresponding file descriptor 
  */
 
-int network_get_sniffer_fd(network_t * network);
-
-int network_get_timerfd(network_t *network);
+int network_get_timerfd(network_t * network);
 
 /**
  * \brief Send the next packet on the queue
@@ -180,20 +193,17 @@ bool network_process_sendq(network_t * network);
 
 bool network_process_recvq(network_t * network);
 
-void network_process_sniffer(network_t *network);
+void network_process_sniffer(network_t * network);
 
 /**
- * \brief Drop the oldest probe attached to a network instance.
- *    The oldest probe if any is removed from network->probe
+ * \brief Drop the oldest flying probe (if any) attached to a network_t
+ *    instance. The oldest probe is removed from network->probes
  *    and network->timerfd is refreshed to manage the next timeout
  *    if there is still at least one flying probe. 
  * \param network Pointer to a network structure
  * \return true iif successful
  */
 
-bool network_process_timeout(network_t * network);
-
-// XXX
-uint16_t network_get_available_tag(network_t *network);
+bool network_drop_oldest_flying_probe(network_t * network);
 
 #endif

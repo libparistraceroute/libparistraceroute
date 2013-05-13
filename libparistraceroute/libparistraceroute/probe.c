@@ -254,14 +254,14 @@ static bool probe_push_payload(probe_t * probe, size_t payload_size) {
     // Check whether a payload is already set
     if ((payload_layer = probe_get_layer_payload(probe))) {
         if (!payload_layer->protocol) {
-            perror("Payload already set\n");
+            fprintf(stderr, "Payload already set\n");
             goto ERR_PAYLOAD_ALREADY_SET;
         }
     }
 
     // Allocate the payload layer
     if (!(payload_layer = layer_create())) {
-        perror("Can't create layer\n");
+        fprintf(stderr, "Can't create layer\n");
         goto ERR_LAYER_CREATE;
     }
 
@@ -269,6 +269,7 @@ static bool probe_push_payload(probe_t * probe, size_t payload_size) {
     current_size = (first_layer = probe_get_layer(probe, 0)) ?
         first_layer->segment_size : 0;
 
+    // TODO use layer_create_from_segment 
     // Initialize the payload layer
     layer_set_segment(payload_layer, buffer_get_data(probe->buffer) + current_size);
     layer_set_segment_size(payload_layer, payload_size);
@@ -276,14 +277,14 @@ static bool probe_push_payload(probe_t * probe, size_t payload_size) {
 
     // Add the payload layer in the probe
     if (!(probe_push_layer(probe, payload_layer))) {
-        perror("Can't push layer\n");
+        fprintf(stderr, "Can't push layer\n");
         goto ERR_PUSH_LAYER;
     }
 
     // Resize the payload if required
     if (payload_size > 0) {
        if (!probe_payload_resize(probe, payload_size)) {
-           perror("Can't resize payload\n");
+           fprintf(stderr, "Can't resize payload\n");
            goto ERR_PAYLOAD_RESIZE;
        }
     }
@@ -418,6 +419,24 @@ inline buffer_t * probe_get_buffer(const probe_t * probe) {
     return probe ? probe->buffer : NULL;
 }
 
+layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segment, size_t segment_size) {
+    layer_t * layer;
+
+    // Create a new layer
+    if (!(layer = layer_create())) {
+        goto ERR_CREATE_LAYER;
+    }
+
+    // Initialize and install the new layer in the probe
+    layer_set_segment(layer, segment);
+    layer_set_segment_size(layer, segment_size);
+    layer_set_protocol(layer, protocol);
+    layer_set_header_size(layer, protocol ? protocol->header_len : 0); // TODO manage header with variable length by querying a protocol's callback
+
+ERR_CREATE_LAYER:
+    return NULL;
+}
+
 probe_t * probe_wrap_packet(packet_t * packet)
 {
     // TODO manage free and errors properly
@@ -467,6 +486,7 @@ probe_t * probe_wrap_packet(packet_t * packet)
         header_size = protocol->header_len;
 
         // TODO layer_t * create_layer_from_segment(uint8_t * segment, size_t segment_size)
+        // TODO probe_add_layer
         {
             // Create a new layer
             if (!(layer = layer_create())) {
@@ -483,6 +503,16 @@ probe_t * probe_wrap_packet(packet_t * packet)
             }
         }
 
+        /*
+        if (!(layer = layer_create_from_segment(protocol, segment + offset, segment_size))) {
+            goto ERR_CREATE_LAYER;
+        }
+
+        if (!probe_push_layer(probe, layer)) {
+            goto ERR_PUSH_LAYER;
+        }
+        */
+
         offset += header_size;
         segment_size -= header_size;
         if (segment_size < 0) {
@@ -494,7 +524,8 @@ probe_t * probe_wrap_packet(packet_t * packet)
         // provide it by convenience
         // Need for heuristics // source port hook to parse packet content
 
-        // Loop until reaching the payload or an ICMP layer
+        // Continue to dissect the packet while we find a protocol field.
+        // If we've reached an ICMP layer we've reached the last layer before the payload. 
         // layer_create_field returns NULL iif we've reached an ICMP layer or the payload 
         field = layer_create_field(layer, "protocol");
         if (field) {
@@ -507,7 +538,7 @@ probe_t * probe_wrap_packet(packet_t * packet)
         else if (strcmp(layer->protocol->name, "icmp") == 0) {
             // We are in an ICMP layer
             if (!(field = layer_create_field(layer, "type"))) {
-                // Weird ICMP packet !
+                fprintf(stderr, "Can't extract 'type' field from an ICMP layer");
                 return NULL; 
             }
 
@@ -813,17 +844,12 @@ bool probe_set_fields(probe_t * probe, field_t * field1, ...) {
     field_t * field;
     bool      ret = true;
 
-//    printf("111111111111111111111111111111111\n");
-//    probe_dump(probe);
-
     va_start(args, field1);
     for (field = field1; field; field = va_arg(args, field_t *)) {
         // Update the first matching field
         if (!probe_set_field(probe, field)) { 
             // No matching field found, update the first matching metafield
-            if (!probe_set_metafield(probe, field)) { 
-                // No matching {field, metafield}, ignore this field.
-                ret = false;
+            if ((ret &= probe_set_metafield(probe, field))) { 
                 fprintf(stderr, "probe_set_fields: Cannot not set field %s\n", field->key);
             }
         }
@@ -831,9 +857,6 @@ bool probe_set_fields(probe_t * probe, field_t * field1, ...) {
     }
     va_end(args);
     probe_update_fields(probe);
-
-//    printf("111111111111111\n");
-//    probe_dump(probe);
 
     return ret;
 }
@@ -986,13 +1009,13 @@ packet_t * probe_create_packet(probe_t * probe)
     
     // The destination IP is a mandatory field
     if (!(probe_extract(probe, "dst_ip", &dst_ip))) {
-        perror("packet_create_from_probe: this probe has no 'dst_ip' field\n");
+        fprintf(stderr, "This probe has no 'dst_ip' field set\n");
         goto ERR_EXTRACT_DST_IP;
     }
 
     // The destination port is a mandatory field
     if (!(probe_extract(probe, "dst_port", &dst_port))) {
-        perror("packet_create_from_probe: this probe has no 'dst_port' field\n");
+        fprintf(stderr, "This probe has no 'dst_port' field set\n");
         goto ERR_EXTRACT_DST_PORT;
     }
 
@@ -1013,5 +1036,4 @@ ERR_EXTRACT_DST_PORT:
 ERR_EXTRACT_DST_IP:
     return NULL;
 }
-
 

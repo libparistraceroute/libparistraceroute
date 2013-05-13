@@ -75,15 +75,6 @@ probe_t * probe_wrap_packet(packet_t * packet);
 void probe_dump(const probe_t * probe);
 
 /**
- * \brief Add a field to a probe
- * \param probe A pointer to a probe_t structure containing the probe
- * \param field A pointer to a field_t structure containing the field
- */
-
-// TODO should return bool
-void probe_add_field(probe_t * probe, field_t * field);
-
-/**
  * \brief Set a field according to a given field name. The first
  *    matching field belonging to a i-th layer is updated,
  *    such that i > depth. 

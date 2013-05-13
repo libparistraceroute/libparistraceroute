@@ -143,8 +143,8 @@ int main(int argc, char ** argv)
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
-//    char dst_ip[] = "8.8.8.8";
-    char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "8.8.8.8";
+//    char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
