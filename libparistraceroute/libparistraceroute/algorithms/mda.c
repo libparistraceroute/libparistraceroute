@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <limits.h>                  // INT_MAX
 
 #include "mda.h"
 #include "vector.h"
@@ -16,14 +17,26 @@
 // DEBUG
 #include "../probe.h"
 
+//mda command line options data 
+
+// Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
+static unsigned mda_values[7] = {95,  0,   100, 5,   1,   INT_MAX , 0};
+
+// Bounded integer parameters | def    min  max
+static unsigned min_ttl[3]    = {1,     1,   255};
+static unsigned max_ttl[3]    = {30,    1,   255};
+
+//mda command line help messages
 #define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
+#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
+#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
 
 /* MDA options */
 struct opt_spec mda_options[] = {
-    /* action         short       long      metavar              help          variable XXX */
-    {opt_store_int,   OPT_NO_SF, "min-ttl", "TTL",              "minimum TTL", 0},
-    {opt_store_int,   OPT_NO_SF, "max-ttl", "TTL",              "maximum TTL", 0},
-    {opt_store_int_2, "M",       "--mda",   "bound,max_branch", HELP_M,        0}    
+    /* action           short long          metavar             help    variable XXX */
+    {opt_store_int_lim, "f",  "--first",    "first_ttl",        HELP_f, min_ttl},
+    {opt_store_int_lim, "m",  "--max-hops", "max_ttl",          HELP_m, max_ttl},
+    {opt_store_int_2,   "M",  "--mda",      "bound,max_branch", HELP_M, mda_values}    
    // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest
     // max missing
@@ -31,10 +44,13 @@ struct opt_spec mda_options[] = {
 };
 
 int mda_set_options(vector_t * vector) {
-    
+    int i = 0;
+
     if(vector) {
-    vector_push_element(vector, mda_options);
-    vector_push_element(vector, mda_options + 1);
+        while(i < 3 && opt_verify(vector->options + i, *(mda_options + i))) {
+    vector_push_element(vector, mda_options + i);
+        i++;
+        }
     return 0;
     } else {
         printf("fail to pass mda command line options");
