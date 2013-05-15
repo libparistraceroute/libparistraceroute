@@ -31,6 +31,15 @@ packet_t * packet_create(void);
 
 /**
  * \brief Create a new packet
+ * \param bytes The bytes making the packet
+ * \param num_bytes Number of considered bytes 
+ * \return The newly allocated packet_t instance, NULL in case of failure 
+ */
+
+packet_t * packet_create_from_bytes(uint8_t * bytes, size_t num_bytes);
+
+/**
+ * \brief Create a new packet
  * \param bytes The bytes carried by the packet
  * \param num_bytes The packet size (in bytes)
  * \return The newly allocated packet_t instance, NULL in case of failure 

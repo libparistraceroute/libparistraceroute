@@ -148,13 +148,13 @@ int main(int argc, char ** argv)
     }
 
 //    buffer_set_data(payload, message, strlen(message) - 1);
-    buffer_set_data(payload, "\0\0", 2);
+    buffer_write_bytes(payload, "\0\0", 2);
 
     // Prepare options related to the 'traceroute' algorithm
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
     options.num_probes = 3;
-    options.max_ttl = 2;
+//    options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl); 
 
     // Create libparistraceroute loop
@@ -171,7 +171,7 @@ int main(int argc, char ** argv)
     }
 
     probe_set_protocols(probe, "ipv4", "udp", NULL);
-    probe_write_payload(probe, payload, 0);
+    probe_write_payload(probe, payload);
     probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
     probe_dump(probe);
 

@@ -199,22 +199,24 @@ uint8_t * probe_get_payload(const probe_t * probe);
 bool probe_payload_resize(probe_t * probe, size_t payload_size);
 
 /**
- * \brief Update the probe payload according to a buffer 
+ * \brief Write data in the probe's payload. The packet_t instance
+ *   is automatically resized if required.
  * \param payload Data copied in the probe's payload 
  * \return true iif successfull
  */
 
-bool probe_set_payload(probe_t * probe, buffer_t * payload);
+bool probe_write_payload(probe_t * probe, buffer_t * payload);
 
 /**
- * \brief Write data in the probe's payload at a given offset
+ * \brief Write data in the probe's payload at a given offset. The
+ *    packet_t instance is automatically resized if required.
  * \param probe The update payload
  * \param payload Data copied in the probe's payload 
  * \param offset The offset added to the probe's payload address
  * \return true iif successfull
  */
 
-bool probe_write_payload(probe_t * probe, buffer_t * payload, unsigned int offset);
+bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int offset);
 
 /**
  * \brief Get the size of the payload from a probe

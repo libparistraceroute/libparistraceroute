@@ -77,14 +77,14 @@ bool buffer_resize(buffer_t * buffer, size_t size);
 /**
  * \brief Change the address of the memory managed by the buffer.
  *   The old address but be freed before if not more used.
- * \param buffer The address of the buffer
- * \param data Address of bytes we copy in the buffer
- * \param size Number of bytes that must be copied in the buffer
- * \return true iif successfull
+ * \param buffer The address of the altered buffer. It is automatically
+ *   resized if required.
+ * \param bytes Address of bytes copied in the buffer
+ * \param num_bytes Number of bytes that must be copied in the buffer
+ * \return true iif successfull.
  */
 
-// TODO rename buffer_create_from_bytes
-bool buffer_set_data(buffer_t * buffer, const void * data, size_t size);
+bool buffer_write_bytes(buffer_t * buffer, const void * bytes, size_t num_bytes);
 
 /**
  * \brief Alter the size declared in the buffer structure.

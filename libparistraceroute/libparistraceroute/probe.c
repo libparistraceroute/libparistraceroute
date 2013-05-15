@@ -743,12 +743,12 @@ ERR_NO_PAYLOAD:
 }
 
 // TODO rename probe_write_payload
-bool probe_set_payload(probe_t *probe, buffer_t * payload) {
-    return probe_write_payload(probe, payload, 0);
+bool probe_write_payload(probe_t *probe, buffer_t * payload) {
+    return probe_write_payload_ext(probe, payload, 0);
 }
 
 // TODO rename probe_write_payload_ext
-bool probe_write_payload(probe_t * probe, buffer_t * payload, unsigned int offset)
+bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int offset)
 {
     layer_t * payload_layer;
     size_t    payload_size = buffer_get_size(payload);
