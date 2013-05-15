@@ -35,7 +35,7 @@ void my_traceroute_handler(
             if (num_probes_printed % traceroute_options->num_probes == 0) {
                 uint8_t ttl;
                 if (probe_extract(probe, "ttl", &ttl)) {
-                    printf("%d", ttl);
+                    printf("%-2d", ttl);
                 }
             }
 
@@ -74,8 +74,7 @@ void my_traceroute_handler(
             // The traceroute algorithm has terminated.
             // We could print additional results.
             // Interrupt the main loop.
-            // TODO: should we notify the main loop and provoke pt_loop_terminate in algorithm_handler?
-            pt_loop_terminate(loop);
+            printf("Destination reached\n");
             break;
         default:
             break;
@@ -192,7 +191,7 @@ int main(int argc, char ** argv)
 ERR_IN_PT_LOOP:
     // instance is freed by pt_loop_free
 ERR_INSTANCE:
-    // probe_free(probe); // Cannot probe_free while probe_dup is not achieved in pt_send_probe
+    probe_free(probe);
 ERR_PROBE_CREATE:
     pt_loop_free(loop);
 ERR_LOOP_CREATE:

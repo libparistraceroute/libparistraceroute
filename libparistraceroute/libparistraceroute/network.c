@@ -521,7 +521,7 @@ bool network_drop_oldest_flying_probe(network_t * network)
 
         // We raise an event to notify the caller. 
         // The lost probe will be freed once the raised event will be freed.
-        pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
+        pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
         ret = network_update_next_timeout(network);
     }
     return ret;

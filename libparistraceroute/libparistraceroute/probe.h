@@ -26,9 +26,8 @@
 
 typedef struct {
     dynarray_t * layers;        /**< List of layers forming the packet */
-//    buffer_t   * buffer;        /**< Buffer containing the packet we're crafting */ 
     packet_t   * packet;        /**< The packet we're crafting */ 
-    bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
+//    bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     void       * caller;        /**< Algorithm instance which has created this probe */
     double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) */
     double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) */

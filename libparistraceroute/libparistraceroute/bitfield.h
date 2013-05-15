@@ -1,12 +1,13 @@
 #ifndef BITFIELD_H
 #define BITFIELD_H
 
-#include <unistd.h>
-#include <stdbool.h>
+#include <stdint.h>  // uint8_t
+#include <unistd.h>  // size_t
+#include <stdbool.h> // bool
 
 typedef struct bitfield_s {
-    unsigned char * mask;         /**< A buffer that stores a bitfield */
-    size_t          size_in_bits; /**< Size of the layer and its sublayers */
+    uint8_t * mask;         /**< A buffer that stores a bitfield */
+    size_t    size_in_bits; /**< Size of the layer and its sublayers */
 } bitfield_t;
 
 //--------------------------------------------------------------------------
@@ -43,7 +44,7 @@ void bitfield_free(bitfield_t * bitfield);
 // Setter/getter 
 //--------------------------------------------------------------------------
 
-unsigned char *bitfield_get_mask(const bitfield_t *bitfield);
+uint8_t * bitfield_get_mask(const bitfield_t *bitfield);
 
 /**
  * \brief Retrieve the i-th bit stored in a bitfield

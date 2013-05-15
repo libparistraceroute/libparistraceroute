@@ -19,7 +19,6 @@ ERR_CALLOC:
 
 void layer_free(layer_t * layer) {
     if (layer) {
-        if (layer->mask)   free(layer->mask);
         free(layer);
     }
 }
@@ -52,11 +51,13 @@ inline void layer_set_segment(layer_t * layer, uint8_t * segment) {
     layer->segment = segment;
 }
 
-/*
+inline uint8_t * layer_get_mask(const layer_t * layer) {
+    return layer->mask;
+}
+
 inline void layer_set_mask(layer_t * layer, uint8_t * mask) {
     layer->mask = mask;
 }
-*/
 
 field_t * layer_create_field(const layer_t * layer, const char * name)
 {
@@ -77,7 +78,7 @@ field_t * layer_create_field(const layer_t * layer, const char * name)
     return NULL;
 }
 
-bool layer_set_field(layer_t * layer, field_t * field)
+bool layer_set_field(layer_t * layer, const field_t * field)
 {
     const protocol_field_t * protocol_field;
     size_t                   protocol_field_size;
@@ -115,7 +116,7 @@ bool layer_set_field(layer_t * layer, field_t * field)
         protocol_field_set(protocol_field, layer->segment, field);
     }
 
-    // TODO update mask here
+    // TODO update segment of mask here
     // TODO use protocol_field_get_offset
     // TODO use protocol_field_get_size
 
@@ -129,11 +130,11 @@ ERR_INVALID_FIELD:
     return false;
 }
 
-bool layer_set_payload(layer_t * layer, buffer_t * payload) {
-    return layer_write_payload(layer, payload, 0);
+bool layer_write_payload(layer_t * layer, buffer_t * payload) {
+    return layer_write_payload_ext(layer, payload, 0);
 }
 
-bool layer_write_payload(layer_t * layer, const buffer_t * payload, unsigned int offset)
+bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned int offset)
 {
     if (layer->protocol) {
         // The layer embeds a nested layer
@@ -146,7 +147,6 @@ bool layer_write_payload(layer_t * layer, const buffer_t * payload, unsigned int
     }
 
     memcpy(layer->segment + offset, buffer_get_data(payload), buffer_get_size(payload));
-    // TODO update mask
     return true;
 }
 

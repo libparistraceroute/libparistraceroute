@@ -60,8 +60,8 @@ layer_t * layer_create(void);
 
 /**
  * \brief Delete a layer structure.
- *   layer->protocol and layer->buffer are not freed (a layer usually points
- *   to a bytes allocated by a probe, so this buffer will be freed by the
+ *   layer->protocol and layer->segment are not freed (a layer usually points
+ *   to a bytes allocated by a probe, so this segment will be freed by the
  *   probe_free function.
  * \param layer Pointer to the layer structure to delete
  */
@@ -89,14 +89,14 @@ void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
 //int layer_set_fields(layer_t * layer, field_t * field1, ...);
 
 /**
- * \brief Update the buffer of a layer according to a field
+ * \brief Update the segment managed by layer according to a field
  *    passed as a parameter. 
  * \param layer Pointer to the layer structure to update.
  * \param field Pointer to the field we assign in this layer.
  * \return true iif successfull 
  */
 
-bool layer_set_field(layer_t * layer, field_t * field);
+bool layer_set_field(layer_t * layer, const field_t * field);
 
 /**
  * \brief Update bytes managed  
@@ -107,9 +107,7 @@ bool layer_set_field(layer_t * layer, field_t * field);
  * \return true iif successful
  */
 
-// TODO rename layer_write_payload -> layer_write_payload_ext
-// TODO rename layer_set_payload -> layer_write_payload
-bool layer_set_payload(layer_t * layer, buffer_t * payload);
+bool layer_write_payload(layer_t * layer, buffer_t * payload);
 
 /**
  * \brief Write the data stored in a buffer in the layer's payload.
@@ -122,7 +120,7 @@ bool layer_set_payload(layer_t * layer, buffer_t * payload);
  * \return true iif successfull
  */
 
-bool layer_write_payload(layer_t * layer, const buffer_t * payload, unsigned int offset);
+bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned int offset);
 
 /**
  * \brief Retrieve the size of the buffer stored in the layer_t structure.
@@ -135,8 +133,8 @@ size_t    layer_get_header_size(const layer_t * layer);
 void      layer_set_header_size(layer_t * layer, size_t header_size);
 uint8_t * layer_get_segment(const layer_t * layer);
 void      layer_set_segment(layer_t * layer, uint8_t * segment);
-
-//void layer_set_mask(layer_t * layer, uint8_t * mask);
+uint8_t * layer_get_mask(const layer_t * layer);
+void      layer_set_mask(layer_t * layer, uint8_t * mask);
 
 /**
  * \brief Allocate a field instance based on the content related
