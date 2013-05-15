@@ -55,8 +55,8 @@ const char * protocol_names[] = {
 
 // TODO #define
 // Bounded integer parameters | def    min  max
-static unsigned min_ttl[3]   = {1,     1,   255};
-static unsigned max_ttl[3]   = {30,    1,   255};
+//static unsigned min_ttl[3]   = {1,     1,   255};
+//static unsigned max_ttl[3]   = {30,    1,   255};
 static double   wait[3]      = {5,     0,   INT_MAX};
 
 // Bounded integer parameters | def    min  max    option_enabled
@@ -64,20 +64,8 @@ static unsigned dst_port[4]  = {6969,  0,   65535, 0};
 static unsigned src_port[4]  = {3083,  0,   65535, 1};
 
 // Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
-static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
+//static unsigned mda[7]       = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
-#define HELP_4 "Use IPv4"
-#define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
-#define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
-#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
-#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
-#define HELP_n "Do not resolve IP addresses to their domain names"
-#define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
-#define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
-#define HELP_a "Traceroute algorithm: one of  'mda' [default],'traceroute', 'paris-traceroute'"
-#define HELP_d "set PORT as destination port (default: 30000)"
-#define HELP_s "set PORT as source port (default: 3083)"
-#define HELP_V "version 1.0"
 
 struct opt_spec cl_options[] = {
     // action                  sf   lf                   metavar             help         data
@@ -87,11 +75,11 @@ struct opt_spec cl_options[] = {
     {opt_store_1,              "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
     {opt_store_choice,         "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
     {opt_store_1,              "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
-    {opt_store_int_lim,        "f", "--first",           "first_ttl",        HELP_f,      min_ttl},
-    {opt_store_int_lim,        "m", "--max-hops",        "max_ttl",          HELP_m,      max_ttl},
+//    {opt_store_int_lim,        "f", "--first",           "first_ttl",        HELP_f,      min_ttl},
+  //  {opt_store_int_lim,        "m", "--max-hops",        "max_ttl",          HELP_m,      max_ttl},
     {opt_store_0,              "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_resolv},
     {opt_store_double_lim,     "w", "--wait",            "waittime",         HELP_w,      wait},
-    {opt_store_int_2,          "M", "--mda",             "bound,max_branch", HELP_M,      mda},
+   // {opt_store_int_2,          "M", "--mda",             "bound,max_branch", HELP_M,      mda},
     {opt_store_int_lim_en,     "s", "--source_port",     "PORT",             HELP_s,      src_port},
     {opt_store_int_lim_en,     "d", "--dest_port",       "PORT",             HELP_d,      dst_port},
     {OPT_NO_ACTION},
@@ -201,9 +189,8 @@ int main(int argc, char ** argv)
     address_t                 dst_addr;
     int                     * errno_p = __errno_location();
     vector_t                * vector    = NULL;
-    struct opt_spec         * help_op = NULL;  
-    
-    help_op = malloc(sizeof(struct opt_spec ));
+    //struct opt_spec         * help_op = NULL;  
+    //help_op = malloc(sizeof(struct opt_spec ));
    // *help_op = {{opt_help, "h", "--help",OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA}};
 
     //building the command line options
@@ -219,7 +206,7 @@ int main(int argc, char ** argv)
         exit(EXIT_FAILURE);
     }
     // Verify that the user pass option related to mda iif this is the chosen algorithm.
-    if (mda[6]) {
+    if (mda_values[6]) {
         if (strcmp(algorithm_names[0], "mda") != 0) {
             perror("E: You cannot pass options related to mda when using another algorithm ");
             goto ERR_INVALID_ALGORITHM;
@@ -274,11 +261,11 @@ int main(int argc, char ** argv)
         traceroute_options = traceroute_get_default_options();
         ptraceroute_options = &traceroute_options;
         data->options = &traceroute_options;
-    } else if (strcmp(data->algorithm, "mda") == 0 || mda[6]) {
+    } else if (strcmp(data->algorithm, "mda") == 0 || mda_values[6]) {
         mda_options = mda_get_default_options(); 
         ptraceroute_options = &mda_options.traceroute_options;
-        mda_options.bound = mda[0];
-        mda_options.max_branch = mda[3];
+        mda_options.bound = mda_values[0];
+        mda_options.max_branch = mda_values[3];
         data->options = &mda_options;
     } else {
         perror("E: Unknown algorithm ");

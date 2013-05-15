@@ -702,8 +702,7 @@ char ***opt_remainder(void)
     return &globals.argv;
 }
 
-int opt_spec_compare(const struct opt_spec * struct1, const struct opt_spec * struct2) 
-{
+int opt_spec_compare(const struct opt_spec * struct1, const struct opt_spec * struct2) {
     if(struct1 && struct2){
         if(*(struct1->action) == *(struct2->action)) {
            if(!strcmp(struct1->sf, struct2->sf)) {
@@ -716,26 +715,27 @@ int opt_spec_compare(const struct opt_spec * struct1, const struct opt_spec * st
                    } } else {
                        return 1;
                 } } else {
-                         return 1;
+                      return 1;
            } } else {
-                         return 1;
+                 return 1;
         } } else {
-                         return 1;
+              return 1;
      } } else {
-               printf("fail to compare structure");
+               printf("fail to compare the 2 opt_spec structures");
                return 1;
            }
  
 }
 
-int opt_verify(const struct opt_spec * options, const struct opt_spec option)
-{
+int opt_verify(const struct opt_spec * options, const struct opt_spec option, unsigned int depth) {
     int i   = 0;
     int ret = 1;
 
-    while(options + i != NULL && !(opt_spec_compare(options + i , &option))) {
-       i++;
+    while(i < depth && ret == 1) {
+       if((!opt_spec_compare(options + i , &option))) {
        ret = 0;
+       }
+       i++;
     }
     return ret;
 }

@@ -1,6 +1,10 @@
 #ifndef ALGORITHMS_TRACEROUTE_H
 #define ALGORITHMS_TRACEROUTE_H
 
+
+extern const unsigned min_ttl[];
+extern const unsigned max_ttl[];
+
 /*
  * Principle: (from man page)
  * 

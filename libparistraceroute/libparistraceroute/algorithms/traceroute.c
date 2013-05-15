@@ -13,6 +13,10 @@
 
 // traceroute options
 
+// Bounded integer parameters | def    min  max
+const unsigned min_ttl[3]    = {1,     1,   255};
+const unsigned max_ttl[3]    = {30,    1,   255};
+
 struct opt_spec traceroute_options[] = {
     // action       short       long      metavar    help           data
     {opt_store_int, OPT_NO_SF, "min-ttl", "MIN_TTL", "minimum TTL", NULL},

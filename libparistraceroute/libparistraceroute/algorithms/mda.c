@@ -10,7 +10,6 @@
 #include <limits.h>                  // INT_MAX
 
 #include "mda.h"
-#include "vector.h"
 #include "optparse.h"
 #include "../algorithm.h"
 #include "../pt_loop.h"    // pt_send_probe
@@ -21,16 +20,9 @@
 //mda command line options data 
 
 // Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
-static unsigned mda_values[7] = {95,  0,   100, 5,   1,   INT_MAX , 0};
+const unsigned mda_values[7] = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
-// Bounded integer parameters | def    min  max
-static unsigned min_ttl[3]    = {1,     1,   255};
-static unsigned max_ttl[3]    = {30,    1,   255};
 
-//mda command line help messages
-#define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
-#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
-#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
 
 /* MDA options */
 struct opt_spec mda_options[] = {
@@ -46,18 +38,22 @@ struct opt_spec mda_options[] = {
 
 int mda_set_options(vector_t * vector) {
     int i = 0;
+    int j = 0;
 
     if(vector) {
-        while(i < 3 && opt_verify(vector->options + i, *(mda_options + i))) {
-    vector_push_element(vector, mda_options + i);
-        i++;
+        while(i < 3) {
+            if(opt_verify(vector->options, *(mda_options + i), vector->num_options)) {
+                vector_push_element(vector, mda_options + i);
+                j++;
+            }
+            i++;
         }
-    return 0;
+        return 0;
     } else {
         printf("fail to pass mda command line options");
         return -1;
     }
-};    
+}    
 
 inline mda_options_t mda_get_default_options() {
 
@@ -68,7 +64,7 @@ inline mda_options_t mda_get_default_options() {
     };
 
     return mda_options;
-};
+}
 
 
 /*******************************************************************************
