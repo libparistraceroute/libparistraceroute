@@ -7,77 +7,64 @@
 
 buffer_t * buffer_create() {
     buffer_t * buffer;
-    buffer = malloc(sizeof(buffer_t));
-    if (buffer) {
+
+    if ((buffer = malloc(sizeof(buffer_t)))) {
         buffer->data = NULL;
         buffer->size = 0;
-    } else errno = ENOMEM;
+    }
     return buffer;
 }
 
 buffer_t * buffer_dup(const buffer_t * buffer)
 {
-    buffer_t * buf;
+    buffer_t * ret;
 
-    if (!buffer) return NULL;
+    if (!buffer)                                goto ERR_INVALID_PARAMETER;
+    if (!(ret = buffer_create()))               goto ERR_BUFFER_CREATE;
+    if (!(ret->data = calloc(1, buffer->size))) goto ERR_BUFFER_DATA;
 
-    buf = buffer_create();
-    if (!buf) goto ERROR;
+    memcpy(ret->data, buffer->data, buffer->size);
+    ret->size = buffer->size;
+    return ret;
 
-    buf->data = calloc(buffer->size, sizeof(unsigned char));
-    if (!buf->data) goto ERROR_BUFFER;
-
-    memcpy(buf->data, buffer->data, buffer->size);
-    buf->size = buffer->size;
-    return buf;
-
-
-ERROR_BUFFER:
-    free(buf);
-ERROR:
+ERR_BUFFER_DATA:
+    free(ret);
+ERR_BUFFER_CREATE:
+ERR_INVALID_PARAMETER:
     return NULL;
 }
 
 void buffer_free(buffer_t * buffer)
 {
     if (buffer) {
-        if (buffer->data) free(buffer->data);
+        if (buffer->data) {
+            printf("buffer = %x: free buffer->data = %x\n", buffer, buffer->data);
+            free(buffer->data);
+        }
         free(buffer);
     }
 }
 
 bool buffer_resize(buffer_t * buffer, size_t size)
 {
-    /*
-    unsigned char * tmp;
-
-    if (buffer->size == size) return true;
-
-    if (!buffer->data) {
-        // First time allocation
-        buffer->data = calloc(size, sizeof(unsigned char));
-        if (!buffer->data) return false; // no allocation could be made
-    } else {
-        tmp = realloc(buffer->data, size * sizeof(unsigned char));
-        if (!tmp)
-            return -1; // cannot realloc, orig still valid
-        memset(tmp + buffer->size, 0 , size * sizeof(unsigned char) - buffer->size);
-        buffer->data = tmp;
-    }
-    buffer->size = size;
-    return 0;
- */  
     uint8_t * data2;
     bool      ret = true;
+    size_t    old_size = buffer->size;
 
-    if (buffer->size != size) {
-        data2 = buffer->data ?
-            realloc(buffer->data, size * sizeof(uint8_t)):
-            calloc(size, sizeof(uint8_t));
+    if (old_size != size) {
+        if (buffer->data) {
+            data2 = realloc(buffer->data, size * sizeof(uint8_t));
+            if (data2 && size > old_size) {
+                memset(data2 + old_size, 0, size - old_size); 
+            }
+        } else {
+            data2 = calloc(size, sizeof(uint8_t));
+        }
         if (data2) {
             buffer->data = data2;
             buffer->size = size;
         }
+        ret = (data2 != NULL);
     }
     return ret;
 }
@@ -90,8 +77,7 @@ inline size_t buffer_get_size(const buffer_t * buffer) {
     return buffer ? buffer->size : 0;
 }
 
-bool buffer_set_data(buffer_t * buffer, uint8_t * data, size_t size)
-{
+bool buffer_set_data(buffer_t * buffer, const void * data, size_t size) {
     bool ret = buffer_resize(buffer, size);
     if (ret) memcpy(buffer->data, data, size);
     return ret;
@@ -101,25 +87,13 @@ inline void buffer_set_size(buffer_t * buffer, size_t size) {
     buffer->size = size;
 }
 
-unsigned char buffer_guess_ip_version(buffer_t * buffer) {
-    return buffer->data[0] >> 4;
-}
-
 // Dump
 
-void buffer_dump(const buffer_t * buffer)
-{
-    size_t i;
-    char   c;
+void buffer_dump(const buffer_t * buffer) {
+    size_t i, n = buffer->size;
 
-    // Print data byte by byte
-    for (i = 0; i < buffer->size; i++)
-    {
-        c = buffer->data[i];
-        //if (c < ' ' && c != '\n' && c != '\t')
-        //    printf(".");
-        //else
-            printf("%2x ", c);
+    for (i = 0; i < n; i++) {
+        printf("%2x ", buffer->data[i]);
     }
 }
 

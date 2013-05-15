@@ -17,11 +17,18 @@
  */
 
 typedef struct {
-    const char  *   key;                                     /** Pointer to an identifying key */
-    fieldtype_t     type;                                    /** Enum to set the type of data stored in the field */
-    size_t          offset;                                  /** Offset from start of header data */
-    field_t     * (*get)(uint8_t * buffer);                  /** Getter function */
-    int           (*set)(uint8_t * buffer, field_t * field); /** Setter function */
+    const char  *   key;                                           /** Pointer to an identifying key */
+    fieldtype_t     type;                                          /** Enum to set the type of data stored in the field */
+    size_t          offset;                                        /** Offset from start of header data */
+    // TODO add offset_bits (only used for non aligned fields such as int4). Set to offset * 8 most of time.
+
+    // These callbacks are required of the value carried by a field does not
+    // exaclty match with the corresponding value in the header. For example
+    // if an IPv4 address is exposed as a char * value, these callbacks
+    // perform the translation char * <-> uint32_t.
+
+    field_t     * (*get)(const uint8_t * header);                  /** Allocate a field_t instance corresponding to this field */
+    bool          (*set)(uint8_t * header, const field_t * field); /** Update a header according to a field. Return true iif successful */
 } protocol_field_t;
 
 /**

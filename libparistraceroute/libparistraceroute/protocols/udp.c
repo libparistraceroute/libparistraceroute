@@ -8,16 +8,18 @@
 #include <netinet/udp.h>
 #include <netinet/in.h>       // IPPROTO_UDP = 17
 #include <arpa/inet.h>
+#include <stdio.h> // DEBUG
 
-#include "../protocol.h"
+#include "../protocol.h"      // csum
 #include "buffer.h"
+
 #define UDP_DEFAULT_SRC_PORT 2828
 #define UDP_DEFAULT_DST_PORT 2828
 
-#define UDP_FIELD_SRC_PORT "src_port"
-#define UDP_FIELD_DST_PORT "dst_port"
-#define UDP_FIELD_LENGTH   "length"
-#define UDP_FIELD_CHECKSUM "checksum"
+#define UDP_FIELD_SRC_PORT   "src_port"
+#define UDP_FIELD_DST_PORT   "dst_port"
+#define UDP_FIELD_LENGTH     "length"
+#define UDP_FIELD_CHECKSUM   "checksum"
 
 
 // XXX mandatory fields ?
@@ -79,7 +81,7 @@ static struct udphdr udp_default = {
  * \return The number of fields
  */
 
-unsigned int udp_get_num_fields(void) {
+size_t udp_get_num_fields(void) {
     return sizeof(udp_fields) / sizeof(protocol_field_t);
 }
 
@@ -88,7 +90,7 @@ unsigned int udp_get_num_fields(void) {
  * \return The size of an UDP header
  */
 
-unsigned int udp_get_header_size(void) {
+size_t udp_get_header_size(void) {
     return sizeof(struct udphdr);
 }
 
@@ -101,11 +103,10 @@ void udp_write_default_header(uint8_t *data) {
     memcpy(data, &udp_default, sizeof(struct udphdr));
 }
 
-// TODO Check Checksum calculation for ipv6
 /**
  * \brief Compute and write the checksum related to an UDP header
- * \param udp_header A pre-allocated UDP header. The UDP checksum
- *    stored in this header is updated by this function.
+ * \param udp_header Points to the begining of the UDP header and its content.
+ *    The UDP checksum stored in this header is updated by this function.
  * \param ip_psh The IP layer part of the pseudo header:
  *    In IPv4: {
  *       src_ip   (32 bits),
@@ -140,8 +141,12 @@ bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
     // Put the excerpt of the IP header into the pseudo header
     memcpy(psh, buffer_get_data(ip_psh), buffer_get_size(ip_psh));
 
-    // Put the UDP header into the pseudo header
+    // Put the UDP header and its content into the pseudo header
     memcpy(psh + buffer_get_size(ip_psh), udp_hdr, ntohs(udp_hdr->LENGTH));//sizeof(struct udphdr));
+
+    // Overrides the UDP checksum in psh with zeros
+    // Checksum debug: http://www4.ncsu.edu/~mlsichit/Teaching/407/Resources/udpChecksum.html
+    memset(psh + buffer_get_size(ip_psh) + offsetof(struct udphdr, CHECKSUM), 0, sizeof(uint16_t));
 
     // Compute the checksum
     udp_hdr->check = csum((const uint16_t *) psh, size_psh);
@@ -149,44 +154,66 @@ bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
     return true;
 }
 
-// TODO define struct ipv4_psh_t ? 
+/**
+ * IPv4 pseudo header
+ */
 
-buffer_t * udp_create_psh_ipv4(uint8_t * ipv4_buffer)
+typedef struct {
+    uint32_t  ip_src;    /**< Source IPv4 */
+    uint32_t  ip_dst;    /**< Destination IPv4 */
+    uint8_t   zero;      /**< Zeros */
+    uint8_t   protocol;  /**< Protocol number of the first nested protocol (ex: UDP == 17) */
+    uint16_t  size;      /**< Size of IP layer contents (IP packet size - IP header size)  */
+} ipv4_pseudo_header_t;
+
+/**
+ * \brief Create an IPv4 pseudo header
+ * \param ipv4_packet Address of the IPv4 packet
+ * \return The buffer containing the corresponding pseudo header,
+ *    NULL in case of failure
+ */
+
+buffer_t * udp_create_psh_ipv4(const uint8_t * ipv4_packet)
 {
-    buffer_t     * ipv4_psh;
-    struct iphdr * ip_hdr = (struct iphdr *) ipv4_buffer;
-    uint8_t      * data;
+    const struct iphdr * ip_hdr = (const struct iphdr *) ipv4_packet;
+    buffer_t           * ipv4_psh;
+    ipv4_pseudo_header_t ipv4_pseudo_header;
     
     if (!(ipv4_psh = buffer_create())) {
-        errno = ENOMEM;
         return NULL;
     }
 
-    // The IPv4 part of a pseudo header is made of 12 bytes:
-    // {
-    //   src_ip   (4 bytes) (offset 0  byte)
-    //   dst_ip   (4 bytes) (offset 4  bytes)
-    //   zeros    (1 byte)  (offset 8  bytes)
-    //   proto    (1 byte)  (offset 9  bytes)
-    //   size_udp (2 bytes) (offset 10 bytes)
-    // } = 12 bytes
+    // Deduce the size of the UDP segment (header + data) according to the IP header
+    // - size of the IP segment: ip_hdr->tot_len
+    // - size of the IP header:  4 * ip_hdr->ihl
+    size_t udp_segment_size = htons(ntohs(ip_hdr->tot_len) - 4 * ip_hdr->ihl);
 
-    buffer_resize(ipv4_psh, 12);
-    data = buffer_get_data(ipv4_psh);
+    // Initialize the pseudo header
+    ipv4_pseudo_header.ip_src   = ip_hdr->saddr;
+    ipv4_pseudo_header.ip_dst   = ip_hdr->daddr;
+    ipv4_pseudo_header.zero     = 0;
+    ipv4_pseudo_header.protocol = ip_hdr->protocol;
+    ipv4_pseudo_header.size     = udp_segment_size; 
 
-    *((uint32_t *) (data + 0 )) = (uint32_t) ip_hdr->saddr;
-    *((uint32_t *) (data + 4 )) = (uint32_t) ip_hdr->daddr;
-    *((uint8_t  *) (data + 8 )) = 0;
-    *((uint8_t  *) (data + 9 )) = (uint8_t)  ip_hdr->protocol;
-    *((uint16_t *) (data + 10)) = (uint16_t) htons(ntohs(ip_hdr->tot_len) - 4 * ip_hdr->ihl);
-
+    // Prepare and return the corresponding buffer
+    buffer_set_data(ipv4_psh, (uint8_t *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header_t));
     return ipv4_psh;
 }
 
-#define HD_UDP_DADDR 4
-#define HD_UDP_PAD 8
-#define HD_UDP_PROT 9
-#define HD_UDP_LEN 10
+/**
+ * IPv6 pseudo header: http://tools.ietf.org/html/rfc2460
+ */
+
+typedef struct {
+    uint64_t  ip_src;    /**< Source IPv6      (first 64 bits) */
+    uint64_t  ip_src2;   /**< Source IPv6      (last  64 bits) */
+    uint64_t  ip_dst;    /**< Destination IPv6 (first 64 bits) */
+    uint64_t  ip_dst2;   /**< Destination IPv6 (last  64 bits) */
+    uint32_t  size;      /**< Size of IP layer contents (IP packet size - IP header size)  */ 
+    uint16_t  zero1;     /**< Zeros */
+    uint8_t   zero2;     /**< Zeros */
+    uint8_t   protocol;  /**< Protocol number of the first nested protocol (ex: UDP == 17) */
+} ipv6_pseudo_header_t;
 
 #define HD_UDP6_DADDR 16
 #define HD_UDP6_LEN 32
@@ -261,7 +288,6 @@ buffer_t * udp_create_psh(uint8_t * buffer)
        }*/
     return udp_create_psh_ipv4(buffer);
 }
-
 
 static protocol_t udp = {
     .name                 = "udp",

@@ -39,28 +39,25 @@ dynarray_t * dynarray_dup(const dynarray_t * dynarray, void * (*element_dup)(voi
 }
 
 void dynarray_free(dynarray_t * dynarray, void (*element_free)(void *element)) { 
-    unsigned int i;
+    size_t i, size;
 
-    //printf(">> dynarray_free(@%x): begin\n", dynarray);
     if (dynarray) {
         if (dynarray->elements) {
             if (element_free) {
-                //printf(">> dynarray_free(@%x): size = %d\n", dynarray, dynarray->size);
-                for(i = 0; i < dynarray->size; i++) {
-                    //printf(">>> dynarray_free(%x): freeing [%d / %d] @%d\n", dynarray, i, dynarray->size, dynarray->elements[i]);
-                    element_free(dynarray->elements[i]);
-                    //printf(">>> dynarray_free(%x): element [%d / %d] freed\n", dynarray, i, dynarray->size);
+                size = dynarray_get_size(dynarray);
+                for(i = 0; i < size; i++) {
+                    if (dynarray->elements[i]) {
+                        element_free(dynarray->elements[i]);
+                    }
                 }
-                //printf(">> dynarray_free(%x): end for\n", dynarray);
             }
             free(dynarray->elements);
         }
         free(dynarray);
     }
-    //printf(">> dynarray_free(%x): end\n", dynarray);
 }
 
-void dynarray_push_element(dynarray_t * dynarray, void * element)
+bool dynarray_push_element(dynarray_t * dynarray, void * element)
 {
     // If the dynarray is full, allocate DYNARRAY_SIZE_INC
     // cells in the dynarray
@@ -69,6 +66,7 @@ void dynarray_push_element(dynarray_t * dynarray, void * element)
             dynarray->elements,
             (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *)
         );
+        if (!dynarray->elements) return false;
         memset(
             dynarray->elements + dynarray->size, 0,
             DYNARRAY_SIZE_INC * sizeof(void *)
@@ -79,6 +77,7 @@ void dynarray_push_element(dynarray_t * dynarray, void * element)
     // Add the new element and update exposed size
     dynarray->elements[dynarray->size] = element;
     dynarray->size++;
+    return true;
 }
 
 /* void dynarray_add_element(dynarray_t * dynarray, void * element, size_t sizeof_element) {
@@ -106,10 +105,11 @@ int dynarray_del_ith_element(dynarray_t *dynarray, unsigned int i)
 
 void dynarray_clear(dynarray_t * dynarray, void (*element_free)(void * element))
 {
-    unsigned int i;
+    size_t i, size;
 
     if (dynarray) {
-        for(i = 0; i < dynarray->size; i++) {
+        size = dynarray_get_size(dynarray);
+        for(i = 0; i < size; i++) {
             element_free(dynarray->elements[i]);
         }
         dynarray->elements = realloc(dynarray->elements, DYNARRAY_SIZE_INIT * sizeof(void *)); // XXX

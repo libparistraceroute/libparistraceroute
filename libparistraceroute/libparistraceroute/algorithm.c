@@ -58,16 +58,26 @@ static algorithm_instance_t * pt_algorithm_instance_add(
     algorithm_instance_t * instance
 );
 
+/**
+ * \brief Unregister an algorithm instance in the main loop.
+ *    Its data must be previously freed by using algorithm_instance_free 
+ * \param instance The instance that we register
+ */
+
+static algorithm_instance_t * pt_algorithm_instance_del(
+    struct pt_loop_s     * loop,
+    algorithm_instance_t * instance
+);
+
 //--------------------------------------------------------------------
-// algorithm_t
+// algorithm_t (internal usage)
 //--------------------------------------------------------------------
 
-int algorithm_compare(const void * algorithm1, const void * algorithm2)
-{
-    return strcmp(
-        ((const algorithm_t *) algorithm1)->name,
-        ((const algorithm_t *) algorithm2)->name
-    );
+static int algorithm_compare(
+    const algorithm_t * algorithm1,
+    const algorithm_t * algorithm2
+) {
+    return strcmp(algorithm1->name, algorithm2->name);
 }
 
 algorithm_t * algorithm_search(const char * name)
@@ -76,7 +86,7 @@ algorithm_t * algorithm_search(const char * name)
 
     if (!name) return NULL;
     search.name = name;
-    algorithm = tfind(&search, &algorithms_root, algorithm_compare);
+    algorithm = tfind(&search, &algorithms_root, (ELEMENT_COMPARE) algorithm_compare);
 
     return algorithm ? *algorithm : NULL;
 }
@@ -84,7 +94,7 @@ algorithm_t * algorithm_search(const char * name)
 void algorithm_register(algorithm_t * algorithm)
 {
     // Insert the algorithm in the tree if the keys does not yet exist
-    tsearch(algorithm, &algorithms_root, algorithm_compare);
+    tsearch(algorithm, &algorithms_root, (ELEMENT_COMPARE) algorithm_compare);
 }
 
 //--------------------------------------------------------------------
@@ -148,7 +158,18 @@ static inline algorithm_instance_t * pt_algorithm_instance_add(
     return tsearch(
         instance,
         &loop->algorithm_instances_root,
-        (int (*)(const void *, const void *)) algorithm_instance_compare
+        (ELEMENT_COMPARE) algorithm_instance_compare
+    );
+}
+
+static inline algorithm_instance_t * pt_algorithm_instance_del(
+    struct pt_loop_s     * loop,
+    algorithm_instance_t * instance
+) {
+    return tdelete(
+        instance,
+        &loop->algorithm_instances_root,
+        (ELEMENT_COMPARE) algorithm_instance_compare
     );
 }
 
@@ -156,11 +177,11 @@ static inline algorithm_instance_t * pt_algorithm_instance_add(
 // algorithm_instance_t
 //--------------------------------------------------------------------
 
-inline void * algorithm_instance_get_options(algorithm_instance_t *instance) {
+inline void * algorithm_instance_get_options(algorithm_instance_t * instance) {
     return instance ? instance->options : NULL;
 }
 
-inline probe_t * algorithm_instance_get_probe_skel(algorithm_instance_t *instance) {
+inline probe_t * algorithm_instance_get_probe_skel(algorithm_instance_t * instance) {
     return instance ? instance->probe_skel : NULL;
 }
 
@@ -192,12 +213,12 @@ inline unsigned int algorithm_instance_get_num_events(algorithm_instance_t * ins
 // pt_loop: user interface 
 //--------------------------------------------------------------------
 
-void pt_process_algorithms_instance(void * node, VISIT visit, int level)
+void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
 {
     algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
-    unsigned int i, num_events;
-    uint64_t        ret;
-    ssize_t         count;
+    size_t                 i, num_events;
+    uint64_t               ret;
+    ssize_t                count;
     
     // Save temporarily this algorithm context
     instance->loop->cur_instance = instance;
@@ -228,7 +249,7 @@ void pt_free_algorithms_instance(
     int          level
 ) {
     algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
-    pt_algorithm_free(instance);
+    algorithm_instance_free(instance); // No notification
 }
 
 // Notify the called algorithm that it can start
@@ -273,8 +294,22 @@ ERR_ALGORITHM_NOT_FOUND:
     return NULL;
 }
 
+void pt_instance_stop(
+    struct pt_loop_s     * loop,
+    algorithm_instance_t * instance
+) {
+    // Notify the caller that this instance will be freed
+    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL));
+
+    // Free this instance
+    algorithm_instance_free(instance);
+
+    // Unregister this instance from the loop
+    pt_algorithm_instance_del(loop, instance);
+}
+
 void pt_algorithm_throw(
-    pt_loop_t            * loop, 
+    pt_loop_t            * loop,
     algorithm_instance_t * instance,
     event_t              * event
 ) {
@@ -294,14 +329,6 @@ void pt_algorithm_throw(
     }
 }
 
-inline void pt_algorithm_free(algorithm_instance_t * instance) {
-    // Notify the called algorithm that it can free its data
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL));
-
-    // Release this instance from the memory
-    algorithm_instance_free(instance);
-}
-
 //--------------------------------------------------------------------
 // Internal usage (see pt_loop.c) 
 //--------------------------------------------------------------------
@@ -312,18 +339,4 @@ inline void pt_algorithm_instance_iter(
 {
     twalk(loop->algorithm_instances_root, action);
 }
-
-
-// Notify the caller that the current algorithm has ended
-inline void pt_algorithm_terminate(
-    struct pt_loop_s     * loop,
-    algorithm_instance_t * instance
-) {
-    pt_algorithm_throw(
-        instance->caller ? NULL : loop,
-        instance->caller,
-        event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL)
-    );
-}
-
 

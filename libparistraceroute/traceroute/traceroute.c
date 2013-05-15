@@ -17,7 +17,7 @@
 
 void my_traceroute_handler(
     pt_loop_t                  * loop,
-    const traceroute_event_t   * traceroute_event,
+    traceroute_event_t         * traceroute_event,
     const traceroute_options_t * traceroute_options,
     const traceroute_data_t    * traceroute_data
 ) {
@@ -31,32 +31,55 @@ void my_traceroute_handler(
             probe = ((const probe_reply_t *) traceroute_event->data)->probe;
             reply = ((const probe_reply_t *) traceroute_event->data)->reply;
 
-            // Print reply (i-th reply corresponding to the current hop)
+            // Print TTL (if this is the first probe related to this TTL) 
             if (num_probes_printed % traceroute_options->num_probes == 0) {
-                printf("%d ", probe_get_field(probe, "ttl")->value.int8);
+                uint8_t ttl;
+                if (probe_extract(probe, "ttl", &ttl)) {
+                    printf("%-2d", ttl);
+                }
             }
-            printf("%10s ", probe_get_field(reply, "src_ip")->value.string);
+
+            // Print discovered IP
+            {
+                char * discovered_ip;
+                if (probe_extract(reply, "src_ip", &discovered_ip)) {
+                    printf(" %-16s ", discovered_ip);
+                    free(discovered_ip);
+                }
+            }
+
+            // Print delay
+            {
+                double send_time = probe_get_sending_time(probe),
+                       recv_time = probe_get_recv_time(reply);
+                printf(" (%-5.2lfms) ", 1000 * (recv_time - send_time));
+            }
             num_probes_printed++;
             break;
         case TRACEROUTE_STAR:
-            printf("*");
+            printf(" *");
             num_probes_printed++;
             break;
         case TRACEROUTE_ICMP_ERROR:
-            printf("!");
+            printf(" !");
             num_probes_printed++;
+            break;
+        case TRACEROUTE_TOO_MANY_STARS:
+            printf("Too many stars\n");
+            break;
+        case TRACEROUTE_MAX_TTL_REACHED:
+            printf("Max ttl reached\n");
             break;
         case TRACEROUTE_DESTINATION_REACHED:
             // The traceroute algorithm has terminated.
             // We could print additional results.
             // Interrupt the main loop.
-            // TODO: should we notify the main loop and provoke pt_loop_terminate in main_handler?
-            pt_loop_terminate(loop);
+            printf("Destination reached\n");
             break;
         default:
-            // Unhandled event
             break;
     }
+
     if (num_probes_printed % traceroute_options->num_probes == 0) {
         printf("\n");
     }
@@ -69,32 +92,34 @@ void my_traceroute_handler(
  * \param user_data Data shared in pt_loop_create() 
  */
 
-void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
+void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
+    traceroute_event_t         * traceroute_event;
     const traceroute_options_t * traceroute_options;
     const traceroute_data_t    * traceroute_data;
-    const traceroute_event_t   * traceroute_event;
     const char                 * algorithm_name;
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
             printf("> ALGORITHM_TERMINATED\n");
-            pt_loop_terminate(loop);
+            pt_instance_stop(loop, event->issuer); // release traceroute's data from the memory
+            pt_loop_terminate(loop);               // we've only run one 'traceroute' algorithm, so we can break the main loop 
             break;
         case ALGORITHM_EVENT: // an traceroute-specific event has been raised
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "traceroute") == 0) {
-                traceroute_event   = event->data; // cast event_t -> traceroute_event_t
+                traceroute_event   = event->data;
                 traceroute_options = event->issuer->options;
                 traceroute_data    = event->issuer->data;
                 my_traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
             }
             break;
         default:
-            // Unhandled event 
-            //TODO event_free(event);
             break;
     }
+
+    // Release the event, its nested traceroute_event (if any), its attached probe and reply (if any)
+    event_free(event);
 }
 
 /**
@@ -107,35 +132,50 @@ void main_handler(pt_loop_t * loop, event_t * event, void * user_data)
 int main(int argc, char ** argv)
 {
     algorithm_instance_t * instance;
-    probe_t              * probe_skel;
+    probe_t              * probe;
     pt_loop_t            * loop;
-    int ret = EXIT_FAILURE;
+    int                    ret = EXIT_FAILURE;
+    buffer_t             * payload;
+//    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
-    char dst_ip[] = "1.1.1.1";
+//    char dst_ip[] = "8.8.8.8";
+    char dst_ip[] = "1.1.1.2";
+    if (!(payload = buffer_create())) {
+        perror("E: Cannot allocate payload buffer");
+        goto ERR_BUFFER_CREATE;
+    }
+
+//    buffer_set_data(payload, message, strlen(message) - 1);
+    buffer_set_data(payload, "\0\0", 2);
 
     // Prepare options related to the 'traceroute' algorithm
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
+    options.num_probes = 3;
+    //options.max_ttl = 2;
+    printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl); 
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
-    if (!(loop = pt_loop_create(main_handler, NULL))) {
-        perror("E: Cannot create libparistraceroute loop ");
-        goto ERR_LOOP;
+    if (!(loop = pt_loop_create(algorithm_handler, NULL))) {
+        perror("E: Cannot create libparistraceroute loop");
+        goto ERR_LOOP_CREATE;
     }
 
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
-    if (!(probe_skel = probe_create())) {
+    if (!(probe = probe_create())) {
         perror("E: Cannot create probe skeleton");
-        goto ERR_PROBE_SKEL;
+        goto ERR_PROBE_CREATE;
     }
 
-    probe_set_protocols(probe_skel, "ipv4", "udp", NULL);
-    probe_set_fields(probe_skel, STR("dst_ip", dst_ip), NULL);
-   
+    probe_set_protocols(probe, "ipv4", "udp", NULL);
+    probe_write_payload(probe, payload);
+    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
+    probe_dump(probe);
+
     // Instanciate a 'traceroute' algorithm
-    if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe_skel))) {
+    if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {
         perror("E: Cannot add 'traceroute' algorithm");
         goto ERR_INSTANCE;
     }
@@ -143,15 +183,19 @@ int main(int argc, char ** argv)
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop, 0) < 0) {
         perror("E: Main loop interrupted");
-        goto ERR_PT_LOOP;
+        goto ERR_IN_PT_LOOP;
     }
     ret = EXIT_SUCCESS;
 
     // Free data and quit properly
+ERR_IN_PT_LOOP:
+    // instance is freed by pt_loop_free
 ERR_INSTANCE:
-ERR_PROBE_SKEL:
-ERR_PT_LOOP:
+    probe_free(probe);
+ERR_PROBE_CREATE:
     pt_loop_free(loop);
-ERR_LOOP:
+ERR_LOOP_CREATE:
+    buffer_free(payload);
+ERR_BUFFER_CREATE:
     exit(ret);
 }

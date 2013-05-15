@@ -22,6 +22,19 @@
 // Command line stuff
 //---------------------------------------------------------------------------
 
+#define HELP_4 "Use IPv4"
+#define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
+#define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
+//#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
+//#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must must be between 1 and 255"
+#define HELP_n "Do not resolve IP addresses to their domain names"
+#define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
+//#define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
+#define HELP_a "Traceroute algorithm: one of  'mda' [default],'traceroute', 'paris-traceroute'"
+#define HELP_d "set PORT as destination port (default: 30000)"
+#define HELP_s "set PORT as source port (default: 3083)"
+#define HELP_V "version 1.0"
+
 const char * algorithm_names[] = {
     "mda",
     "traceroute",
@@ -29,23 +42,25 @@ const char * algorithm_names[] = {
     NULL
 };
 
+// TODO use bool and update option parsing if required
 // static variables, needed for command-line parsing
-static unsigned is_ipv4 = 1;
-static unsigned is_udp  = 0;
-static unsigned do_resolv  = 1;
+static unsigned is_ipv4   = 1;
+static unsigned is_udp    = 0;
+static unsigned do_resolv = 1;
 
 const char * protocol_names[] = {
     "udp",
     NULL
 };
 
+// TODO #define
 // Bounded integer parameters | def    min  max
-static unsigned min_ttl[3] = {1,     1,   255};
+static unsigned min_ttl[3]   = {1,     1,   255};
 static unsigned max_ttl[3]   = {30,    1,   255};
 static double   wait[3]      = {5,     0,   INT_MAX};
 
 // Bounded integer parameters | def    min  max    option_enabled
-static unsigned dst_port[4]  = {6969, 0,   65535, 0};
+static unsigned dst_port[4]  = {6969,  0,   65535, 0};
 static unsigned src_port[4]  = {3083,  0,   65535, 1};
 
 // Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
@@ -210,11 +225,15 @@ int main(int argc, char ** argv)
             goto ERR_INVALID_ALGORITHM;
         }
     }
+
     // Iterate on argv to retrieve the target IP address
-    for(i = 0; argv[i] && i < argc; ++i);
+    for (i = 0; argv[i] && i < argc; ++i);
+
+    // TODO check whether dst_addr is a FQDN. Use address_ip_from_string if address family is known.
     if (address_from_string(argv[i - 1], &dst_addr) != 0) {
         goto ERR_ADDRESS_FROM_STRING;
     }
+
     // Prepare data
     if (!(data = paris_traceroute_data_create(algorithm_names[0], &dst_addr))) {
         goto ERR_DATA;
@@ -233,7 +252,7 @@ int main(int argc, char ** argv)
         is_udp  ? "udp"  : protocol_names[0],
         NULL
     );
-    probe_set_payload_size(probe_skel, 2); // probe_set_size XXX
+    probe_payload_resize(probe_skel, 2);
 
     // Set default values
     probe_set_fields(

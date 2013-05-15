@@ -78,10 +78,13 @@ bool buffer_resize(buffer_t * buffer, size_t size);
  * \brief Change the address of the memory managed by the buffer.
  *   The old address but be freed before if not more used.
  * \param buffer The address of the buffer
+ * \param data Address of bytes we copy in the buffer
+ * \param size Number of bytes that must be copied in the buffer
  * \return true iif successfull
  */
 
-bool buffer_set_data(buffer_t * buffer, uint8_t * data, size_t size);
+// TODO rename buffer_create_from_bytes
+bool buffer_set_data(buffer_t * buffer, const void * data, size_t size);
 
 /**
  * \brief Alter the size declared in the buffer structure.
@@ -99,16 +102,5 @@ void buffer_set_size(buffer_t * buffer, size_t size);
  */
 
 void buffer_dump(const buffer_t * buffer);
-
-
-/**
- * \brief Guess the IP version of a packet stored in a buffer
- *   according to the 4 first bits.
- * \param buffer The buffer storing an (IP) packet
- * \return 4 for IPv4, 6 for IPv6, another value if the
- *   buffer is not well-formed.
- */
-unsigned char buffer_guess_ip_version(buffer_t * buffer);
-
 
 #endif

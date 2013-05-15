@@ -65,7 +65,6 @@ sniffer_t * sniffer_create(network_t *network, void (*callback)(network_t *netwo
 
 error:
     free(sniffer);
-    sniffer = NULL;
     return NULL;
 }
 
@@ -77,15 +76,14 @@ void sniffer_free(sniffer_t *sniffer)
     sniffer = NULL;
 }
 
-int sniffer_get_fd(sniffer_t *sniffer)
-{
+int sniffer_get_fd(sniffer_t *sniffer) {
     return sniffer->socket;
 }
 
 void sniffer_process_packets(sniffer_t *sniffer)
 {
-    unsigned char data[BUFLEN];
-    int data_len;
+    uint8_t data[BUFLEN];
+    int     data_len;
 
 	data_len = recv(sniffer->socket, data, BUFLEN, 0);
 	if (data_len >= 4) {
@@ -114,5 +112,5 @@ void sniffer_process_packets(sniffer_t *sniffer)
 			sniffer->callback(sniffer->network, packet); 
         }
 	}
-
 }
+

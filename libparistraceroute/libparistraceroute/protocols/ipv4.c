@@ -1,17 +1,15 @@
-#include <stdlib.h>
-#include <stddef.h> // offsetof()
-#include <string.h> // memcpy()
-#include <unistd.h> // close()
-#include <stdio.h>
-#include <arpa/inet.h> // inet_pton()
-//#include <netdb.h>
-#include <netinet/ip.h>
+#include <stdbool.h>      // bool
+#include <unistd.h>       // close()
+#include <stddef.h>       // offsetof()
+#include <string.h>       // memcpy()
+#include <arpa/inet.h>    // inet_pton()
+#include <netinet/ip.h>   // iphdr
+#include <netinet/in.h>   // IPPROTO_UDP, INET_ADDRSTRLEN
 
 #include "../field.h"
-//#include "../protocol_field.h"
 #include "../protocol.h"
 
-/* Field names */
+// Field names
 #define IPV4_FIELD_VERSION           "version" 
 #define IPV4_FIELD_IHL               "ihl"
 #define IPV4_FIELD_TOS               "tos"
@@ -24,7 +22,7 @@
 #define IPV4_FIELD_SRC_IP            "src_ip"
 #define IPV4_FIELD_DST_IP            "dst_ip"
 
-/* Default field values */
+// Default field values
 #define IPV4_DEFAULT_VERSION         4 
 #define IPV4_DEFAULT_IHL             5
 #define IPV4_DEFAULT_TOS             0
@@ -32,86 +30,272 @@
 #define IPV4_DEFAULT_IDENTIFICATION  1
 #define IPV4_DEFAULT_FRAGOFF         0
 #define IPV4_DEFAULT_TTL             255 
-#define IPV4_DEFAULT_PROTOCOL        17   // here UDP, http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers 
+#define IPV4_DEFAULT_PROTOCOL        IPPROTO_UDP
 #define IPV4_DEFAULT_CHECKSUM        0
-#define IPV4_DEFAULT_SRC_IP          0
-#define IPV4_DEFAULT_DST_IP          0
+#define IPV4_DEFAULT_SRC_IP          0            // See ipv4_get_default_src_ip()
+#define IPV4_DEFAULT_DST_IP          0            // Must be set by the user (see network.c)
 
-#define IPV4_STRSIZE 16
+// The following offsets cannot be retrieved with offsetof() 
+// Offsets are always aligned with the begining of the header and expressed in bytes.
+#define IPV4_OFFSET_VERSION          0
+#define IPV4_OFFSET_IHL              0
 
-/*
- * TODO
- * it might be interesting to have a given format for interacting with the user,
- * and a size for writing into the packet.
- * ex. IP addresses string <-> bit representation
+/**
+ * \brief Translate an IPv4 set in a string field into a binary IP
+ * \param field The field containing the IPv4 to set (string format)
+ * \param ip The address where we write the translated IP 
+ * \return true iif successful.
  */
 
-// Accessors
+static bool ipv4_field_to_ipv4(const field_t * field, void * ip) {
+    bool ret = false;
 
-int ipv4_set_dst_ip(unsigned char * buffer, field_t * field)
-{
-    int res;
-	struct iphdr * ip_hed;
-    
-    ip_hed = (struct iphdr *)buffer;
-    res = inet_pton(AF_INET, (char *)field->value.string, &ip_hed->daddr);
-    if (res != 1)
-        return -1; // Error while reading destination address
-    return 0;
+    switch (field->type) {
+        case TYPE_STRING:
+            // TODO we could use address_ip_from_string(AF_INET, field->value.string, ip), see "address.h"
+            ret = (inet_pton(AF_INET, field->value.string, ip) == 1);
+            break;
+        case TYPE_INT32:
+            memcpy(ip, &(field->value.int32), sizeof(uint32_t));
+            ret = true;
+            break;
+        default:
+            break;
+    }
+    return ret;
 }
 
+/**
+ * \brief Create a string field from an IPv4 address 
+ * \param field The field containing the IP to set (string format)
+ * \param ip The address where we write the translated IP 
+ * \return true iif successful.
+ */
 
-field_t * ipv4_get_dst_ip(unsigned char * buffer)
-{
-    char res[IPV4_STRSIZE];
-	struct iphdr * ip_hed;
-    
-    ip_hed = (struct iphdr *)buffer;
+static field_t * ipv4_create_ipv4_field(const char * field_name, const void * ip) {
+    char      str_ip[INET_ADDRSTRLEN];
+    field_t * field = NULL;
 
-    memset(res, 0, IPV4_STRSIZE);
-    inet_ntop(AF_INET, &ip_hed->daddr, res, IPV4_STRSIZE);
-
-    return field_create_string(IPV4_FIELD_DST_IP, res);
+    if (inet_ntop(AF_INET, ip, str_ip, INET_ADDRSTRLEN)) {
+        field = STR(field_name, str_ip);
+    }
+    return field;
 }
 
-int ipv4_set_src_ip(unsigned char * buffer, field_t * field)
-{
-    int res;
-	struct iphdr *ip_hed;
-    
-    ip_hed = (struct iphdr *)buffer;
-    res = inet_pton(AF_INET, (char*)field->value.string, &ip_hed->saddr);
-    if (res != 1)
-        return -1; // Error while reading destination address
-    return 0;
+//-----------------------------------------------------------
+// set/get callbacks (accessors to IPv4 string and int4 fields) 
+//-----------------------------------------------------------
+
+// TODO layer functions should directly call ipv4_create_ipv4_field 
+// and ipv4_field_to_ipv4, thus we could remove the 4 following
+// functions. For uint4 fields, pass the address of the aligned byte,
+// the setter and the getter must read/write the 4 appropriate bits.
+
+/**
+ * \brief Create the an int4 field containing the version of the IPv4 header
+ * \param ipv4_header The queried IPv4 header. 
+ * \return The corresponding field, NULL in case of failure.
+ */
+
+field_t * ipv4_get_version(const uint8_t * ipv4_header) {
+    const uint8_t * byte = ipv4_header + IPV4_OFFSET_VERSION;
+    uint8_t         int4 = *byte >> 4;
+    return I4(IPV4_FIELD_VERSION, int4);
 }
 
+/**
+ * \brief Update the version of an IPv4 header
+ * \param field The string field containing the new source (resolved) IP
+ * \return true iif successful
+ */
 
-field_t *ipv4_get_src_ip(unsigned char *buffer)
-{
-    char res[IPV4_STRSIZE];
-	struct iphdr *ip_hed;
-    
-    ip_hed = (struct iphdr *)buffer;
-
-    memset(res, 0, IPV4_STRSIZE);
-    inet_ntop(AF_INET, &ip_hed->saddr, res, IPV4_STRSIZE);
-
-    return field_create_string(IPV4_FIELD_SRC_IP, res);
+bool ipv4_set_version(uint8_t * ipv4_header, const field_t * field) {
+    uint8_t * byte = ipv4_header + IPV4_OFFSET_VERSION; 
+    *byte = (*byte & 0x0f) | (field->value.int4 << 4);
+    return true;
 }
 
-/* IPv4 fields */
+/**
+ * \brief Create the an int4 field containing the version of the IP header
+ * \param ipv4_header The queried IPv4 header. 
+ * \return The corresponding field, NULL in case of failure.
+ */
+
+field_t * ipv4_get_ihl(const uint8_t * ipv4_header) {
+    const uint8_t * byte = ipv4_header + IPV4_OFFSET_IHL; 
+    uint8_t         int4 = *byte & 0x0f;
+    return I4(IPV4_FIELD_VERSION, int4);
+}
+
+/**
+ * \brief Update the Internet Header Length (IHL) of an IPv4 header.
+ * \param field The string field containing the new source (resolved) IP.
+ * \return true iif successful.
+ */
+
+bool ipv4_set_ihl(uint8_t * ipv4_header, const field_t * field) {
+    uint8_t * byte = ipv4_header + IPV4_OFFSET_IHL; 
+    *byte = (*byte & 0xf0) | field->value.int4;
+    return true;
+}
+
+/**
+ * \brief Create the a string field containing the source IP of an IPv4 header.
+ * \param ipv4_header The queried IPv4 header. 
+ * \return The corresponding field, NULL in case of failure.
+ */
+
+field_t * ipv4_get_src_ip(const uint8_t * ipv4_header) {
+    return ipv4_create_ipv4_field(
+        IPV4_FIELD_SRC_IP,
+        ipv4_header + offsetof(struct iphdr, saddr)
+    );
+}
+
+/**
+ * \brief Update the source IP of an IPv4 header.
+ * \param field The string field containing the new source (resolved) IP.
+ * \return true iif successful.
+ */
+
+bool ipv4_set_src_ip(uint8_t * ipv4_header, const field_t * field) {
+    return ipv4_field_to_ipv4(
+        field,
+        ipv4_header + offsetof(struct iphdr, saddr)
+    );
+}
+
+/**
+ * \brief Create the a string field containing the destination IP of an IPv4 header.
+ * \param ipv4_header The queried IPv4 header.
+ * \return The corresponding field, NULL in case of failure.
+ */
+
+field_t * ipv4_get_dst_ip(const uint8_t * ipv4_header) {
+    return ipv4_create_ipv4_field(
+        IPV4_FIELD_DST_IP,
+        ipv4_header + offsetof(struct iphdr, daddr)
+    );
+}
+
+/**
+ * \brief Update the destination IP of an IPv4 header according to a field 
+ * \param field The string field containing the new destination (resolved) IP
+ * \return true iif successful
+ */
+
+bool ipv4_set_dst_ip(uint8_t * ipv4_header, const field_t * field) {
+    return ipv4_field_to_ipv4(
+        field,
+        ipv4_header + offsetof(struct iphdr, daddr)
+    );
+}
+
+//-----------------------------------------------------------
+// finalize callback
+//-----------------------------------------------------------
+
+bool ipv4_get_default_src_ip(uint32_t dst_ipv4, uint32_t * psrc_ipv4) {
+    struct sockaddr_in  addr, name;
+    int                 sockfd;
+    short               family  = AF_INET;
+    socklen_t           addrlen = sizeof(struct sockaddr_in);
+
+    if ((sockfd = socket(family, SOCK_DGRAM, 0)) == -1) {
+        goto ERR_SOCKET;
+    }
+
+    memset(&addr, 0, addrlen);
+    addr.sin_family = family;
+    addr.sin_addr.s_addr = dst_ipv4;
+
+    if (connect(sockfd, (struct sockaddr *) &addr, addrlen) == -1) {
+        goto ERR_CONNECT; 
+    }
+
+    if (getsockname(sockfd, (struct sockaddr *) &name, &addrlen) == -1) {
+        goto ERR_GETSOCKNAME;
+    }
+
+    close(sockfd);
+    *psrc_ipv4 = name.sin_addr.s_addr;
+    return true;
+
+ERR_GETSOCKNAME:
+    close(sockfd);
+ERR_CONNECT:
+ERR_SOCKET:
+    return false;
+}
+
+/**
+ * \brief Fill the unset parts of the IPv4 layer to coherent values 
+ * \param ipv4_header The IP header that must be updated
+ * \return true iif successful
+ */
+
+// TODO pass mask of the ipv4 layer
+bool ipv4_finalize(uint8_t * ipv4_header)
+{
+	struct iphdr * iph = (struct iphdr *) ipv4_header;
+    bool           do_update_src_ip = true, // TODO should be based on the mask to allow spoofing
+                   ret = true;
+
+	if (do_update_src_ip) {
+        ret &= ipv4_get_default_src_ip(iph->daddr, &iph->saddr);
+	}
+
+	return ret;
+}
+
+//-----------------------------------------------------------
+// checksum and header_size callbacks
+//-----------------------------------------------------------
+
+/**
+ * \brief Retrieve the size of an UDP header 
+ * \return The size of an UDP header
+ */
+
+// TODO Use ipv4_get_ihl() according to void * header, and return IPV4_DEFAULT_IHL if this pointer is NULL
+size_t ipv4_get_header_size(void) {
+    return sizeof(struct iphdr);
+}
+
+/**
+ * \brief Compute and write the checksum related to an IP header
+ *    according to its other fields (including tot_len).
+ * \param ipv4_header An initialized IPv4 header. Checksum may be
+ *    not initialized, will be ignored, and overwritten
+ * \return true iif successful 
+ */
+
+bool ipv4_write_checksum(uint8_t * ipv4_header, buffer_t * psh) {
+	struct iphdr * iph = (struct iphdr *) ipv4_header;
+    iph->check = csum((const uint16_t *) iph, sizeof(struct iphdr));
+    return true;
+}
+
+//-----------------------------------------------------------
+// IPv4 fields
+//-----------------------------------------------------------
+
 static protocol_field_t ipv4_fields[] = {
-//    {
-//        .key    = IPV4_FIELD_VERSION,
-//        .type   = TYPE_INT4,
-//        .offset = offsetof(struct iphdr, version),
-//    }, {
-//        .key    = "ihl",
-//        .type   = TYPE_INT4,
-//        .offset = offsetof(struct iphdr, ihl),
-//    },
     {
+        .key      = IPV4_FIELD_VERSION,
+        .type     = TYPE_INT4,
+        .offset   = IPV4_OFFSET_VERSION,
+// TODO .offset_bits = 0
+        .set      = ipv4_set_version,
+        .get      = ipv4_get_version
+    }, {
+        .key      = IPV4_FIELD_IHL,
+        .type     = TYPE_INT4,
+        .offset   = IPV4_OFFSET_IHL,
+// TODO .offset_bits = 4
+        .set      = ipv4_set_ihl,
+        .get      = ipv4_get_ihl
+    }, {
         .key      = IPV4_FIELD_TOS,
         .type     = TYPE_INT8,
         .offset   = offsetof(struct iphdr, tos),
@@ -156,7 +340,19 @@ static protocol_field_t ipv4_fields[] = {
     // options if header length > 5 (not yet implemented)
 };
 
-/* Default IPv4 values */
+/**
+ * \brief Retrieve the number of fields in a UDP header
+ * \return The number of fields
+ */
+
+size_t ipv4_get_num_fields(void) {
+    return sizeof(ipv4_fields) / sizeof(protocol_field_t);
+}
+
+//-----------------------------------------------------------
+// Default IPv4 values
+//-----------------------------------------------------------
+
 static struct iphdr ipv4_default = {
     .version  = IPV4_DEFAULT_VERSION,
     .ihl      = IPV4_DEFAULT_IHL,
@@ -172,100 +368,12 @@ static struct iphdr ipv4_default = {
 };
 
 /**
- * \brief Determine source address when it is not explicitely specified.
- * \param dip The destination IP used to compute the source IP
- * \return The source IP that will be used to send datagrams to the specified
- * destination
- *
- * The source address is dependent on the destination, and corresponds to the
- * interface that will be chosen. This is mainly useful for RAW sockets. We
- * perform a connect operation for this.
- *
- * TODO we can generalize this to other transport protocols ?
- */
-uint32_t ipv4_get_default_sip(uint32_t dip) {
-        int sock;
-        struct sockaddr_in addr, name;
-        int len = sizeof(struct sockaddr_in);
-
-        sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sock < 0)
-            return 0; // Cannot create datagram socket
-        
-        memset(&addr, 0, len);
-
-        addr.sin_family      = AF_INET;
-        addr.sin_addr.s_addr = dip;
-        addr.sin_port        = htons(32000); // XXX why 32000 ?
-
-        if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in)) < 0)
-            return 0; // Cannot connect socket
-
-        if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1)
-            return 0; // Cannot getsockname
-        
-        close(sock);
-
-        return name.sin_addr.s_addr;
-}
-
-/**
- * \brief A set of actions to be done before sending the packet.
- */
-int ipv4_finalize(unsigned char *buffer) {
-    // destination address = force finding source
-
-    /* Setting source address */
-	struct iphdr *ip_hed = (struct iphdr *)buffer;
-	if (ip_hed->saddr==0) {//has to be calculated 
-		ip_hed->saddr = ipv4_get_default_sip(ip_hed->daddr);
-	}
-
-	return 0;
-}
-
-/**
- * \brief Retrieve the number of fields in a UDP header
- * \return The number of fields
- */
-
-unsigned int ipv4_get_num_fields(void)
-{
-    return sizeof(ipv4_fields) / sizeof(protocol_field_t);
-}
-
-/**
- * \brief Retrieve the size of an UDP header 
- * \return The size of an UDP header
- */
-
-unsigned int ipv4_get_header_size(void)
-{
-    return sizeof(struct iphdr);
-}
-
-/**
  * \brief Write the default UDP header
- * \param data The address of an allocated buffer that will store the header
+ * \param ipv4_header The address of an pre-allocated IPv4 header 
  */
 
-void ipv4_write_default_header(unsigned char *data)
-{
-    memcpy(data, &ipv4_default, sizeof(struct iphdr));
-}
-
-/**
- * \brief Compute and write the checksum related to an IP header
- *   according to its other fields (including tot_len).
- * \param ipv4_hdr A pre-allocated IPv4 header filled.
- * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
- * \return 0 if everything is ok, another value otherwise 
- */
-
-bool ipv4_write_checksum(unsigned char *buf, buffer_t * psh) {
-	struct iphdr * iph = (struct iphdr *) buf;
-    iph->check = csum((const uint16_t *) iph, sizeof(struct iphdr));
-    return true;
+void ipv4_write_default_header(uint8_t * ipv4_header) {
+    memcpy(ipv4_header, &ipv4_default, sizeof(struct iphdr));
 }
 
 static protocol_t ipv4 = {

@@ -20,7 +20,12 @@ event_t * event_create(
 void event_free(event_t * event)
 {
     if (event) {
-        if (event->data && event->data_free) event->data_free(event->data);
-        free(event);
+        if (event->data && event->data_free) {
+            event->data_free(event->data);
+        }
+        ///////////// TODO
+        //free(event);
+        event->data = NULL; // DEBUG
+        ///////////// TODO
     }
 }

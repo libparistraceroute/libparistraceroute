@@ -4,6 +4,18 @@
 #include <arpa/inet.h>
 #include "field.h"
 
+field_t * field_create_int4(const char * key, uint8_t value)
+{
+    field_t * field = malloc(sizeof(field_t));
+
+    if (field) {
+        field->key = strdup(key);
+        field->value.int4 = value;
+        field->type = TYPE_INT4;
+    }
+    return field;
+}
+
 field_t * field_create_int8(const char * key, uint8_t value)
 {
     field_t * field = malloc(sizeof(field_t));
@@ -52,6 +64,18 @@ field_t * field_create_int64(const char * key, uint64_t value)
     return field;
 }
 
+field_t * field_create_int128(const char * key, uint128_t value)
+{
+    field_t * field = malloc(sizeof(field_t));
+
+    if (field) {
+        field->key = strdup(key);
+        field->value.int128 = value;
+        field->type = TYPE_INT128;
+    }
+    return field;
+}
+
 field_t * field_create_intmax(const char * key, uintmax_t value)
 {
     field_t * field = malloc(sizeof(field_t));
@@ -87,6 +111,8 @@ field_t * field_create(fieldtype_t type, const char * key, void * value)
             return field_create_int32(key, *(uint32_t *) value);
         case TYPE_INT64:
             return field_create_int64(key, *(uint64_t *) value);
+        case TYPE_INT128:
+            return field_create_int128(key, *(uint128_t *) value);
         case TYPE_INTMAX:
             return field_create_intmax(key, *(uintmax_t *) value);
         case TYPE_STRING:
@@ -100,8 +126,9 @@ field_t * field_create(fieldtype_t type, const char * key, void * value)
 
 field_t * field_create_from_network(fieldtype_t type, const char * key, void * value)
 {
-	uint128_t temp128;
     switch (type) {
+        case TYPE_INT4:
+            return field_create_int4(key, *(uint8_t *) value); 
         case TYPE_INT8:
             return field_create_int8(key, *(uint8_t *) value);
         case TYPE_INT16:
@@ -110,21 +137,24 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
             return field_create_int32(key, ntohl(*(uint32_t *) value));
         case TYPE_INT64:
             return field_create_int64(key, ntohl(*(uint64_t *) value));
+        case TYPE_INT128:
+        //    return field_create_int128(key, ntohl(*(uint128_t *) value));
+            perror("field_create_from_network: Not yet implemented");
+            return NULL;
         case TYPE_INTMAX:
             return field_create_intmax(key, ntohl(*(uintmax_t *) value));
         case TYPE_STRING:
             return field_create_string(key, (char *) value);
-        case TYPE_INT4:
         default:
             break;
     }
-    return 0;
+    return NULL;
 }
 
 void field_free(field_t * field)
 {
     if (field) {
-        if(field->key) free(field->key);
+        if (field->key) free(field->key);
         free(field);
     }
 }
@@ -171,6 +201,9 @@ int field_compare(const field_t * field1, const field_t * field2)
     }
 
     switch (field1->type) {
+        case TYPE_INT4:
+            ret = field1->value.int4 - field2->value.int4;
+            break;
         case TYPE_INT8:
             ret = field1->value.int8 - field2->value.int8;
             break;
@@ -183,11 +216,12 @@ int field_compare(const field_t * field1, const field_t * field2)
         case TYPE_INT64:
             ret = field1->value.int64 - field2->value.int64;
             break;
+        case TYPE_INT128:
+            perror("field_compare: Not yet implemented\n");
+            //ret = field1->value.int128 - field2->value.int128;
+            break;
         case TYPE_INTMAX:
             ret = field1->value.intmax - field2->value.intmax;
-            break;
-        case TYPE_INT4:
-            ret = field1->value.int4 - field2->value.int4;
             break;
         case TYPE_STRING:
             ret = strcmp(field1->value.string, field2->value.string);
@@ -204,25 +238,27 @@ int field_compare(const field_t * field1, const field_t * field2)
 void field_dump(const field_t * field)
 {
     switch (field->type) {
+        case TYPE_INT4:
+            printf("%-10hhu (0x%1x)", field->value.int4, field->value.int4);
+            break;
         case TYPE_INT8:
-            printf("%hhu", field->value.int8);
+            printf("%-10hhu (0x%02x)", field->value.int8, field->value.int8);
             break;
         case TYPE_INT16:
-            printf("%hu", field->value.int16);
+            printf("%-10hu (0x%04x)", field->value.int16, field->value.int16);
             break;
         case TYPE_INT32:
-            printf("%u", field->value.int32);
+            printf("%-10u (0x%08x)", field->value.int32, field->value.int32);
             break;
         case TYPE_INT64:
             printf("%lu", field->value.int64);
             break;
         case TYPE_INT128:
-            printf("%llu", field->value.int128); //TODO does printf work this way for 128 bit ints?
+            perror("Not yet implemented");
+            //printf("%llu", field->value.int128); //TODO does printf work this way for 128 bit ints?
             break;
         case TYPE_INTMAX:
             printf("%ju", field->value.intmax);
-            break;
-        case TYPE_INT4:
             break;
         case TYPE_STRING:
             printf("%s", field->value.string);

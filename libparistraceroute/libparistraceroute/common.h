@@ -20,6 +20,12 @@
 #define ELEMENT_DUMP void   (*)(void *)
 
 /**
+ * \brief Type related to a *_compare() function
+ */
+
+#define ELEMENT_COMPARE int (*)(const void *, const void *)
+
+/**
  * \brief Macro returning the minimal value of two elements
  * \param x The left operand
  * \param x The right operand
@@ -38,7 +44,7 @@
 #define MAX(x, y) (x > y) ? x : y
 
 /**
- * \return The current timestamp
+ * \return The current timestamp (in seconds)
  */
 
 double get_timestamp(void);

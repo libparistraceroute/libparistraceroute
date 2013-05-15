@@ -1,103 +1,108 @@
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <netpacket/packet.h>
-#include <net/ethernet.h> 
-#include <netdb.h>
-#include <arpa/inet.h>
+#include <stdlib.h>             // malloc
+#include <stdio.h>              // perror
+#include <unistd.h>             // close
+#include <sys/socket.h>         // socket, getaddrinfo
+#include <sys/types.h>          // getaddrinfo
+#include <netdb.h>              // getaddrinfo
+#include <arpa/inet.h>          // inet_pton
 
 #include "socketpool.h"
+#include "address.h"
 
-// This was quickly hacked... TODO properly
+
+/*
+If we send UDP packet, we could get a return error channel.
+Otherwise we require a raw socket in the sniffer to retrieve ICMP layers.
+TCP: see scamper
+*/
 
 union sockaddr_union {
-	struct sockaddr sa;
-	struct sockaddr_ll sll;
-	struct sockaddr_in sin;
-	struct sockaddr_in6 sin6;
+	struct sockaddr      sa;
+//	struct sockaddr_ll   sll;
+	struct sockaddr_in   sin;
+	struct sockaddr_in6  sin6;
 };
+
 typedef union sockaddr_union sockaddr_u;
 
-int socketpool_create_raw_socket(socketpool_t *socketpool)
+bool socketpool_create_raw_socket(socketpool_t *socketpool)
 {
-	int s = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-	int one = 1;
-    if (s < 0) {
-        perror("init_raw_socket :: Error creating socket :");
-        return -1;
+	int sockfd;
+	int one = 1; // ???
+
+    if ((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) == -1) {
+        perror("Cannot create a raw socket (are you root?)");
+        goto ERR_SOCKET;
     }
-	if (setsockopt(s,IPPROTO_IP,IP_HDRINCL,&one,sizeof(int)) < 0){
-		perror("init_raw_socket : Cannot set IP_HDRINCL option :");
-        return -1;
+
+	if (setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &one, sizeof(int)) < 0){
+		perror("Cannot set socket options");
+        goto ERR_SETSOCKOPT;
 	}
-	socketpool->socket = s;
-    return 0;
+
+	socketpool->socket = sockfd;
+    return true;
+
+ERR_SETSOCKOPT:
+ERR_SOCKET:
+    return false;
 }
 
-socketpool_t *socketpool_create(void)
+socketpool_t * socketpool_create(void)
 {
-    socketpool_t *socketpool;
-    int ret;
+    socketpool_t * socketpool;
     
-    socketpool = (socketpool_t*)malloc(sizeof(socketpool_t));
-    ret = socketpool_create_raw_socket(socketpool);
-    if (ret == -1) {
-        free(socketpool);
-        socketpool = NULL;
-    }
-
+    if (!(socketpool = malloc(sizeof(socketpool_t)))) goto ERR_MALLOC;
+    if (!(socketpool_create_raw_socket(socketpool)))  goto ERR_CREATE_RAW_SOCKET;
     return socketpool;
+
+ERR_CREATE_RAW_SOCKET:
+    free(socketpool);
+ERR_MALLOC:
+    return NULL;
 }
 
-void socketpool_free(socketpool_t *socketpool)
+void socketpool_free(socketpool_t * socketpool)
 {
-	if(close(socketpool->socket)<0){
-		perror("close_socket");
+	if (close(socketpool->socket) < 0) {
+		perror("socketpool_free: error while closing socket");
 	}
     free(socketpool);
-    socketpool = NULL;
 }
 
-int socketpool_send_packet(socketpool_t *socketpool, packet_t *packet)
+bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * packet)
 {
-	struct addrinfo* addrinf;
-	int get_error;
-    size_t size;
-	sockaddr_u sock;
+    size_t            size;
+	sockaddr_u        sock;
+    int               family;
     
-    addrinf = malloc(sizeof(struct addrinfo));
-
-    /* determine the type of IP address */
-    get_error = getaddrinfo((char*)packet->dip, NULL, NULL, &addrinf);
-	if(get_error!=0){
-		fprintf(stderr, "fill_sockaddr : getaddrinfo: %s\n", gai_strerror(get_error));
-		return -1; // XXX
-	}
-
-    /* Currently only IPv4 and IPv6 are supported */
-	if(addrinf->ai_family==AF_INET){//IPv4
-		sock.sin.sin_family=AF_INET;
-		sock.sin.sin_port = htons(packet->dport);
-		inet_pton(AF_INET, (char*)packet->dip, &sock.sin.sin_addr);
-	} else if(addrinf->ai_family==AF_INET6){//IPv6
-		sock.sin6.sin6_family=AF_INET6;
-		sock.sin6.sin6_port = htons(packet->dport);
-		inet_pton(AF_INET6, (char*)packet->dip, &sock.sin6.sin6_addr);
-	} else {
-        return -1; // error
+    if (!(address_guess_family(packet->dst_ip, &family))) {
+        return false;
     }
-    // here we have the sockaddr
 
-	//probe_set_sending_time( probe, get_time ());
+    // Prepare socket 
+    switch (family) {
+        case AF_INET:
+            sock.sin.sin_family = AF_INET;
+            sock.sin.sin_port   = htons(packet->dst_port);
+            inet_pton(AF_INET, packet->dst_ip, &sock.sin.sin_addr);
+            break;
+        case AF_INET6:
+            sock.sin6.sin6_family = AF_INET6;
+            sock.sin6.sin6_port   = htons(packet->dst_port);
+            inet_pton(AF_INET6, packet->dst_ip, &sock.sin6.sin6_addr);
+            break;
+        default:
+            perror("Invalid address family");
+            return false; 
+    }
 
+    // Send the packet
     size = buffer_get_size(packet->buffer);
-    if (sendto (socketpool->socket, buffer_get_data(packet->buffer), size, 0, (struct sockaddr *) &sock, sizeof (sock)) < 0){
-        perror ("send_data : sending error in queue ");
-        return -1;
+    if (sendto(socketpool->socket, buffer_get_data(packet->buffer), size, 0, (struct sockaddr *) &sock, sizeof(sock)) < 0){
+        perror("send_data: sending error in queue");
+        return false; 
     }
 
-    return 0;
+    return true;
 }

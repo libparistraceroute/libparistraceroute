@@ -215,7 +215,9 @@ void * lattice_find(lattice_t * lattice, void * data)
 
 int lattice_add_element(lattice_t * lattice, lattice_elt_t * prev, void * data)
 {
-    lattice_elt_t * elt = lattice_elt_create(data);
+    lattice_elt_t * elt;
+   
+    if (!(elt = lattice_elt_create(data))) return -1; 
 
     if (!prev) {
         dynarray_push_element(lattice->roots, elt);

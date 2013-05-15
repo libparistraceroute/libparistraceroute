@@ -6,36 +6,70 @@
  * \brief Header for network packets
  */
 
-#include "probe.h"
+#include "buffer.h"
 
 /**
  * \struct packet_t
  * \brief Structure describing a network packet
  */
 
-typedef struct {
-    buffer_t     * buffer; /**< Buffer to hold the packet data */
-
-    /* Redundant information : temporary */
-    char         * dip;
-    unsigned short dport;
+typedef struct packet_s {
+    buffer_t * buffer; /**< Buffer to hold the packet data */
+    // TODO Redundant information : We use this temporary hack 
+    // while we are not sure that the dst_ip and dst_port
+    // have been explicitly set in the buffer (see probe) */
+    char     * dst_ip;   /**< Destination IP (string format) */
+    uint16_t   dst_port; /**< Destination port */
 } packet_t;
 
 /**
  * \brief Create a new packet
- * \return New packet_t structure
+ * \return The newly allocated packet_t instance, NULL in case of failure 
  */
 
 packet_t * packet_create(void);
 
-
 /**
- * \brief Create a new packet from a probe
- * \param probe Pointer to the probe to use
- * \return New packet_t structure
+ * \brief Create a new packet
+ * \param bytes The bytes carried by the packet
+ * \param num_bytes The packet size (in bytes)
+ * \return The newly allocated packet_t instance, NULL in case of failure 
  */
 
-packet_t * packet_create_from_probe(probe_t * probe);
+packet_t * packet_wrap_bytes(uint8_t * bytes, size_t num_bytes);
+
+/**
+ * \brief Resize a packet
+ * \param new_size The new packet size
+ * \return true iif successful
+ */
+
+bool packet_resize(packet_t * packet, size_t new_size);
+
+/**
+ * \brief Retrieve the size of a given packet
+ * \param packet The queried packet
+ * \return The corresponding size (in bytes)
+ */
+
+size_t packet_get_size(const packet_t * packet);
+
+/**
+ * \brief Retrieve a pointer to the begining of bytes managed
+ *   by a packet_t instance
+ * \param packet A packet_t instance
+ * \return The corresponding pointer.
+ */
+
+uint8_t * packet_get_bytes(packet_t * packet);
+
+/**
+ * \brief Duplicate a packet
+ * \param packet The packet we're copying
+ * \return The newly allocated packet, NULL in case of failure 
+ */
+
+packet_t * packet_dup(const packet_t * packet);
 
 /**
  * \brief Delete a packet
@@ -44,13 +78,20 @@ packet_t * packet_create_from_probe(probe_t * probe);
 
 void packet_free(packet_t * packet);
 
+/**
+ * \brief Guess the IP version of a packet stored in a buffer
+ *   according to the 4 first bits.
+ * \param buffer The buffer storing an (IP) packet
+ * \return 4 for IPv4, 6 for IPv6, another value if the
+ *   buffer is not well-formed.
+ */
+
+int packet_guess_address_family(const packet_t * packet);
+
 // Accessors
 
 buffer_t * packet_get_buffer(packet_t * packet);
 
-int packet_set_buffer(packet_t * packet, buffer_t * buffer);
-
-int packet_set_dip(packet_t * packet, char * dip);
-int packet_set_dport(packet_t * packet, unsigned short dport);
+void packet_set_buffer(packet_t * packet, buffer_t * buffer);
 
 #endif

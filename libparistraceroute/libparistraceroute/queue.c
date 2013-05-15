@@ -10,7 +10,6 @@ queue_t * queue_create(void)
 
     // Alloc queue
     if (!(queue = malloc(sizeof(queue_t)))) {
-        errno = ENOMEM;
         goto ERR_QUEUE;
     }
 

@@ -138,7 +138,6 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
 
     return loop;
 
-    // dynarray_free(loop->events_user);
 ERR_EVENTS_USER:
     free(loop->epoll_events);
 ERR_EVENTS:
@@ -184,27 +183,18 @@ void pt_loop_free(pt_loop_t * loop)
 
 // Accessors
 
-inline event_t ** pt_loop_get_user_events(pt_loop_t * loop)
-{
+inline event_t ** pt_loop_get_user_events(pt_loop_t * loop) {
     return loop ?
-        (event_t**) dynarray_get_elements(loop->events_user) :
+        (event_t **) dynarray_get_elements(loop->events_user) :
         NULL;
 }
 
-inline unsigned pt_loop_get_num_user_events(pt_loop_t * loop)
-{
+inline size_t pt_loop_get_num_user_events(pt_loop_t * loop) {
     return loop->events_user->size;
 }
 
-inline void pt_loop_clear_user_events(pt_loop_t * loop)
-{
-    if (loop) {
-        dynarray_clear(loop->events_user, (ELEMENT_FREE) event_free);
-    }
-}
-
-static inline int min(int x, int y) {
-    return x < y ? x : y;
+static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
+    dynarray_clear(loop->events_user, (ELEMENT_FREE) event_free);
 }
 
 /**
@@ -218,9 +208,8 @@ static inline int min(int x, int y) {
  */
 
 int pt_loop_process_user_events(pt_loop_t * loop) {
-    unsigned        i;
-    event_t      ** events     = pt_loop_get_user_events(loop); 
-    unsigned int    num_events = pt_loop_get_num_user_events(loop);
+    event_t      ** events        = pt_loop_get_user_events(loop); 
+    size_t          i, num_events = pt_loop_get_num_user_events(loop);
     uint64_t        ret;
     ssize_t         count;
 
@@ -261,6 +250,8 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
          */
         // Dispatch events
         for (i = 0; i < n; i++) {
+            // cur_fd has been activated, so we have to manage
+            // the corresponding event.
             cur_fd = loop->epoll_events[i].data.fd;
 
             // Handle errors on fds
@@ -275,9 +266,13 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
             }
             
             if (cur_fd == network_sendq_fd) {
-                network_process_sendq(loop->network);
+                if (!network_process_sendq(loop->network)) {
+                    perror("pt_loop: Can't send packet\n");
+                }
             } else if (cur_fd == network_recvq_fd) {
-                network_process_recvq(loop->network);
+                if (!network_process_recvq(loop->network)) {
+                    perror("pt_loop: Cannot fetch packet\n");
+                }
             } else if (cur_fd == network_sniffer_fd) {
                 network_process_sniffer(loop->network);
             } else if (cur_fd == loop->eventfd_algorithm) {
@@ -309,11 +304,14 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 } else if (fdsi.ssi_signo == SIGQUIT) {
                     exit(EXIT_SUCCESS);
                 } else {
-                    printf("Read unexpected signal\n");
+                    perror("Read unexpected signal\n");
                 }
             } else if (cur_fd == network_timerfd) {
-                /* Timeout for first packet in network->probes */
-                network_process_timeout(loop->network);
+
+                // Timer managing timeout in network layer has expired
+                if (!network_drop_oldest_flying_probe(loop->network)) {
+                    perror("Error while processing timeout");
+                }
             }
         }
     } while (loop->stop == PT_LOOP_CONTINUE);
@@ -322,28 +320,45 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     return loop->stop == PT_LOOP_TERMINATE ? 0 : -1;
 }
 
-// not the right callback here
-int pt_send_probe(pt_loop_t *loop, probe_t *probe)
+bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 {
-    /* We remember which algorithm has generated the probe */
-    probe_set_caller(probe, loop->cur_instance);
-    probe_set_queueing_time(probe, get_timestamp());
+    /*
+    // See network.h: This code is relevant for 2nd approach
+    probe_t * probe_duplicated;
 
-    /* The probe gets assigned a unique ID for the algorithm */
-    /* TODO */
+    printf("In pt_send_probe:\n");
+    probe_dump(probe);
 
-    //probe_dump(probe);
-    queue_push_element(loop->network->sendq, probe);
+    if (!(probe_duplicated = probe_dup(probe))) {
+        perror("pt_send_probe: Cannot duplicate probe\n");
+        goto ERR_PROBE_DUP;
+    }
 
-    return 0;
+    printf("In pt_send_probe (duplicated probe):\n");
+    probe_dump(probe);
+    */
+    probe_t * probe_duplicated = probe;
+
+    // Annotate which algorithm has generated this probe
+    probe_set_caller(probe_duplicated, loop->cur_instance);
+    probe_set_queueing_time(probe_duplicated, get_timestamp());
+
+    // Assign a probe tag
+    // TODO for the moment, probe tagging is hardcoded in the network layer
+    queue_push_element(loop->network->sendq, probe_duplicated);
+
+    return true;
+    /*
+ERR_PROBE_DUP:
+    return false;
+    */
 }
 
-void pt_loop_terminate(pt_loop_t * loop)
-{
+void pt_loop_terminate(pt_loop_t * loop) {
     loop->stop = PT_LOOP_TERMINATE;
 }
 
-bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
+static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
     // Allocate the event
     event_t * event = event_create(
         type,

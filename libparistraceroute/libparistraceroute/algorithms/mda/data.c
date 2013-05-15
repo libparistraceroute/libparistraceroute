@@ -1,35 +1,30 @@
 #include <stdlib.h>
 #include "data.h"
+#include "interface.h"
 
 mda_data_t* mda_data_create()
-//mda_data_t* mda_data_create(pt_loop_t * loop, probe_t * skel)
 {
-    mda_data_t *data;
+    mda_data_t * data;
 
-    data = malloc(sizeof(mda_data_t));
-    if (!data)
-        goto error;
+    if ((data = malloc(sizeof(mda_data_t)))) {
+        data->lattice = lattice_create();
+        data->last_flow_id = 0;
+        
+        // Options
+        data->confidence = 95;
 
-    data->lattice = lattice_create();
-
-    data->last_flow_id = 0;
-    
-    /* options */
-    data->confidence = 95;
-
-    /* internal data */
-    data->loop = NULL;//loop;
-    data->skel = NULL;//skel;
-
+        // Internal data
+        data->loop = NULL;
+        data->skel = NULL;
+    }
     return data;
-
-error:
-    return NULL;
 }
 
-void mda_data_free(mda_data_t* data)
+void mda_data_free(mda_data_t * data)
 {
-    lattice_free(data->lattice, NULL); /* XXX ELEMENT_FREE */
-    free(data);
+    if (data) {
+        lattice_free(data->lattice, (ELEMENT_FREE) mda_interface_free);
+        free(data);
+    }
 }
 

@@ -6,18 +6,27 @@
 #include "../../probe.h"
 
 typedef struct {
-    /* Root of the lattice storing the interfaces */
-    lattice_t   * lattice;
+    lattice_t   * lattice;      /**< Root of the lattice storing the interfaces */
     uintmax_t     last_flow_id;
     unsigned int  confidence;
-    char        * dst_ip;
-    pt_loop_t   * loop;
-    probe_t     * skel;
+    char        * dst_ip;       /**< Destination IP */
+    pt_loop_t   * loop;         /**< Main loop */
+    probe_t     * skel;         /**< Probe skeleton */
 } mda_data_t;
 
-//mda_data_t* mda_data_create(pt_loop_t * loop, probe_t * probe);
-mda_data_t* mda_data_create(void);
+/**
+ * \brief Allocate a mda_data_t structure
+ * \return A pointer to the mda_data_t structure, NULL otherwise
+ */
+
+mda_data_t * mda_data_create(void);
+
+/**
+ * \brief Release a mda_data_t structure from the memory
+ * \param A pointer to the mda_data_t instance
+ */
+
 void mda_data_free(mda_data_t *data);
 
-#endif /* MDA_DATA_H */
+#endif
 

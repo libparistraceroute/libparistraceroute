@@ -117,11 +117,16 @@ void pt_algorithm_throw(
 );
 
 /**
- * \brief Notify an instance to make it release memory
+ * \brief Notify the caller the algorithm instance will be freed,
+ *   then unregister the instance from the loop and free
+ *   algorithm instance's data.
  * \param instance The instance we are freeing
  */
 
-void pt_algorithm_free(algorithm_instance_t * instance);
+void pt_instance_stop(
+    struct pt_loop_s     * loop,
+    algorithm_instance_t * instance
+);
 
 /**
  * \brief Add a new algorithm instance in the libparistraceroute loop.
@@ -152,7 +157,7 @@ algorithm_instance_t * pt_algorithm_add(
  */
 
 void pt_process_algorithms_instance(
-    void * node,
+    const void * node,
     VISIT        visit,
     int          level
 );
@@ -180,18 +185,6 @@ void pt_free_algorithms_instance(
 void pt_algorithm_instance_iter(
     struct pt_loop_s * loop,
     void (*action) (const void *, VISIT, int)
-);
-
-/**
- * \brief Send a ALGORITHM_TERMINATED event to the caller which may be
- *   either a calling algorithm or either the libparistraceroute loop 
- *   if this algorithm has been called by the user program.
- * \param loop The libparistraceroute loop
- */
-
-void pt_algorithm_terminate(
-    struct pt_loop_s     * loop,
-    algorithm_instance_t * instance
 );
 
 #endif

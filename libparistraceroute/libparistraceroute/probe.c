@@ -1,8 +1,9 @@
 #include <stdlib.h>
-#include <stdio.h> // XXX
-#include <stdarg.h>
-#include <string.h>
-#include <netinet/in.h> // IPPROTO_ICMPV6
+#include <stdio.h>           // perror 
+#include <errno.h>           // errno
+#include <stdarg.h>          // va_start, va_copy, va_arg
+#include <string.h>          // memcpy
+#include <netinet/in.h>      // IPPROTO_IPV6, IPPROTO_ICMPV6
 #include <netinet/ip_icmp.h> // ICMP_DEST_UNREACH, ICMP_TIME_EXCEEDED
 
 #include "buffer.h"
@@ -11,165 +12,533 @@
 #include "pt_loop.h"
 #include "common.h"
 #include "metafield.h"
-#include "bitfield.h"
 
-// TODO update bitfield
+//-----------------------------------------------------------
+// Probe consistency 
+//-----------------------------------------------------------
+
+/**
+ * \brief (Internal use) Call for each layer its 'finalize'
+ *    callback before checksuming. Finalize unset
+ *    fields to a coherent value (for example src_ip in ipv4).
+ * \param probe The probe we're finalizing
+ * \return true iif successfull
+ */
+
+static bool probe_finalize(probe_t * probe);
+
+/**
+ * \brief Update for each layer of a probe the 'protocol' field
+ *   (if any) in order to have a coherent sequence of layers.
+ * \param probe The probe we're updating 
+ * \return true iif successfull
+ */
+
+static bool probe_update_protocol(probe_t * probe);
+
+/**
+ * \brief Update for each layer of a probe the 'length' field
+ *   (if any) in order to have a coherent sequence of layers.
+ * \param probe The probe we're updating 
+ * \return true iif successfull
+ */
+
+static bool probe_update_length(probe_t * probe);
+
+/**
+ * \brief Update for each layer of a probe the 'checksum' field
+ *   (if any) in order to have a coherent sequence of layers.
+ * \param probe The probe we're updating 
+ * \return true iif successfull
+ */
+
+static bool probe_update_checksum(probe_t * probe);
+
+//-----------------------------------------------------------
+// Layers management
+//-----------------------------------------------------------
+
+/**
+ * \brief Retrieve the i-th layer stored in a probe.
+ * \param probe The queried probe
+ * \param The index of the layer (from 0 to probe_get_num_layers(probe) - 1).
+ *   The last layer is the payload.
+ * \return The corresponding layer, NULL if i is invalid.
+ */
+
+static layer_t * probe_get_layer(const probe_t * probe, size_t i);
+
+/**
+ * \brief Retrieve the layer related to the payload from a probe
+ * \param probe The queried probe
+ * \return The corresponding layer, NULL if i is invalid.
+ */
+
+static layer_t * probe_get_layer_payload(const probe_t * probe);
+
+/**
+ * \brief Add a layer in the probe. Fields 'length', 'checksum' and
+ *    so on are not recomputed.
+ * \param layer The layer we're adding to the probe. It is not duplicated.
+ * \return true iif successfull
+ */
+
+static bool probe_push_layer(probe_t * probe, layer_t * layer); 
+
+/**
+ * \brief Add a payload layer in the probe. Fields 'length', 'checksum' and
+ *    so on are not recomputed.
+ * \param payload_size The length of the payload (in bytes)
+ * \return true iif successfull
+ */
+
+static bool probe_push_payload(probe_t * probe_t, size_t payload_size);
+
+/**
+ * \brief Release layers carried by this probe from the memory
+ * \param probe The probe we're updating
+ */
+
+static void probe_layers_free(probe_t * probe);
+
+/**
+ * \brief Reset layers carried by this probe 
+ * \param probe The probe we're updating
+ */
+
+static void probe_layers_clear(probe_t * probe);
+
+//-----------------------------------------------------------
+// Other static functions
+//-----------------------------------------------------------
+
+/**
+ * \brief Resize the buffer related to the payload. Update layer pointers and sizes.
+ * \param probe The probe we're updateing
+ * \param size The new size of the payload
+ * \return true iif successfull
+ */
+
+static bool probe_buffer_resize(probe_t * probe, size_t size);
+
+//-----------------------------------------------------------
+// Static functions (implementation)
+//-----------------------------------------------------------
+
+static bool probe_finalize(probe_t * probe)
+{
+    bool      ret = true;
+    size_t    i, num_layers = probe_get_num_layers(probe);
+    layer_t * layer;
+
+    // Allow the protocol to do some processing before computing checksums. 
+    for (i = 0; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        if (layer->protocol && layer->protocol->finalize) {
+            if (!(ret &= layer->protocol->finalize(layer->segment))) {
+                fprintf(stderr, "W: Can't finalize layer %s\n", layer->protocol->name);
+            }
+        }
+    }
+    return ret;
+}
+
+static bool layer_set_field_and_free(layer_t * layer, field_t * field) {
+    bool ret = false;
+
+    if (field) { 
+        ret = layer_set_field(layer, field);
+        field_free(field);
+    }
+    return ret;
+}
+
+static bool probe_update_protocol(probe_t * probe)
+{
+    size_t    i, num_layers = probe_get_num_layers(probe);
+    layer_t * layer,
+            * prev_layer;
+
+    for (i = 0, prev_layer = NULL; i < num_layers; i++, prev_layer = layer) {
+        layer = probe_get_layer(probe, i);
+        if (layer->protocol && prev_layer) {
+            // Update 'protocol' field (if any)
+            layer_set_field_and_free(layer, I16("protocol", prev_layer->protocol->protocol));
+        }
+    }
+    return true;
+}
+
+static bool probe_update_length(probe_t * probe)
+{
+    size_t    i, length, num_layers = probe_get_num_layers(probe);
+    layer_t * layer;
+
+    for (i = 0; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        if (layer->protocol) {
+            // TODO: length computation should be achieved in the protocol module
+            // IPv6 stores in its header (made of 40 bytes) the payload length
+            // whereas the other protocol stores the header + the payload length
+            length = layer->protocol->protocol == IPPROTO_IPV6 ?
+                layer_get_segment_size(layer) - 40 :
+                layer_get_segment_size(layer);
+
+            // Update 'length' field (if any)
+            layer_set_field_and_free(layer, I16("length", length));
+        }
+    }
+    return true;
+}
+
+static bool probe_update_checksum(probe_t * probe)
+{
+    size_t     i, j, num_layers = probe_get_num_layers(probe);
+    layer_t  * layer,
+             * layer_prev;
+    buffer_t * pseudo_header;
+
+    // Update each layers from the (last - 1) one to the first one.
+    for (j = 0; j < num_layers; j++) {
+        i = num_layers - j - 1;
+        layer = probe_get_layer(probe, i);
+        if (layer->protocol) { 
+            // Does the protocol require a pseudoheader?
+            if (layer->protocol->need_ext_checksum) {
+                if (i == 0) {
+                    // This layer has no previous layer.
+                    // We can't compute the corresponding pseudo-header!
+                    errno = EINVAL;
+                    return false;
+                } else {
+                    layer_prev = probe_get_layer(probe, i - 1);
+                    if (!(pseudo_header = layer->protocol->create_pseudo_header(layer_prev->segment))) {
+                        return false;
+                    }
+                }
+            } else pseudo_header = NULL;
+
+            // Compute the checksum according to the layer's buffer and
+            // the pseudo header (if any).
+            layer->protocol->write_checksum(layer->segment, pseudo_header);
+
+            // Release the pseudo header (if any) from the memory
+            if (pseudo_header) free(pseudo_header);
+        }
+    }
+    return true;
+}
+
+
+static layer_t * probe_get_layer(const probe_t * probe, size_t i) {
+    return dynarray_get_ith_element(probe->layers, i);
+}
+
+static layer_t * probe_get_layer_payload(const probe_t * probe) {
+    return probe_get_layer(probe, probe_get_num_layers(probe) - 1);
+}
+
+static bool probe_push_layer(probe_t * probe, layer_t * layer) {
+    // TODO resize probe->bitfield according to the size of the layer
+    // TODO fix layer->*size 
+    // TODO resize buffer?
+    return dynarray_push_element(probe->layers, layer);
+}
+
+static bool probe_push_payload(probe_t * probe, size_t payload_size) {
+    layer_t * payload_layer,
+            * first_layer;
+    size_t    current_size;
+
+    // Check whether a payload is already set
+    if ((payload_layer = probe_get_layer_payload(probe))) {
+        if (!payload_layer->protocol) {
+            fprintf(stderr, "Payload already set\n");
+            goto ERR_PAYLOAD_ALREADY_SET;
+        }
+    }
+
+    // Allocate the payload layer
+    if (!(payload_layer = layer_create())) {
+        fprintf(stderr, "Can't create layer\n");
+        goto ERR_LAYER_CREATE;
+    }
+
+    // Retrieve the size of the probe packet before payload addition
+    current_size = (first_layer = probe_get_layer(probe, 0)) ?
+        first_layer->segment_size : 0;
+
+    // TODO use layer_create_from_segment 
+    // Initialize the payload layer
+    layer_set_segment(payload_layer, packet_get_bytes(probe->packet) + current_size);
+    layer_set_segment_size(payload_layer, payload_size);
+    layer_set_header_size(payload_layer, 0);
+
+    // Add the payload layer in the probe
+    if (!(probe_push_layer(probe, payload_layer))) {
+        fprintf(stderr, "Can't push layer\n");
+        goto ERR_PUSH_LAYER;
+    }
+
+    // Resize the payload if required
+    if (payload_size > 0) {
+       if (!probe_payload_resize(probe, payload_size)) {
+           fprintf(stderr, "Can't resize payload\n");
+           goto ERR_PAYLOAD_RESIZE;
+       }
+    }
+    return true;
+
+ERR_PAYLOAD_RESIZE:
+    dynarray_del_ith_element(probe->layers, probe_get_num_layers(probe) - 1);
+ERR_PUSH_LAYER:
+    layer_free(payload_layer);
+ERR_LAYER_CREATE:
+ERR_PAYLOAD_ALREADY_SET:
+    return false;
+}
+
+static void probe_layers_free(probe_t * probe) {
+    dynarray_free(probe->layers, (ELEMENT_FREE) layer_free);
+}
+
+static void probe_layers_clear(probe_t * probe) {
+    dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
+}
+
+static bool probe_buffer_resize(probe_t * probe, size_t size)
+{
+    size_t    offset = 0, // offset between the begining of the packet and the current position
+              i, num_layers = probe_get_num_layers(probe);
+    layer_t * layer;
+
+    if (!packet_resize(probe->packet, size)) {
+        return false;
+    }
+
+    // We must reset properly for each layer's buffer
+    for (i = 0; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        layer_set_segment(layer, packet_get_bytes(probe->packet) + offset);
+        layer_set_segment_size(layer, size - offset);
+
+        if (layer->protocol) {
+            // Update length field (if any)
+            if (!layer_set_field_and_free(layer, I16("length", size - offset))) {
+                fprintf(stderr, "Cannot update 'length' field in '%s' layer\n", layer->protocol->name);
+            }
+            offset += layer->protocol->header_len; 
+        } else {
+            // Otherwise, we are at the payload, which is the last layer
+            layer_set_header_size(layer, 0);
+        }
+    }
+
+    return true;
+}
+
+//-----------------------------------------------------------
+// Allocation 
+//-----------------------------------------------------------
 
 probe_t * probe_create(void)
 {
-    probe_t * probe = malloc(sizeof(probe_t));
-    if (!probe) goto ERR_PROBE;
+    probe_t * probe;
 
-    // Create the buffer to store the field content
-    probe->buffer = buffer_create();
-    if (!probe->buffer) goto ERR_BUFFER;
-
-    // Initially the probe has no layers
-    probe->layers = dynarray_create();
-    if (!probe->layers) goto ERR_LAYERS;
-
-    // Bitfield that manages which bits have already been set. 
-    // For the moment this is an empty bitfield
-    probe->bitfield = bitfield_create(/* size_in_bits */ 0);
-
-    // Save which instance (caller) create this probe
-    probe->caller = NULL;
+    // We calloc probe to set *_time and caller members to 0
+    if (!(probe = calloc(1, sizeof(probe_t))))   goto ERR_PROBE;
+    if (!(probe->packet = packet_create())) {
+        printf("Cannot create packet\n");
+        goto ERR_PACKET;
+    }
+    if (!(probe->layers = dynarray_create()))    goto ERR_LAYERS;
+//    if (!(probe->bitfield = bitfield_create(0))) goto ERR_BITFIELD;
     return probe;
 
+ERR_BITFIELD:
+    probe_layers_free(probe);
 ERR_LAYERS:
-    buffer_free(probe->buffer);
-ERR_BUFFER:
+    packet_free(probe->packet);
+ERR_PACKET:
     free(probe);
 ERR_PROBE:
     return NULL;
 }
 
-probe_t * probe_dup(probe_t * skel)
+probe_t * probe_dup(const probe_t * probe)
 {
-    unsigned int ret;
-    probe_t * probe;
-    
-    probe = probe_create();
-    if (!probe) goto ERR_PROBE;
+    probe_t  * ret;
+    packet_t * packet;
 
-    // Create the buffer to store the field content
-    // This will reconstruct the layer structure
-    ret = probe_set_buffer(probe, buffer_dup(skel->buffer));
-    if (ret < 0) goto ERR_BUFFER;
+    if (!(packet = packet_dup(probe->packet)))            goto ERR_PACKET_DUP;
+    if (!(ret = probe_wrap_packet(packet)))               goto ERR_PROBE_WRAP_PACKET;
+//    if (!(ret->bitfield = bitfield_dup(probe->bitfield))) goto ERR_BITFIELD_DUP;
 
-    // Bitfield that manages which bits have already been set. 
-    // For the moment this is an empty bitfield
-    probe->bitfield = bitfield_dup(skel->bitfield);
-    if (!probe->bitfield) goto ERR_BITFIELD;
+    ret->sending_time  = probe->sending_time;
+    ret->queueing_time = probe->queueing_time;
+    ret->recv_time     = probe->recv_time;
+    ret->caller        = probe->caller;
+    return ret;
 
-    // Save which instance (caller) create this probe
-    probe->caller = NULL;
-    return probe;
-
-ERR_BITFIELD:
-    buffer_free(probe->buffer);
-ERR_BUFFER:
-    probe_free(probe);
-ERR_PROBE:
+ERR_BITFIELD_DUP:
+    probe_free(ret);
+    packet = NULL;
+ERR_PROBE_WRAP_PACKET:
+    if (packet) packet_free(packet);
+ERR_PACKET_DUP:
     return NULL;
-
 }
 
 void probe_free(probe_t * probe)
 {
-    //printf(">>> Freeing probe @%x\n", probe);
     if (probe) {
-        /*
-        bitfield_free(probe->bitfield);
-        dynarray_free(probe->layers, (ELEMENT_FREE) layer_free);
-        buffer_free(probe->buffer);
-        */
+//        bitfield_free(probe->bitfield);
+        probe_layers_free(probe);
+        if (probe->packet) {
+            printf("probe = %x probe->packet = %x\n", probe, probe->packet);
+            packet_free(probe->packet);
+        }
         free(probe);
     }
 }
 
-// Accessors
+void probe_dump(const probe_t * probe)
+{
+    size_t    i, num_layers = probe_get_num_layers(probe); 
+    layer_t * layer;
 
-inline buffer_t * probe_get_buffer(const probe_t * probe) {
-    return probe ? probe->buffer : NULL;
+    printf("** PROBE **\n\n");
+    for (i = 0; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        layer_dump(layer, i);
+        printf("\n");
+    }
+    printf("\n");
 }
 
-int probe_set_buffer(probe_t * probe, buffer_t * buffer)
-{
-    size_t          size; // to prevent underflow
-    size_t          offset;
-    unsigned char * data;
-    protocol_t    * protocol;
-    uint8_t         protocol_id,
-                    ipv4_protocol_id = 4;
-    probe->buffer = buffer;
+//-----------------------------------------------------------
+// Buffer management 
+//-----------------------------------------------------------
 
-    // buffer_dump(probe->buffer);
-    
-    data = buffer_get_data(buffer);
-    size = buffer_get_size(buffer);
+layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segment, size_t segment_size) {
+    layer_t * layer;
 
-    /* Remove the former layer structure */
-    dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
-
-    unsigned char ip_version = buffer_guess_ip_version(buffer);
-             
-////////////////////////:
-    protocol = ip_version == 6 ? protocol_search("ipv6") :
-               ip_version == 4 ? protocol_search("ipv4") :
-               NULL;
-    if (!protocol) {
-        perror("E: probe_set_buffer: cannot guess IP version");
+    // Create a new layer
+    if (!(layer = layer_create())) {
+        goto ERR_CREATE_LAYER;
     }
-    protocol_id = protocol-> protocol;
-///////////////
+
+    // Initialize and install the new layer in the probe
+    layer_set_segment(layer, segment);
+    layer_set_segment_size(layer, segment_size);
+    layer_set_protocol(layer, protocol);
+    layer_set_header_size(layer, protocol ? protocol->header_len : 0); // TODO manage header with variable length by querying a protocol's callback
+
+ERR_CREATE_LAYER:
+    return NULL;
+}
+
+probe_t * probe_wrap_packet(packet_t * packet)
+{
+    // TODO manage free and errors properly
+    probe_t          * probe;
+    uint8_t            protocol_id,
+                       ipv4_protocol_id = 4;
+    size_t             offset, header_size, segment_size;
+    layer_t          * layer;
+    uint8_t          * segment;
+    const field_t    * field;
+    const protocol_t * protocol;
+    buffer_t         * buffer = packet->buffer;
+
+    if (!(probe = probe_create())) {
+        goto ERR_PROBE_CREATE;
+    }
+
+    // Clear the probe
+    // The actual value of probe->packet is not freed since it
+    // can pointed by another probe_t instance.
+    probe->packet = packet;
+    probe_layers_clear(probe);
+
+    // Guess what is the first protocol_id 
+    switch (packet_guess_address_family(packet)) {
+        case AF_INET:
+            protocol = protocol_search("ipv4");
+            break;
+        case AF_INET6:
+            protocol = protocol_search("ipv6");
+            break;
+        default:
+            perror("Cannot guess Internet address family\n");
+            goto ERR_GUESS_FAMILY;
+    }
+    protocol_id = protocol->protocol;
 
     offset = 0;
+    segment = buffer_get_data(buffer);
+    segment_size = buffer_get_size(buffer);
 
     for(;;) {
-        layer_t       * layer;
-        protocol_t    * protocol;
-        const field_t * field;
-        size_t          hdrlen;
-        //printf("-------> coucou\n");
+        // Do we have specifications for this protocol?
+        if (!(protocol = protocol_search_by_id(protocol_id))) {
+            fprintf(stderr, "Unknown protocol ID: %d\n", protocol_id);
+            goto ERR_PROTOCOL_SEARCH_BY_ID;
+        }
 
-        layer = layer_create();
-        layer_set_buffer(layer, data + offset);
-        layer_set_buffer_size(layer, size);
+        header_size = protocol->header_len;
 
-        dynarray_push_element(probe->layers, layer);
+        // TODO layer_t * create_layer_from_segment(uint8_t * segment, size_t segment_size)
+        // TODO probe_add_layer
+        {
+            // Create a new layer
+            if (!(layer = layer_create())) {
+                goto ERR_CREATE_LAYER;
+            }
 
-        protocol = protocol_search_by_id(protocol_id);
-        if (!protocol)
-            return -1; // Cannot find matching protocol
+            // Initialize and install the new layer in the probe
+            layer_set_segment(layer, segment + offset);
+            layer_set_segment_size(layer, segment_size);
+            layer_set_protocol(layer, protocol);
+            layer_set_header_size(layer, header_size);
+            if (!probe_push_layer(probe, layer)) {
+                goto ERR_PUSH_LAYER;
+            }
+        }
 
-        hdrlen = protocol->header_len;
+        /*
+        if (!(layer = layer_create_from_segment(protocol, segment + offset, segment_size))) {
+            goto ERR_CREATE_LAYER;
+        }
 
-        layer_set_protocol(layer, protocol);
-        layer_set_header_size(layer, hdrlen);
+        if (!probe_push_layer(probe, layer)) {
+            goto ERR_PUSH_LAYER;
+        }
+        */
 
-        offset += hdrlen;
-        size -= hdrlen;
-        if (size < 0)
-            return -1; 
+        offset += header_size;
+        segment_size -= header_size;
+        if (segment_size < 0) {
+            perror("Truncated packet");
+            goto ERR_TRUNCATED_PACKET;
+        }
 
         // In the case of ICMP, while protocol is not really a field, we might
         // provide it by convenience
         // Need for heuristics // source port hook to parse packet content
 
-        // Loop until reaching the payload or an ICMP layer
-        // layer_get_field returns NULL iif we've reached an ICMP layer or the payload 
-        field = layer_get_field(layer, "protocol");
+        // Continue to dissect the packet while we find a protocol field.
+        // If we've reached an ICMP layer we've reached the last layer before the payload. 
+        // layer_create_field returns NULL iif we've reached an ICMP layer or the payload 
+        field = layer_create_field(layer, "protocol");
         if (field) {
             protocol_id = field->value.int8;
             continue;
         } else if (strcmp(layer->protocol->name, "icmp") == 0) {
             // We are in an ICMP layer
-            field = layer_get_field(layer, "type");
-
-            if (!field) {
-                // Weird ICMP packet !
-                return -1; 
+            if (!(field = layer_create_field(layer, "type"))) {
+                fprintf(stderr, "Can't extract 'type' field from an ICMP layer");
+                return NULL; 
             }
 
             // 3 == Destination unreachable
@@ -187,194 +556,73 @@ int probe_set_buffer(probe_t * probe, buffer_t * buffer)
             protocol_id = 0;
             break;
         }
+
+        continue;
+
+ERR_TRUNCATED_PACKET:
+ERR_PUSH_LAYER:
+        layer_free(layer);
+ERR_CREATE_LAYER:
+ERR_PROTOCOL_SEARCH_BY_ID:
+        goto ERR_LAYER_DISCOVER_LAYER;
     } 
 
     // payload
     if (protocol_id == 0) {
         // XXX some icmp packets do not have payload
         // Happened with type 3 !
-        layer_t *layer = layer_create();
-        layer_set_buffer(layer, data + offset);
-        layer_set_buffer_size(layer, size);
+        layer_t * layer = layer_create();
+        layer_set_segment(layer, segment + offset);
+        layer_set_segment_size(layer, segment_size);
+        layer_set_protocol(layer, NULL);
         layer_set_header_size(layer, 0);
-
-        dynarray_push_element(probe->layers, layer);
+        if (!probe_push_layer(probe, layer)) return NULL;
     }
-    return 0; 
+    return probe; 
 
+ERR_LAYER_DISCOVER_LAYER:
+ERR_GUESS_FAMILY:
+ERR_PROBE_CREATE:
+    return NULL;
 }
 
-// Dump
-void probe_dump(const probe_t *probe)
-{
-    size_t size;
-    unsigned int i;
+//-----------------------------------------------------------
+// Layer management 
+//-----------------------------------------------------------
 
-    // Let's loop through the layers and print all fields
-    printf("\n\n** PROBE **\n\n");
-    size = dynarray_get_size(probe->layers);
-    for(i = 0; i < size; i++) {
-        layer_t *layer;
-        layer = dynarray_get_ith_element(probe->layers, i);
-        layer_dump(layer, i);
-        printf("\n");
-    }
-    printf("\n");
+size_t probe_get_num_layers(const probe_t * probe) {
+    return dynarray_get_size(probe->layers); 
 }
 
-int probe_finalize(probe_t * probe)
-{
-    unsigned int   i, size;
-    layer_t      * layer;
-
-    size = dynarray_get_size(probe->layers);
-
-    // Allow the protocol to do some processing before checksumming
-    for (i = 0; i < size; i++) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-
-        // finalize callback
-        if (!layer->protocol)
-            continue;
-        if (layer->protocol->finalize)
-            layer->protocol->finalize(layer->buffer);
-    }
-
-    return 0;
+uint8_t * probe_get_payload(const probe_t * probe) {
+    const layer_t * layer = probe_get_layer_payload(probe);
+    return layer ? layer_get_segment(layer) : NULL;
 }
 
-int probe_update_protocol(probe_t * probe)
-{
-    layer_t * layer, * prev_layer = NULL;
-    protocol_field_t * pfield;
-    unsigned int i, size;
-
-    size = dynarray_get_size(probe->layers);
-
-    for (i = 0; i < size; i++) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-
-        if (!layer->protocol)
-            continue;
-        if (prev_layer) {
-            pfield = protocol_get_field(layer->protocol, "protocol");
-            if (pfield) {
-                layer_set_field(layer, I16("protocol", (uint16_t)prev_layer->protocol->protocol));
-            }
-        }
-        prev_layer = layer;
-    }
-
-    return 0;
+size_t probe_get_payload_size(const probe_t * probe) {
+    const layer_t * layer = probe_get_layer_payload(probe);
+    return layer ? layer_get_segment_size(layer) : 0;
 }
 
-int probe_update_length(probe_t * probe)
-{
-    unsigned int       i, size;
-    protocol_field_t * pfield;
-    layer_t          * layer;
-
- // XXX IPv6 Hacks
-    // TODO refactor
-   // int proto_ipv6 = protocol_search("ipv6")->protocol;
-   // int proto_ipv6_hdrlen = 40;
-
-    size = dynarray_get_size(probe->layers);
-
-    // Allow the protocol to do some processing before checksumming
-    for (i = 0; i<size; i++) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-
-        if (!layer->protocol)
-            continue;
-        pfield = protocol_get_field(layer->protocol, "length");
-        if (pfield) {
-                layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));		
-        //	if (layer->protocol->protocol == proto_ipv6){
-        //		layer_set_field(layer, I16("length", (uint16_t)((layer->buffer_size) - proto_ipv6_hdrlen)));
-        //	}else {
-        //		layer_set_field(layer, I16("length", (uint16_t)(layer->buffer_size)));
-        //	}
-        }
-    }
-
-    return 0;
-}
-int probe_update_checksum(probe_t * probe)
-{
-    unsigned int   size;
-    int            i;
-    layer_t      * layer;
-
-    size = dynarray_get_size(probe->layers);
-
-    // Go though the layers of the probe in the reverse order to write
-    // checksums
-    // XXX layer_t will require parent layer, and probe_t bottom_layer
-    for (i = size - 1; i >= 0; i--) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-        if (!layer->protocol)
-            continue;
-        /* Does the protocol require a pseudoheader ? */
-        if (layer->protocol->need_ext_checksum) {
-            layer_t    * layer_prev;
-            buffer_t   * psh;
-
-            if (i == 0)
-                return -1;
-
-            // XXX todo compute udp checksum !!!!
-            //
-            // for example, udp gets a pointer to the upper ipv4 layer 
-            layer_prev = dynarray_get_ith_element(probe->layers, i-1);
-
-            // XXX We should specify which layer we have
-            psh = layer->protocol->create_pseudo_header(layer_prev->buffer);
-            if (!psh)
-                return -1;
-            layer->protocol->write_checksum(layer->buffer, psh);
-            free(psh); 
-
-        } else {
-            // could be a function in layer ?
-            layer->protocol->write_checksum(layer->buffer, NULL);
-        }
-    }
-    return 0;
+const char * probe_get_protocol_name(const probe_t * probe, size_t i) {
+    if (i + 1 == probe_get_num_layers(probe)) return "payload";
+    const layer_t * layer = probe_get_layer(probe, i); 
+    return layer ? layer->protocol->name : NULL; 
 }
 
-int probe_update_fields(probe_t *probe)
+bool probe_set_protocols(probe_t * probe, const char * name1, ...)
 {
-    int res;
+    // TODO A similar function should allow hooking into the layer structure
+    // and not at the top layer
 
-    res = probe_finalize(probe);
-    if (res < 0) goto error;
-
-    res = probe_update_protocol(probe);
-    if (res < 0) goto error;
-
-    res = probe_update_length(probe);
-    if (res < 0) goto error;
-
-    res = probe_update_checksum(probe);
-    if (res < 0) goto error;
-
-    return 0;
-error:
-    return -1;
-}
-
-// TODO A similar function should allow hooking into the layer structure
-// and not at the top layer
-int probe_set_protocols(probe_t * probe, const char * name1, ...)
-{
-    va_list      args, args2;
-    size_t       buflen, offset;
-    const char * i;
-    layer_t    * layer, *prev_layer;
+    va_list            args, args2;
+    size_t             buflen, offset, header_size;
+    const char       * name;
+    layer_t          * layer, *prev_layer;
+    const protocol_t * protocol;
 
     // Remove the former layer structure
-    dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
+    probe_layers_clear(probe);
 
     // Set up the new layer structure
     va_start(args, name1);
@@ -382,350 +630,274 @@ int probe_set_protocols(probe_t * probe, const char * name1, ...)
     // Allocate the buffer according to the layer structure
     buflen = 0;
     va_copy(args2, args);
-    for (i = name1; i; i = va_arg(args2, char *)) {
-        protocol_t * protocol = protocol_search(i);
-        if (!protocol) goto ERROR;
+    for (name = name1; name; name = va_arg(args2, char *)) {
+        if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH;
         buflen += protocol->header_len; 
     }
     va_end(args2);
-    buffer_resize(probe->buffer, buflen);
+    if (!(packet_resize(probe->packet, buflen))) goto ERR_PACKET_RESIZE;
 
     // Create each layer
     offset = 0;
     prev_layer = NULL;
-    for (i = name1; i; i = va_arg(args, char *)) {
-        protocol_field_t * pfield;
-        protocol_t       * protocol;
-
+    for (name = name1; name; name = va_arg(args, char *)) {
         // Associate protocol to the layer
-        layer = layer_create();
-        protocol = protocol_search(i);
-        if (!protocol) goto ERROR_LAYER;
+        if (!(layer = layer_create()))           goto ERR_LAYER_CREATE;
+        if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH2;
 
         layer_set_protocol(layer, protocol);
 
-        // Initialize the buffer with default protocol values
-        protocol->write_default_header(buffer_get_data(probe->buffer) + offset);
-        layer_set_header_size(layer, protocol->header_len);
+        // Initialize the buffer with default protocol values declared in the
+        // dedicated network protocol module (see libparistraceroute/procotols/)
+        protocol->write_default_header(packet_get_bytes(probe->packet) + offset);
+        header_size = protocol->header_len; // TODO should be set thanks to protocol->write_default_header
+        layer_set_header_size(layer, header_size);
 
         // TODO consider variable length headers
-        layer_set_buffer(layer, buffer_get_data(probe->buffer) + offset);
-        layer_set_buffer_size(layer, buflen - offset);
-        layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);
+        layer_set_segment(layer, packet_get_bytes(probe->packet) + offset);
+        layer_set_segment_size(layer, buflen - offset);
+//        layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);
 
-        pfield = protocol_get_field(layer->protocol, "length");
-        if (pfield) {
-            layer_set_field(layer, I16("length", (uint16_t)(buflen - offset)));
+        // Update 'length' field
+        if (!layer_set_field_and_free(layer, I16("length", buflen - offset))) {
+            fprintf(stderr, "Can't set length in %s header\n", layer->protocol->name);
+            goto ERR_SET_LENGTH;
         }
 
         if (prev_layer) {
-            pfield = protocol_get_field(layer->protocol, "protocol");
-            if (pfield) {
-                layer_set_field(layer, I16("protocol", (uint16_t) prev_layer->protocol->protocol));
-            }
+            // Update 'protocol' field (if any)
+            layer_set_field_and_free(layer, I16("protocol", prev_layer->protocol->protocol));
         }
 
         offset += protocol->header_len; 
-        dynarray_push_element(probe->layers, layer);
+        if (!probe_push_layer(probe, layer)) {
+            perror("Can't add protocol layer\n");
+            goto ERR_PUSH_LAYER;
+        }
         prev_layer = layer;
     }
     va_end(args);
 
     // Payload : initially empty
-    layer = layer_create();
-    layer_set_buffer(layer, buffer_get_data(probe->buffer) + buflen);
-    layer_set_buffer_size(layer, 0); // XXX unless otherwise specified
-    layer_set_header_size(layer, 0);
-
-    dynarray_push_element(probe->layers, layer);
-    // buflen += 0;
+    if (!probe_push_payload(probe, 0)) {
+        perror("Can't push payload\n");
+        goto ERR_PUSH_PAYLOAD;
+    }
 
     // Size and checksum are pending, they depend on payload 
-    
-    return 0;
+    return true;
 
-ERROR_LAYER:
-    dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
-ERROR:
-    return -1;
+ERR_PUSH_PAYLOAD:
+ERR_PUSH_LAYER:
+ERR_SET_LENGTH:
+ERR_PROTOCOL_SEARCH2:
+    layer_free(layer);
+ERR_LAYER_CREATE:
+    probe_layers_clear(probe);
+ERR_PACKET_RESIZE:
+ERR_PROTOCOL_SEARCH:
+    return false;
 }
 
-int probe_set_field_ext(probe_t *probe, field_t *field, unsigned int depth)
+bool probe_payload_resize(probe_t * probe, size_t payload_size)
 {
-    unsigned int i;
-    int res = -1;
-    size_t size;
-    layer_t *layer;
+    layer_t * payload_layer;
+    size_t    old_buffer_size,
+              new_buffer_size,
+              old_payload_size;
+    
+    if (!(payload_layer = probe_get_layer_payload(probe))) goto ERR_NO_PAYLOAD; 
 
-    /* We go through the layers until we get the required field */
-    res = 0;
-    size = dynarray_get_size(probe->layers);
-    for(i = depth; i < size; i++) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-        
-        res = layer_set_field(layer, field);
-        /* We stop as soon as a layer succeeds */
-        if (res == 0)
-            break;
+    old_payload_size = layer_get_segment_size(payload_layer);
+
+    // Compare payload lenths
+    if (old_payload_size != payload_size) {
+        old_buffer_size = packet_get_size(probe->packet);
+        if (old_payload_size > old_buffer_size) {
+            perror("Invalid probe buffer\n");
+            goto ERR_INVALID_PROBE_BUFFER;
+        }
+        new_buffer_size = old_buffer_size - old_payload_size + payload_size;
+
+        // Resize the buffer
+        if (!(probe_buffer_resize(probe, new_buffer_size))) goto ERR_RESIZE_BUFFER;
+
+        // Update 'checksum' and 'length' fields to remain the probe consistant
+        probe_update_fields(probe);
     }
+    return true;
 
-    return res;
+ERR_INVALID_PROBE_BUFFER:
+ERR_RESIZE_BUFFER:
+ERR_NO_PAYLOAD:
+    return false;
 }
 
-inline int probe_set_field(probe_t * probe, field_t * field)
-{
-    return probe_set_field_ext(probe, field, 0);
+bool probe_write_payload(probe_t *probe, buffer_t * payload) {
+    return probe_write_payload_ext(probe, payload, 0);
 }
 
-
-int probe_set_metafield(probe_t * probe, field_t * field)
+bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int offset)
 {
-    metafield_t * metafield;
-    field_t     * f;
+    layer_t * payload_layer;
+    size_t    payload_size = buffer_get_size(payload);
 
-    /* TEMP HACK : we only have IPv4 and flow_id, let's encode it into the
-     * src_port */
-    if (strcmp(field->key, "flow_id") != 0)
-        return -1;
-
-    f = field_create_int16("src_port", 24000 + (uint16_t)(field->value.int16));
-    return probe_set_field(probe, f);
-    
-    /* XXX */
-
-    metafield = metafield_search(field->key);
-    if (!metafield)
-        return -1; // Metafield not found
-
-    /* Does the probe verifies one metafield pattern */
-
-    /* Does the value conflict with a previously set field ? */
-
-    
+    return (payload_layer = probe_get_layer_payload(probe))
+        && (probe_payload_resize(probe, payload_size))
+        && (layer_write_payload_ext(payload_layer, payload, offset));
 }
 
-int probe_resize_buffer(probe_t * probe, unsigned int size)
+//-----------------------------------------------------------
+// Fields management 
+//-----------------------------------------------------------
+
+bool probe_update_fields(probe_t * probe)
 {
-    unsigned int       offset, num_layers, i;
-    protocol_field_t * pfield;
-    /* We can only resize the last layer (payload) */
-    /* TODO */
+    return probe_finalize(probe)
+        && probe_update_protocol(probe)
+        && probe_update_length(probe)
+        && probe_update_checksum(probe);
+}
 
-    buffer_resize(probe->buffer, size);
+bool probe_set_field_ext(probe_t * probe, size_t depth, field_t * field)
+{
+    bool      ret = false;
+    size_t    i, num_layers = probe_get_num_layers(probe);
+    layer_t * layer;
 
-    num_layers = dynarray_get_size(probe->layers);
-
-    offset = 0;
-
-    /* We need to reaffect the different layer pointers, and reassign length */
-    for (i = 0; i < num_layers; i++) {
-        layer_t *layer;
-
-        layer = dynarray_get_ith_element(probe->layers, i);
-        layer_set_buffer(layer, buffer_get_data(probe->buffer) + offset);
-
-        if (layer->protocol) {
-            pfield = protocol_get_field(layer->protocol, "length");
-            if (pfield) {
-                layer_set_field(layer, I16("length", (uint16_t)(size - offset)));
-            }
-
-            offset += layer->protocol->header_len; 
-
-        } else {
-            /* Otherwise, we are at the payload, which is the last layer */
-            layer_set_buffer_size(layer, size - offset);
-            layer_set_header_size(layer, 0);
+    for(i = depth; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        if (layer_set_field(layer, field)) {
+            ret = true;
+            break;
         }
     }
-
-    return 0;
-    
+    return ret;
 }
 
-int probe_set_payload_size(probe_t * probe, unsigned int payload_size)
+bool probe_set_field(probe_t * probe, field_t * field) {
+    return probe_set_field_ext(probe, 0, field);
+}
+
+bool probe_set_metafield_ext(probe_t * probe, size_t depth, field_t * field)
 {
-    // TODO factorize with probe_set_min_payload_size
-    unsigned int size;
-    unsigned int old_buffer_size, old_payload_size;
-    layer_t * payload_layer;
-    
-    /* The payload is the last layer */
-    size = dynarray_get_size(probe->layers);
-    payload_layer = dynarray_get_ith_element(probe->layers, size - 1);
+    bool          ret = false;
+    field_t     * hacked_field;
 
-    old_buffer_size = buffer_get_size(probe->buffer);
-    old_payload_size = layer_get_buffer_size(payload_layer);
-
-    if (old_payload_size != payload_size) {
-        /* Resize probe buffer */
-        probe_resize_buffer(probe, old_buffer_size - old_payload_size + payload_size);
-
-        /* Change the buffer, and fix layers offsets */
-        layer_set_buffer_size(payload_layer, payload_size);
+    // TODO: TEMP HACK IPv4 flow id is encoded in src_port
+    if (strcmp(field->key, "flow_id") != 0) {
+        fprintf(stderr, "probe_set_metafield_ext: cannot set %s\n", field->key);
+        return false;
     }
 
-    // XXX probe_update_fields(probe);
-
-    return 0;
-}
-
-int probe_set_min_payload_size(probe_t * probe, unsigned int payload_size)
-{
-    unsigned int size;
-    unsigned int old_buffer_size, old_payload_size;
-    layer_t * payload_layer;
-    
-    /* The payload is the last layer */
-    size = dynarray_get_size(probe->layers);
-    payload_layer = dynarray_get_ith_element(probe->layers, size - 1);
-
-    old_buffer_size = buffer_get_size(probe->buffer);
-    old_payload_size = layer_get_buffer_size(payload_layer);
-
-    if (old_payload_size < payload_size) {
-        /* Resize probe buffer */
-        probe_resize_buffer(probe, old_buffer_size - old_payload_size + payload_size);
-
-        /* Change the buffer, and fix layers offsets */
-        layer_set_buffer_size(payload_layer, payload_size);
+    if ((hacked_field = I16("src_port", 24000 + field->value.int16))) {
+        ret = probe_set_field(probe, hacked_field);
+        field_free(hacked_field);
     }
 
-    // XXX probe_update_fields(probe);
+    field_free(field);
+    return ret;
+    
+    /*
+    metafield = metafield_search(field->key);
+    if (!metafield) return false; // Metafield not found
 
-    return 0;
+    // Does the probe verifies one metafield pattern ?
+    // Does the value conflict with a previously set field ?
+    */
 }
 
-int probe_set_payload(probe_t *probe, buffer_t * payload)
-{
-    unsigned int size;
-    layer_t * payload_layer;
-
-    probe_set_payload_size(probe, buffer_get_size(payload));
-    
-    /* The payload is the last layer */
-    size = dynarray_get_size(probe->layers);
-    payload_layer = dynarray_get_ith_element(probe->layers, size - 1);
-
-    layer_set_payload(payload_layer, payload);
-
-    // XXX probe_update_fields(probe); // done twice probe_set_payload_size
-
-    return 0;
-}
-
-int probe_write_payload(probe_t *probe, buffer_t * payload, unsigned int offset)
-{
-    unsigned int size;
-    layer_t * payload_layer;
-
-    /* We need to ensure we have sufficient buffer size  */
-    probe_set_min_payload_size(probe, offset + buffer_get_size(payload));
-    
-    /* The payload is the last layer */
-    size = dynarray_get_size(probe->layers);
-    payload_layer = dynarray_get_ith_element(probe->layers, size - 1);
-
-    layer_write_payload(payload_layer, payload, offset);
-
-    // XXX probe_update_fields(probe); // done twice probe_set_min_payload_size
-
-    return 0;
+bool probe_set_metafield(probe_t * probe, field_t * field) {
+    return probe_set_metafield_ext(probe, 0, field);
 }
 
 // Internal use
-const field_t * probe_get_metafield(const probe_t * probe, const char * name)
+field_t * probe_create_metafield_ext(const probe_t * probe, const char * name, size_t depth)
 {
-    const field_t * field;
-    field_t       * ret_field;
+    uint16_t        src_port; 
 
     // TODO to generalize to any metafield
     if (strcmp(name, "flow_id") != 0) return NULL;
 
+    // TODO We've hardcoded the flow-id in the src_port and we only support the "flow_id" metafield
     // TODO to adapt for IPv6 support 
-    field = probe_get_field(probe, "src_port");
-    ret_field = IMAX("flow_id", field->value.int16 - 24000);
-    return ret_field;
+    return probe_extract(probe, "src_port", &src_port) ?
+        IMAX("flow_id", src_port - 24000) :
+        NULL;
 }
 
-// TODO same function starting at a given layer
-int probe_set_fields(probe_t *probe, field_t *field1, ...) {
+const field_t * probe_create_metafield(const probe_t * probe, const char * name) {
+    return probe_create_metafield_ext(probe, name, 0);
+}
+
+bool probe_set_fields(probe_t * probe, field_t * field1, ...) {
     va_list   args;
     field_t * field;
-    int res;
+    bool      ret = true;
 
     va_start(args, field1);
-
-    for (field = field1; field; field = va_arg(args, field_t*)) {
-        /* Going from the first layer, we set the field to the first layer that
-         * possess it */
-        res = probe_set_field(probe, field);
-        if (res == 0)
-            continue;
-
-        /* Metafield ? */
-        res = probe_set_metafield(probe, field);
-        if (res == 0)
-            continue;
-
-        printf("W: could not set field %s\n", field->key);
-        // break; // field cannot be set in any subfield
+    for (field = field1; field; field = va_arg(args, field_t *)) {
+        // Update the first matching field
+        if (!probe_set_field(probe, field)) { 
+            // No matching field found, update the first matching metafield
+            if ((ret &= probe_set_metafield(probe, field))) { 
+                fprintf(stderr, "probe_set_fields: Cannot not set field %s\n", field->key);
+            }
+        }
+        field_free(field);
     }
-
     va_end(args);
+    probe_update_fields(probe);
 
-    // XXX probe_update_fields(probe);
-    
-    /* 0 if all fields could be set */
-    return res;
+    return ret;
 }
 
-int probe_set_caller(probe_t * probe, void * caller)
-{
+void probe_set_caller(probe_t * probe, void * caller) {
     probe->caller = caller;
-    return 0;
 }
 
-void * probe_get_caller(const probe_t * probe)
-{
+void * probe_get_caller(const probe_t * probe) {
     return probe->caller;
 }
 
-int probe_set_sending_time(probe_t * probe, double time)
-{
+void probe_set_sending_time(probe_t * probe, double time) {
     probe->sending_time = time;
-    return 0;
 }
 
-double probe_get_sending_time(const probe_t * probe)
-{
+double probe_get_sending_time(const probe_t * probe) {
     return probe->sending_time;
 }
 
-int probe_set_queueing_time(probe_t * probe, double time)
-{
+void probe_set_queueing_time(probe_t * probe, double time) {
     probe->queueing_time = time;
-    return 0;
 }
 
-double probe_get_queueing_time(const probe_t *probe)
-{
+double probe_get_queueing_time(const probe_t *probe) {
     return probe->queueing_time;
 }
+
+void probe_set_recv_time(probe_t * probe, double time) {
+    probe->recv_time = time;
+}
+
+double probe_get_recv_time(const probe_t *probe) {
+    return probe->recv_time;
+}
+
 
 // Iterator
 
 typedef struct {
-    void *data;
-    void (*callback)(field_t *field, void *data);
+    void  * data;
+    void (* callback)(field_t * field, void * data);
 } iter_fields_data_t;
 
-void probe_iter_fields_callback(void *element, void *data) {
-    iter_fields_data_t *d = (iter_fields_data_t*)data;
-    d->callback((field_t*)element, d->data);
+void probe_iter_fields_callback(void * element, void * data) {
+    iter_fields_data_t * d = (iter_fields_data_t*) data;
+    d->callback((field_t*) element, d->data);
 }
 
-void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *, void *))
+void probe_iter_fields(probe_t *probe, void * data, void (*callback)(field_t *, void *))
 {
     /*
     iter_fields_data_t tmp = {
@@ -737,91 +909,109 @@ void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *, v
     // not implemented : need to iter over protocol fields of each layer
 }
 
-unsigned int probe_get_num_proto(const probe_t *probe)
+field_t * probe_create_field_ext(const probe_t * probe, const char * name, size_t depth)
 {
-    return 0; // TODO
-}
+    size_t    i, num_layers = probe_get_num_layers(probe); 
+    layer_t * layer;
+    field_t * field;
 
-field_t ** probe_get_fields(const probe_t * probe)
-{
-    return NULL; // TODO
-}
-
-const field_t * probe_get_field_ext(const probe_t * probe, const char * name, unsigned int depth)
-{
-    size_t          size;
-    size_t          i;
-    layer_t       * layer;
-    const field_t * field;
-
-    
     // We go through the layers until we get the required field
-    size = dynarray_get_size(probe->layers);
-    for(i = depth; i < size; i++) {
-        layer = dynarray_get_ith_element(probe->layers, i);
-
-        if ((field = layer_get_field(layer, name))) return field;
+    for(i = depth; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        if ((field = layer_create_field(layer, name))) {
+            return field;
+        }
     }
-    // Not found, this is maybe a metafield
-    return probe_get_metafield(probe, name);
+
+    // No matching field found, this is maybe a metafield
+    return probe_create_metafield_ext(probe, name, depth);
 }
 
-const field_t * probe_get_field(const probe_t * probe, const char * name)
-{
-    return probe_get_field_ext(probe, name, 0);
+field_t * probe_create_field(const probe_t * probe, const char * name) {
+    return probe_create_field_ext(probe, name, 0);
 }
 
-unsigned char * probe_get_payload(const probe_t * probe)
-{
-    // point into the packet structure
-    return NULL; // TODO
+bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, void * dst) {
+    field_t *  field;
+
+    if (!(field = probe_create_field_ext(probe, name, depth))) goto ERR_CREATE_FIELD;
+
+    if (field->type == TYPE_STRING) {
+        *((char **) dst) = strdup(field->value.string); // TODO why strdup?
+    } else {
+        memcpy(dst, &field->value, field_get_size(field));
+    } 
+    field_free(field);
+    return true;
+
+ERR_CREATE_FIELD:
+    return false;
 }
 
-unsigned int probe_get_payload_size(const probe_t * probe)
-{
-    return 0; // TODO
+bool probe_extract(const probe_t * probe, const char * name, void * dst) {
+    return probe_extract_ext(probe, name, 0, dst);
 }
-
-char * probe_get_protocol_by_index(unsigned int i)
-{
-    return NULL; // TODO
-}
-
 
 /******************************************************************************
  * probe_reply_t
  ******************************************************************************/
 
-probe_reply_t * probe_reply_create(void)
-{
+probe_reply_t * probe_reply_create(void) {
     return calloc(1, sizeof(probe_reply_t));
 }
 
-void probe_reply_free(probe_reply_t * probe_reply)
-{
-    if (probe_reply) free(probe_reply);
+void probe_reply_free(probe_reply_t * probe_reply) {
+    if (probe_reply) {
+        free(probe_reply);
+    }
+}
+
+void probe_reply_deep_free(probe_reply_t * probe_reply) {
+    if (probe_reply) {
+        if (probe_reply->probe) probe_free(probe_reply->probe);
+        if (probe_reply->reply) probe_free(probe_reply->reply);
+        probe_reply_free(probe_reply);
+    }
 }
 
 // Accessors
 
-int probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe)
-{
+void probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe) {
     probe_reply->probe = probe;
-    return 0;
 }
 
-probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply)
-{
+probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply) {
     return probe_reply->probe;
 }
 
-int probe_reply_set_reply(probe_reply_t * probe_reply, probe_t * reply)
-{
+void probe_reply_set_reply(probe_reply_t * probe_reply, probe_t * reply) {
     probe_reply->reply = reply;
-    return 0;
 }
 
-probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply)
-{
+probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply) {
     return probe_reply->reply;
 }
+
+packet_t * probe_create_packet(probe_t * probe)
+{
+    // The destination IP is a mandatory field
+    if (!(probe_extract(probe, "dst_ip", &probe->packet->dst_ip))) {
+        fprintf(stderr, "This probe has no 'dst_ip' field set\n");
+        goto ERR_EXTRACT_DST_IP;
+    }
+
+    // The destination port is a mandatory field
+    if (!(probe_extract(probe, "dst_port", &probe->packet->dst_port))) {
+        fprintf(stderr, "This probe has no 'dst_port' field set\n");
+        goto ERR_EXTRACT_DST_PORT;
+    }
+
+    return probe->packet;
+
+ERR_EXTRACT_DST_PORT:
+    free(probe->packet->dst_ip);
+    probe->packet->dst_ip = NULL;
+ERR_EXTRACT_DST_IP:
+    return NULL;
+}
+

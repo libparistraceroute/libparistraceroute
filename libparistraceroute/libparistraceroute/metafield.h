@@ -23,16 +23,15 @@
 
 typedef struct metafield_s {
     /* Exposed fields */
-    char  * name;
-    char ** patterns;
+    const char  * name;
+    char       ** patterns;
 
     /* Internal fields */
     bitfield_t   bitfield;    /**< Bits related to the metafield    */
 
 } metafield_t;
 
-int metafield_compare(const void * metafield1, const void * metafield2);
-metafield_t* metafield_search(char * name);
+metafield_t* metafield_search(const char * name);
 void metafield_register(metafield_t * metafield);
 
 // - pattern matching

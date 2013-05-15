@@ -198,7 +198,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             data->destination_reached |= destination_reached(options->dst_ip, reply); 
 
             // Notify the caller we've discovered an IP address 
-            pt_raise_event(loop, event_create(TRACEROUTE_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            pt_raise_event(loop, event_create(TRACEROUTE_PROBE_REPLY, probe_reply, NULL, NULL)); //(ELEMENT_FREE) probe_reply_free));
             break;
 
         case PROBE_TIMEOUT:
@@ -207,10 +207,11 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
 
             // Update counters
             ++(data->num_stars);
+            printf("\n => num_stars = %lu\n", data->num_stars);
             ++(data->num_replies);
 
             // Notify the caller we've got a probe timeout 
-            pt_raise_event(loop, event_create(TRACEROUTE_STAR, probe, NULL, (ELEMENT_FREE) probe_free));
+            pt_raise_event(loop, event_create(TRACEROUTE_STAR, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
             break;
 
         case ALGORITHM_TERMINATED:
@@ -229,40 +230,42 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     // Forward event to the caller
     pt_algorithm_throw(loop, loop->cur_instance->caller, event);
 
-    // Explore next hop
+    // Check stopping conditions 
     if ((data->num_replies % options->num_probes) == 0) {
         if (data->destination_reached) {
             // We've reached the destination
             pt_raise_event(loop, event_create(TRACEROUTE_DESTINATION_REACHED, NULL, NULL, NULL));
-            pt_raise_terminated(loop);
+            has_terminated = true;
         } else if (data->ttl > options->max_ttl) {
             // We've reached the maximum TTL
             pt_raise_event(loop, event_create(TRACEROUTE_MAX_TTL_REACHED, NULL, NULL, NULL));
-            pt_raise_terminated(loop);
+            has_terminated = true;
         } else if (data->num_stars == options->num_probes) {
             // We've only discovered stars for the current hop
             ++(data->num_undiscovered);
+            printf("\n => num_undiscovered = %lu\n", data->num_undiscovered);
             if (data->num_undiscovered == 3) {
                 // We've only discovered stars for the last 3 hops, so give up
                 pt_raise_event(loop, event_create(TRACEROUTE_TOO_MANY_STARS, NULL, NULL, NULL));
-                pt_raise_terminated(loop);
+                has_terminated = true;
             }
-        } else {
-            // Discover the next hop
-            if (!send_traceroute_probes(loop, data, probe_skel, options->num_probes, data->ttl)) {
-                goto FAILURE;
-            }
-            (data->ttl)++;
         }
     }
 
-    // Notify the caller the algorithm has terminated. The caller can still
-    // use traceroute's data. It has to run pt_instance_free once this
-    // data is no more needed.
     if (has_terminated) {
+        // Notify the caller the algorithm has terminated. The caller can still
+        // use traceroute's data. It has to run pt_instance_free once this
+        // data is no more needed.
         pt_raise_terminated(loop);
+    } else { 
+        // Discover the next hop
+        if (!send_traceroute_probes(loop, data, probe_skel, options->num_probes, data->ttl)) {
+            goto FAILURE;
+        }
+        (data->ttl)++;
     }
-    
+
+   
     // Handled event must always been free when leaving the handler 
     event_free(event);
     return 0;

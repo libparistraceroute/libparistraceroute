@@ -9,6 +9,8 @@
 #include <stddef.h> // size_t
 #include <stdint.h>
 
+// TODO allow to define bit level fields (for instance for flags)
+// it could be use to manage properly i4 fields
 
 typedef union{
 	uint32_t	d32[4];
@@ -37,15 +39,15 @@ typedef enum {
  */
 
 typedef union {
-    void         * value;  /**< Pointer to raw data               */
-    unsigned int   int4:4; /**< Value of data as a 4 bit integer  */
-    uint8_t        int8;   /**< Value of data as an 8 bit integer */
-    uint16_t       int16;  /**< Value of data as a 16 bit integer */
-    uint32_t       int32;  /**< Value of data as a 32 bit integer */
-    uint64_t       int64;  /**< Value of data as a 64 bit integer */
+    void         * value;  /**< Pointer to raw data                */
+    uint8_t        int4:4; /**< Value of data as a   4 bit integer */
+    uint8_t        int8;   /**< Value of data as a   8 bit integer */
+    uint16_t       int16;  /**< Value of data as a  16 bit integer */
+    uint32_t       int32;  /**< Value of data as a  32 bit integer */
+    uint64_t       int64;  /**< Value of data as a  64 bit integer */
     uint128_t      int128; /**< Value of data as a 128 bit integer */
-    uintmax_t      intmax; /**< Value of data as a max integer    */
-    char         * string; /**< Pointer to string data            */
+    uintmax_t      intmax; /**< Value of data as a max integer     */
+    char         * string; /**< Pointer to string data             */
 } value_t;
 
 /**
@@ -54,10 +56,19 @@ typedef union {
  */
 
 typedef struct {
-    char * key;           /**< Pointer to a unique identifier key */
-    value_t value;        /**< Union of all field data            */
-    fieldtype_t type;     /**< Type of data stored in the field   */
+    char        * key;   /**< Pointer to a unique identifier key */
+    value_t       value; /**< Union of all field data            */
+    fieldtype_t   type;  /**< Type of data stored in the field   */
 } field_t;
+
+/**
+ * \brief Create a field structure to hold an 4 bit integer value
+ * \param key The name which identify the field to create
+ * \param value Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+field_t * field_create_int4(const char * key, uint8_t value);
 
 /**
  * \brief Create a field structure to hold an 8 bit integer value
@@ -94,6 +105,15 @@ field_t * field_create_int32(const char * key, uint32_t value);
  */
 
 field_t * field_create_int64(const char * key, uint64_t value);
+
+/**
+ * \brief Create a field structure to hold a 128 bit integer value
+ * \param key The name which identify the field to create
+ * \param value Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+field_t * field_create_int128(const char * key, uint128_t value);
 
 /**
  * \brief Create a field structure to hold a uintmax_t value
@@ -140,13 +160,22 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
 void field_free(field_t *field);
 
 /**
+ * \brief Macro shorthand for field_create_int4
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define I4(x, y)  field_create_int4(x, (uint8_t) y)
+
+/**
  * \brief Macro shorthand for field_create_int8
  * \param x Pointer to a char * key to identify the field
  * \param y Value to store in the field
  * \return Structure containing the newly created field
  */
 
-#define I8(x, y)  field_create_int8(x, y)
+#define I8(x, y)  field_create_int8(x, (uint8_t) y)
 
 /**
  * \brief Macro shorthand for field_create_int16
@@ -155,7 +184,7 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define I16(x, y) field_create_int16(x, y)
+#define I16(x, y) field_create_int16(x, (uint16_t) y)
 
 /**
  * \brief Macro shorthand for field_create_int32
@@ -164,7 +193,7 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define I32(x, y) field_create_int32(x, y)
+#define I32(x, y) field_create_int32(x, (uint32_t) y)
 
 /**
  * \brief Macro shorthand for field_create_int64
@@ -173,7 +202,16 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define I64(x, y) field_create_int64(x, y)
+#define I64(x, y) field_create_int64(x, (uint64_t) y)
+
+/**
+ * \brief Macro shorthand for field_create_int128
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define I128(x, y) field_create_int64(x, (uint128_t) y)
 
 /**
  * \brief Macro shorthand for field_create_intmax
@@ -182,7 +220,7 @@ void field_free(field_t *field);
  * \return Structure containing the newly created field
  */
 
-#define IMAX(x, y) field_create_intmax(x, y)
+#define IMAX(x, y) field_create_intmax(x, (uintmax_t) y)
 
 /**
  * \brief Macro shorthand for field_create_string
@@ -222,7 +260,6 @@ size_t field_get_size(const field_t * field);
  *          0 if field1 == field2
  */
 
-// TODO the return values are not well-designed
 int field_compare(const field_t * field1, const field_t * field2);
 
 /**
