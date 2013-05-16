@@ -44,6 +44,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						metafield.h \
 						network.h \
 						optparse.h \
+                        options.h \
 						packet.h \
 						probe.h \
 						protocol.h \
@@ -88,6 +89,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						metafield.c \
 						network.c \
 						optparse.c \
+                        options.c \
 						packet.c \
 						probe.c \
 						protocol.c \

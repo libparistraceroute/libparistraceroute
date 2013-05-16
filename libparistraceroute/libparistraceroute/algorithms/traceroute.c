@@ -19,10 +19,15 @@ const unsigned max_ttl[3]    = {30,    1,   255};
 
 struct opt_spec traceroute_options[] = {
     // action       short       long      metavar    help           data
-    {opt_store_int, OPT_NO_SF, "min-ttl", "MIN_TTL", "minimum TTL", NULL},
-    {opt_store_int, OPT_NO_SF, "max-ttl", "MAX_TTL", "maximum TTL", NULL},
+    {opt_store_int, "f", "min-ttl", "MIN_TTL", "minimum TTL", NULL},
+    {opt_store_int, "m", "max-ttl", "MAX_TTL", "maximum TTL", NULL},
     {OPT_NO_ACTION}
 };
+
+struct opt_spec * traceroute_get_cl_options() {
+    return &traceroute_options;
+}
+
 
 // TODO to remove, see opt_spec 
 inline traceroute_options_t traceroute_get_default_options() {

@@ -16,12 +16,13 @@
 #include "algorithms/mda.h"          // mda_*_t
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "address.h"                 // address_to_string, address_set_host
-#include "vector.h"
+#include "options.h"
 
 //---------------------------------------------------------------------------
 // Command line stuff
 //---------------------------------------------------------------------------
-
+//void options_collision_callback(struct opt_spec * option1, struct opt_spec * option2) {
+//}
 #define HELP_4 "Use IPv4"
 #define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
 #define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
@@ -187,21 +188,23 @@ int main(int argc, char ** argv)
     pt_loop_t               * loop      = NULL;
     int                       exit_code = EXIT_FAILURE, i;
     address_t                 dst_addr;
-    int                     * errno_p = __errno_location();
-    vector_t                * vector    = NULL;
+    options_t               * options = NULL;
+    //int                     * errno_p = __errno_location();
+    //vector_t                * vector    = NULL;
     //struct opt_spec         * help_op = NULL;  
     //help_op = malloc(sizeof(struct opt_spec ));
    // *help_op = {{opt_help, "h", "--help",OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA}};
 
     //building the command line options
-    vector = vector_create();
-   // vector_push_element(vector, help_op);
-    mda_set_options(vector);
-    mda_set_options(vector);
+      options = options_create(NULL);
+      struct opt_spec * mda_cl_options = mda_get_cl_options();
+      options_add_opt_specs(options, mda_cl_options, 3);
+      options_add_opt_specs(options, mda_cl_options, 3);
+      
 
     // Retrieve values passed in the command-line
     opt_options1st();
-    if (opt_parse("usage: %s [options] host", vector->options, argv) != 1) {
+    if (opt_parse("usage: %s [options] host",cl_options, argv) != 1) {
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
         exit(EXIT_FAILURE);
     }

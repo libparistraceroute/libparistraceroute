@@ -24,18 +24,11 @@ const unsigned mda_values[7] = {95,  0,   100, 5,   1,   INT_MAX , 0};
 
 
 
-/* MDA options */
-struct opt_spec mda_options[] = {
-    /* action           short long          metavar             help    variable XXX */
-    {opt_store_int_lim, "f",  "--first",    "first_ttl",        HELP_f, min_ttl},
-    {opt_store_int_lim, "m",  "--max-hops", "max_ttl",          HELP_m, max_ttl},
-    {opt_store_int_2,   "M",  "--mda",      "bound,max_branch", HELP_M, mda_values}    
-   // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
-    // per dest
-    // max missing
-    //{OPT_NO_ACTION}
-};
 
+struct opt_spec * mda_get_cl_options() {
+    return &mda_options;
+}
+/*
 int mda_set_options(vector_t * vector) {
     int i = 0;
     int j = 0;
@@ -54,7 +47,7 @@ int mda_set_options(vector_t * vector) {
         return -1;
     }
 }    
-
+*/
 inline mda_options_t mda_get_default_options() {
 
     mda_options_t mda_options = {
