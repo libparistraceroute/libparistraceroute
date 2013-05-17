@@ -5,15 +5,16 @@
  * \file network.h
  * \brief Header for network functions.
  *
- * A network represents the interface between the "packets and socket" layer and
- * the real network / the Internet. It is responsible for maintaining queues for
- * packets to be sent, and for received packets waiting for some further treatment.
- * A network also manages a pool of sockets that can be used to send the probes.
+ * A network represents the interface between the "packets and socket" layer
+ * and the real network / the Internet. It is responsible for maintaining
+ * queues for packets to be sent, and for received packets waiting for some
+ * further treatment.  A network also manages a pool of sockets that can be
+ * used to send the probes.
  *
  * Currently packets are generated through a RAW socket only, and replies are
  * captured by a sniffer. We could envisage adding more types of sockets, and
- * the corresponding return channels if needed. Finally, this is also the place 
- * where a packet scheduler might be implemented (rate limits, etc.).
+ * the corresponding return channels if needed. Finally, this is also the
+ * place where a packet scheduler might be implemented (rate limits, etc.).
  */
 
 #include <stdint.h>

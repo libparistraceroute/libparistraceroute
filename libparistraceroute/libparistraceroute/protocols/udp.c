@@ -196,7 +196,7 @@ buffer_t * udp_create_psh_ipv4(const uint8_t * ipv4_packet)
     ipv4_pseudo_header.size     = udp_segment_size; 
 
     // Prepare and return the corresponding buffer
-    buffer_set_data(ipv4_psh, (uint8_t *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header_t));
+    buffer_write_bytes(ipv4_psh, (uint8_t *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header_t));
     return ipv4_psh;
 }
 

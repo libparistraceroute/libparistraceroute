@@ -172,7 +172,7 @@ bool send_traceroute_probes(
 int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
 {
     traceroute_data_t    * data = NULL;     // Current state of the algorithm instance
-    const probe_t        * probe;           // Probe 
+    probe_t              * probe;           // Probe 
     const probe_t        * reply;           // Reply
     probe_reply_t        * probe_reply;     // (Probe, Reply) pair
     traceroute_options_t * options = opts;  // Options passed to this instance

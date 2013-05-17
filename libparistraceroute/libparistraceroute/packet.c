@@ -21,16 +21,20 @@ ERR_CALLOC:
 packet_t * packet_wrap_bytes(uint8_t * bytes, size_t num_bytes) {
     packet_t * packet;
 
-    if (!(packet = calloc(1, sizeof(packet_t)))) goto ERR_CALLOC;
-    if (!(packet->buffer = buffer_create()))     goto ERR_BUFFER;
-    packet->buffer->data = bytes;
-    packet->buffer->size = num_bytes;
+    if ((packet = packet_create())) { 
+        packet->buffer->data = bytes;
+        packet->buffer->size = num_bytes;
+    }
     return packet;
+}
 
-ERR_BUFFER:
-    free(packet);
-ERR_CALLOC:
-    return NULL; 
+packet_t * packet_create_from_bytes(uint8_t * bytes, size_t num_bytes) {
+    packet_t * packet;
+
+    if ((packet = packet_create())) { 
+        buffer_write_bytes(packet->buffer, bytes, num_bytes);
+    }
+    return packet;
 }
 
 packet_t * packet_dup(const packet_t * packet) {

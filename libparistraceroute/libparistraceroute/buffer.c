@@ -77,9 +77,9 @@ inline size_t buffer_get_size(const buffer_t * buffer) {
     return buffer ? buffer->size : 0;
 }
 
-bool buffer_set_data(buffer_t * buffer, const void * data, size_t size) {
-    bool ret = buffer_resize(buffer, size);
-    if (ret) memcpy(buffer->data, data, size);
+bool buffer_write_bytes(buffer_t * buffer, const void * bytes, size_t num_bytes) {
+    bool ret = buffer_resize(buffer, num_bytes);
+    if (ret) memcpy(buffer->data, bytes, num_bytes);
     return ret;
 }
 

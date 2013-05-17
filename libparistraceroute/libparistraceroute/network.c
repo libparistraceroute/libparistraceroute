@@ -75,8 +75,8 @@ static bool probe_set_tag(probe_t * probe, uint16_t tag_probe) {
  * \param packet The sniffed packet
  */
 
-static void network_sniffer_callback(network_t * network, packet_t * packet) {
-    queue_push_element(network->recvq, packet);
+static bool network_sniffer_callback(packet_t * packet, void * recvq) {
+    return queue_push_element((queue_t *) recvq, packet);
 }
 
 /**
@@ -231,7 +231,7 @@ network_t * network_create(void)
         goto ERR_TIMERFD;
     }
 
-    if (!(network->sniffer = sniffer_create(network, network_sniffer_callback))) {
+    if (!(network->sniffer = sniffer_create(network->recvq, network_sniffer_callback))) {
         goto ERR_SNIFFER;
     }
 
@@ -287,7 +287,7 @@ inline int network_get_recvq_fd(network_t * network) {
 }
 
 inline int network_get_sniffer_fd(network_t * network) {
-    return sniffer_get_fd(network->sniffer);
+    return sniffer_get_sockfd(network->sniffer);
 }
 
 inline int network_get_timerfd(network_t * network) {
@@ -330,7 +330,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     }
 
     // Write the probe ID in the buffer 
-    if (!(buffer_set_data(payload, &tag, tag_size))) {
+    if (!(buffer_write_bytes(payload, &tag, tag_size))) {
         fprintf(stderr, "Can't set data\n");
         goto ERR_BUFFER_SET_DATA;
     }
@@ -360,7 +360,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     }
 
     // Write the old checksum in the payload
-    buffer_set_data(payload, &checksum, tag_size);
+    buffer_write_bytes(payload, &checksum, tag_size);
     if (!(probe_write_payload(probe, payload))) {
         fprintf(stderr, "Can't write payload (2)\n");
         goto ERR_PROBE_WRITE_PAYLOAD2;

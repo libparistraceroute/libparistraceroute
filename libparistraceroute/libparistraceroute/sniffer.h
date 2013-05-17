@@ -9,17 +9,22 @@
  * libpcap implementation too
  */
 
-#include "packet.h"
+#include <stdbool.h> // bool
+#include "packet.h"  // packet_t
 
 /**
  * \struct sniffer_t
- * \brief Structure representing a packet sniffer
+ * \brief Structure representing a packet sniffer. The sniffer calls
+ *    a function whenever a packet is sniffed. For instance
+ *    sniffer->recv_param may point to a queue_t instance and
+ *    sniffer->recv_callback may be used to feed this queue whenever
+ *    a packet is sniffed.
  */
 
 typedef struct {
-    int                socket;                                    /**< Raw socket for listening to the network */
-    struct network_s * network;                                   /**< Pointer to the associated network structure */
-    void            (* callback)(struct network_s *, packet_t *); /**< Callback for received packets */
+    int     sockfd;       /**< Raw socket for listening to the network */
+    void  * recv_param;   /**< This pointer is passed whenever recv_callback is called */
+    bool (* recv_callback)(packet_t * packet, void * recv_param); /**< Callback for received packets */
 } sniffer_t;
 
 /**
@@ -28,21 +33,21 @@ typedef struct {
  * \return Pointer to a sniffer_t structure representing a packet sniffer
  */
 
-sniffer_t * sniffer_create(struct network_s * network, void (*callback)(struct network_s * network, packet_t * packet));
+sniffer_t * sniffer_create(void * recv_param, bool (*recv_callback)(packet_t *, void *));
 
 /**
  * \brief Free a sniffer_t structure.
- * \param sniffer Pointer to a sniffer_t structure representing a packet sniffer
+ * \param sniffer Points to a sniffer_t instance. 
  */
 
-void sniffer_free(sniffer_t *sniffer);
+void sniffer_free(sniffer_t * sniffer);
 
 /**
- * \brief Return a file description associated to the sniffer.
- * \param sniffer Pointer to a sniffer_t structure representing a packet sniffer 
+ * \brief Return the file descriptor related to the raw socket manage by the sniffer.
+ * \param sniffer Points to a sniffer_t instance.
  */
 
-int sniffer_get_fd(sniffer_t *sniffer);
+int sniffer_get_sockfd(sniffer_t * sniffer);
 
 void sniffer_process_packets(sniffer_t * sniffer);
 
