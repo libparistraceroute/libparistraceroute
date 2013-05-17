@@ -17,12 +17,15 @@
  */
 
 #include <stdint.h>
+#include <limits.h>
+
 
 #include "packet.h"
 #include "queue.h"
 #include "socketpool.h"
 #include "sniffer.h"
 #include "dynarray.h"
+#include "optparse.h"
 
 // If no matching reply has been sniffed in the next 3 sec, we
 // consider that we won't never sniff such a reply. The
@@ -30,6 +33,12 @@
 // thanks to network_set_timeout() and network_get_timeout().
 
 #define NETWORK_DEFAULT_TIMEOUT 3
+
+//network commandline options staff
+extern const double   wait[];
+//network options help messages
+#define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
+
 
 /**
  * \struct network_t
@@ -110,6 +119,7 @@ typedef struct network_s {
     double         timeout;    /**< The timeout value used by this network (in seconds) */
 } network_t;
 
+struct opt_spec * network_get_cl_options();
 /**
  * \brief Create a new network structure
  * \return A newly created network_t structure

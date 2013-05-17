@@ -29,12 +29,12 @@
 //#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
 //#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must must be between 1 and 255"
 #define HELP_n "Do not resolve IP addresses to their domain names"
-#define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
+//#define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
 //#define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
 #define HELP_a "Traceroute algorithm: one of  'mda' [default],'traceroute', 'paris-traceroute'"
 #define HELP_d "set PORT as destination port (default: 30000)"
 #define HELP_s "set PORT as source port (default: 3083)"
-#define HELP_V "version 1.0"
+//#define HELP_V "version 1.0"
 
 const char * algorithm_names[] = {
     "mda",
@@ -58,7 +58,7 @@ const char * protocol_names[] = {
 // Bounded integer parameters | def    min  max
 //static unsigned min_ttl[3]   = {1,     1,   255};
 //static unsigned max_ttl[3]   = {30,    1,   255};
-static double   wait[3]      = {5,     0,   INT_MAX};
+//static double   wait[3]      = {5,     0,   INT_MAX};
 
 // Bounded integer parameters | def    min  max    option_enabled
 static unsigned dst_port[4]  = {6969,  0,   65535, 0};
@@ -70,8 +70,8 @@ static unsigned src_port[4]  = {3083,  0,   65535, 1};
 
 struct opt_spec cl_options[] = {
     // action                  sf   lf                   metavar             help         data
-    {opt_help,                 "h", "--help"   ,         OPT_NO_METAVAR,     OPT_NO_HELP, OPT_NO_DATA},
-    {opt_version,              "V", "--version",         OPT_NO_METAVAR,     OPT_NO_HELP, HELP_V},
+  //  {opt_help,                 "h", "--help"   ,         OPT_NO_METAVAR,     OPT_NO_HELP, OPT_NO_DATA},
+   // {opt_version,              "V", "--version",         OPT_NO_METAVAR,     OPT_NO_HELP, HELP_V},
     {opt_store_choice,         "a", "--algo",            "ALGORITHM",        HELP_a,      algorithm_names},
     {opt_store_1,              "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
     {opt_store_choice,         "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
@@ -83,7 +83,7 @@ struct opt_spec cl_options[] = {
    // {opt_store_int_2,          "M", "--mda",             "bound,max_branch", HELP_M,      mda},
     {opt_store_int_lim_en,     "s", "--source_port",     "PORT",             HELP_s,      src_port},
     {opt_store_int_lim_en,     "d", "--dest_port",       "PORT",             HELP_d,      dst_port},
-    {OPT_NO_ACTION},
+    //{OPT_NO_ACTION},
 };
 
 //---------------------------------------------------------------------------
@@ -189,18 +189,20 @@ int main(int argc, char ** argv)
     int                       exit_code = EXIT_FAILURE, i;
     address_t                 dst_addr;
     options_t               * options = NULL;
+    char                    * version = "version 1.0";
     //int                     * errno_p = __errno_location();
     //vector_t                * vector    = NULL;
     //struct opt_spec         * help_op = NULL;  
     //help_op = malloc(sizeof(struct opt_spec ));
    // *help_op = {{opt_help, "h", "--help",OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA}};
 
-    //building the command line options
-      options = options_create(NULL);
-      struct opt_spec * mda_cl_options = mda_get_cl_options();
-      options_add_opt_specs(options, mda_cl_options, 3);
-      options_add_opt_specs(options, mda_cl_options, 3);
-      
+   //building the command line options
+    options = options_create(NULL);
+    options_add_opt_specs(options, &mda_get_cl_options, 3);
+    options_add_common(options, version);
+    options_add_opt_specs(options, &traceroute_get_cl_options, 3);
+    options_add_opt_specs(options, &network_get_cl_options, 3);    
+
 
     // Retrieve values passed in the command-line
     opt_options1st();

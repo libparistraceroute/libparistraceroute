@@ -1,6 +1,8 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
+#include <stdint.h>
+
 #include "optparse.h"
 
 /**
@@ -19,35 +21,37 @@
  */
 
 typedef struct {
-    struct opt_spec         * options;      /**< the structure of opt_spec */
-    unsigned int              num_options;  /**< number of options containeted in the current vector */
-    unsigned int              max_options;  /**< maximum number of options contained in the vector */
+    void                    * cells;      /**< Pointer to the elemnts contained in the vector */
+    size_t                    cell_size;  /**< The size of each cell caontianed in the vectore */
+    unsigned int              num_cells;  /**< number of options containeted in the current vector */
+    unsigned int              max_cells;  /**< maximum number of options contained in the vector */
 } vector_t;
 
 
 /**
  * \brief Create a vector structure.
+ * \param size of cells cantained in the vector
  * \return A vector_t structure representing an empty vector
  */
 
-vector_t * vector_create();
+vector_t * vector_create(size_t size);
 
 /**
  * \brief Free a vector structure.
- * \param dynarray Pointer to a vector structure
+ * \param vector Pointer to a vector structure
  * \param element_free Pointer to a function used to free up element resources
  *     (can be NULL)
  */
 
-void vector_free(vector_t * vector , void (* element_free)(struct opt_spec element));
+void vector_free(vector_t * vector, void (* element_free)(void * element));
 
 /**
  * \brief Add a new element at the end of the vector.
- * \param dynarray Pointer to a dynamic array structure
+ * \param vector Pointer to a vector structure
  * \param element Pointer to the element to add
  */
 
-void vector_push_element(vector_t * vector, struct opt_spec * element);
+void vector_push_element(vector_t * vector, void * element);
 
 /**
  * \brief Delete the i-th element stored in a vector_t.
@@ -67,7 +71,7 @@ int vector_del_ith_element(vector_t * vector, unsigned int i);
  *     (can be NULL)
  */
 
-void vector_clear(vector_t * vector, void (*element_free)(struct opt_spec element));
+void vector_clear(vector_t * vector, void (*element_free)(void * element));
 
 /**
  * \brief Get the current number of options contained in the vector.
@@ -75,15 +79,23 @@ void vector_clear(vector_t * vector, void (*element_free)(struct opt_spec elemen
  * \return number of options contained in the vector
 */
 
-unsigned vector_get_number_of_options(const vector_t * vector);
+unsigned vector_get_number_of_cells(const vector_t * vector);
 
 /**
  * \brief Get all the options inside a vector.
  * \param vector Pointer to a vector structure
- * \return A pointer to an array of opt_spec structure.
+ * \return A pointer to an array of cells.
  */
 
-struct opt_spec * vector_get_options(const vector_t * vector);
+void * vector_get_cells(const vector_t * vector);
+
+/**
+ * \brief Get the size of each cell contained in the vector
+ * \param a vector Pointer to vector structure
+ * \return a size_t value
+ */
+
+size_t vector_get_cell_size(const vector_t * vector); 
 
 /**
  * \brief Retrieve the i-th option stored in a vector
@@ -93,7 +105,7 @@ struct opt_spec * vector_get_options(const vector_t * vector);
  *    the address of the i-th element otherwise.
  */
 
-struct opt_spec * vector_get_ith_element(const vector_t * vector, unsigned int i);
+void * vector_get_ith_element(const vector_t * vector, unsigned int i);
 
 
 

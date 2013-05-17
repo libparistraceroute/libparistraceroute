@@ -17,13 +17,9 @@
 // DEBUG
 #include "../probe.h"
 
-//mda command line options data 
 
 // Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
 const unsigned mda_values[7] = {95,  0,   100, 5,   1,   INT_MAX , 0};
-
-
-
 
 struct opt_spec * mda_get_cl_options() {
     return &mda_options;

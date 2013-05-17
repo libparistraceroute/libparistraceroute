@@ -10,6 +10,23 @@
 #include "probe.h"       // probe_extract
 #include "algorithm.h"   // pt_algorithm_throw
 
+
+ const double wait[3] = {5,     0,   INT_MAX};
+/** \brief return the commandline options related to network
+  * \return a pointer to an opt_spec structure 
+  */
+
+/* network options */
+struct opt_spec network_options[] = {
+    /* action             short long      metavar     help    variable XXX */
+    {opt_store_double_lim,"w",  "--wait", "waittime", HELP_w, wait},
+};
+
+struct opt_spec * network_get_cl_options() {
+    return &network_options;
+}
+
+
 /**
  * \brief Extract the probe ID (tag) from a probe
  * \param probe The queried probe

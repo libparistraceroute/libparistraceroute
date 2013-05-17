@@ -16,6 +16,7 @@ typedef struct {
 options_t * options_create(void (* callback)(struct opt_spec * option1, struct opt_spec * option2));
 
 
+void options_add_common(options_t *options_to_fill, char * version_data);
 
 void options_add_opt_specs(options_t * options_to_fill, struct opt_spec * option_to_add, size_t num_options_to_add);
 

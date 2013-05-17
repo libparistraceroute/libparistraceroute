@@ -11,7 +11,7 @@ options_t * options_create(void (* callback)(struct opt_spec * option1, struct o
     options_t * options = malloc(sizeof(options_t));
     if(options){
             options->options_collision_callback = callback;
-            options->vector = vector_create();
+            options->vector = vector_create(sizeof(struct opt_spec));
     }
     return options;
 }
@@ -39,9 +39,9 @@ static bool option_is_same(const struct opt_spec * option1, const struct opt_spe
 static struct opt_spec *  option_can_be_added(vector_t * vector, struct opt_spec * option) {
     unsigned int i;
     struct opt_spec * collision = NULL;
-    for(i = 0; i < vector->num_options; i++) {
-        if(option_is_same((vector->options + i), option)) {
-                collision = (vector->options + i);
+    for(i = 0; i < vector->num_cells; i++) {
+        if(option_is_same((vector->cells + i), option)) {
+                collision = (vector->cells + i);
                 printf("W:option collision detected : first option< sf:%s, lf:%s> ; second option< sf:%s, lf:%s> \n", 
                         collision->sf,
                         collision->lf,
@@ -75,7 +75,19 @@ void options_add_opt_spec(options_t * options_to_fill, struct opt_spec * option_
     
     options_add_opt_specs(options_to_fill, option_to_add, 1);
 }
-//TODO option rename make segfault 
+
+void options_add_common(options_t *options_to_fill, char * version_data) {
+
+    struct opt_spec common_options[] = {
+        {opt_help,       "h", "--help"   , OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
+        {opt_version,    "V", "--version", OPT_NO_METAVAR, OPT_NO_HELP, version_data},
+        OPT_NO_ACTION
+    };
+
+    options_add_opt_specs(options_to_fill, common_options, 3);
+}
+
+//TOFIX option rename make segfault 
 void option_rename(struct opt_spec * option, char sf[], char lf[]) {
     
     if(option && sf && lf) {

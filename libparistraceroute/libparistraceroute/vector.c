@@ -7,99 +7,104 @@
 #define VECTOR_SIZE_INC   5
 
 
-vector_t * vector_create(void)
+vector_t * vector_create(size_t size)
 {
-    vector_t * vector = malloc(sizeof(vector_t));
+    vector_t * vector = malloc(size);
     if (vector) {
-        vector->options = calloc(VECTOR_SIZE_INIT, sizeof(struct opt_spec));
-        memset(vector->options, 0, VECTOR_SIZE_INIT * sizeof(struct opt_spec));
-        vector->num_options = 0;
-        vector->max_options = VECTOR_SIZE_INIT;
+        vector->cell_size = size;
+        vector->cells = calloc(VECTOR_SIZE_INIT, vector->cell_size);
+        memset(vector->cells, 0, VECTOR_SIZE_INIT * vector->cell_size);
+        vector->num_cells = 0;
+        vector->max_cells = VECTOR_SIZE_INIT;
     }   
     return vector;
 }
 
 
-void vector_free(vector_t * vector, void (* element_free)(struct opt_spec element)) { 
+void vector_free(vector_t * vector, void (* element_free)(void * element)) { 
     unsigned int i;
 
     if (vector) {
-        if (vector->options) {
+        if (vector->cells) {
             if (element_free) {
-                for(i = 0; i < vector->num_options; i++) {
-                    element_free(vector->options[i]);
+                for(i = 0; i < vector->num_cells; i++) {
+                    element_free((uint8_t *)(vector->cells) + i * (vector->cell_size));
                 }
             }
-            free(vector->options);
+            free(vector->cells);
         }
         free(vector);
     }
 }
 
-void vector_push_element(vector_t * vector, struct opt_spec * element)
+void vector_push_element(vector_t * vector, void * element)
 {
     // If the vector is full, allocate VECTOR_SIZE_INC
     // cells in the vector
-    if (vector->num_options == vector->max_options) {
-        vector->options = realloc(
-            vector->options,
-            (vector->num_options + VECTOR_SIZE_INC) * sizeof(struct opt_spec)
+    if (vector->num_cells == vector->max_cells) {
+        vector->cells = realloc(
+            vector->cells,
+            (vector->num_cells + VECTOR_SIZE_INC) * vector->cell_size
         );
         memset(
-            vector->options + vector->num_options, 0,
-            VECTOR_SIZE_INC * sizeof(struct opt_spec)
+            (uint8_t *)(vector->cells) + (vector->num_cells) * (vector->cell_size), 0,
+            VECTOR_SIZE_INC * vector->cell_size
         );
-        vector->max_options += VECTOR_SIZE_INC;
+        vector->max_cells += VECTOR_SIZE_INC;
     }
 
     // Add the new element and update exposed size
-    vector->options[vector->num_options] = * element;
-    vector->num_options++;
+    memcpy((uint8_t *)(vector->cells) + (vector->num_cells) * vector->cell_size, element, vector->cell_size);
+    vector->num_cells++;
 }
 
 int vector_del_ith_element(vector_t * vector, unsigned int i)
 {
-    if (i >= vector->num_options)
+    if (i >= vector->num_cells)
         return 0;
     /* Let's move all elements from the (i+1)-th to the left */
-    memmove(vector->options + i, vector->options + (i + 1), (vector->num_options - i - 1) * sizeof(struct opt_spec));
-    vector->num_options--;
+    memmove((uint8_t *)(vector->cells) + i * (vector->cell_size), (uint8_t *)(vector->cells) + (i + 1) * vector->cell_size, (vector->num_cells - i - 1) * vector->cell_size);
+    vector->num_cells--;
     return 1;
 }
 
-void vector_clear(vector_t * vector, void (*element_free)(struct opt_spec element))
+void vector_clear(vector_t * vector, void (*element_free)(void * element))
 {
     unsigned int i;
 
     if (vector) {
-        for(i = 0; i < vector->num_options; i++) {
-            element_free(vector->options[i]);
+        for(i = 0; i < vector->num_cells; i++) {
+            element_free((uint8_t *)(vector->cells) + i * (vector->cell_size));
         }
-        vector->options = realloc(vector->options, VECTOR_SIZE_INIT * sizeof(struct opt_spec)); // XXX
-        memset(vector->options, 0, VECTOR_SIZE_INIT * sizeof(struct opt_spec));
-        vector->num_options = 0;
-        vector->max_options = VECTOR_SIZE_INIT;
+        vector->cells = realloc(vector->cells, VECTOR_SIZE_INIT * vector->cell_size); // XXX
+        memset(vector->cells, 0, VECTOR_SIZE_INIT * vector->cell_size);
+        vector->num_cells = 0;
+        vector->max_cells = VECTOR_SIZE_INIT;
     }
 }
 
-unsigned vector_get_number_of_options(const vector_t * vector)
+unsigned vector_get_number_of_cells(const vector_t * vector)
 {
-    return vector ? vector->num_options : 0;
+    return vector ? vector->num_cells : 0;
 }
 
-struct opt_spec * vector_get_options(const vector_t * vector)
+void * vector_get_cells(const vector_t * vector)
 {
-    return vector ? vector->options : NULL;
+    return vector ? vector->cells : NULL;
 }
 
-struct opt_spec * vector_get_ith_element(const vector_t * vector, unsigned int i)
-{
-    return (i >= vector->num_options) ? NULL : &vector->options[i];
+size_t vector_get_cell_size(const vector_t * vector) {
+    return vector ? vector->cell_size : 0;
 }
 
-int vector_set_ith_element(vector_t * vector, unsigned int i, struct opt_spec element)
+void * vector_get_ith_element(const vector_t * vector, unsigned int i)
 {
-    if (i > vector->num_options) return -1; // out of range
-    vector->options[i] = element;
+    return (i >= vector->num_cells) ? NULL : ((uint8_t *)(vector->cells) + i * (vector->cell_size));
+}
+
+int vector_set_ith_element(vector_t * vector, unsigned int i, void * element)
+{
+    if (i > vector->num_cells) return -1; // out of range
+    memcpy((uint8_t *)(vector->cells) + i * (vector->cell_size), element, vector->cell_size);
     return 0;
 }

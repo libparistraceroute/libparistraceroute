@@ -44,6 +44,7 @@ typedef struct {
     const char * dst_ip;     /**< The target IP */
 } traceroute_options_t;
 
+struct opt_spec * traceroute_get_cl_options();
 // Default options
 
 traceroute_options_t traceroute_get_default_options(void);

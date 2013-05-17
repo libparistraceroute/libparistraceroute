@@ -5,7 +5,8 @@
 #include "mda/flow.h"
 #include "mda/interface.h"
 #include "traceroute.h"
-#include "vector.h"
+#include "../optparse.h"
+#include "../vector.h"
 
 //mda command line help messages
 #define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
@@ -42,6 +43,7 @@ typedef struct {
     void           * zero;
 } mda_event_t;
 
+struct opt_spec * mda_get_cl_options();
 int mda_set_options(vector_t * vector);
 mda_options_t mda_get_default_options(void);
 bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst);
