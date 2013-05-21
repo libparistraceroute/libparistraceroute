@@ -11,17 +11,17 @@
 #include "algorithm.h"   // pt_algorithm_throw
 
 
- const double wait[3] = {5,     0,   INT_MAX};
-/** \brief return the commandline options related to network
-  * \return a pointer to an opt_spec structure 
-  */
-
 /* network options */
+ const double wait[3] = {5,     0,   INT_MAX};
+
 struct opt_spec network_options[] = {
     /* action             short long      metavar     help    variable XXX */
     {opt_store_double_lim,"w",  "--wait", "waittime", HELP_w, wait},
 };
 
+/** \brief return the commandline options related to network
+  * \return a pointer to an opt_spec structure 
+  */
 struct opt_spec * network_get_cl_options() {
     return &network_options;
 }
@@ -487,6 +487,7 @@ bool network_process_recvq(network_t * network)
     if(!(reply = probe_wrap_packet(packet))) {
         goto ERR_PROBE_WRAP_PACKET;
     }
+    probe_set_recv_time(reply, get_timestamp());
 
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes
