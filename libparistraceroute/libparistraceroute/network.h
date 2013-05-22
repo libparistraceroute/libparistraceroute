@@ -41,6 +41,8 @@ extern const double   wait[];
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
 
 
+
+
 /**
  * \struct network_t
  * \brief Structure describing a network
@@ -120,7 +122,13 @@ typedef struct network_s {
     double         timeout;    /**< The timeout value used by this network (in seconds) */
 } network_t;
 
+/**
+ * \brief Get the commandline options related to the layer network
+ * \returna pointer to a tructure containing the options 
+ */
+
 struct opt_spec * network_get_cl_options();
+
 /**
  * \brief Create a new network structure
  * \return A newly created network_t structure

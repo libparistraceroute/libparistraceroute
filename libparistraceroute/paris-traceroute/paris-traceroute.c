@@ -191,22 +191,18 @@ int main(int argc, char ** argv)
     options_t               * options = NULL;
     char                    * version = "version 1.0";
     //int                     * errno_p = __errno_location();
-    //vector_t                * vector    = NULL;
-    //struct opt_spec         * help_op = NULL;  
-    //help_op = malloc(sizeof(struct opt_spec ));
-   // *help_op = {{opt_help, "h", "--help",OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA}};
 
    //building the command line options
     options = options_create(NULL);
-    options_add_opt_specs(options, &mda_get_cl_options, 3);
+    options_add_options(options, mda_get_cl_options(), 3); 
+    options_add_options(options, traceroute_get_cl_options(), 2);
+    options_add_options(options, network_get_cl_options(), 1);    
     options_add_common(options, version);
-    options_add_opt_specs(options, &traceroute_get_cl_options, 3);
-    options_add_opt_specs(options, &network_get_cl_options, 3);    
-
+    options_dump(options);
 
     // Retrieve values passed in the command-line
     opt_options1st();
-    if (opt_parse("usage: %s [options] host",cl_options, argv) != 1) {
+    if (opt_parse("usage: %s [options] host",(struct opt_spec *)(options->optspecs->cells), argv) != 1) {
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
         exit(EXIT_FAILURE);
     }

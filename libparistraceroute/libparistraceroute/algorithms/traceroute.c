@@ -11,21 +11,22 @@
 
 #include "traceroute.h"
 
-// traceroute options
 
 // Bounded integer parameters | def    min  max
 const unsigned min_ttl[3]    = {1,     1,   255};
 const unsigned max_ttl[3]    = {30,    1,   255};
 
-struct opt_spec traceroute_options[] = {
-    // action       short       long      metavar    help           data
-    {opt_store_int, "f", "min-ttl", "MIN_TTL", "minimum TTL", NULL},
-    {opt_store_int, "m", "max-ttl", "MAX_TTL", "maximum TTL", NULL},
-    {OPT_NO_ACTION}
+//traceroute command line options
+
+static struct opt_spec traceroute_cl_options[] = {
+    // action       short  long       metavar    help           data
+    {opt_store_int_lim, "f",  "--first",    "MIN_TTL", "minimum TTL", min_ttl},
+    {opt_store_int_lim, "m",  "--max-hops", "MAX_TTL", "maximum TTL", max_ttl},
 };
 
+
 struct opt_spec * traceroute_get_cl_options() {
-    return &traceroute_options;
+    return traceroute_cl_options;
 }
 
 
@@ -289,7 +290,7 @@ FAILURE:
 static algorithm_t traceroute = {
     .name    = "traceroute",
     .handler = traceroute_handler,
-    .options = traceroute_options
+    .options = traceroute_get_default_options
 };
 
 ALGORITHM_REGISTER(traceroute);

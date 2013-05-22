@@ -14,7 +14,7 @@
 /* network options */
  const double wait[3] = {5,     0,   INT_MAX};
 
-struct opt_spec network_options[] = {
+static struct opt_spec network_cl_options[] = {
     /* action             short long      metavar     help    variable XXX */
     {opt_store_double_lim,"w",  "--wait", "waittime", HELP_w, wait},
 };
@@ -23,7 +23,7 @@ struct opt_spec network_options[] = {
   * \return a pointer to an opt_spec structure 
   */
 struct opt_spec * network_get_cl_options() {
-    return &network_options;
+    return network_cl_options;
 }
 
 

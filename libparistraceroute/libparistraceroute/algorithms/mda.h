@@ -14,17 +14,7 @@
 #define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
 
 extern const unsigned mda_values[];
-/* MDA options */
-struct opt_spec mda_options[] = {
-    /* action           short long          metavar             help    variable XXX */
-    {opt_store_int_lim, "f",  "--first",    "first_ttl",        HELP_f, min_ttl},
-    {opt_store_int_lim, "m",  "--max-hops", "max_ttl",          HELP_m, max_ttl},
-    {opt_store_int_2,   "M",  "--mda",      "bound,max_branch", HELP_M, mda_values}    
-   // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
-    // per dest
-    // max missing
-    //{OPT_NO_ACTION}
-};
+
 
 typedef struct {
     traceroute_options_t traceroute_options;
