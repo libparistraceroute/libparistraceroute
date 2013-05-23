@@ -290,7 +290,7 @@ static bool probe_push_payload(probe_t * probe, size_t payload_size) {
     return true;
 
 ERR_PAYLOAD_RESIZE:
-    dynarray_del_ith_element(probe->layers, probe_get_num_layers(probe) - 1);
+    dynarray_del_ith_element(probe->layers, probe_get_num_layers(probe) - 1, NULL);
 ERR_PUSH_LAYER:
     layer_free(payload_layer);
 ERR_LAYER_CREATE:

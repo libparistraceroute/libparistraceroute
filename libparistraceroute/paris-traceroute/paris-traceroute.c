@@ -197,6 +197,7 @@ int main(int argc, char ** argv)
     options_add_options(options, mda_get_cl_options(), 3); 
     options_add_options(options, traceroute_get_cl_options(), 2);
     options_add_options(options, network_get_cl_options(), 1);    
+    options_add_options(options, cl_options, 8);    
     options_add_common(options, version);
     options_dump(options);
 

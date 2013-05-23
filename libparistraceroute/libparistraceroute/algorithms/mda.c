@@ -398,7 +398,7 @@ int mda_delete_flow(lattice_elt_t * elt, void * data)
         for (i = 0; i < size; i++) {
             mda_flow_t *flow = dynarray_get_ith_element(interface->flows, i);
             if ((flow->flow_id == search->flow_id) && (flow->state == MDA_FLOW_TESTING)) {
-                dynarray_del_ith_element(interface->flows, i);
+                dynarray_del_ith_element(interface->flows, i, NULL);
                 return LATTICE_INTERRUPT_ALL;
             }
         }

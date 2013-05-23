@@ -105,7 +105,7 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
             pt_instance_stop(loop, event->issuer); // release traceroute's data from the memory
             pt_loop_terminate(loop);               // we've only run one 'traceroute' algorithm, so we can break the main loop 
             break;
-        case ALGORITHM_EVENT: // an traceroute-specific event has been raised
+        case ALGORITHM_EVENT: // a traceroute-specific event has been raised
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "traceroute") == 0) {
                 traceroute_event   = event->data;
@@ -139,8 +139,8 @@ int main(int argc, char ** argv)
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
     
     // Harcoded command line parsing here
-//    char dst_ip[] = "8.8.8.8";
-    char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "8.8.8.8";
+   //char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;

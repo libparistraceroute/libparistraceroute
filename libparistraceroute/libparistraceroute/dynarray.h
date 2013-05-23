@@ -64,11 +64,24 @@ bool dynarray_push_element(dynarray_t * dynarray, void * element);
  * \param dynarray A dynarray_t instance
  * \param i The index of the element to remove.
  *    Valid values are between 0 and dynarray_get_size() - 1
- *  If i is out of range, nothing happens. 
+ *  If i is out of range, nothing happens and return false. 
+ * \param element_free Pointer to a function used to free up element resources
+ *     (can be NULL)
+ * \return true iif successful
  */
 
-int dynarray_del_ith_element(dynarray_t * dynarray, unsigned int i);
+bool dynarray_del_ith_element(dynarray_t * dynarray, size_t i, void (*element_free) (void * element));
 
+/**
+ * \brief Delete n elements stored in a dynarray_t starting from i.
+ * \param dynarray A dynarray_t instance
+ * \param i The index of first element to remove.
+ * \param element_free Pointer to a function used to free up element resources
+ *     (can be NULL)
+ * \return true iif successful
+ */
+
+bool dynarray_del_n_elements(dynarray_t * dynarray, size_t i, size_t n, void (*element_free)(void * element));
 /**
  * \brief Clear a dynamic array.
  * \param dynarray Pointer to a dynamic array structure

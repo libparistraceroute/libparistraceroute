@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
 #include "dynarray.h"
 
 #define DYNARRAY_SIZE_INIT  5
@@ -93,14 +95,35 @@ bool dynarray_push_element(dynarray_t * dynarray, void * element)
     dynarray->size++;
 } */
 
-int dynarray_del_ith_element(dynarray_t *dynarray, unsigned int i)
+bool dynarray_del_ith_element(dynarray_t * dynarray, size_t i, void (*element_free) (void * element))
 {
-    if (i >= dynarray->size)
-        return 0;
-    /* Let's move all elements from the (i+1)-th to the left */
+    /*
+    bool ret = false;
+    if (i < dynarray->size)
+    // Let's move all elements from the (i+1)-th to the left
     memmove(dynarray->elements + i, dynarray->elements + (i + 1), (dynarray->size - i - 1) * sizeof(void *));
     dynarray->size--;
-    return 1;
+    ret = true;
+    return ret;*/
+    return dynarray_del_n_elements(dynarray, i, 1, element_free);
+}
+
+bool dynarray_del_n_elements(dynarray_t * dynarray, size_t i, size_t n, void (*element_free)(void * element))
+{
+    bool   ret = false;
+    size_t j , num_elements = dynarray_get_size(dynarray);
+
+    if (dynarray && i + n < num_elements) {
+        if (element_free) {
+            for (j = i; j < i + n; i++) {
+                element_free(dynarray_get_ith_element(dynarray, j));
+            }
+        }
+        memmove(dynarray->elements + i , dynarray->elements + i + n, (num_elements - (i + n)) * sizeof(void *));
+        dynarray->size -= n ;
+        ret = true;
+    }
+    return ret;
 }
 
 void dynarray_clear(dynarray_t * dynarray, void (*element_free)(void * element))

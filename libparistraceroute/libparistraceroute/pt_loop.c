@@ -309,6 +309,8 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
             } else if (cur_fd == network_timerfd) {
 
                 // Timer managing timeout in network layer has expired
+                // At least one probe has expired
+                // TODO rename network_drop_expired_probes
                 if (!network_drop_oldest_flying_probe(loop->network)) {
                     perror("Error while processing timeout");
                 }
