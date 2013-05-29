@@ -138,7 +138,7 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
         case TYPE_INT64:
             return field_create_int64(key, ntohl(*(uint64_t *) value));
         case TYPE_INT128:
-        //    return field_create_int128(key, ntohl(*(uint128_t *) value));
+            // return field_create_int128(key, ntohl(*(uint128_t *) value));
             perror("field_create_from_network: Not yet implemented");
             return NULL;
         case TYPE_INTMAX:
@@ -184,6 +184,7 @@ size_t field_get_type_size(fieldtype_t type)
         case TYPE_INT4:
         case TYPE_STRING:
         default:
+            fprintf(stderr, "field_get_type_size: type not supported %d\n", type);
             break;
     }
     return 0;

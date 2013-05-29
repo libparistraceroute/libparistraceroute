@@ -378,7 +378,7 @@ void ipv4_write_default_header(uint8_t * ipv4_header) {
 
 static protocol_t ipv4 = {
     .name                 = "ipv4",
-    .protocol             = 4, // XXX only IP over IP (encapsulation) 
+    .protocol             = IPPROTO_IPIP, // XXX only IP over IP (encapsulation). Beware probe.c, icmpv4_get_next_protocol_id 
     .get_num_fields       = ipv4_get_num_fields,
     .write_checksum       = ipv4_write_checksum,
     .create_pseudo_header = NULL,

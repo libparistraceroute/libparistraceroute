@@ -150,6 +150,44 @@ bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned
     return true;
 }
 
+layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segment, size_t segment_size) {
+    layer_t * layer;
+
+    // Create a new layer
+    if (!(layer = layer_create())) {
+        goto ERR_CREATE_LAYER;
+    }
+
+    // Initialize and install the new layer in the probe
+    layer_set_segment(layer, segment);
+    layer_set_segment_size(layer, segment_size);
+    layer_set_protocol(layer, protocol);
+
+    // TODO consider variable length headers
+    layer_set_header_size(layer, protocol ? protocol->header_len : 0); // TODO manage header with variable length by querying a protocol's callback
+    return layer;
+
+ERR_CREATE_LAYER:
+    return NULL;
+}
+
+bool layer_extract(const layer_t * layer, const char * field_name, void * value) {
+    const protocol_field_t * protocol_field;
+    bool  ret = false;
+
+    if (layer && layer->protocol) {
+        if ((protocol_field = protocol_get_field(layer->protocol, field_name))) {
+            memcpy(
+                value,
+                layer->segment + protocol_field->offset,
+                field_get_type_size(protocol_field->type)
+            );
+            ret = true;
+        }
+    }
+    return ret;
+}
+
 void layer_dump(layer_t * layer, unsigned int indent)
 {
     size_t             i, size;

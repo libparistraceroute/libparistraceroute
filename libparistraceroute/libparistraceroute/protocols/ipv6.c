@@ -219,10 +219,10 @@ static struct ip6_hdr ipv6_default = {
 //    .version        = IPV6_DEFAULT_VERSION,
 //    .tcl            = IPV6_DEFAULT_TCL,
 //    .flowlabel        = IPV6_DEFAULT_FLOWLABEL,
-    .ip6_ctlun.ip6_un1.ip6_un1_flow    = 0x00000006, // Version = 6, TCL = 0, FLOW = 0 // Beware of Byteorder
-    .ip6_ctlun.ip6_un1.ip6_un1_plen    = IPV6_DEFAULT_PAYLOADLENGTH,
-    .ip6_ctlun.ip6_un1.ip6_un1_nxt    = IPV6_DEFAULT_NEXT_HEADER,
-    .ip6_ctlun.ip6_un1.ip6_un1_hlim    = IPV6_DEFAULT_HOPLIMIT,
+    .ip6_ctlun.ip6_un1.ip6_un1_flow = 0x00000006, // Version = 6, TCL = 0, FLOW = 0 // Beware of Byteorder
+    .ip6_ctlun.ip6_un1.ip6_un1_plen = IPV6_DEFAULT_PAYLOADLENGTH,
+    .ip6_ctlun.ip6_un1.ip6_un1_nxt  = IPV6_DEFAULT_NEXT_HEADER,
+    .ip6_ctlun.ip6_un1.ip6_un1_hlim = IPV6_DEFAULT_HOPLIMIT,
     .ip6_src                        = IPV6_DEFAULT_SRC_IP,
     .ip6_dst                        = IPV6_DEFAULT_DST_IP,
 };
@@ -239,18 +239,16 @@ int ipv6_finalize(unsigned char *buffer) {
 
     ip6_hed->ip6_ctlun.ip6_un2_vfc = (uint8_t) 0x60;
 
-    /* Setting source address */
-
+    // Setting source address
     int ip_src_notset = 0;
     int i;
 
     // Addup all parts of the field, if 0 no source has been specified
-    for(i = 0; i < 8; i++){
+    for(i = 0; i < 8; i++) {
         ip_src_notset += ip6_hed->ip6_src.__in6_u.__u6_addr16[i];
     }
 
-
-    if(!ip_src_notset){
+    if(!ip_src_notset) {
         int sock;
         struct sockaddr_in6 addr, name;
         int len = sizeof(struct sockaddr_in6);
@@ -261,9 +259,9 @@ int ipv6_finalize(unsigned char *buffer) {
 
         memset(&addr, 0, len);
 
-        addr.sin6_family    = AF_INET6;
-        addr.sin6_addr        = ip6_hed->ip6_dst;
-        addr.sin6_port      = htons(32000); // XXX why 32000 ?
+        addr.sin6_family = AF_INET6;
+        addr.sin6_addr   = ip6_hed->ip6_dst;
+        addr.sin6_port   = htons(32000); // XXX why 32000 ?
 
         if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in6)) < 0)
             return 0; // Cannot connect socket
@@ -271,29 +269,18 @@ int ipv6_finalize(unsigned char *buffer) {
         if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1)
             return 0; // Cannot getsockname
 
-
         memcpy((char *)&ip6_hed->ip6_src, (char *)&name.sin6_addr, sizeof(struct in6_addr));
-
-
         close(sock);
-
-
     }
-
-
     return 0;
 }
-
-
-
 
 /**
  * \brief Retrieve the size of an UDP header 
  * \return The size of an UDP header
  */
 
-unsigned int ipv6_get_header_size(void)
-{
+size_t ipv6_get_header_size(void) {
     return sizeof(struct ip6_hdr);
 }
 
@@ -302,8 +289,7 @@ unsigned int ipv6_get_header_size(void)
  * \param data The address of an allocated buffer that will store the header
  */
 
-void ipv6_write_default_header(unsigned char *data)
-{
+void ipv6_write_default_header(uint8_t * data) {
     memcpy(data, &ipv6_default, sizeof(struct ip6_hdr));
 }
 
@@ -312,8 +298,7 @@ void ipv6_write_default_header(unsigned char *data)
  * \return The number of fields
  */
 
-unsigned int ipv6_get_num_fields(void)
-{
+size_t ipv6_get_num_fields(void) {
     return sizeof(ipv6_fields) / sizeof(protocol_field_t);
 }
 

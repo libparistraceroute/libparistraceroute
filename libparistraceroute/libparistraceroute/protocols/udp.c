@@ -3,15 +3,16 @@
 #include <stdbool.h>          // bool
 #include <errno.h>            // ERRNO, EINVAL
 #include <stddef.h>           // offsetof()
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <netinet/udp.h>
+#include <netinet/ip.h>       // ip_hdr
+#include <netinet/ip6.h>      // ip6_hdr
+#include <netinet/udp.h>      // udphdr
 #include <netinet/in.h>       // IPPROTO_UDP = 17
 #include <arpa/inet.h>
-#include <stdio.h> // DEBUG
+#include <stdio.h>
 
 #include "../protocol.h"      // csum
-#include "buffer.h"
+#include "buffer.h"           // buffer_t
+#include "field.h"            // uint128_t
 
 #define UDP_DEFAULT_SRC_PORT 2828
 #define UDP_DEFAULT_DST_PORT 2828
@@ -107,14 +108,9 @@ void udp_write_default_header(uint8_t *data) {
  * \brief Compute and write the checksum related to an UDP header
  * \param udp_header Points to the begining of the UDP header and its content.
  *    The UDP checksum stored in this header is updated by this function.
- * \param ip_psh The IP layer part of the pseudo header:
- *    In IPv4: {
- *       src_ip   (32 bits),
- *       dst_ip   (32 bits),
- *       zeros    (8  bits),
- *       proto    (8  bits),
- *       size_udp (16 bits) 
- *    }
+ * \param ip_psh The IP layer part of the pseudo header. This buffer should
+ *    contain the content of an ipv4_pseudo_header_t or an ipv6_pseudo_header_t
+ *    structure.
  * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
  * \return true if everything is fine, false otherwise  
  */
@@ -134,7 +130,6 @@ bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
     // Allocate the buffer which will contains the pseudo header
     size_psh = ntohs(udp_hdr->LENGTH) + buffer_get_size(ip_psh);
     if (!(psh = malloc(size_psh * sizeof(uint8_t)))) {
-        errno = ENOMEM;
         return false;
     }
 
@@ -168,19 +163,20 @@ typedef struct {
 
 /**
  * \brief Create an IPv4 pseudo header
- * \param ipv4_packet Address of the IPv4 packet
+ * \param ipv4_segment Address of the IPv4 segment 
  * \return The buffer containing the corresponding pseudo header,
  *    NULL in case of failure
  */
 
-buffer_t * udp_create_psh_ipv4(const uint8_t * ipv4_packet)
+static buffer_t * udp_create_psh_ipv4(const uint8_t * ipv4_segment)
 {
-    const struct iphdr * ip_hdr = (const struct iphdr *) ipv4_packet;
+    const struct iphdr * ip_hdr = (const struct iphdr *) ipv4_segment;
     buffer_t           * ipv4_psh;
-    ipv4_pseudo_header_t ipv4_pseudo_header;
+    ipv4_pseudo_header_t ipv4_pseudo_header; // TODO we should directly points to ipv4_psh's bytes to avoid one copy
     
     if (!(ipv4_psh = buffer_create())) {
-        return NULL;
+        printf("udp_create_psh_ipv4: error create\n");
+        goto ERR_BUFFER_CREATE;
     }
 
     // Deduce the size of the UDP segment (header + data) according to the IP header
@@ -196,8 +192,17 @@ buffer_t * udp_create_psh_ipv4(const uint8_t * ipv4_packet)
     ipv4_pseudo_header.size     = udp_segment_size; 
 
     // Prepare and return the corresponding buffer
-    buffer_write_bytes(ipv4_psh, (uint8_t *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header_t));
+    if (!buffer_write_bytes(ipv4_psh, (uint8_t *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header_t))) {
+        printf("udp_create_psh_ipv4: error write\n");
+        goto ERR_BUFFER_WRITE_BYTES;
+    }
+
     return ipv4_psh;
+
+ERR_BUFFER_WRITE_BYTES:
+    buffer_free(ipv4_psh);
+ERR_BUFFER_CREATE:
+    return NULL;
 }
 
 /**
@@ -205,79 +210,70 @@ buffer_t * udp_create_psh_ipv4(const uint8_t * ipv4_packet)
  */
 
 typedef struct {
-    uint64_t  ip_src;    /**< Source IPv6      (first 64 bits) */
-    uint64_t  ip_src2;   /**< Source IPv6      (last  64 bits) */
-    uint64_t  ip_dst;    /**< Destination IPv6 (first 64 bits) */
-    uint64_t  ip_dst2;   /**< Destination IPv6 (last  64 bits) */
+    uint128_t ip_src;    /**< Source IPv6      */
+    uint128_t ip_dst;    /**< Destination IPv6 */
     uint32_t  size;      /**< Size of IP layer contents (IP packet size - IP header size)  */ 
-    uint16_t  zero1;     /**< Zeros */
-    uint8_t   zero2;     /**< Zeros */
+    uint16_t  zeros;     /**< Zeros */
+    uint8_t   zero;      /**< Zeros */
     uint8_t   protocol;  /**< Protocol number of the first nested protocol (ex: UDP == 17) */
 } ipv6_pseudo_header_t;
 
+/*
 #define HD_UDP6_DADDR 16
 #define HD_UDP6_LEN 32
 #define HD_UDP6_PAD 36
 #define HD_UDP6_NXH 39
+*/
 
-buffer_t * udp_create_psh_ipv6(unsigned char* ipv6_buffer)
+static buffer_t * udp_create_psh_ipv6(const uint8_t * ipv6_segment)
 {
-	/* http://tools.ietf.org/html/rfc2460
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |                                                               |
-	   +                                                               +
-	   |                                                               |
-	   +                         Source Address                        +
-	   |                                                               |
-	   +                                                               +
-	   |                                                               |
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |                                                               |
-	   +                                                               +
-	   |                                                               |
-	   +                      Destination Address                      +
-	   |                                                               |
-	   +                                                               +
-	   |                                                               |
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |                   Upper-Layer Packet Length                   |
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   |                      zero                     |  Next Header  |
-	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	   */
-    buffer_t *psh;
-    struct ip6_hdr *iph;
-    unsigned char *data;
+    buffer_t             * psh;
+    const struct ip6_hdr * iph = (const struct ip6_hdr *) ipv6_segment;
+    ipv6_pseudo_header_t * data;
 
-    psh = buffer_create();
-    buffer_resize(psh, 40);
+    if (!(psh = buffer_create())) {
+        goto ERR_BUFFER_CREATE;
+    }
 
-    data = buffer_get_data(psh);
+    if (!(buffer_resize(psh, sizeof(ipv6_pseudo_header_t)))) {
+        goto ERR_BUFFER_RESIZE;
+    }
 
+    data = (ipv6_pseudo_header_t *) buffer_get_data(psh);
 
-    iph = (struct ip6_hdr *) ipv6_buffer;
-    *(( u_int32_t *) (data                ))	=  iph->ip6_src.__in6_u.__u6_addr32[0]; // src_ip
-    *(( u_int32_t *) (data  + 4           ))	=  iph->ip6_src.__in6_u.__u6_addr32[1]; // src_ip
-    *(( u_int32_t *) (data  + 8           )) 	=  iph->ip6_src.__in6_u.__u6_addr32[2]; // src_ip
-    *(( u_int32_t *) (data  + 12          ))	=  iph->ip6_src.__in6_u.__u6_addr32[3]; // src_ip
-    *(( u_int32_t *) (data + HD_UDP6_DADDR   ))	=  iph->ip6_dst.__in6_u.__u6_addr32[0]; // dst_ip
-    *(( u_int32_t *) (data + HD_UDP6_DADDR+4 ))	=  iph->ip6_dst.__in6_u.__u6_addr32[1]; // dst_ip
-    *(( u_int32_t *) (data + HD_UDP6_DADDR+8 ))	=  iph->ip6_dst.__in6_u.__u6_addr32[2]; // dst_ip
-    *(( u_int32_t *) (data + HD_UDP6_DADDR+12))	=  iph->ip6_dst.__in6_u.__u6_addr32[3]; // dst_ip
-    *(( u_int16_t *) (data + HD_UDP6_LEN))		=  iph->ip6_ctlun.ip6_un1.ip6_un1_plen; // XXX ext headers need to be substracted
-    *(( u_int32_t  *) (data + HD_UDP6_PAD  )) 	=  0x00000000; // 3 Bytes zero (3 stay zero, one gets overwritten)
-    *(( u_int8_t  *) (data + HD_UDP6_NXH )) 	= 17;  // UDP takes last byte
+/*
+    *(( uint32_t *) (data     ))                 =  iph->ip6_src.__in6_u.__u6_addr32[0]; // src_ip
+    *(( uint32_t *) (data + 4 ))                 =  iph->ip6_src.__in6_u.__u6_addr32[1]; // src_ip
+    *(( uint32_t *) (data + 8 ))                 =  iph->ip6_src.__in6_u.__u6_addr32[2]; // src_ip
+    *(( uint32_t *) (data + 12))                 =  iph->ip6_src.__in6_u.__u6_addr32[3]; // src_ip
+    *(( uint32_t *) (data + HD_UDP6_DADDR     )) =  iph->ip6_dst.__in6_u.__u6_addr32[0]; // dst_ip
+    *(( uint32_t *) (data + HD_UDP6_DADDR + 4 )) =  iph->ip6_dst.__in6_u.__u6_addr32[1]; // dst_ip
+    *(( uint32_t *) (data + HD_UDP6_DADDR + 8 )) =  iph->ip6_dst.__in6_u.__u6_addr32[2]; // dst_ip
+    *(( uint32_t *) (data + HD_UDP6_DADDR + 12)) =  iph->ip6_dst.__in6_u.__u6_addr32[3]; // dst_ip
+*/
+    memcpy(data + offsetof(ipv6_pseudo_header_t, ip_src), &iph->ip6_src, sizeof(struct in6_addr));
+    memcpy(data + offsetof(ipv6_pseudo_header_t, ip_dst), &iph->ip6_dst, sizeof(struct in6_addr));
+//    *(( uint16_t *) (data + HD_UDP6_LEN))        =  iph->ip6_ctlun.ip6_un1.ip6_un1_plen; // XXX ext headers need to be substracted
+    data->size = iph->ip6_ctlun.ip6_un1.ip6_un1_plen; // XXX ext headers need to be substracted
+//    *(( uint32_t *) (data + HD_UDP6_PAD))        =  0x00000000; // 3 Bytes zero (3 stay zero, one gets overwritten)
+    data->zeros = 0;
+    data->zero  = 0;
+//    *(( uint8_t  *) (data + HD_UDP6_NXH))        = IPPROTO_UDP;  // UDP takes last byte
 
     return psh;
 
+ERR_BUFFER_RESIZE:
+    buffer_free(psh);
+ERR_BUFFER_CREATE:
+    return NULL;
 }
 
-buffer_t * udp_create_psh(uint8_t * buffer)
+buffer_t * udp_create_psh(const uint8_t * buffer)
 {
     // TODO dispatch IPv4 and IPv6 header
     // http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
-	// XXX IPv6 hacks -> todo generic.
-     /* buffer_t *psh;
+    // XXX IPv6 hacks -> todo generic.
+    /* buffer_t *psh;
     unsigned char ip_version = buffer_guess_ip_version(buffer); 
    
        psh = ip_version == 6 ? udp_create_psh_ipv6(buffer) :

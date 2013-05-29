@@ -38,19 +38,29 @@ typedef struct {
      * is needed, false otherwise (?) 
      */
 
+    // TODO rename need_pseudo_header
     bool need_ext_checksum;
 
 	/**
-     * Pointer to a function to write a checksum for a pseudoheader into a buffer
-	 * \param buf Pointer to a buffer
-	 * \param psh Pointer to a pseudoheader_t structure
-	 * \return true if success, false othewise 
+     * \brief Points to a callback which updates the checksum of the segment related to
+     *    this protocol.
+	 * \param buf Pointer to the protocol's segment
+	 * \param psh Pointer to the corresponding pseudo header (pass NULL if not needed)
+	 * \return true if success, false otherwise 
 	 */
 
-	bool (*write_checksum)(unsigned char * buf, buffer_t * psh);
+	bool (*write_checksum)(uint8_t * buf, buffer_t * psh);
 
-    // create_pseudo_header
-    buffer_t * (*create_pseudo_header)(unsigned char * buffer);
+    /**
+     * \brief Points to a callback which creates a buffer_t instance
+     *    containing the pseudo header needed to compute the checksum
+     *    of a segment of this protocol.
+     * \param segment The address of the segment. For instance if you compute
+     *    the UDP of an IPv6/UDP packet, pass the address of the IPv6 segment.
+     * \return The corresponding buffer, NULL in case of failure.
+     */
+
+    buffer_t * (*create_pseudo_header)(const uint8_t * segment);
 	
     /**
      * Pointer to a protocol_field_t structure holding the header fields
