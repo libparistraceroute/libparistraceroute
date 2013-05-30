@@ -19,7 +19,7 @@
 
 // MDA options
 
-struct opt_spec mda_options[] = {
+static struct opt_spec mda_options[] = {
     // action       short       long         metavar       help                   variable
     {opt_store_int, OPT_NO_SF, "min-ttl",    "TTL",        "minimum TTL",         0},
     {opt_store_int, OPT_NO_SF, "max-ttl",    "TTL",        "maximum TTL",         0},
@@ -29,8 +29,7 @@ struct opt_spec mda_options[] = {
     {OPT_NO_ACTION}
 };
 
-inline mda_options_t mda_get_default_options() {
-
+mda_options_t mda_get_default_options() {
     mda_options_t mda_options = {
          .traceroute_options = traceroute_get_default_options(),
          .bound              = 95,
@@ -660,7 +659,7 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
 static algorithm_t mda = {
     .name     = "mda",
     .handler  = mda_handler,
-    .options  = mda_options,
+    .options  = (const struct opt_spec *) &mda_options
 };
 
 ALGORITHM_REGISTER(mda);

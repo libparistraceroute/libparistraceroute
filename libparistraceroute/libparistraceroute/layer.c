@@ -162,9 +162,7 @@ layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segme
     layer_set_segment(layer, segment);
     layer_set_segment_size(layer, segment_size);
     layer_set_protocol(layer, protocol);
-
-    // TODO consider variable length headers
-    layer_set_header_size(layer, protocol ? protocol->header_len : 0); // TODO manage header with variable length by querying a protocol's callback
+    layer_set_header_size(layer, protocol ? protocol->get_header_size(segment) : 0);
     return layer;
 
 ERR_CREATE_LAYER:

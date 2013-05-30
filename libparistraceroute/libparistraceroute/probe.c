@@ -206,7 +206,7 @@ static bool probe_update_checksum(probe_t * probe)
         layer = probe_get_layer(probe, i);
         if (layer->protocol) { 
             // Does the protocol require a pseudoheader?
-            if (layer->protocol->need_ext_checksum) {
+            if (layer->protocol->create_pseudo_header) {
                 if (i == 0) {
                     // This layer has no previous layer.
                     // We can't compute the corresponding pseudo-header!
@@ -230,7 +230,6 @@ static bool probe_update_checksum(probe_t * probe)
     }
     return true;
 }
-
 
 static layer_t * probe_get_layer(const probe_t * probe, size_t i) {
     return dynarray_get_ith_element(probe->layers, i);
@@ -307,6 +306,7 @@ static bool probe_packet_resize(probe_t * probe, size_t size)
     size_t    offset = 0, // offset between the begining of the packet and the current position
               i, num_layers = probe_get_num_layers(probe);
     layer_t * layer;
+    uint8_t * segment;
 
     if (!packet_resize(probe->packet, size)) {
         return false;
@@ -317,15 +317,16 @@ static bool probe_packet_resize(probe_t * probe, size_t size)
     // We must reset properly for each layer's buffer
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
-        layer_set_segment(layer, packet_get_bytes(probe->packet) + offset);
+        segment = packet_get_bytes(probe->packet) + offset;
+        layer_set_segment(layer, segment);
         layer_set_segment_size(layer, size - offset);
 
         if (layer->protocol) {
-            // Update length field (if any)
+            // We're in a layer related to a protocol. Update "length" field (if any).
             if (!layer_set_field_and_free(layer, I16("length", size - offset))) {
                 fprintf(stderr, "Cannot update 'length' field in '%s' layer\n", layer->protocol->name);
             }
-            offset += layer->protocol->header_len; 
+            offset += layer->protocol->get_header_size(segment); 
         } else {
             // Otherwise, we are at the payload, which is the last layer
             layer_set_header_size(layer, 0);
@@ -460,7 +461,6 @@ static const protocol_t * icmpv4_get_next_protocol(const layer_t * icmpv4_layer)
 // TODO move into protocols/icmp6.c
 static const protocol_t * icmpv6_get_next_protocol(const layer_t * icmpv6_layer) {
     const protocol_t * next_protocol = NULL;
-    field_t          * field;
     uint8_t            icmpv6_type;
 
     if (layer_extract(icmpv6_layer, "type", &icmpv6_type)) {
@@ -517,7 +517,7 @@ static const protocol_t * get_next_protocol(const layer_t * layer, const protoco
 probe_t * probe_wrap_packet(packet_t * packet)
 {
     probe_t          * probe;
-    size_t             offset, header_size, segment_size;
+    size_t             header_size, segment_size;
     layer_t          * layer;
     uint8_t          * segment;
     const protocol_t * protocol;
@@ -534,15 +534,14 @@ probe_t * probe_wrap_packet(packet_t * packet)
     probe_layers_clear(probe);
 
     // Prepare iteration
-    offset = 0;
     segment = buffer_get_data(buffer);
     segment_size = buffer_get_size(buffer);
 
     // Push layers
     for (protocol = get_first_protocol(packet); protocol; protocol = get_next_protocol(layer, protocol)) {
-        header_size = protocol->header_len;
+        header_size = protocol->get_header_size(segment);
 
-        if (!(layer = layer_create_from_segment(protocol, segment + offset, segment_size))) {
+        if (!(layer = layer_create_from_segment(protocol, segment, segment_size))) {
             goto ERR_CREATE_LAYER;
         }
 
@@ -550,7 +549,7 @@ probe_t * probe_wrap_packet(packet_t * packet)
             goto ERR_PUSH_LAYER;
         }
 
-        offset += header_size;
+        segment += header_size;
         segment_size -= header_size;
         if (segment_size < 0) {
             fprintf(stderr, "probe_wrap_packet: Truncated packet");
@@ -569,6 +568,7 @@ ERR_CREATE_LAYER:
     // Push payload 
     if (!protocol) {
         // Rq: Some packets (e.g ICMP type 3) do not have payload.
+        // In this case we push an empty payload
         probe_push_payload(probe, segment_size);
     }
     return probe; 
@@ -609,7 +609,7 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
     // and not at the top layer
 
     va_list            args, args2;
-    size_t             buflen, offset;
+    size_t             packet_size, offset;
     const char       * name;
     layer_t          * layer, *prev_layer;
     const protocol_t * protocol;
@@ -621,14 +621,14 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
     va_start(args, name1);
 
     // Allocate the buffer according to the layer structure
-    buflen = 0;
+    packet_size = 0;
     va_copy(args2, args);
     for (name = name1; name; name = va_arg(args2, char *)) {
         if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH;
-        buflen += protocol->header_len; 
+        packet_size += protocol->get_header_size(NULL); // TODO call write_default_header(NULL) to get the number of required bytes 
     }
     va_end(args2);
-    if (!(packet_resize(probe->packet, buflen))) goto ERR_PACKET_RESIZE;
+    if (!(packet_resize(probe->packet, packet_size))) goto ERR_PACKET_RESIZE;
 
     // Create each layer
     offset = 0;
@@ -638,20 +638,20 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
         if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH2;
         protocol->write_default_header(packet_get_bytes(probe->packet) + offset);
 
-        if (!(layer = layer_create_from_segment(protocol, packet_get_bytes(probe->packet) + offset, buflen - offset))) {
+        if (!(layer = layer_create_from_segment(protocol, packet_get_bytes(probe->packet) + offset, packet_size - offset))) {
             goto ERR_LAYER_CREATE;
         }
         // TODO layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);
 
         // Update 'length' field
-        if (!layer_set_field_and_free(layer, I16("length", buflen - offset))) {
+        if (!layer_set_field_and_free(layer, I16("length", packet_size - offset))) {
             fprintf(stderr, "Can't set length in %s header\n", layer->protocol->name);
             goto ERR_SET_LENGTH;
         }
 
         // Update 'protocol' field of the previous inserted layer (if any)
         if (prev_layer) {
-            layer_set_field_and_free(layer, I16("protocol", prev_layer->protocol->protocol));
+            layer_set_field_and_free(prev_layer, I16("protocol", layer->protocol->protocol));
         }
 
         offset += layer_get_header_size(layer);
@@ -694,7 +694,7 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size)
 
     old_payload_size = layer_get_segment_size(payload_layer);
 
-    // Compare payload lenths
+    // Compare payload lengths
     if (old_payload_size != payload_size) {
         old_packet_size = packet_get_size(probe->packet);
         if (old_payload_size > old_packet_size) {

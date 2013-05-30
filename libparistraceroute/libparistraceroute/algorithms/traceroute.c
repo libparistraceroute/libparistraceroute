@@ -280,7 +280,7 @@ FAILURE:
 static algorithm_t traceroute = {
     .name    = "traceroute",
     .handler = traceroute_handler,
-    .options = traceroute_options
+    .options = (const struct opt_spec *) &traceroute_options
 };
 
 ALGORITHM_REGISTER(traceroute);

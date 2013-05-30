@@ -6,13 +6,13 @@
  * \brief Header file for algorithms and algorithm instances.
  */
 
-#include <search.h>
+#include <search.h>     // VISIT
 
-#include "probe.h"
-#include "event.h"
-#include "dynarray.h"
-#include "pt_loop.h"
-#include "optparse.h"
+#include "probe.h"      // probe_t
+#include "event.h"      // event_t
+#include "dynarray.h"   // dynarray_t
+#include "pt_loop.h"    // pt_loop_t
+#include "optparse.h"   // opt_spec
 
 /**
  * \enum status_t
@@ -40,7 +40,7 @@ typedef struct algorithm_s {
         probe_t   *  skel,
         void      *  poptions
     );                                        /**< Main handler function */
-    struct opt_spec  options;                 /**< Options supported by this algorithm */ 
+    const struct opt_spec * options;          /**< Options supported by this algorithm */ 
 } algorithm_t;
 
 /**
