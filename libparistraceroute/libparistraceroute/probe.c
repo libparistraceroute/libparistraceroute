@@ -395,7 +395,7 @@ void probe_free(probe_t * probe)
 //        bitfield_free(probe->bitfield);
         probe_layers_free(probe);
         if (probe->packet) {
-            printf("probe = %x probe->packet = %x\n", probe, probe->packet);
+           // printf("probe = %x probe->packet = %x\n", probe, probe->packet);
             packet_free(probe->packet);
         }
         free(probe);

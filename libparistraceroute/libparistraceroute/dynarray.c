@@ -158,9 +158,9 @@ void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i)
     return (i >= dynarray->size) ? NULL : dynarray->elements[i];
 }
 
-int dynarray_set_ith_element(dynarray_t * dynarray, unsigned int i, void * element)
+bool dynarray_set_ith_element(dynarray_t * dynarray, unsigned int i, void * element)
 {
-    if (i > dynarray->size) return -1; // out of range
+    if (i > dynarray->size) return false; // out of range
     dynarray->elements[i] = element;
-    return 0;
+    return true;
 }

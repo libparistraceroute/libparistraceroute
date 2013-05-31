@@ -25,13 +25,13 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
                          network_sniffer_fd,
                          network_timerfd;
     pt_loop_t          * loop;
-    struct epoll_event   network_sendq_event;
-    struct epoll_event   network_recvq_event;
-    struct epoll_event   network_sniffer_event;
-    struct epoll_event   algorithm_event;
-    struct epoll_event   user_event;
-    struct epoll_event   network_timerfd_event;
-    struct epoll_event   signal_event;
+    struct epoll_event * network_sendq_event = calloc(1, sizeof(struct epoll_event));
+    struct epoll_event * network_recvq_event = calloc(1, sizeof(struct epoll_event));
+    struct epoll_event * network_sniffer_event = calloc(1, sizeof(struct epoll_event));
+    struct epoll_event * algorithm_event = calloc(1, sizeof(struct epoll_event)) ;
+    struct epoll_event * user_event = calloc(1, sizeof(struct epoll_event));
+    struct epoll_event * network_timerfd_event = calloc(1, sizeof(struct epoll_event));
+    struct epoll_event * signal_event = calloc(1, sizeof(struct epoll_event));
     sigset_t             mask; // Signal management
 
     if (!(loop = malloc(sizeof(pt_loop_t)))) {
@@ -49,9 +49,9 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     loop->eventfd_algorithm = eventfd(0, EFD_SEMAPHORE);
     if ((loop->eventfd_algorithm = eventfd(0, EFD_SEMAPHORE)) == -1)
         goto ERR_EVENTFD_ALGORITHM;
-    algorithm_event.data.fd = loop->eventfd_algorithm;
-    algorithm_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_algorithm, &algorithm_event);
+    algorithm_event->data.fd = loop->eventfd_algorithm;
+    algorithm_event->events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_algorithm, algorithm_event);
     if (s == -1)
         goto ERR_EVENTFD_ADD_ALGORITHM;
 
@@ -59,9 +59,9 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     loop->eventfd_user = eventfd(0, EFD_SEMAPHORE);
     if (loop->eventfd_user == -1)
         goto ERR_EVENTFD_USER;
-    user_event.data.fd = loop->eventfd_user;
-    user_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_user, &user_event);
+    user_event->data.fd = loop->eventfd_user;
+    user_event->events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_user, user_event);
     if (s == -1)
         goto ERR_EVENTFD_ADD_USER;
   
@@ -78,9 +78,9 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     if (loop->sfd == -1)
         goto ERR_SIGNALFD;
 
-    signal_event.data.fd = loop->sfd;
-    signal_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, loop->sfd, &signal_event);
+    signal_event->data.fd = loop->sfd;
+    signal_event->events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, loop->sfd, signal_event);
     if (s == -1) 
         goto ERR_SIGNALFD_ADD;
    
@@ -91,33 +91,33 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
 
     /* sending queue */
     network_sendq_fd = network_get_sendq_fd(loop->network);
-    network_sendq_event.data.fd = network_sendq_fd;
-    network_sendq_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sendq_fd, &network_sendq_event);
+    network_sendq_event->data.fd = network_sendq_fd;
+    network_sendq_event->events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sendq_fd, network_sendq_event);
     if (s == -1)
         goto ERR_SENDQ_ADD;
     
     /* receiving queue */
     network_recvq_fd = network_get_recvq_fd(loop->network);
-    network_recvq_event.data.fd = network_recvq_fd;
-    network_recvq_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_recvq_fd, &network_recvq_event);
+    network_recvq_event->data.fd = network_recvq_fd;
+    network_recvq_event->events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_recvq_fd, network_recvq_event);
     if (s == -1) 
         goto ERR_RECVQ_ADD;
 
     /* sniffer */
     network_sniffer_fd = network_get_sniffer_fd(loop->network);
-    network_sniffer_event.data.fd = network_sniffer_fd;
-    network_sniffer_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sniffer_fd, &network_sniffer_event);
+    network_sniffer_event->data.fd = network_sniffer_fd;
+    network_sniffer_event->events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sniffer_fd, network_sniffer_event);
     if (s == -1)
         goto ERR_SNIFFER_ADD;
 
     /* Timerfd */
     network_timerfd = network_get_timerfd(loop->network);
-    network_timerfd_event.data.fd = network_timerfd;
-    network_timerfd_event.events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_timerfd, &network_timerfd_event);
+    network_timerfd_event->data.fd = network_timerfd;
+    network_timerfd_event->events = EPOLLIN; // | EPOLLET;
+    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_timerfd, network_timerfd_event);
     if (s == -1)
         goto ERR_TIMERFD_ADD;
 
@@ -310,8 +310,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
                 // Timer managing timeout in network layer has expired
                 // At least one probe has expired
-                // TODO rename network_drop_expired_probes
-                if (!network_drop_oldest_flying_probe(loop->network)) {
+                if (!network_drop_expired_flying_probe(loop->network)) {
                     perror("Error while processing timeout");
                 }
             }

@@ -295,17 +295,17 @@ ERR_ALGORITHM_NOT_FOUND:
 }
 
 void pt_instance_stop(
-    struct pt_loop_s     * loop,
-    algorithm_instance_t * instance
+        struct pt_loop_s     * loop,
+        algorithm_instance_t * instance
 ) {
     // Notify the caller that this instance will be freed
     pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL));
 
-    // Free this instance
-    algorithm_instance_free(instance);
-
     // Unregister this instance from the loop
     pt_algorithm_instance_del(loop, instance);
+
+    // Free this instance
+    algorithm_instance_free(instance);
 }
 
 void pt_algorithm_throw(

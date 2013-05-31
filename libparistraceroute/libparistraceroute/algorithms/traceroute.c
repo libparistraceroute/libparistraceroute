@@ -268,7 +268,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
 
     // Notify the caller the algorithm has terminated. The caller can still
     // use traceroute's data. It has to run pt_instance_free once this
-    // data is no more needed.
+    // data if no more needed.
     if (has_terminated) {
         pt_raise_terminated(loop);
     }

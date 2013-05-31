@@ -38,7 +38,7 @@ void buffer_free(buffer_t * buffer)
 {
     if (buffer) {
         if (buffer->data) {
-            printf("buffer = %x: free buffer->data = %x\n", buffer, buffer->data);
+           // printf("buffer = %x: free buffer->data = %x\n", buffer, buffer->data);
             free(buffer->data);
         }
         free(buffer);

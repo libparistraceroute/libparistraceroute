@@ -38,6 +38,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						dynarray.h \
 						event.h \
 						field.h \
+                        group.h \
 						layer.h \
 						lattice.h \
 						list.h \
@@ -83,6 +84,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						dynarray.c \
 						event.c \
 						field.c \
+                        group.c \
 						lattice.c \
 						layer.c \
 						list.c \

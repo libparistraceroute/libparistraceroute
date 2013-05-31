@@ -546,7 +546,7 @@ void network_process_sniffer(network_t * network) {
     sniffer_process_packets(network->sniffer);
 }
 
-bool network_drop_oldest_flying_probe(network_t * network)
+bool network_drop_expired_flying_probe(network_t * network)
 {
     /*
     bool      ret = false;
@@ -576,11 +576,13 @@ bool network_drop_oldest_flying_probe(network_t * network)
     probe_t * probe;
 
     // Is there flying probe(s) ?
-    if (num_flying_probes) { 
+    if (num_flying_probes > 0) { 
         // Iterate on each expired probes (at least the oldest one has expired)
-        probe = network_get_oldest_probe(network);
+        //probe = network_get_oldest_probe(network);
         // TODO use get_oldest_probe
-        for(i = 0 ; probe = dynarray_get_ith_element(network->probes, i) && network_get_probe_timeout(network, probe) <= 0; i++) {
+        for(i = 0 ;i < num_flying_probes; i++) {
+            if(!(probe = dynarray_get_ith_element(network->probes, i))) {break;}
+            if(network_get_probe_timeout(network, probe) > 0) {break;}
             ///// DEBUG
             printf("This probe has expired\n");
             //probe_dump(probe);
@@ -588,16 +590,18 @@ bool network_drop_oldest_flying_probe(network_t * network)
             ///// DEBUG
             // This probe has expired, raise a PROBE_TIMEOUT event.
             pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
-        }
-
+        }           
         // Delete the n oldest probes
-        dynarray_del_n_elements(network->probes, 0, i, NULL);
-
+        if(i != 0) {
+            printf("number of dropped probes / number of flying probes : %d / %d \n",i, num_flying_probes);
+            dynarray_del_n_elements(network->probes, 0, i, NULL);
+        }
         ///// DEBUG
         // The oldest probe (if any) is used to update the next timeout
         // TODO use get_oldest_probe
         if (probe = network_get_oldest_probe(network)) {
-            probe_dump(probe);
+            //probe_dump(probe);
+          // printf("update next timeout\n");
         }
         ///// DEBUG
         ret = network_update_next_timeout(network);

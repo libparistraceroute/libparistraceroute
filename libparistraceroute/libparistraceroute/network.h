@@ -223,6 +223,6 @@ void network_process_sniffer(network_t * network);
  * \return true iif successful
  */
 
-bool network_drop_oldest_flying_probe(network_t * network);
+bool network_drop_expired_flying_probe(network_t * network);
 
 #endif
