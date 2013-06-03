@@ -37,26 +37,6 @@ struct opt_spec * mda_get_cl_options() {
 
     return mda_cl_options;
 }
-/*
-int mda_set_options(vector_t * vector) {
-    int i = 0;
-    int j = 0;
-
-    if(vector) {
-        while(i < 3) {
-            if(opt_verify(vector->options, *(mda_options + i), vector->num_options)) {
-                vector_push_element(vector, mda_options + i);
-                j++;
-            }
-            i++;
-        }
-        return 0;
-    } else {
-        printf("fail to pass mda command line options");
-        return -1;
-    }
-}    
-*/
 
 inline mda_options_t mda_get_default_options() {
 
@@ -689,7 +669,7 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
 static algorithm_t mda = {
     .name     = "mda",
     .handler  = mda_handler,
-    .options  = NULL,
+    .options  = (const struct opt_spec *) &mda_cl_options
 };
 
 ALGORITHM_REGISTER(mda);

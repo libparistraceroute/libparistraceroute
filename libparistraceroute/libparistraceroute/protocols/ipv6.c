@@ -1,9 +1,7 @@
-#include <stdlib.h>
-#include <stddef.h> // offsetof()
-#include <string.h> // memcpy()
-#include <unistd.h> // close()
-#include <stdio.h>
-#include <arpa/inet.h> // inet_pton()
+#include <stddef.h>       // offsetof()
+#include <string.h>       // memcpy(), memset()
+#include <unistd.h>       // close()
+#include <arpa/inet.h>    // inet_pton()
 #include <netinet/ip6.h>
 #include <sys/types.h>
 #include <netdb.h>
@@ -34,13 +32,10 @@
 // Hacking ... Split field in two 16 bit 
 // Version + TCL + 4 bits of flow that we ignore
 #define IPV6_FIELD_FLOWLABEL_LOWER         "flow_id"
-// VErsion + TCL + 4 bits
+// Version + TCL + 4 bits
 #define IPV6_FIELD_FLOWLABEL_UPPER         "flow_upper"
 
-
-
-
-/* Extension Headers */
+// Extension Headers
 #define IPV6_FIELD_HBH_NEXT_HEADER   "hbh_next_header"
 #define IPV6_FIELD_HBH_HDR_EXT_LEN   "hbh_hdr_ext_len"
 #define IPV6_FIELD_HBH_OPTIONS       "hbh_options"
@@ -71,7 +66,7 @@
 #define IPV6_DEFAULT_FLOWLABEL_UPPER 0
 
 #define IPV6_DEFAULT_PAYLOADLENGTH   0
-#define IPV6_DEFAULT_NEXT_HEADER     17 // UDP
+#define IPV6_DEFAULT_NEXT_HEADER     17 // IPv6
 #define IPV6_DEFAULT_HOPLIMIT        64
 #define IPV6_DEFAULT_SRC_IP          0
 #define IPV6_DEFAULT_DST_IP          0
@@ -100,68 +95,60 @@
 
 #define IPV6_STRSIZE 46 // as of netinet/in.h INET6_ADDRSTRLEN
 
-
-
-/*
- * TODO
- * it might be interesting to have a given format for interacting with the user,
- * and a size for writing into the packet.
- * ex. IP addresses string <-> bit representation
- * inet_htons?
- */
-
 // Accessors
 
-int ipv6_set_dst_ip(unsigned char *buffer, field_t *field){
-    int res;
-    struct ip6_hdr *ip6_hed;
+/**
+ * \brief Update the source IP of an IPv6 header.
+ * \param ipv6_header Address of the IPv6 header we want to update
+ * \param field The string field containing the new source (resolved) IP.
+ * \return true iif successful.
+ */
 
-    ip6_hed = (struct ip6_hdr *)buffer;
-
-    res = inet_pton(AF_INET6, (char*)field->value.string, &ip6_hed->ip6_dst);
-    if (res != 1){
-        printf("Error while setting destination address\n");
-        return -1; // Error while setting destination address
-    }
-    return 0;
+bool ipv6_set_src_ip(uint8_t * ipv6_header, const field_t * field){
+    struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
+    return (inet_pton(AF_INET6, (const char *) field->value.string, &ip6_hed->ip6_src) != -1);
 }
 
+/**
+ * \brief Create the a string field containing the source IP of an IPv6 header.
+ * \param ipv6_header The queried IPv6 header. 
+ * \return The corresponding field, NULL in case of failure.
+ */
 
-field_t *ipv6_get_dst_ip(unsigned char *buffer){
+field_t * ipv6_get_src_ip(const uint8_t * ipv6_header){
     char res[IPV6_STRSIZE];
-    struct ip6_hdr *ip6_hed;
-
-    ip6_hed = (struct ip6_hdr *)buffer;
-
-    memset(res, 0, IPV6_STRSIZE);
-    inet_ntop(AF_INET6, &ip6_hed->ip6_dst, res, IPV6_STRSIZE);
-
-    return field_create_string(IPV6_FIELD_DST_IP, res);
-}
-
-
-int ipv6_set_src_ip(unsigned char *buffer, field_t *field){
-    int res;
-    struct ip6_hdr *ip6_hed;
-
-    ip6_hed = (struct ip6_hdr *)buffer;
-    res = inet_pton(AF_INET6, (char*)field->value.string, &ip6_hed->ip6_src);
-    if (res != 1){
-        return -1; // Error while setting source address
-    }
-    return 0;
-}
-
-field_t *ipv6_get_src_ip(unsigned char *buffer){
-    char res[IPV6_STRSIZE];
-    struct ip6_hdr *ip6_hed;
-
-    ip6_hed = (struct ip6_hdr *)buffer;
+    struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
 
     memset(res, 0, IPV6_STRSIZE);
     inet_ntop(AF_INET6, &ip6_hed->ip6_src, res, IPV6_STRSIZE);
-
     return field_create_string(IPV6_FIELD_SRC_IP, res);
+}
+
+/**
+ * \brief Update the destination IP of an IPv6 header according to a field 
+ * \param ipv6_header Address of the IPv6 header we want to update
+ * \param field The string field containing the new destination (resolved) IP
+ * \return true iif successful
+ */
+
+bool ipv6_set_dst_ip(uint8_t * ipv6_header, const field_t * field){
+    struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
+    return (inet_pton(AF_INET6, (const char *) field->value.string, &ip6_hed->ip6_dst) != 1);
+}
+
+/**
+ * \brief Create the a string field containing the destination IP of an IPv6 header.
+ * \param ipv6_header The queried IPv4 header.
+ * \return The corresponding field, NULL in case of failure.
+ */
+
+field_t * ipv6_get_dst_ip(const uint8_t * ipv6_header){
+    char res[IPV6_STRSIZE];
+    struct ip6_hdr *ip6_hed = (struct ip6_hdr *) ipv6_header;
+
+    memset(res, 0, IPV6_STRSIZE);
+    inet_ntop(AF_INET6, &ip6_hed->ip6_dst, res, IPV6_STRSIZE);
+    return field_create_string(IPV6_FIELD_DST_IP, res);
 }
 
 
@@ -219,10 +206,10 @@ static struct ip6_hdr ipv6_default = {
 //    .version        = IPV6_DEFAULT_VERSION,
 //    .tcl            = IPV6_DEFAULT_TCL,
 //    .flowlabel        = IPV6_DEFAULT_FLOWLABEL,
-    .ip6_ctlun.ip6_un1.ip6_un1_flow    = 0x00000006, // Version = 6, TCL = 0, FLOW = 0 // Beware of Byteorder
-    .ip6_ctlun.ip6_un1.ip6_un1_plen    = IPV6_DEFAULT_PAYLOADLENGTH,
-    .ip6_ctlun.ip6_un1.ip6_un1_nxt    = IPV6_DEFAULT_NEXT_HEADER,
-    .ip6_ctlun.ip6_un1.ip6_un1_hlim    = IPV6_DEFAULT_HOPLIMIT,
+    .ip6_ctlun.ip6_un1.ip6_un1_flow = 0x00000006, // Version = 6, TCL = 0, FLOW = 0 // Beware of Byteorder
+    .ip6_ctlun.ip6_un1.ip6_un1_plen = IPV6_DEFAULT_PAYLOADLENGTH,
+    .ip6_ctlun.ip6_un1.ip6_un1_nxt  = IPV6_DEFAULT_NEXT_HEADER,
+    .ip6_ctlun.ip6_un1.ip6_un1_hlim = IPV6_DEFAULT_HOPLIMIT,
     .ip6_src                        = IPV6_DEFAULT_SRC_IP,
     .ip6_dst                        = IPV6_DEFAULT_DST_IP,
 };
@@ -230,27 +217,26 @@ static struct ip6_hdr ipv6_default = {
 
 /**
  * \brief A set of actions to be done before sending the packet.
+ * \param ipv6_header Address of the IPv6 header we want to update.
  */
 
-int ipv6_finalize(unsigned char *buffer) {
+int ipv6_finalize(uint8_t * ipv6_header) {
     // destination address = force finding source
     // Need to reset IPversion
-    struct ip6_hdr *ip6_hed = (struct ip6_hdr *)buffer;
+    struct ip6_hdr *ip6_hed = (struct ip6_hdr *) ipv6_header;
 
     ip6_hed->ip6_ctlun.ip6_un2_vfc = (uint8_t) 0x60;
 
-    /* Setting source address */
-
+    // Setting source address
     int ip_src_notset = 0;
     int i;
 
     // Addup all parts of the field, if 0 no source has been specified
-    for(i = 0; i < 8; i++){
+    for(i = 0; i < 8; i++) {
         ip_src_notset += ip6_hed->ip6_src.__in6_u.__u6_addr16[i];
     }
 
-
-    if(!ip_src_notset){
+    if(!ip_src_notset) {
         int sock;
         struct sockaddr_in6 addr, name;
         int len = sizeof(struct sockaddr_in6);
@@ -261,9 +247,9 @@ int ipv6_finalize(unsigned char *buffer) {
 
         memset(&addr, 0, len);
 
-        addr.sin6_family    = AF_INET6;
-        addr.sin6_addr        = ip6_hed->ip6_dst;
-        addr.sin6_port      = htons(32000); // XXX why 32000 ?
+        addr.sin6_family = AF_INET6;
+        addr.sin6_addr   = ip6_hed->ip6_dst;
+        addr.sin6_port   = htons(32000); // XXX why 32000 ?
 
         if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in6)) < 0)
             return 0; // Cannot connect socket
@@ -271,79 +257,66 @@ int ipv6_finalize(unsigned char *buffer) {
         if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1)
             return 0; // Cannot getsockname
 
-
         memcpy((char *)&ip6_hed->ip6_src, (char *)&name.sin6_addr, sizeof(struct in6_addr));
-
-
         close(sock);
-
-
     }
-
-
     return 0;
 }
 
-
-
-
 /**
- * \brief Retrieve the size of an UDP header 
- * \return The size of an UDP header
+ * \brief Retrieve the size of an IPv6 header 
+ * \param ipv6_header Address of an IPv6 header or NULL
+ * \return The size of an IPv6 header
  */
 
-unsigned int ipv6_get_header_size(void)
-{
+size_t ipv6_get_header_size(const uint8_t * ipv6_header) {
     return sizeof(struct ip6_hdr);
 }
 
 /**
- * \brief Write the default UDP header
- * \param data The address of an allocated buffer that will store the header
+ * \brief Write the default IPv6 header
+ * \param iv6_header The address of an allocated buffer that will
+ *    store the IPv6 header or NULL.
+ * \return The size of the default header.
  */
 
-void ipv6_write_default_header(unsigned char *data)
-{
-    memcpy(data, &ipv6_default, sizeof(struct ip6_hdr));
+void ipv6_write_default_header(uint8_t * ipv6_header) {
+    size_t size = sizeof(struct ip6_hdr);
+    if (ipv6_header) memcpy(ipv6_header, &ipv6_default, size);
+    return size;
 }
 
 /**
- * \brief Retrieve the number of fields in a UDP header
+ * \brief Retrieve the number of fields in a IPv6 header
  * \return The number of fields
  */
 
-unsigned int ipv6_get_num_fields(void)
-{
+size_t ipv6_get_num_fields(void) {
     return sizeof(ipv6_fields) / sizeof(protocol_field_t);
 }
 
-/*bool ipv6_instance_of(const uint8_t * buffer)
-{
-   TYPE_INT4 version;
-   
-   version=;
+/**
+ * \brief Test whether a sequence of bytes seems to be an IPv6 packet
+ * \param bytes The sequence of evaluated bytes.
+ * \return true iif it seems to be an IPv6 packet.
+ */
 
-   if ( version == 6 ){
-      return true
-   else
-      return false;
-   }
-}*/
+bool ipv6_instance_of(uint8_t * bytes) {
+    return (bytes[0] >> 4) == 6; 
+}
 
 static protocol_t ipv6 = {
     .name                 = "ipv6",
     .protocol             = 6,
     .get_num_fields       = ipv6_get_num_fields,
     .write_checksum       = NULL, // IPv6 has no checksum, it depends on upper layers
-    .create_pseudo_header = NULL, // What does this do?
+    .create_pseudo_header = NULL,
     .fields               = ipv6_fields,
-    .header_len           = sizeof(struct ip6_hdr), //Redundant? XXX12
     .write_default_header = ipv6_write_default_header, // TODO generic with ipv4
 //    .socket_type            = NULL, // TODO WHY?
-    .get_header_size      = ipv6_get_header_size, // Redundant? XXX12
-    .need_ext_checksum    = false,
+    .get_header_size      = ipv6_get_header_size,
     .finalize             = ipv6_finalize,
-//        .instance_of                    = ipv6_instance_of,
+    .instance_of          = ipv6_instance_of,
 };
 
 PROTOCOL_REGISTER(ipv6);

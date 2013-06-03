@@ -50,7 +50,8 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						probe.h \
 						protocol.h \
 						protocol_field.h \
-						pseudoheader.h \
+						protocols/ipv4_pseudo_header.h \
+						protocols/ipv6_pseudo_header.h \
 						pt_loop.h \
 						queue.h \
 						sniffer.h \
@@ -96,8 +97,12 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						probe.c \
 						protocol.c \
 						protocols/icmp.c \
+						protocols/icmp6.c \
 						protocols/udp.c \
 						protocols/ipv4.c \
+						protocols/ipv4_pseudo_header.c \
+						protocols/ipv6.c \
+						protocols/ipv6_pseudo_header.c \
 						protocol_field.c \
 						pt_loop.c \
 						queue.c \

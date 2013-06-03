@@ -17,6 +17,7 @@
  * \struct protocol_t
  * \brief Structure describing a protocol
  */
+
 typedef struct {
     const char * name; /**< Name of the protocol */
     
@@ -26,54 +27,62 @@ typedef struct {
      */
 
     uint8_t protocol;
-	
+    
     /**
      * Pointer to a function that will return the number of fields this protocol has
      */
 
     size_t (*get_num_fields)(void);
-	
+    
     /**
-     * Pointer to a function that will return true if an external checksum
-     * is needed, false otherwise (?) 
+     * \brief Points to a callback which updates the checksum of the segment related to
+     *    this protocol.
+     * \param buf Pointer to the protocol's segment
+     * \param psh Pointer to the corresponding pseudo header (pass NULL if not needed)
+     * \return true if success, false otherwise 
      */
 
-    bool need_ext_checksum;
+    bool (*write_checksum)(uint8_t * buf, buffer_t * psh);
 
-	/**
-     * Pointer to a function to write a checksum for a pseudoheader into a buffer
-	 * \param buf Pointer to a buffer
-	 * \param psh Pointer to a pseudoheader_t structure
-	 * \return true if success, false othewise 
-	 */
+    /**
+     * \brief Points to a callback which creates a buffer_t instance
+     *    containing the pseudo header needed to compute the checksum
+     *    of a segment of this protocol.
+     * \param segment The address of the segment. For instance if you compute
+     *    the UDP of an IPv6/UDP packet, pass the address of the IPv6 segment.
+     * \return The corresponding buffer, NULL in case of failure.
+     */
 
-	bool (*write_checksum)(unsigned char * buf, buffer_t * psh);
-
-    // create_pseudo_header
-    buffer_t * (*create_pseudo_header)(unsigned char * buffer);
-	
+    buffer_t * (*create_pseudo_header)(const uint8_t * segment);
+    
     /**
      * Pointer to a protocol_field_t structure holding the header fields
      */
+
     protocol_field_t * fields;
-	
-    /** 
-	 * \brief Pointer to a function which writes the default header into data
-     * \param header Pointer to a pre-allocated header 
-	 */
-
-    void (*write_default_header)(uint8_t * header);
-
-    size_t header_len;
     
-    // socket_type
-	
-    /**
-     * Pointer to a function that returns the size of the protocol header
+    /** 
+     * \brief Points to a callback which writes the default header
+     *   into a pre-allocated buffer. 
+     * \param header The target buffer. You may pass NULL if you want
+     *   to retrieve the size (in bytes) of the default header
+     * \return The size of the default header.
      */
 
-    size_t (*get_header_size)(void);
+    size_t (*write_default_header)(uint8_t * header);
+
+    // socket_type
     
+    /**
+     * \brief Points to a callback which returns the size of a header.
+     * \param A pointer to the header we want to get size. You may pass
+     *    NULL to retrieve the default size or if the size of the header
+     *    is always equal to the same value.
+     * \return The header size
+     */
+
+    size_t (*get_header_size)(const uint8_t * header);
+
     /**
      * \brief Set unset parts of a header to coherent values 
      * \param header The header that must be updated
@@ -83,9 +92,11 @@ typedef struct {
     bool (*finalize)(uint8_t * header);
 
     /**
-     * Pointer to a function that detects the version of the protocol
+     * \brief Pointer to a function that detects the version of the protocol
      */
+
     bool (*instance_of)(uint8_t * packet);
+
 } protocol_t;
 
 /**
@@ -142,10 +153,10 @@ const protocol_field_t * protocol_get_field(const protocol_t * protocol, const c
 
 uint16_t csum(const uint16_t * buf, size_t size);
 
-#define PROTOCOL_REGISTER(MOD)	\
-static void __init_ ## MOD (void) __attribute__ ((constructor));	\
-static void __init_ ## MOD (void) {	\
-	protocol_register(&MOD); \
+#define PROTOCOL_REGISTER(MOD)    \
+static void __init_ ## MOD (void) __attribute__ ((constructor));    \
+static void __init_ ## MOD (void) {    \
+    protocol_register(&MOD); \
 }
 
 #endif

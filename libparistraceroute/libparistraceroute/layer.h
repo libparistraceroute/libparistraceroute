@@ -147,6 +147,29 @@ void      layer_set_mask(layer_t * layer, uint8_t * mask);
 field_t * layer_create_field(const layer_t * layer, const char * name);
 
 /**
+ * \brief Create a layer_t instance based on a segment of packet (a
+ *   segment is a sequence of bytes stored in a packet related to a
+ *   layer).
+ * \param protocol The protocol_t instance related to this segment.
+ *   See also protocol_search()
+ * \param segment The sequence of bytes we're dissecting
+ * \param segment_size The segment size
+ * \return The corresponding layer_t instance, NULL in case of failure.
+ */
+
+layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segment, size_t segment_size);
+
+/**
+ * \brief Extract a value from a field involved in a layer.
+ * \param layer The queried layer instance.
+ * \param field_name The name of a field involved in this layer.
+ * \param value A preallocated buffer which will contain the corresponding value.
+ * \return true if successful, false otherwise.
+ */
+
+bool layer_extract(const layer_t * layer, const char * field_name, void * value);
+
+/**
  * \brief Print the content of a layer
  * \param layer A pointer to the layer instance to print
  * \param indent The number of space characters to write

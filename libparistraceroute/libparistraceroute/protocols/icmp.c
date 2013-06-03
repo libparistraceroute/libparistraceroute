@@ -69,22 +69,25 @@ size_t icmp_get_num_fields(void) {
 
 /**
  * \brief Retrieve the size of an ICMP header 
+ * \param icmpv4_header Address of an ICMP header or NULL
  * \return The size of an ICMP header
  */
 
-size_t icmp_get_header_size(void) {
+size_t icmp_get_header_size(const uint8_t * icmpv4_header) {
     return sizeof(struct icmphdr);
 }
 
 /**
  * \brief Write the default ICMP header
- * \param data The address of an allocated buffer that will
- *    store the ICMP header
+ * \param icmpv4_header The address of an allocated buffer that will
+ *    store the ICMPv4 header or NULL.
+ * \return The size of the default header.
  */
 
-void icmp_write_default_header(unsigned char * data)
-{
-    memcpy(data, &icmp_default, sizeof(struct icmphdr));
+size_t icmp_write_default_header(uint8_t * icmpv4_header) {
+    size_t size = sizeof(struct icmphdr);
+    if (icmpv4_header) memcpy(icmpv4_header, &icmp_default, size);
+    return size;
 }
 
 /**
@@ -120,10 +123,8 @@ static protocol_t icmp = {
     .get_num_fields       = icmp_get_num_fields,
     .write_checksum       = icmp_write_checksum,
     .fields               = icmp_fields,
-    .header_len           = sizeof(struct icmphdr),
     .write_default_header = icmp_write_default_header, // TODO generic
     .get_header_size      = icmp_get_header_size,
-    .need_ext_checksum    = true
 };
 
 PROTOCOL_REGISTER(icmp);

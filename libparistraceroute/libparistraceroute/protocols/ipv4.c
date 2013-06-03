@@ -4,7 +4,7 @@
 #include <string.h>       // memcpy()
 #include <arpa/inet.h>    // inet_pton()
 #include <netinet/ip.h>   // iphdr
-#include <netinet/in.h>   // IPPROTO_UDP, INET_ADDRSTRLEN
+#include <netinet/in.h>   // IPPROTO_IPIP, INET_ADDRSTRLEN
 
 #include "../field.h"
 #include "../protocol.h"
@@ -30,7 +30,7 @@
 #define IPV4_DEFAULT_IDENTIFICATION  1
 #define IPV4_DEFAULT_FRAGOFF         0
 #define IPV4_DEFAULT_TTL             255 
-#define IPV4_DEFAULT_PROTOCOL        IPPROTO_UDP
+#define IPV4_DEFAULT_PROTOCOL        IPPROTO_IPIP
 #define IPV4_DEFAULT_CHECKSUM        0
 #define IPV4_DEFAULT_SRC_IP          0            // See ipv4_get_default_src_ip()
 #define IPV4_DEFAULT_DST_IP          0            // Must be set by the user (see network.c)
@@ -98,9 +98,9 @@ static field_t * ipv4_create_ipv4_field(const char * field_name, const void * ip
  */
 
 field_t * ipv4_get_version(const uint8_t * ipv4_header) {
-    const uint8_t * byte = ipv4_header + IPV4_OFFSET_VERSION;
-    uint8_t         int4 = *byte >> 4;
-    return I4(IPV4_FIELD_VERSION, int4);
+    const uint8_t * byte    = ipv4_header + IPV4_OFFSET_VERSION;
+    uint8_t         version = *byte >> 4;
+    return I4(IPV4_FIELD_VERSION, version);
 }
 
 /**
@@ -123,8 +123,8 @@ bool ipv4_set_version(uint8_t * ipv4_header, const field_t * field) {
 
 field_t * ipv4_get_ihl(const uint8_t * ipv4_header) {
     const uint8_t * byte = ipv4_header + IPV4_OFFSET_IHL; 
-    uint8_t         int4 = *byte & 0x0f;
-    return I4(IPV4_FIELD_VERSION, int4);
+    uint8_t         ihl  = *byte & 0x0f;
+    return I4(IPV4_FIELD_VERSION, ihl);
 }
 
 /**
@@ -154,6 +154,7 @@ field_t * ipv4_get_src_ip(const uint8_t * ipv4_header) {
 
 /**
  * \brief Update the source IP of an IPv4 header.
+ * \param ipv4_header Address of the IPv4 header we want to update
  * \param field The string field containing the new source (resolved) IP.
  * \return true iif successful.
  */
@@ -180,6 +181,7 @@ field_t * ipv4_get_dst_ip(const uint8_t * ipv4_header) {
 
 /**
  * \brief Update the destination IP of an IPv4 header according to a field 
+ * \param ipv4_header Address of the IPv4 header we want to update
  * \param field The string field containing the new destination (resolved) IP
  * \return true iif successful
  */
@@ -253,13 +255,23 @@ bool ipv4_finalize(uint8_t * ipv4_header)
 //-----------------------------------------------------------
 
 /**
- * \brief Retrieve the size of an UDP header 
- * \return The size of an UDP header
+ * \brief Retrieve the size of an IPv4 header 
+ * \param ipv4_header (unused) Address of an IPv4 header or NULL.
+ * \return The size of an IPv4 header
  */
 
-// TODO Use ipv4_get_ihl() according to void * header, and return IPV4_DEFAULT_IHL if this pointer is NULL
-size_t ipv4_get_header_size(void) {
-    return sizeof(struct iphdr);
+size_t ipv4_get_header_size(const uint8_t * ipv4_header) {
+    const uint8_t * byte;
+    uint8_t         ihl;
+    size_t          size = sizeof(struct iphdr);
+
+    if (ipv4_header) {
+        byte = ipv4_header + IPV4_OFFSET_IHL; 
+        ihl  = *byte & 0x0f;
+        size = ihl * 4;
+    }
+
+    return size; 
 }
 
 /**
@@ -341,7 +353,7 @@ static protocol_field_t ipv4_fields[] = {
 };
 
 /**
- * \brief Retrieve the number of fields in a UDP header
+ * \brief Retrieve the number of fields in a IPv4 header
  * \return The number of fields
  */
 
@@ -368,28 +380,40 @@ static struct iphdr ipv4_default = {
 };
 
 /**
- * \brief Write the default UDP header
- * \param ipv4_header The address of an pre-allocated IPv4 header 
+ * \brief Write the default IPv4 header
+ * \param ipv4_header The address of an allocated buffer that will
+ *    store the IPv4 header or NULL.
+ * \return The size of the default header.
  */
 
-void ipv4_write_default_header(uint8_t * ipv4_header) {
-    memcpy(ipv4_header, &ipv4_default, sizeof(struct iphdr));
+size_t ipv4_write_default_header(uint8_t * ipv4_header) {
+    size_t size = sizeof(struct iphdr);
+    if (ipv4_header) memcpy(ipv4_header, &ipv4_default, size);
+    return size;
+}
+
+/**
+ * \brief Test whether a sequence of bytes seems to be an IPv4 packet
+ * \param bytes The sequence of evaluated bytes.
+ * \return true iif it seems to be an IPv4 packet.
+ */
+
+bool ipv4_instance_of(uint8_t * bytes) {
+    return (bytes[0] >> 4) == 4; 
 }
 
 static protocol_t ipv4 = {
     .name                 = "ipv4",
-    .protocol             = 4, // XXX only IP over IP (encapsulation) 
+    .protocol             = IPPROTO_IPIP, // XXX only IP over IP (encapsulation). Beware probe.c, icmpv4_get_next_protocol_id 
     .get_num_fields       = ipv4_get_num_fields,
     .write_checksum       = ipv4_write_checksum,
     .create_pseudo_header = NULL,
     .fields               = ipv4_fields,
-    .header_len           = sizeof(struct iphdr),
     .write_default_header = ipv4_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = ipv4_get_header_size,
-    .need_ext_checksum    = false,
     .finalize             = ipv4_finalize,
-//    .instance_of          = ipv4_instance_of,
+    .instance_of          = ipv4_instance_of,
 };
 
 PROTOCOL_REGISTER(ipv4);

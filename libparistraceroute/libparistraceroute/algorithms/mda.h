@@ -34,17 +34,23 @@ typedef struct {
 } mda_event_t;
 
 struct opt_spec * mda_get_cl_options();
+
 int mda_set_options(vector_t * vector);
+
 mda_options_t mda_get_default_options(void);
+
 bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst);
+
 int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data);
 
 int mda_classify_interface(lattice_elt_t * elt, mda_data_t * data);
+
 int mda_process_interface(lattice_elt_t * elt, void * data);
 
 int mda_search_source(lattice_elt_t * elt, void * data);
 
 int mda_delete_flow(lattice_elt_t * elt, void * data);
+
 int mda_timeout_flow(lattice_elt_t * elt, void * data);
 
 // Handlers
