@@ -555,45 +555,6 @@ probe_t * probe_wrap_packet(packet_t * packet)
             fprintf(stderr, "probe_wrap_packet: Truncated packet");
             goto ERR_TRUNCATED_PACKET;
         }
-/*
-<<<<<<< HEAD
-        // In the case of ICMP, while protocol is not really a field, we might
-        // provide it by convenience
-        // Need for heuristics // source port hook to parse packet content
-
-        // Continue to dissect the packet while we find a protocol field.
-        // If we've reached an ICMP layer we've reached the last layer before the payload. 
-        // layer_create_field returns NULL iif we've reached an ICMP layer or the payload 
-        field = layer_create_field(layer, "protocol");
-        if (field) {
-            protocol_id = field->value.int8;
-            continue;
-        } else if (strcmp(layer->protocol->name, "icmp") == 0) {
-            // We are in an ICMP layer
-            if (!(field = layer_create_field(layer, "type"))) {
-                fprintf(stderr, "Can't extract 'type' field from an ICMP layer");
-                return NULL; 
-            }
-
-            // 3 == Destination unreachable
-            // 11 == Time exceed 
-            if ((field->value.int8 == ICMP_DEST_UNREACH)
-            ||  (field->value.int8 == ICMP_TIME_EXCEEDED)) {
-                // Length will be wrong !!!
-                protocol_id = ipv4_protocol_id;
-            } else {
-                // Set protocol_id to payload
-                protocol_id = 0;
-            }
-        } else {
-            // We are in the payload
-            protocol_id = 0;
-            break;
-        }
-
-=======
->>>>>>> mando
-*/
         continue;
 
 ERR_TRUNCATED_PACKET:

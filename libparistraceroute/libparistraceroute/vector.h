@@ -31,12 +31,12 @@ typedef struct {
 /**
  * \brief Create a vector structure.
  * \param size of cells cantained in the vector
- * \param free_callback a function used to free the vector
- * \param dump_callback a function used to dump the vector 
+ * \param callback_free a function used to free the vector
+ * \param callback_dump a function used to dump the vector 
  * \return A vector_t structure representing an empty vector
  */
 
-vector_t * vector_create(size_t size,void (* free_callback)(void *), void (* dump_callback)(void *));
+vector_t * vector_create(size_t size,void (* callback_free)(void *), void (* callback_dump)(void *));
 
 /** 
   * \biref Dump a vector instance

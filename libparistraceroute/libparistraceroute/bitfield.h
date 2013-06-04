@@ -2,7 +2,7 @@
 #define BITFIELD_H
 
 #include <stdint.h>  // uint8_t
-#include <unistd.h>  // size_t
+#include <stddef.h>  // size_t
 #include <stdbool.h> // bool
 
 typedef struct bitfield_s {

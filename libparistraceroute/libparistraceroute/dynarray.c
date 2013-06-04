@@ -132,8 +132,10 @@ void dynarray_clear(dynarray_t * dynarray, void (*element_free)(void * element))
 
     if (dynarray) {
         size = dynarray_get_size(dynarray);
-        for(i = 0; i < size; i++) {
-            element_free(dynarray->elements[i]);
+        if (element_free) {
+            for(i = 0; i < size; i++) {
+                element_free(dynarray->elements[i]);
+            }
         }
         dynarray->elements = realloc(dynarray->elements, DYNARRAY_SIZE_INIT * sizeof(void *)); // XXX
         memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT * sizeof(void *));

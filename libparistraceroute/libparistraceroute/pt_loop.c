@@ -194,7 +194,7 @@ inline size_t pt_loop_get_num_user_events(pt_loop_t * loop) {
 }
 
 static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
-    dynarray_clear(loop->events_user, (ELEMENT_FREE) event_free);
+    dynarray_clear(loop->events_user, NULL); //(ELEMENT_FREE) event_free); TODO this provoke a segfault in case of stars
 }
 
 /**

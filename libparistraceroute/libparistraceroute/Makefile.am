@@ -56,6 +56,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						queue.h \
 						sniffer.h \
 						socketpool.h \
+                        tree.h \
                         vector.h
 
 # where to install the headers on the system
@@ -108,6 +109,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						queue.c \
 						sniffer.c \
 						socketpool.c \
+                        tree.c \
                         vector.c
 
 ## Instruct libtool to include ABI version information in the generated shared

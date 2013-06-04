@@ -154,6 +154,7 @@ static bool network_update_next_timeout(network_t * network)
             // This should never occurs. If so, it means that we do not have raised enough
             // PROBE_TIMEOUT event in network_drop_oldest_flying_probe
             fprintf(stderr, "The new oldest probe has already expired!\n");
+            printf("negative timeout %f\n", next_timeout); 
             goto ERR_INVALID_TIMEOUT;
         }
     } else {
@@ -474,8 +475,8 @@ bool network_process_sendq(network_t * network)
     if (num_flying_probes == 1) {
         struct itimerspec new_value;
 
-        new_value.it_value.tv_sec = (time_t) network->timeout; 
-        new_value.it_value.tv_nsec = 0;
+        new_value.it_value.tv_sec = (time_t) network_get_timeout(network); 
+        new_value.it_value.tv_nsec = 1000000 * (network_get_timeout(network) - (time_t) network_get_timeout(network));
         new_value.it_interval.tv_sec = 0;
         new_value.it_interval.tv_nsec = 0;
 
@@ -537,7 +538,7 @@ ERR_PROBE_REPLY_CREATE:
 ERR_PROBE_DISCARDED:
     probe_free(reply);
 ERR_PROBE_WRAP_PACKET:
-    packet_free(packet);
+    //packet_free(packet); TODO provoke segfault in case of stars
 ERR_PACKET_POP:
     return false;
 }
@@ -584,25 +585,25 @@ bool network_drop_expired_flying_probe(network_t * network)
             if(!(probe = dynarray_get_ith_element(network->probes, i))) {break;}
             if(network_get_probe_timeout(network, probe) > 0) {break;}
             ///// DEBUG
-            printf("This probe has expired\n");
+            //printf("This probe has expired\n");
             //probe_dump(probe);
-            printf("probe timeout : %f\n", network_get_probe_timeout(network, probe));
+            //printf("probe timeout : %f\n", network_get_probe_timeout(network, probe));
             ///// DEBUG
             // This probe has expired, raise a PROBE_TIMEOUT event.
             pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
         }           
         // Delete the n oldest probes
         if(i != 0) {
-            printf("number of dropped probes / number of flying probes : %d / %d \n",i, num_flying_probes);
+          //  printf("number of dropped probes / number of flying probes : %d / %d \n",i, num_flying_probes);
             dynarray_del_n_elements(network->probes, 0, i, NULL);
         }
         ///// DEBUG
         // The oldest probe (if any) is used to update the next timeout
         // TODO use get_oldest_probe
-        if (probe = network_get_oldest_probe(network)) {
+        //if (probe = network_get_oldest_probe(network)) {
             //probe_dump(probe);
           // printf("update next timeout\n");
-        }
+        //}
         ///// DEBUG
         ret = network_update_next_timeout(network);
     }

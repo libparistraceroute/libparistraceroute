@@ -6,6 +6,7 @@
 #include "probe.h"
 #include "algorithm.h"
 #include "algorithms/traceroute.h"
+#include "tree.h"
 
 /**
  * \brief Handle raised traceroute_event_t events.
@@ -119,7 +120,11 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     }
 
     // Release the event, its nested traceroute_event (if any), its attached probe and reply (if any)
-    event_free(event);
+    //event_free(event); // TODO this may provoke seg fault in case of stars
+}
+
+void double_dump(void * d){
+    printf("%lf", *((double *) d));
 }
 
 /**
@@ -131,6 +136,25 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
 
 int main(int argc, char ** argv)
 {
+    tree_t      * tree;
+    tree_node_t * node_x,
+                * node_y,
+                * node_a;
+
+    double x = 1, y = 2, z = 3, t = 4, a = 5, b = 6, c = 7;
+    printf("COUCOU\n");
+    tree = tree_create(NULL, double_dump);
+    node_x = tree_add_root(tree, &x);
+    node_y = tree_node_add_child(node_x, &y);
+    tree_node_add_child(node_y, &z);
+    tree_node_add_child(node_y, &t);
+    node_a = tree_node_add_child(node_x, &a);
+    tree_node_add_child(node_a, &b);
+    tree_node_add_child(node_a, &c);
+    tree_dump(tree);
+    tree_free(tree);
+
+    /*
     algorithm_instance_t * instance;
     probe_t              * probe;
     pt_loop_t            * loop;
@@ -140,7 +164,7 @@ int main(int argc, char ** argv)
     
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-    char dst_ip[] = "8.8.8.8";
+   char dst_ip[] = "8.8.8.8";
    //char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
@@ -154,7 +178,7 @@ int main(int argc, char ** argv)
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
     options.num_probes = 3;
-//    options.max_ttl = 1;
+    //options.min_ttl = 4;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl); 
 
     // Create libparistraceroute loop
@@ -199,4 +223,5 @@ ERR_LOOP_CREATE:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
     exit(ret);
+    */
 }

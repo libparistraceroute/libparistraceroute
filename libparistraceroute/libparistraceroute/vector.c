@@ -18,14 +18,14 @@ static void vector_initialize(vector_t * vector) {
     vector->max_cells = VECTOR_SIZE_INIT;
 }
 
-vector_t * vector_create(size_t size, void (* free_callback)(void *), void (* dump_callback)(void *))
+vector_t * vector_create(size_t size, void (* callback_free)(void *), void (* callback_dump)(void *))
 {
     vector_t * vector = malloc(size);
     if (vector) {
         vector->cell_size = size;
         vector->cells = calloc(VECTOR_SIZE_INIT, vector->cell_size);
-        vector->cells_free = free_callback;
-        vector->cells_dump = dump_callback;
+        vector->cells_free = callback_free;
+        vector->cells_dump = callback_dump;
         vector_initialize(vector);
     }   
     return vector;
@@ -135,8 +135,6 @@ bool vector_set_ith_element(vector_t * vector, size_t i, void * element)
 }
 
 void vector_dump(vector_t * vector) {
-    printf("number of elements %d \n", vector->num_cells);
-    printf("---cells---\n");
     for(size_t i = 0; i < vector_get_num_cells(vector); i++) {
         vector->cells_dump(vector_get_ith_element_impl(vector, i));
     }

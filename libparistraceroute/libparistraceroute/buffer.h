@@ -1,7 +1,7 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include <unistd.h>  // size_t
+#include <stddef.h>  // size_t
 #include <stdbool.h> // bool
 #include <stdint.h>
 
