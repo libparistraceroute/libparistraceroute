@@ -136,6 +136,7 @@ void double_dump(void * d){
 
 int main(int argc, char ** argv)
 {
+    /*
     tree_t      * tree;
     tree_node_t * node_x,
                 * node_y,
@@ -152,9 +153,11 @@ int main(int argc, char ** argv)
     tree_node_add_child(node_a, &b);
     tree_node_add_child(node_a, &c);
     tree_dump(tree);
+    tree_node_del_ith_child(node_a, 1);
+    tree_dump(tree);
     tree_free(tree);
-
-    /*
+    */
+    
     algorithm_instance_t * instance;
     probe_t              * probe;
     pt_loop_t            * loop;
@@ -223,5 +226,4 @@ ERR_LOOP_CREATE:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
     exit(ret);
-    */
 }

@@ -582,19 +582,19 @@ bool network_drop_expired_flying_probe(network_t * network)
         //probe = network_get_oldest_probe(network);
         // TODO use get_oldest_probe
         for(i = 0 ;i < num_flying_probes; i++) {
-            if(!(probe = dynarray_get_ith_element(network->probes, i))) {break;}
-            if(network_get_probe_timeout(network, probe) > 0) {break;}
+            if(!(probe = dynarray_get_ith_element(network->probes, i))) break;
+            if(network_get_probe_timeout(network, probe) > 0) break;
             ///// DEBUG
-            //printf("This probe has expired\n");
+            printf("This probe has expired\n");
             //probe_dump(probe);
-            //printf("probe timeout : %f\n", network_get_probe_timeout(network, probe));
+            printf("probe timeout : %f\n", network_get_probe_timeout(network, probe));
             ///// DEBUG
             // This probe has expired, raise a PROBE_TIMEOUT event.
             pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
         }           
         // Delete the n oldest probes
         if(i != 0) {
-          //  printf("number of dropped probes / number of flying probes : %d / %d \n",i, num_flying_probes);
+            printf("number of dropped probes / number of flying probes : %d / %d \n",i, num_flying_probes);
             dynarray_del_n_elements(network->probes, 0, i, NULL);
         }
         ///// DEBUG

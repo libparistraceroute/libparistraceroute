@@ -458,6 +458,7 @@ static const protocol_t * icmpv4_get_next_protocol(const layer_t * icmpv4_layer)
     return next_protocol;
 }
 
+
 // TODO move into protocols/icmp6.c
 static const protocol_t * icmpv6_get_next_protocol(const layer_t * icmpv6_layer) {
     const protocol_t * next_protocol = NULL;
@@ -855,7 +856,7 @@ void probe_set_queueing_time(probe_t * probe, double time) {
     probe->queueing_time = time;
 }
 
-double probe_get_queueing_time(const probe_t *probe) {
+double probe_get_queueing_time(const probe_t * probe) {
     return probe->queueing_time;
 }
 
@@ -863,9 +864,18 @@ void probe_set_recv_time(probe_t * probe, double time) {
     probe->recv_time = time;
 }
 
-double probe_get_recv_time(const probe_t *probe) {
+double probe_get_recv_time(const probe_t * probe) {
     return probe->recv_time;
 }
+
+void probe_set_delay(probe_t * probe, double delay) {
+    probe->delay = delay ;
+}
+
+double probe_get_delay(const probe_t * probe) {
+    return probe->delay;
+}
+
 
 // Iterator
 

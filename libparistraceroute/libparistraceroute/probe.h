@@ -32,6 +32,7 @@ typedef struct {
     double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) */
     double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) */
     double       recv_time;     /**< Only set if this instance is related to a reply. Timestamp set by network layer just after sniffing the reply */
+    double       delay;         /**< The time to send this probe */
 } probe_t;
 
 /**
@@ -251,6 +252,8 @@ void probe_set_queueing_time(probe_t * probe, double time);
 double probe_get_queueing_time(const probe_t * probe);
 void probe_set_recv_time(probe_t * probe, double time);
 double probe_get_recv_time(const probe_t * probe);
+void probe_set_delay(probe_t * probe, double delay);
+double probe_get_delay(const probe_t * probe);
 
 /******************************************************************************
  * probe_reply_t
