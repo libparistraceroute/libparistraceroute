@@ -123,8 +123,8 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     //event_free(event); // TODO this may provoke seg fault in case of stars
 }
 
-void double_dump(void * d){
-    printf("%lf", *((double *) d));
+double delay_callback(size_t i){
+    return (double) (i + 1);
 }
 
 /**
@@ -136,28 +136,45 @@ void double_dump(void * d){
 
 int main(int argc, char ** argv)
 {
-    /*
-    tree_t      * tree;
-    tree_node_t * node_x,
-                * node_y,
-                * node_a;
-
-    double x = 1, y = 2, z = 3, t = 4, a = 5, b = 6, c = 7;
-    printf("COUCOU\n");
-    tree = tree_create(NULL, double_dump);
-    node_x = tree_add_root(tree, &x);
-    node_y = tree_node_add_child(node_x, &y);
-    tree_node_add_child(node_y, &z);
-    tree_node_add_child(node_y, &t);
-    node_a = tree_node_add_child(node_x, &a);
-    tree_node_add_child(node_a, &b);
-    tree_node_add_child(node_a, &c);
-    tree_dump(tree);
-    tree_node_del_ith_child(node_a, 1);
-    tree_dump(tree);
-    tree_free(tree);
-    */
     
+    tree_t    * tree;
+    probe_t   * probe;
+    buffer_t  * payload;
+    network_t * network;
+    double      delay;
+
+    printf("bonjour\n");
+    tree = tree_create(NULL, probe_dump);
+    if (!(probe = probe_create())) {
+        perror("E: Cannot create probe skeleton");
+        //goto ERR_PROBE_CREATE;
+    }
+    if (!(payload = buffer_create())) {
+        perror("E: Cannot allocate payload buffer");
+        //goto ERR_BUFFER_CREATE;
+    }
+    buffer_write_bytes(payload, "\0\0", 2);
+    char dst_ip[] = "1.1.1.2";
+    probe_set_protocols(probe, "ipv4", "udp", NULL);
+    probe_write_payload(probe, payload);
+    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
+    tree = probe_tree_generator(probe, 2, 3);
+    tree_dump(tree);
+    if(!(network = network_create())) perror("E: Cannot create network");
+    network->group_probes = tree;
+    delay = network_get_next_scheduled_probe_delay(network);
+    printf("delay %f\n", delay);
+    printf("-------------------tree after delete---------------------------------\n");
+    tree_node_del_ith_child(network->group_probes->root, 0);
+    tree_dump(tree);
+    delay = network_get_next_scheduled_probe_delay(network);
+    printf("delay %f\n", delay);
+    network_process_scheduled_probe(network);
+
+
+         
+   //tree_free(tree);
+   /*
     algorithm_instance_t * instance;
     probe_t              * probe;
     pt_loop_t            * loop;
@@ -226,4 +243,5 @@ ERR_LOOP_CREATE:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
     exit(ret);
+*/
 }

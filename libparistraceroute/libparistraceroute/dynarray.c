@@ -21,23 +21,23 @@ dynarray_t * dynarray_create(void)
 
 dynarray_t * dynarray_dup(const dynarray_t * dynarray, void * (*element_dup)(void *))
 {
-    dynarray_t   * da;
-    unsigned int   i, size;
+    dynarray_t   * dynarray_dup;
+    size_t         i, size;
 
-    if ((da = dynarray_create())) {
+    if ((dynarray_dup = dynarray_create())) {
         // TODO need dynarray_resize
         size = dynarray_get_size(dynarray);
         for (i = 0; i < size; i++) {
             void * element = dynarray_get_ith_element(dynarray, i);
             if (element_dup) {
-                dynarray_push_element(da, element_dup(element));
+                dynarray_push_element(dynarray_dup, element_dup(element));
             } else {
-                dynarray_push_element(da, element);
+                dynarray_push_element(dynarray_dup, element);
             }
         }
     }
 
-    return da;
+    return dynarray_dup;
 }
 
 void dynarray_free(dynarray_t * dynarray, void (*element_free)(void *element)) { 
@@ -82,29 +82,7 @@ bool dynarray_push_element(dynarray_t * dynarray, void * element)
     return true;
 }
 
-/* void dynarray_add_element(dynarray_t * dynarray, void * element, size_t sizeof_element) {
-    // TODO factorize with dynarray_push_element
-    if (dynarray->size == dynarray->max_size) {
-        dynarray->elements = realloc(dynarray->elements, (dynarray->size + DYNARRAY_SIZE_INC) * sizeof(void *));
-        memset(dynarray->elements + dynarray->size, 0, DYNARRAY_SIZE_INC * sizeof(void *));
-        dynarray->max_size += DYNARRAY_SIZE_INC;
-    }
-    copy = malloc(sizeof(sizeof_element));
-    memcpy(copy, element, sizeof(sizeof_element));
-    dynarray->elements[dynarray->size] = copy;
-    dynarray->size++;
-} */
-
-bool dynarray_del_ith_element(dynarray_t * dynarray, size_t i, void (*element_free) (void * element))
-{
-    /*
-    bool ret = false;
-    if (i < dynarray->size)
-    // Let's move all elements from the (i+1)-th to the left
-    memmove(dynarray->elements + i, dynarray->elements + (i + 1), (dynarray->size - i - 1) * sizeof(void *));
-    dynarray->size--;
-    ret = true;
-    return ret;*/
+bool dynarray_del_ith_element(dynarray_t * dynarray, size_t i, void (*element_free) (void * element)) {
     return dynarray_del_n_elements(dynarray, i, 1, element_free);
 }
 
@@ -144,19 +122,15 @@ void dynarray_clear(dynarray_t * dynarray, void (*element_free)(void * element))
     }
 }
 
-
-size_t dynarray_get_size(const dynarray_t * dynarray)
-{
+size_t dynarray_get_size(const dynarray_t * dynarray) {
     return dynarray ? dynarray->size : 0;
 }
 
-void ** dynarray_get_elements(dynarray_t * dynarray)
-{
+void ** dynarray_get_elements(dynarray_t * dynarray) {
     return dynarray->elements;
 }
 
-void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i)
-{
+void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i) {
     return (i >= dynarray->size) ? NULL : dynarray->elements[i];
 }
 

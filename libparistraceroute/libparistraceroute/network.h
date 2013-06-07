@@ -27,6 +27,7 @@
 #include "sniffer.h"
 #include "dynarray.h"
 #include "optparse.h"
+#include "tree.h"
 
 // If no matching reply has been sniffed in the next 3 sec, we
 // consider that we won't never sniff such a reply. The
@@ -35,13 +36,9 @@
 
 #define NETWORK_DEFAULT_TIMEOUT 3
 
-//network commandline options staff
+// network commandline options stuff
 extern const double   wait[];
-//network options help messages
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
-
-
-
 
 /**
  * \struct network_t
@@ -121,7 +118,7 @@ typedef struct network_s {
     uint16_t       last_tag;      /**< Last probe ID used */
     double         timeout;       /**< The timeout value used by this network (in seconds) */
     int            group_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */ 
-
+    tree_t       * group_probes;  /**< Tree may contain a group af probes or a group of groups of probes */
 } network_t;
 
 /**
@@ -129,6 +126,7 @@ typedef struct network_s {
  * \returna pointer to a tructure containing the options 
  */
 
+// TODO rename network_get_opt_spec
 struct opt_spec * network_get_cl_options();
 
 /**
@@ -198,6 +196,24 @@ int network_get_recvq_fd(network_t * network);
 int network_get_timerfd(network_t * network);
 
 /**
+ * \brief Retrieve the file descriptor activated whenever a
+ *   delay occurs.
+ * \param network The network_t instance we're querying 
+ * \return The corresponding file descriptor 
+ */
+
+int network_get_group_timerfd(network_t * network);
+
+/**
+ * \brief Retrieve the tree of probes handled by this 
+ *   network instance
+ * \param network The network_t instance we're querying 
+ * \return a Pointer to the tree of group of probes 
+ */
+
+tree_t * network_get_group_probes(network_t * network);
+
+/**
  * \brief Send the next packet on the queue
  * \param network The network to use for the queue and for sending
  * \return true iif successfull 
@@ -226,5 +242,11 @@ void network_process_sniffer(network_t * network);
  */
 
 bool network_drop_expired_flying_probe(network_t * network);
+
+/**
+ *
+ */
+void network_process_scheduled_probe(network_t * network);
+double network_get_next_scheduled_probe_delay(const network_t * network);
 
 #endif

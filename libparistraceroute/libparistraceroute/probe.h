@@ -14,6 +14,7 @@
 #include "bitfield.h"
 #include "dynarray.h"
 #include "packet.h"
+#include "tree.h"
 
 /**
  * \struct probe_t
@@ -254,6 +255,8 @@ void probe_set_recv_time(probe_t * probe, double time);
 double probe_get_recv_time(const probe_t * probe);
 void probe_set_delay(probe_t * probe, double delay);
 double probe_get_delay(const probe_t * probe);
+tree_t * probe_tree_generator(probe_t * probe_skel, double delay, size_t num_nodes);
+
 
 /******************************************************************************
  * probe_reply_t

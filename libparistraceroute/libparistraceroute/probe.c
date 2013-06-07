@@ -6,6 +6,7 @@
 #include <netinet/in.h>      // IPPROTO_IPV6, IPPROTO_ICMPV6
 #include <netinet/ip_icmp.h> // ICMP_DEST_UNREACH,  ICMP_TIME_EXCEEDED
 #include <netinet/icmp6.h>   // ICMP6_DEST_UNREACH, ICMP6_TIME_EXCEEDED
+#include <limits.h>
 
 #include "buffer.h"
 #include "probe.h"
@@ -379,6 +380,7 @@ probe_t * probe_dup(const probe_t * probe)
     ret->queueing_time = probe->queueing_time;
     ret->recv_time     = probe->recv_time;
     ret->caller        = probe->caller;
+    ret->delay         = probe->delay;
     return ret;
 
     /*
@@ -410,6 +412,7 @@ void probe_dump(const probe_t * probe)
     layer_t * layer;
 
     printf("** PROBE **\n\n");
+    printf("probe delay : %f\n\n", probe_get_delay(probe));
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         layer_dump(layer, i);
@@ -873,7 +876,7 @@ void probe_set_delay(probe_t * probe, double delay) {
 }
 
 double probe_get_delay(const probe_t * probe) {
-    return probe->delay;
+    return probe ? probe->delay : 0;
 }
 
 
@@ -944,6 +947,30 @@ bool probe_extract(const probe_t * probe, const char * name, void * dst) {
     return probe_extract_ext(probe, name, 0, dst);
 }
 
+tree_t * probe_tree_generator(probe_t * probe_skel, double delay, size_t num_nodes)
+{
+    tree_t      * tree;
+    tree_node_t * root;
+    size_t        i;
+    probe_t     * probe;
+
+    if (!probe_skel) goto ERR_SKEL;
+    if (!(tree = tree_create((ELEMENT_FREE) probe_free, (ELEMENT_DUMP) probe_dump))) goto ERR_TREE_CREATE;
+    if (!(root = tree_add_root(tree, NULL))) goto ERR_TREE_ROOT_ADD;
+
+    for (i = 0; i < num_nodes; i++) {
+        probe = probe_dup(probe_skel);
+        probe_set_delay(probe, i * delay);
+        tree_node_add_child(root, probe);
+    }
+    return tree;
+
+ERR_TREE_ROOT_ADD:
+    tree_free(tree);
+ERR_TREE_CREATE:
+ERR_SKEL :
+    return NULL;
+}
 /******************************************************************************
  * probe_reply_t
  ******************************************************************************/

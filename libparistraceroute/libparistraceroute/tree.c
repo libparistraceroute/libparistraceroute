@@ -9,6 +9,7 @@ tree_node_t * tree_node_create(void * data) {
     if (!(node = malloc(sizeof(tree_node_t)))) goto ERR_CALLOC; 
     if (!(node->children = dynarray_create())) goto ERR_DYNARRAY_CREATE;
     node->data = data; 
+    node->parent = NULL;
     return node;
 
 ERR_DYNARRAY_CREATE:
@@ -19,6 +20,7 @@ ERR_CALLOC:
 void tree_node_free(tree_node_t * node, void (*callback_free)(void * element)) {
     size_t i;
 
+    // Be careful because the parent (if any) now points to an invalid address
     if (node) {
         for(i = 0; i < tree_node_get_num_children(node); i++) {       
             tree_node_free(tree_node_get_ith_child(node, i), callback_free);
@@ -34,6 +36,8 @@ tree_node_t * tree_node_add_child(tree_node_t * node, void * element) {
     if (!node)                                         goto ERR_PARENT_NODE;
     if (!(child = tree_node_create(element)))          goto ERR_TREE_NODE_CREATE;
     if (!dynarray_push_element(node->children, child)) goto ERR_PUSH_CHILD;
+
+    child->parent = node;
     return child;
 
 ERR_PUSH_CHILD:
@@ -43,14 +47,34 @@ ERR_PARENT_NODE:
     return NULL;
 }
 
+tree_node_t * tree_node_get_parent(const tree_node_t * node) {
+    return node->parent;
+}
+
+bool tree_node_is_leaf(const tree_node_t * node) {
+    return tree_node_get_num_children(node) == 0;
+}
+
+bool tree_node_is_root(const tree_node_t * node) {
+    return tree_node_get_parent(node) == NULL;
+}
+
 tree_node_t * tree_node_get_ith_child(const tree_node_t * node, size_t i) {
     return dynarray_get_ith_element(node->children, i);
 }
 
 bool tree_node_del_ith_child(tree_node_t * node, size_t i) {
-    return dynarray_del_ith_element(node->children, i, NULL);
-}
+    tree_node_t * child;
 
+    if (!(child = dynarray_get_ith_element(node->children, i))) {
+        goto ERR_GET_CHILD;
+    }
+    child->parent = NULL;
+    return dynarray_del_ith_element(node->children, i, NULL);
+
+ERR_GET_CHILD:
+    return false;
+}
 
 size_t tree_node_get_num_children(const tree_node_t * node) {
     return node->children ? dynarray_get_size(node->children) : 0;
@@ -66,11 +90,16 @@ void tree_node_dump(tree_node_t * node, void (*callback_dump)(void *), size_t in
     if (indent > 3) return;
     if (node) {
         if (callback_dump) {
+            printf("                                   node at level %lu\n\n", indent);
+            /*
             for (i = 0; i < 4 * indent; i++) {
-                printf(" ");
-            } 
+                printf("    ");
+            }
+            */
+           if(node->data){ 
             callback_dump(node->data);
             printf("\n");
+           } else printf("No data in this node\n\n");
             for (i = 0; i < tree_node_get_num_children(node); i++) {       
                 tree_node_dump(tree_node_get_ith_child(node, i), callback_dump, indent + 1);
             }
@@ -101,6 +130,13 @@ tree_node_t * tree_add_root(tree_t * tree, void * data) {
     return tree->root;
 }
 
+tree_node_t * tree_get_root(tree_t * tree) { 
+    return tree ? tree->root : NULL;
+}
+
 void tree_dump(const tree_t * tree) {
-    if (tree->root) tree_node_dump(tree->root, tree->callback_dump, 0); 
+    if (tree->root) {
+        printf("****************** tree *******************\n");
+        tree_node_dump(tree->root, tree->callback_dump, 0); 
+    }
 }
