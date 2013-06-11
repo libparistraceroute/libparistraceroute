@@ -7,6 +7,7 @@
 #include <netinet/ip_icmp.h> // ICMP_DEST_UNREACH,  ICMP_TIME_EXCEEDED
 #include <netinet/icmp6.h>   // ICMP6_DEST_UNREACH, ICMP6_TIME_EXCEEDED
 #include <limits.h>
+#include <float.h>
 
 #include "buffer.h"
 #include "probe.h"
@@ -876,7 +877,7 @@ void probe_set_delay(probe_t * probe, double delay) {
 }
 
 double probe_get_delay(const probe_t * probe) {
-    return probe ? probe->delay : 0;
+    return probe ? probe->delay : DBL_MAX;
 }
 
 

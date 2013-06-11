@@ -1,15 +1,12 @@
-#include <string.h>
-#include <search.h>
-
 #include "protocol.h"
-#include "common.h"
-#include "probe.h"
-#include "protocol_field.h"
-#include "field.h"
-#include "buffer.h"
-#include <stdio.h>
 
-/* static ? */
+#include <string.h>         // strcmp(), ...
+#include <search.h>         // tfind(), ...
+
+#include "common.h"         // ELEMENT_COMPARE
+#include "protocol_field.h" // protocol_field_t
+
+// static ?
 void * protocols_root;
 
 static int protocol_compare(

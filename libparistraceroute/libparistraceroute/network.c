@@ -141,11 +141,26 @@ static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
     time_t delay_sec;
     
     delay_sec = (time_t) delay;
-    memset(&timer, 0, sizeof(struct itimerspec));
+    memset(timer, 0, sizeof(struct itimerspec));
     timer->it_value.tv_sec     = delay_sec;
     timer->it_value.tv_nsec    = 1000000 * (delay - delay_sec);
     timer->it_interval.tv_sec  = 0;
     timer->it_interval.tv_nsec = 0;
+}
+
+static bool update_timer(int timerfd, double delay) {
+    struct itimerspec  * delay_timer;
+
+    if (delay < 0) goto ERR_INVALID_TIMEOUT;
+
+    // Prepare the itimerspec structure
+    itimerspec_set_delay(delay_timer, delay);
+    
+    // Update the timer
+    return (timerfd_settime(timerfd, 0, delay_timer, NULL) != -1); 
+
+ERR_INVALID_TIMEOUT:
+    return false;
 }
 
 /**
@@ -157,6 +172,7 @@ static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
 
 static bool network_update_next_timeout(network_t * network)
 {
+    /*
     struct itimerspec   timeout;
     probe_t           * probe;
     double              next_timeout;
@@ -164,7 +180,7 @@ static bool network_update_next_timeout(network_t * network)
     if ((probe = network_get_oldest_probe(network))) {
         // The timer will updated according to the lifetime of the oldest flying probe 
 //        next_timeout = network_get_timeout(network) - (get_timestamp() - probe_get_sending_time(probe));
-        next_timeout = network_get_probe_timeout(network, probe);
+        next_timeout = network_get_probe_timeout(network, probe);, , 
 
         if (next_timeout <= 0) {
             // This should never occurs. If so, it means that we do not have raised enough
@@ -186,6 +202,18 @@ static bool network_update_next_timeout(network_t * network)
 
 ERR_INVALID_TIMEOUT:
     return false;
+    */
+
+    probe_t * probe;
+    double    next_timeout;
+
+    if ((probe = network_get_oldest_probe(network))) {
+        next_timeout = network_get_probe_timeout(network, probe);
+    } else {
+        // The timer will be disarmed since there is no more flying probes
+        next_timeout = 0;
+    }
+    return update_timer(network->timerfd, next_timeout);
 }
 
 /**
@@ -265,18 +293,15 @@ network_t * network_create(void)
     if (!(network->sendq        = queue_create()))       goto ERR_SENDQ;
     if (!(network->recvq        = queue_create()))       goto ERR_RECVQ;
 
-    if (!(network->group_probes = tree_create(
-        (ELEMENT_FREE) probe_free,
-        (ELEMENT_DUMP) probe_dump))
-    ) {
+    if (!(network->group_probes = probe_group_create())) {
         goto ERR_GROUP;
     }
-
+    
     if ((network->timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
         goto ERR_TIMERFD;
     }
     
-    if ((network->group_timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
+    if ((network->scheduled_timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
         goto ERR_GROUP_TIMERFD;
     }
 
@@ -293,11 +318,11 @@ network_t * network_create(void)
 ERR_PROBES:
     sniffer_free(network->sniffer);
 ERR_SNIFFER:
-     close(network->group_timerfd);
+     close(network->scheduled_timerfd);
 ERR_GROUP_TIMERFD :
     close(network->timerfd);
 ERR_TIMERFD:
-    tree_free(network->group_probes);
+    probe_group_free(network->group_probes);
 ERR_GROUP :
     queue_free(network->recvq, (ELEMENT_FREE) packet_free);
 ERR_RECVQ:
@@ -319,6 +344,7 @@ void network_free(network_t * network)
         queue_free(network->sendq, (ELEMENT_FREE) probe_free);
         queue_free(network->recvq, (ELEMENT_FREE) probe_free);
         socketpool_free(network->socketpool);
+        probe_group_free(network->group_probes);
         free(network);
     }
 }
@@ -348,10 +374,10 @@ inline int network_get_timerfd(network_t * network) {
 }
 
 inline int network_get_group_timerfd(network_t * network) {
-    return network->group_timerfd;
+    return network->scheduled_timerfd;
 }
 
-tree_t * network_get_group_probes(network_t * network) {
+probe_group_t * network_get_group_probes(network_t * network) {
     return network->group_probes;
 }
 
@@ -620,108 +646,71 @@ bool network_drop_expired_flying_probe(network_t * network)
 // Scheduling
 //------------------------------------------------------------------------------------
 
-static probe_t * get_node_probe(const tree_node_t * node) {
-    return (probe_t *) node->data;
-}
-
-static double get_node_delay(const tree_node_t * node) {
-    return probe_get_delay(get_node_probe(node));
-}
-
-static double get_node_delay_rec(const tree_node_t * node) {
-    tree_node_t * child;
-    size_t        i, num_children;
-    double        min = DBL_MAX;
-    
-    num_children = tree_node_get_num_children(node);
-    for (i = 0; i < num_children; ++i) {
-        child = tree_node_get_ith_child(node, i);
-        min = tree_node_is_leaf(child) ?
-            MIN(min, get_node_delay(child)):
-            MIN(min, get_node_delay_rec(child));
-    }
-
-    return min;
-}
-
 double network_get_next_scheduled_probe_delay(const network_t * network) {
-    tree_node_t * root;
-    return (root = tree_get_root(network->group_probes)) ?
-        get_node_delay_rec(root) :
-        -1;
+    return probe_group_get_next_delay(network->group_probes);
 }
 
-static void network_iter_next_scheduled_probes(network_t * network, tree_node_t * node, void (*callback)(network_t * network, tree_node_t * node, size_t i)) {
+static bool network_process_probe_node(network_t * network, tree_node_t * parent, size_t i)
+{
     tree_node_t * child;
-    size_t        i, num_children;
-    double        delay = get_node_delay(node);
 
-    // Explore each next scheduled probes
-    num_children = tree_node_get_num_children(node);
-    for (i = 0; i < num_children; ++i) {
-        child = tree_node_get_ith_child(node, i);
-        if (!child) {
-            fprintf(stderr, "child NOT FOUUUUUND !!!! arg,gklgklgkglkg!!!");
-        }
-        if (tree_node_is_leaf(child)) { // on ne veut appeler la callback que si la probe est schedulée
-            if (callback) callback(network, node, i);
-        } else if (get_node_delay(child) == delay) {
-            network_iter_next_scheduled_probes(network, child, callback);
-        }
-    }
-}
+    if (!(child = tree_node_get_ith_child(parent, i)))                   goto ERR_GET_CHILD;
+    if (!(queue_push_element(network->sendq, (probe_t *)(child->data)))) goto ERR_QUEUE_PUSH;
+    if (!(probe_group_del(parent, i)))                                   goto ERR_PROBE_GROUP_DEL;
+    return true;
 
-static void parent_update_delay(tree_node_t * node) {
-    if (node->parent && get_node_delay(node) < get_node_delay(node->parent)) {
-        probe_set_delay(get_node_probe(node->parent), get_node_delay(node));
-        parent_update_delay(node->parent);
-    }
-}
-
-static void network_process_probe_node(network_t * network, tree_node_t * parent, size_t i) {
-
-    // We've reach a leaf our tree of probes_t. The probe stored in this node must be send.
-    // Then we must update our tree consequently
-    // TODO control child
-    tree_node_t * child = tree_node_get_ith_child(parent, i);
-
-    // 1) Send the scheduled probe stored in this node
-    if (network && tree_node_is_leaf(child)) {
-        queue_push_element(network->sendq, (probe_t *)(child->data));
-    }
-
-    // 2) Suppress this leaf from the tree
-    printf(">>>>>>>>> node= %lx %lx\n", child, child->parent);
-    tree_node_del_ith_child(parent, i); 
-
-    // 3) Recursively update parents node (until reaching a parent having a shorter delay) 
-    parent_update_delay(parent);
+ERR_PROBE_GROUP_DEL:
+ERR_QUEUE_PUSH:
+ERR_GET_CHILD:
+    return false;
 }
 
 void network_process_scheduled_probe(network_t * network) {
     tree_node_t * root;
 
-    if ((root = tree_get_root(network->group_probes))) {
-        network_iter_next_scheduled_probes(network, root, network_process_probe_node);
+    if ((root = probe_group_get_root(network->group_probes))) {
+        probe_group_iter_next_scheduled_probes(
+            probe_group_get_root(network->group_probes),
+            network_process_probe_node,
+            (void *) network
+        );
     }
 }
-    
-static bool network_update_next_delay(network_t * network)
-{
-    double            next_delay;
-    struct itimerspec delay;
 
-    if (!network) goto ERR_NETWORK;
-    next_delay = network_get_next_scheduled_probe_delay(network);   
+bool network_update_next_scheduled_delay(network_t * network)
+{
+    /*
+           double            next_delay;
+       struct itimerspec delay;
+
+       if (!network) goto ERR_NETWORK;
+       printf("network %lx timerfd : %u\n", network, network->scheduled_timerfd);
+       next_delay = network_get_next_scheduled_probe_delay(network);   
 
     // Prepare the itimerspec structure
     itimerspec_set_delay(&delay, next_delay);
 
     // Update the delay timer
-    return timerfd_settime(network->group_timerfd, 0, &delay, NULL) != -1;
+    return timerfd_settime(network->scheduled_timerfd, 0, &delay, NULL) != -1;
 
 ERR_NETWORK:
-    return false;
+return false;
+    
+    */
+    // TODO rename group_probes -> probe_group
+    bool ret = false;
+
+    if (!network) goto ERR_NETWORK;
+
+    double delay = network_get_next_scheduled_probe_delay(network);
+    printf("delay %f\n", delay);
+    ret = update_timer(network->scheduled_timerfd, delay);
+    return ret;
+
+ERR_NETWORK:
+    return ret;
+     
+
 }
 
 

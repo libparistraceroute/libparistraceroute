@@ -23,6 +23,8 @@ size_t tree_node_get_num_children(const tree_node_t * node);
 void * tree_node_get_data(const tree_node_t * node);
 tree_node_t * tree_node_get_ith_child(const tree_node_t * node, size_t i);
 tree_node_t * tree_node_add_child(tree_node_t * node, void * element);
+bool tree_node_push_child(tree_node_t * parent_node, tree_node_t * node);
+void tree_node_set_data(tree_node_t * node, void * data);
 bool tree_node_del_ith_child(tree_node_t * node, size_t i);
 bool tree_node_is_leaf(const tree_node_t * node);
 

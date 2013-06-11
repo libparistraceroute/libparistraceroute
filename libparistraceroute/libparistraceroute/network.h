@@ -27,7 +27,7 @@
 #include "sniffer.h"
 #include "dynarray.h"
 #include "optparse.h"
-#include "tree.h"
+#include "probe_group.h"
 
 // If no matching reply has been sniffed in the next 3 sec, we
 // consider that we won't never sniff such a reply. The
@@ -109,16 +109,16 @@ extern const double   wait[];
 // dynarray for archive or duplicate detection purposes.
 
 typedef struct network_s {
-    socketpool_t * socketpool;    /**< Pool of sockets used by this network */
-    queue_t      * sendq;         /**< Queue containing packet to send  (probe_t instances) */
-    queue_t      * recvq;         /**< Queue containing received packet (packet_t instances) */
-    sniffer_t    * sniffer;       /**< Sniffer to use on this network */
-    dynarray_t   * probes;        /**< Probes in transit, from the oldest probe_t instance to the youngest one. */
-    int            timerfd;       /**< Used for probe timeouts. Linux specific. Activated when a probe timeout occurs */
-    uint16_t       last_tag;      /**< Last probe ID used */
-    double         timeout;       /**< The timeout value used by this network (in seconds) */
-    int            group_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */ 
-    tree_t       * group_probes;  /**< Tree may contain a group af probes or a group of groups of probes */
+    socketpool_t  * socketpool;    /**< Pool of sockets used by this network */
+    queue_t       * sendq;         /**< Queue containing packet to send  (probe_t instances) */
+    queue_t       * recvq;         /**< Queue containing received packet (packet_t instances) */
+    sniffer_t     * sniffer;       /**< Sniffer to use on this network */
+    dynarray_t    * probes;        /**< Probes in transit, from the oldest probe_t instance to the youngest one. */
+    int             timerfd;       /**< Used for probe timeouts. Linux specific. Activated when a probe timeout occurs */
+    uint16_t        last_tag;      /**< Last probe ID used */
+    double          timeout;       /**< The timeout value used by this network (in seconds) */
+    int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */ 
+    probe_group_t * group_probes;  /**< Structure of probe_group may contain a group af probes or a group of groups of probes */
 } network_t;
 
 /**
@@ -211,7 +211,7 @@ int network_get_group_timerfd(network_t * network);
  * \return a Pointer to the tree of group of probes 
  */
 
-tree_t * network_get_group_probes(network_t * network);
+probe_group_t * network_get_group_probes(network_t * network);
 
 /**
  * \brief Send the next packet on the queue
@@ -244,9 +244,24 @@ void network_process_sniffer(network_t * network);
 bool network_drop_expired_flying_probe(network_t * network);
 
 /**
- *
+ * \brief handle the scheduled probes when network->scheduled_timerfd is activated
+ * \param network Pointer to the handled network instance 
  */
 void network_process_scheduled_probe(network_t * network);
+
+/**
+ * \brief Retrieve the next delay to send scheduled probes
+ * \param network Pointer to the handled network instance
+ * \return the next delay  
+ */
 double network_get_next_scheduled_probe_delay(const network_t * network);
+
+/**
+ * \brief Refresh the newtork->scheduled_timerfd to next delay value
+ * \param Pointer to handled network instance
+ * return true iif successful 
+ */
+bool network_update_next_scheduled_delay(network_t * network);
+
 
 #endif

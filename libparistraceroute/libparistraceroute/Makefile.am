@@ -48,6 +48,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         options.h \
 						packet.h \
 						probe.h \
+                        probe_group.h \
 						protocol.h \
 						protocol_field.h \
 						protocols/ipv4_pseudo_header.h \
@@ -96,6 +97,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         options.c \
 						packet.c \
 						probe.c \
+                        probe_group.c \
 						protocol.c \
 						protocols/icmp.c \
 						protocols/icmp6.c \

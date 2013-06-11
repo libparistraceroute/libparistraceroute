@@ -47,6 +47,16 @@ ERR_PARENT_NODE:
     return NULL;
 }
 
+bool tree_node_push_child(tree_node_t * parent_node, tree_node_t * node) {
+
+    if (parent_node && node) {
+        dynarray_push_element(parent_node->children, node);
+        node->parent = parent_node;
+        return true;
+    }
+    return false;
+}
+
 tree_node_t * tree_node_get_parent(const tree_node_t * node) {
     return node->parent;
 }
@@ -82,6 +92,12 @@ size_t tree_node_get_num_children(const tree_node_t * node) {
 
 void * tree_node_get_data(const tree_node_t * node) {
     return node->data;
+}
+
+void tree_node_set_data(tree_node_t * node, void * data) {
+    if (node) {
+        node->data = data;
+    }
 }
 
 void tree_node_dump(tree_node_t * node, void (*callback_dump)(void *), size_t indent) {

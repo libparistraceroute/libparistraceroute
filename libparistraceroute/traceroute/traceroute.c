@@ -134,12 +134,13 @@ double delay_callback(size_t i){
  * \return Execution code
  */
 
-int main(int argc, char ** argv)
-{
-    
-    tree_t    * tree;
-    probe_t   * probe;
+int main(int argc, char ** argv) {
     buffer_t  * payload;
+    probe_t   * probe,
+              * p1,
+              * p2,
+              * p3;
+    tree_t    * tree;
     network_t * network;
     double      delay;
 
@@ -158,23 +159,50 @@ int main(int argc, char ** argv)
     probe_set_protocols(probe, "ipv4", "udp", NULL);
     probe_write_payload(probe, payload);
     probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
-    tree = probe_tree_generator(probe, 2, 3);
-    tree_dump(tree);
+
+    //#include "generators/uniform.h"
+    /*
+    generator_t * generator;
+    tree_node_t * node;
+
+    if (!(generator = generator_create("uniform", INT32("mean", 2)))) goto ERR_GENERATOR_CREATE;
+    if (!(node = probe_group_create(generator, probe_skel, 10)))      goto ERR_PROBE_GROUP_CREATE;
+    network_add_probe_group(network, node); // màj delay
+    network_del_scheduled_probe(); // màj delay
+    */
+   // probe_tree_generator(probe, generator, 3);
+    
     if(!(network = network_create())) perror("E: Cannot create network");
-    network->group_probes = tree;
+    p3 = probe_dup(probe);
+    probe_set_delay(p3, 3);
+    probe_group_add(network->group_probes, NULL, p3);
+    p1 = probe_dup(probe);
+    probe_set_delay(p1, 2);
+    probe_group_add(network->group_probes, NULL, p1);
+    p2 = probe_dup(probe);
+    probe_set_delay(p2, 1);
+    probe_group_add(network->group_probes, NULL , p2);    
+    probe_group_dump(network->group_probes);
     delay = network_get_next_scheduled_probe_delay(network);
     printf("delay %f\n", delay);
     printf("-------------------tree after delete---------------------------------\n");
-    tree_node_del_ith_child(network->group_probes->root, 0);
-    tree_dump(tree);
+    probe_group_del(probe_group_get_root(network->group_probes), 2);
+    probe_group_dump(network->group_probes);    
     delay = network_get_next_scheduled_probe_delay(network);
     printf("delay %f\n", delay);
-    network_process_scheduled_probe(network);
+    //network_process_scheduled_probe(network);
+    printf(" update \n");
+    network_update_next_scheduled_delay(network);
+    printf("bye\n");
 
-
-         
    //tree_free(tree);
-   /*
+    return 0;
+}
+
+/*
+int main(int argc, char ** argv)
+{
+    buffer_t             * payload;
     algorithm_instance_t * instance;
     probe_t              * probe;
     pt_loop_t            * loop;
@@ -243,5 +271,5 @@ ERR_LOOP_CREATE:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
     exit(ret);
-*/
 }
+*/
