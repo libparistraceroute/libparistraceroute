@@ -3,11 +3,12 @@
 
 /**
  * \file field.h
- * \brief A field is a part of a header network protocol. 
+ * \brief A field is a part of a header network protocol.
  */
 
 #include <stddef.h> // size_t
 #include <stdint.h>
+#include <stdbool.h> // bool
 
 // TODO allow to define bit level fields (for instance for flags)
 // it could be use to manage properly i4 fields
@@ -30,6 +31,7 @@ typedef enum {
     TYPE_INT64,            /**< 64 bit integer */
     TYPE_INT128,           /**< 128 bit integer*/
     TYPE_INTMAX,           /**< max integer    */
+    TYPE_DOUBLE,           /**< double         */
     TYPE_STRING            /**< string         */
 } fieldtype_t;
 
@@ -47,6 +49,7 @@ typedef union {
     uint64_t       int64;  /**< Value of data as a  64 bit integer */
     uint128_t      int128; /**< Value of data as a 128 bit integer */
     uintmax_t      intmax; /**< Value of data as a max integer     */
+    double         dbl;    /**< Value of data as a doubler     */
     char         * string; /**< Pointer to string data             */
 } value_t;
 
@@ -125,6 +128,15 @@ field_t * field_create_int128(const char * key, uint128_t value);
 field_t * field_create_intmax(const char * key, uintmax_t value);
 
 /**
+ * \brief Create a field structure to hold a double value
+ * \param key The name which identify the field to create
+ * \param value Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+field_t * field_create_double(const char * key, double value);
+
+/**
  * \brief Create a field structure to hold a string
  * \param key The name which identify the field to create
  * \param value Value to copy in the field
@@ -140,7 +152,7 @@ field_t * field_create_string(const char * key, const char * value);
  * \return Structure containing the newly created field
  */
 
-field_t * field_create(fieldtype_t type, const char * key, void * value);
+field_t * field_create(fieldtype_t type, const char * key, const void * value);
 
 /**
  * \brief Create a field according to a field type and a buffer passed as parameters/
@@ -158,6 +170,14 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
  */
 
 void field_free(field_t *field);
+
+/**
+ * \brief Duplicate a field instance
+ * \param field The field instance that we're duplicating .
+ * \return The duplicated field instance if successful, NULL otherwise.
+ */
+
+field_t * field_dup(const field_t * field);
 
 /**
  * \brief Macro shorthand for field_create_int4
@@ -214,6 +234,14 @@ void field_free(field_t *field);
 #define I128(x, y) field_create_int64(x, (uint128_t) y)
 
 /**
+ * \brief Macro shorthand for field_create_double
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define DOUBLE(x, y) field_create_double(x, (double) y)
+/**
  * \brief Macro shorthand for field_create_intmax
  * \param x Pointer to a char * key to identify the field
  * \param y Value to store in the field
@@ -250,7 +278,7 @@ size_t field_get_type_size(fieldtype_t type);
 size_t field_get_size(const field_t * field);
 
 /**
- * \brief Compare two fields, for instance in order to sort them
+ * \brief Compare two fields value, for instance in order to sort them
  * \param field1 The first field instance
  * \param field2 The second field instance
  * \return -2 if field1 and field2 cannot be compared
@@ -259,8 +287,16 @@ size_t field_get_size(const field_t * field);
  *         -1 if field1 > field2
  *          0 if field1 == field2
  */
+//int field_compare(const field_t * field1, const field_t * field2);
 
-int field_compare(const field_t * field1, const field_t * field2);
+bool field_match(const field_t * field1, const field_t * field2);
+
+
+const char * field_get_key(field_t * field);
+
+bool field_set_value(field_t * field, void * value);
+
+
 
 /**
  * \brief Print the content of a field

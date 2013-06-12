@@ -46,7 +46,7 @@ size_t protocol_field_get_size(const protocol_field_t * protocol_field);
  * \warning Fields of type TYPE_INT4 and TYPE_STRING are not supported.
  * \param buffer The buffer in which the value is written.
  * \param field The field storing the value to write in the buffer.
- * \return true iif successful 
+ * \return true iif successful
  */
 
 bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * buffer, const field_t * field);

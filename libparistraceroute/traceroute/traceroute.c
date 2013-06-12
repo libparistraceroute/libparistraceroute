@@ -7,6 +7,8 @@
 #include "algorithm.h"
 #include "algorithms/traceroute.h"
 #include "tree.h"
+#include "generator.h"
+
 
 /**
  * \brief Handle raised traceroute_event_t events.
@@ -32,7 +34,7 @@ void my_traceroute_handler(
             probe = ((const probe_reply_t *) traceroute_event->data)->probe;
             reply = ((const probe_reply_t *) traceroute_event->data)->reply;
 
-            // Print TTL (if this is the first probe related to this TTL) 
+            // Print TTL (if this is the first probe related to this TTL)
             if (num_probes_printed % traceroute_options->num_probes == 0) {
                 uint8_t ttl;
                 if (probe_extract(probe, "ttl", &ttl)) {
@@ -87,10 +89,10 @@ void my_traceroute_handler(
 }
 
 /**
- * \brief Handle events raised in the main loop 
+ * \brief Handle events raised in the main loop
  * \param loop The main loop.
  * \param event The handled event.
- * \param user_data Data shared in pt_loop_create() 
+ * \param user_data Data shared in pt_loop_create()
  */
 
 void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
@@ -104,7 +106,7 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
         case ALGORITHM_TERMINATED:
             printf("> ALGORITHM_TERMINATED\n");
             pt_instance_stop(loop, event->issuer); // release traceroute's data from the memory
-            pt_loop_terminate(loop);               // we've only run one 'traceroute' algorithm, so we can break the main loop 
+            pt_loop_terminate(loop);               // we've only run one 'traceroute' algorithm, so we can break the main loop
             break;
         case ALGORITHM_EVENT: // a traceroute-specific event has been raised
             algorithm_name = event->issuer->algorithm->name;
@@ -133,73 +135,6 @@ double delay_callback(size_t i){
  * \param argv Array of arguments
  * \return Execution code
  */
-
-int main(int argc, char ** argv) {
-    buffer_t  * payload;
-    probe_t   * probe,
-              * p1,
-              * p2,
-              * p3;
-    tree_t    * tree;
-    network_t * network;
-    double      delay;
-
-    printf("bonjour\n");
-    tree = tree_create(NULL, probe_dump);
-    if (!(probe = probe_create())) {
-        perror("E: Cannot create probe skeleton");
-        //goto ERR_PROBE_CREATE;
-    }
-    if (!(payload = buffer_create())) {
-        perror("E: Cannot allocate payload buffer");
-        //goto ERR_BUFFER_CREATE;
-    }
-    buffer_write_bytes(payload, "\0\0", 2);
-    char dst_ip[] = "1.1.1.2";
-    probe_set_protocols(probe, "ipv4", "udp", NULL);
-    probe_write_payload(probe, payload);
-    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
-
-    //#include "generators/uniform.h"
-    /*
-    generator_t * generator;
-    tree_node_t * node;
-
-    if (!(generator = generator_create("uniform", INT32("mean", 2)))) goto ERR_GENERATOR_CREATE;
-    if (!(node = probe_group_create(generator, probe_skel, 10)))      goto ERR_PROBE_GROUP_CREATE;
-    network_add_probe_group(network, node); // màj delay
-    network_del_scheduled_probe(); // màj delay
-    */
-   // probe_tree_generator(probe, generator, 3);
-    
-    if(!(network = network_create())) perror("E: Cannot create network");
-    p3 = probe_dup(probe);
-    probe_set_delay(p3, 3);
-    probe_group_add(network->group_probes, NULL, p3);
-    p1 = probe_dup(probe);
-    probe_set_delay(p1, 2);
-    probe_group_add(network->group_probes, NULL, p1);
-    p2 = probe_dup(probe);
-    probe_set_delay(p2, 1);
-    probe_group_add(network->group_probes, NULL , p2);    
-    probe_group_dump(network->group_probes);
-    delay = network_get_next_scheduled_probe_delay(network);
-    printf("delay %f\n", delay);
-    printf("-------------------tree after delete---------------------------------\n");
-    probe_group_del(probe_group_get_root(network->group_probes), 2);
-    probe_group_dump(network->group_probes);    
-    delay = network_get_next_scheduled_probe_delay(network);
-    printf("delay %f\n", delay);
-    //network_process_scheduled_probe(network);
-    printf(" update \n");
-    network_update_next_scheduled_delay(network);
-    printf("bye\n");
-
-   //tree_free(tree);
-    return 0;
-}
-
-/*
 int main(int argc, char ** argv)
 {
     buffer_t             * payload;
@@ -207,13 +142,12 @@ int main(int argc, char ** argv)
     probe_t              * probe;
     pt_loop_t            * loop;
     int                    ret = EXIT_FAILURE;
-    buffer_t             * payload;
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
-    
+
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-   char dst_ip[] = "8.8.8.8";
-   //char dst_ip[] = "1.1.1.2";
+   //char dst_ip[] = "8.8.8.8";
+   char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
@@ -227,7 +161,7 @@ int main(int argc, char ** argv)
     options.dst_ip = dst_ip;
     options.num_probes = 3;
     //options.min_ttl = 4;
-    printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl); 
+    printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
@@ -272,4 +206,3 @@ ERR_LOOP_CREATE:
 ERR_BUFFER_CREATE:
     exit(ret);
 }
-*/

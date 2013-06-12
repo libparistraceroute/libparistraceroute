@@ -21,7 +21,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 ## The libtool archive file (.la) will be installed into the directory named
 ## by the predefined variable $(bindir), along with the actual shared library
 ## file (.so).
-lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la 
+lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la
 
 libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						address.h \
@@ -39,6 +39,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						event.h \
 						field.h \
                         group.h \
+                        generator.h \
 						layer.h \
 						lattice.h \
 						list.h \
@@ -88,6 +89,8 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						event.c \
 						field.c \
                         group.c \
+                        generator.c \
+                        generators/uniform.c \
 						lattice.c \
 						layer.c \
 						list.c \
