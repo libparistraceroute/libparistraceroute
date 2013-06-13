@@ -2,6 +2,8 @@
 
 #include <string.h>         // strcmp(), ...
 #include <search.h>         // tfind(), ...
+#include <stdio.h>          // perror()
+
 
 #include "common.h"         // ELEMENT_COMPARE
 #include "protocol_field.h" // protocol_field_t
@@ -68,7 +70,7 @@ void protocol_write_header_callback(field_t * field, void * data)
 const protocol_field_t * protocol_get_field(const protocol_t * protocol, const char * name)
 {
     protocol_field_t * protocol_field;
-    
+
     for (protocol_field = protocol->fields; protocol_field->key; protocol_field++) {
         if (strcmp(protocol_field->key, name) == 0) {
             return protocol_field;
@@ -79,7 +81,7 @@ const protocol_field_t * protocol_get_field(const protocol_t * protocol, const c
 
 void protocol_iter_fields(protocol_t *protocol, void *data, void (*callback)(protocol_field_t *field, void *data))
 {
-    // TODO iterate on protocol->fields until reaching .key = NULL and remove get_num_fields callback from each protocol 
+    // TODO iterate on protocol->fields until reaching .key = NULL and remove get_num_fields callback from each protocol
     size_t i, num_fields = protocol->get_num_fields();
     for (i = 0; i < num_fields; i++) {
         callback(&protocol->fields[i], data);

@@ -26,7 +26,7 @@ static struct opt_spec network_cl_options[] = {
 };
 
 /** \brief return the commandline options related to network
-  * \return a pointer to an opt_spec structure 
+  * \return a pointer to an opt_spec structure
   */
 struct opt_spec * network_get_cl_options() {
     return network_cl_options;
@@ -58,7 +58,7 @@ static inline bool reply_extract_tag(const probe_t * reply, uint16_t * ptag_repl
 /**
  * \brief Set the probe ID (tag) from a probe
  * \param probe The probe we want to update
- * \param tag_probe The tag we're assigning to the probe 
+ * \param tag_probe The tag we're assigning to the probe
  * \return true iif successful
  */
 
@@ -117,7 +117,7 @@ static void network_flying_probes_dump(network_t * network) {
 /**
   * \brief Get the oldest probe in network
   * \param network Pointer to network instance
-  * \return a pointer to oldest probe 
+  * \return a pointer to oldest probe
   */
 
 static probe_t * network_get_oldest_probe(const network_t * network) {
@@ -139,9 +139,9 @@ static double network_get_probe_timeout(const network_t * network, const probe_t
 
 static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
     time_t delay_sec;
-    
+
     delay_sec = (time_t) delay;
-    memset(timer, 0, sizeof(struct itimerspec));
+
     timer->it_value.tv_sec     = delay_sec;
     timer->it_value.tv_nsec    = 1000000 * (delay - delay_sec);
     timer->it_interval.tv_sec  = 0;
@@ -150,17 +150,24 @@ static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
 
 static bool update_timer(int timerfd, double delay) {
     struct itimerspec  * delay_timer;
+    bool ret = false;
+
+     if (!(delay_timer = calloc(1, sizeof(struct itimerspec)))) goto ERR_CALLOC;
 
     if (delay < 0) goto ERR_INVALID_TIMEOUT;
 
     // Prepare the itimerspec structure
     itimerspec_set_delay(delay_timer, delay);
-    
+
     // Update the timer
-    return (timerfd_settime(timerfd, 0, delay_timer, NULL) != -1); 
+    ret = (timerfd_settime(timerfd, 0, delay_timer, NULL) != -1);
+    free(delay_timer);
+    return ret;
 
 ERR_INVALID_TIMEOUT:
-    return false;
+    free(delay_timer);
+ERR_CALLOC:
+    return ret;
 }
 
 /**
@@ -178,15 +185,15 @@ static bool network_update_next_timeout(network_t * network)
     double              next_timeout;
 
     if ((probe = network_get_oldest_probe(network))) {
-        // The timer will updated according to the lifetime of the oldest flying probe 
+        // The timer will updated according to the lifetime of the oldest flying probe
 //        next_timeout = network_get_timeout(network) - (get_timestamp() - probe_get_sending_time(probe));
-        next_timeout = network_get_probe_timeout(network, probe);, , 
+        next_timeout = network_get_probe_timeout(network, probe);, ,
 
         if (next_timeout <= 0) {
             // This should never occurs. If so, it means that we do not have raised enough
             // PROBE_TIMEOUT event in network_drop_oldest_flying_probe
             fprintf(stderr, "The new oldest probe has already expired!\n");
-            printf("negative timeout %f\n", next_timeout); 
+            printf("negative timeout %f\n", next_timeout);
             goto ERR_INVALID_TIMEOUT;
         }
     } else {
@@ -196,9 +203,9 @@ static bool network_update_next_timeout(network_t * network)
 
     // Prepare the itimerspec structure
     itimerspec_set_delay(&timeout, next_timeout);
-    
+
     // Update the timer
-    return timerfd_settime(network->timerfd, 0, &timeout, NULL) != -1; 
+    return timerfd_settime(network->timerfd, 0, &timeout, NULL) != -1;
 
 ERR_INVALID_TIMEOUT:
     return false;
@@ -239,7 +246,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
 
     // Get the 3-rd checksum field stored in the reply, since it stores our probe ID.
     if(!(reply_extract_tag(reply, &tag_reply))) {
-        // This is not an IP/ICMP/IP/* reply :( 
+        // This is not an IP/ICMP/IP/* reply :(
         fprintf(stderr, "Can't retrieve tag from reply\n");
         return NULL;
     }
@@ -249,7 +256,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
         probe = dynarray_get_ith_element(network->probes, i);
 
         // Reply / probe comparison. In our probe packet, the probe ID
-        // is stored in the checksum of the (first) IP layer. 
+        // is stored in the checksum of the (first) IP layer.
         if (probe_extract_tag(probe, &tag_probe)) {
             if (tag_reply == tag_probe) break;
         }
@@ -296,11 +303,11 @@ network_t * network_create(void)
     if (!(network->group_probes = probe_group_create())) {
         goto ERR_GROUP;
     }
-    
+
     if ((network->timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
         goto ERR_TIMERFD;
     }
-    
+
     if ((network->scheduled_timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
         goto ERR_GROUP_TIMERFD;
     }
@@ -336,7 +343,7 @@ ERR_NETWORK:
 }
 
 void network_free(network_t * network)
-{ 
+{
     if (network) {
         dynarray_free(network->probes, (ELEMENT_FREE) probe_free);
         close(network->timerfd);
@@ -417,7 +424,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_BUFFER_CREATE;
     }
 
-    // Write the probe ID in the buffer 
+    // Write the probe ID in the buffer
     if (!(buffer_write_bytes(payload, &tag, tag_size))) {
         fprintf(stderr, "Can't set data\n");
         goto ERR_BUFFER_SET_DATA;
@@ -428,14 +435,14 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         fprintf(stderr, "Can't write payload\n");
         goto ERR_PROBE_WRITE_PAYLOAD;
     }
-    
+
     // Update checksum (TODO: should be done automatically by probe_set_fields)
     if (!(probe_update_fields(probe))) {
         fprintf(stderr, "Can't update fields\n");
         goto ERR_PROBE_UPDATE_FIELDS;
     }
 
-    // Retrieve the checksum of UDP checksum 
+    // Retrieve the checksum of UDP checksum
     if (!(probe_extract_tag(probe, &checksum))) {
         fprintf(stderr, "Can't extract tag\n");
         goto ERR_PROBE_EXTRACT_CHECKSUM;
@@ -477,7 +484,7 @@ bool network_process_sendq(network_t * network)
 
     // Probe skeleton when entering the network layer.
     // We have to duplicate the probe since the same address of skeleton
-    // may have been passed to pt_send_probe. 
+    // may have been passed to pt_send_probe.
     // => We duplicate this probe in the
     // network layer registry (network->probes) and then tagged.
 
@@ -489,7 +496,7 @@ bool network_process_sendq(network_t * network)
     //printf("222222222222222222222222222222222");
     //probe_dump(probe);
     */
-    
+
     if (!network_tag_probe(network, probe)) {
         fprintf(stderr, "Can't tag probe\n");
         goto ERR_TAG_PROBE;
@@ -509,13 +516,13 @@ bool network_process_sendq(network_t * network)
     }
     */
 
-    // Make a packet from the probe structure 
+    // Make a packet from the probe structure
     if (!(packet = probe_create_packet(probe))) {
         fprintf(stderr, "Can't create packet\n");
     	goto ERR_CREATE_PACKET;
     }
 
-    // Send the packet 
+    // Send the packet
     if (!(socketpool_send_packet(network->socketpool, packet))) {
         fprintf(stderr, "Can't send packet\n");
         goto ERR_SEND_PACKET;
@@ -533,7 +540,7 @@ bool network_process_sendq(network_t * network)
     //network_flying_probes_dump(network);
 
     // We've just sent a probe and currently, this is the only one in transit.
-    // So currently, there is no running timer, prepare timerfd. 
+    // So currently, there is no running timer, prepare timerfd.
     num_flying_probes = dynarray_get_size(network->probes);
     if (num_flying_probes == 1) {
         itimerspec_set_delay(&new_timeout, network_get_timeout(network));
@@ -559,7 +566,7 @@ bool network_process_recvq(network_t * network)
                   * reply;
     packet_t      * packet;
     probe_reply_t * probe_reply;
-    
+
     // Pop the packet from the queue
     if (!(packet = queue_pop_element(network->recvq, NULL))) {
         fprintf(stderr, "error pop\n");
@@ -568,7 +575,7 @@ bool network_process_recvq(network_t * network)
 
     // Transform the reply into a probe_t instance
     if(!(reply = probe_wrap_packet(packet))) {
-        fprintf(stderr, "error wrap\n");        
+        fprintf(stderr, "error wrap\n");
         goto ERR_PROBE_WRAP_PACKET;
     }
     probe_set_recv_time(reply, get_timestamp());
@@ -576,13 +583,13 @@ bool network_process_recvq(network_t * network)
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes
     if (!(probe = network_get_matching_probe(network, reply))) {
-        fprintf(stderr, "error probe discard\n");        
+        fprintf(stderr, "error probe discard\n");
         goto ERR_PROBE_DISCARDED;
     }
 
     // Build a pair made of the probe and its corresponding reply
     if (!(probe_reply = probe_reply_create())) {
-        fprintf(stderr, "error probe reply\n");        
+        fprintf(stderr, "error probe reply\n");
         goto ERR_PROBE_REPLY_CREATE;
     }
 
@@ -615,7 +622,7 @@ bool network_drop_expired_flying_probe(network_t * network)
     probe_t * probe;
 
     // Is there flying probe(s) ?
-    if (num_flying_probes > 0) { 
+    if (num_flying_probes > 0) {
 
         // Iterate on each expired probes (at least the oldest one has expired)
         for (i = 0 ;i < num_flying_probes; i++) {
@@ -685,7 +692,7 @@ bool network_update_next_scheduled_delay(network_t * network)
 
        if (!network) goto ERR_NETWORK;
        printf("network %lx timerfd : %u\n", network, network->scheduled_timerfd);
-       next_delay = network_get_next_scheduled_probe_delay(network);   
+       next_delay = network_get_next_scheduled_probe_delay(network);
 
     // Prepare the itimerspec structure
     itimerspec_set_delay(&delay, next_delay);
@@ -695,7 +702,7 @@ bool network_update_next_scheduled_delay(network_t * network)
 
 ERR_NETWORK:
 return false;
-    
+
     */
     // TODO rename group_probes -> probe_group
     bool ret = false;
@@ -709,7 +716,7 @@ return false;
 
 ERR_NETWORK:
     return ret;
-     
+
 
 }
 
