@@ -60,16 +60,6 @@ static bool probe_update_checksum(probe_t * probe);
 //-----------------------------------------------------------
 
 /**
- * \brief Retrieve the i-th layer stored in a probe.
- * \param probe The queried probe
- * \param The index of the layer (from 0 to probe_get_num_layers(probe) - 1).
- *   The last layer is the payload.
- * \return The corresponding layer, NULL if i is invalid.
- */
-
-static layer_t * probe_get_layer(const probe_t * probe, size_t i);
-
-/**
  * \brief Retrieve the layer related to the payload from a probe
  * \param probe The queried probe
  * \return The corresponding layer, NULL if i is invalid.
@@ -231,7 +221,7 @@ static bool probe_update_checksum(probe_t * probe)
     return true;
 }
 
-static layer_t * probe_get_layer(const probe_t * probe, size_t i) {
+layer_t * probe_get_layer(const probe_t * probe, size_t i) {
     return dynarray_get_ith_element(probe->layers, i);
 }
 
@@ -347,7 +337,7 @@ probe_t * probe_create(void)
     // We calloc probe to set *_time and caller members to 0
     if (!(probe = calloc(1, sizeof(probe_t))))   goto ERR_PROBE;
     if (!(probe->packet = packet_create())) {
-        printf("Cannot create packet\n");
+        fprintf(stderr, "Cannot create packet\n");
         goto ERR_PACKET;
     }
     if (!(probe->layers = dynarray_create()))    goto ERR_LAYERS;
@@ -743,7 +733,7 @@ bool probe_update_fields(probe_t * probe)
         && probe_update_checksum(probe);
 }
 
-bool probe_set_field_ext(probe_t * probe, size_t depth, field_t * field)
+bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field)
 {
     bool      ret = false;
     size_t    i, num_layers = probe_get_num_layers(probe);
@@ -759,7 +749,7 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, field_t * field)
     return ret;
 }
 
-bool probe_set_field(probe_t * probe, field_t * field) {
+bool probe_set_field(probe_t * probe, const field_t * field) {
     return probe_set_field_ext(probe, 0, field);
 }
 
@@ -814,13 +804,13 @@ const field_t * probe_create_metafield(const probe_t * probe, const char * name)
     return probe_create_metafield_ext(probe, name, 0);
 }
 
-bool probe_set_fields(probe_t * probe, field_t * field1, ...) {
+bool probe_set_fields(probe_t * probe, const field_t * field1, ...) {
     va_list   args;
-    field_t * field;
+    const field_t * field;
     bool      ret = true;
 
     va_start(args, field1);
-    for (field = field1; field; field = va_arg(args, field_t *)) {
+    for (field = field1; field; field = va_arg(args, const field_t *)) {
         // Update the first matching field
         if (!probe_set_field(probe, field)) { 
             // No matching field found, update the first matching metafield

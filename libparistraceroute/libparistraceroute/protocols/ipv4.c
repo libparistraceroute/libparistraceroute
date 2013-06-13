@@ -55,7 +55,7 @@ static bool ipv4_field_to_ipv4(const field_t * field, void * ip) {
             // TODO we could use address_ip_from_string(AF_INET, field->value.string, ip), see "address.h"
             ret = (inet_pton(AF_INET, field->value.string, ip) == 1);
             break;
-        case TYPE_INT32:
+        case TYPE_UINT32:
             memcpy(ip, &(field->value.int32), sizeof(uint32_t));
             ret = true;
             break;
@@ -295,55 +295,55 @@ bool ipv4_write_checksum(uint8_t * ipv4_header, buffer_t * psh) {
 static protocol_field_t ipv4_fields[] = {
     {
         .key      = IPV4_FIELD_VERSION,
-        .type     = TYPE_INT4,
+        .type     = TYPE_UINT4,
         .offset   = IPV4_OFFSET_VERSION,
 // TODO .offset_bits = 0
         .set      = ipv4_set_version,
         .get      = ipv4_get_version
     }, {
         .key      = IPV4_FIELD_IHL,
-        .type     = TYPE_INT4,
+        .type     = TYPE_UINT4,
         .offset   = IPV4_OFFSET_IHL,
 // TODO .offset_bits = 4
         .set      = ipv4_set_ihl,
         .get      = ipv4_get_ihl
     }, {
         .key      = IPV4_FIELD_TOS,
-        .type     = TYPE_INT8,
+        .type     = TYPE_UINT8,
         .offset   = offsetof(struct iphdr, tos),
     }, {
         .key      = IPV4_FIELD_LENGTH,
-        .type     = TYPE_INT16,
+        .type     = TYPE_UINT16,
         .offset   = offsetof(struct iphdr, tot_len),
     }, {
         .key      = IPV4_FIELD_IDENTIFICATION,
-        .type     = TYPE_INT16,
+        .type     = TYPE_UINT16,
         .offset   = offsetof(struct iphdr, id),
     }, {
         .key      = IPV4_FIELD_FRAGOFF,
-        .type     = TYPE_INT16,
+        .type     = TYPE_UINT16,
         .offset   = offsetof(struct iphdr, frag_off),
     }, {
         .key      = IPV4_FIELD_TTL,
-        .type     = TYPE_INT8,
+        .type     = TYPE_UINT8,
         .offset   = offsetof(struct iphdr, ttl),
     }, {
         .key      = IPV4_FIELD_PROTOCOL,
-        .type     = TYPE_INT8,
+        .type     = TYPE_UINT8,
         .offset   = offsetof(struct iphdr, protocol),
     }, {
         .key      = IPV4_FIELD_CHECKSUM,
-        .type     = TYPE_INT16,
+        .type     = TYPE_UINT16,
         .offset   = offsetof(struct iphdr, check),
     }, {
         .key      = IPV4_FIELD_SRC_IP,
-        .type     = TYPE_INT32,
+        .type     = TYPE_UINT32,
         .offset   = offsetof(struct iphdr, saddr),
         .set      = ipv4_set_src_ip,
         .get      = ipv4_get_src_ip,
     }, {
         .key      = IPV4_FIELD_DST_IP,
-        .type     = TYPE_INT32,
+        .type     = TYPE_UINT32,
         .offset   = offsetof(struct iphdr, daddr),
         .set      = ipv4_set_dst_ip,
         .get      = ipv4_get_dst_ip,

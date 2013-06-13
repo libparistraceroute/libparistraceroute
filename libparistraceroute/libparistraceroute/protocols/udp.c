@@ -41,19 +41,19 @@
 static protocol_field_t udp_fields[] = {
     {
         .key = UDP_FIELD_SRC_PORT,
-        .type = TYPE_INT16,
+        .type = TYPE_UINT16,
         .offset = offsetof(struct udphdr, SRC_PORT),
     }, {
         .key = UDP_FIELD_DST_PORT,
-        .type = TYPE_INT16,
+        .type = TYPE_UINT16,
         .offset = offsetof(struct udphdr, DST_PORT),
     }, {
         .key = UDP_FIELD_LENGTH,
-        .type = TYPE_INT16,
+        .type = TYPE_UINT16,
         .offset = offsetof(struct udphdr, LENGTH),
     }, {
         .key = UDP_FIELD_CHECKSUM,
-        .type = TYPE_INT16,
+        .type = TYPE_UINT16,
         .offset = offsetof(struct udphdr, CHECKSUM),
         // optional = 0
     },

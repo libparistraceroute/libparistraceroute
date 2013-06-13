@@ -152,8 +152,8 @@ int main(int argc, char ** argv)
     // Prepare options related to the 'traceroute' algorithm
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
-    options.num_probes = 3;
-//    options.max_ttl = 1;
+    options.num_probes = 1;
+    options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl); 
 
     // Create libparistraceroute loop

@@ -109,7 +109,7 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     // If we have a setter function, we use it, otherwise write the value directly
     if (protocol_field->set) {
         if (!(protocol_field->set(layer->segment, field))) {
-            fprintf(stderr, "layer_set_field: can't set field '%s'\n", field->key);
+            fprintf(stderr, "layer_set_field: can't set field '%s' in layer %s\n", field->key, layer->protocol->name);
             goto ERR_PROTOCOL_FIELD_SET;
         }
     } else {
@@ -171,19 +171,27 @@ ERR_CREATE_LAYER:
 
 bool layer_extract(const layer_t * layer, const char * field_name, void * value) {
     const protocol_field_t * protocol_field;
-    bool  ret = false;
+    field_t                * field;
 
-    if (layer && layer->protocol) {
-        if ((protocol_field = protocol_get_field(layer->protocol, field_name))) {
-            memcpy(
-                value,
-                layer->segment + protocol_field->offset,
-                field_get_type_size(protocol_field->type)
-            );
-            ret = true;
-        }
-    }
-    return ret;
+    if (!(layer && layer->protocol)) goto ERR_PARAM;
+    if (!(protocol_field = protocol_get_field(layer->protocol, field_name))) goto ERR_PROTOCOL_GET_FIELD; 
+
+    // TODO this is crappy
+    if (!(field = field_create_from_network(
+            protocol_field->type,
+            protocol_field->key,
+            layer->segment + protocol_field->offset
+        )
+    )) goto ERR_FIELD_CREATE;
+
+    memcpy(value, &field->value, field_get_size(field));
+    field_free(field);
+    return true;
+
+ERR_PROTOCOL_GET_FIELD:
+ERR_FIELD_CREATE:
+ERR_PARAM:
+    return false;
 }
 
 void layer_dump(layer_t * layer, unsigned int indent)

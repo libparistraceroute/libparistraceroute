@@ -32,6 +32,38 @@ static inline bool reply_extract_tag(const probe_t * reply, uint16_t * ptag_repl
     return probe_extract_ext(reply, "checksum", 3, ptag_reply);
 }
 
+static void probe_should_be(const probe_t * probe) {
+    probe_t    * probe_should_be;
+    layer_t          * layer1,
+                     * layer2;
+    const protocol_t * protocol;
+    uint16_t           length1, length2, checksum1, checksum2;
+    size_t             i, num_layers = probe_get_num_layers(probe);
+
+    printf("probe should be: ==============================\n");
+    if ((probe_should_be = probe_dup(probe))) {
+        probe_update_fields(probe_should_be);
+        for (i = 0; i < num_layers; ++i) {
+            // protocol_field_get
+            layer1 = probe_get_layer(probe, i);
+            layer2 = probe_get_layer(probe_should_be, i);
+            protocol = layer1->protocol;
+            if (protocol) {
+                if (layer_extract(layer1, "length", &length1)
+                &&  layer_extract(layer2, "length", &length2)) {
+                    printf("> layer %s: length = %04x (should be %04x)\n", protocol->name, length1, length2); 
+                }
+
+                if (layer_extract(layer1, "checksum", &checksum1)
+                &&  layer_extract(layer2, "checksum", &checksum2)) {
+                    printf("> layer %s: checksum = %04x (should be %04x)\n", protocol->name, checksum1, checksum2); 
+                }
+            }
+        }
+        probe_free(probe_should_be);
+    }
+}
+
 /**
  * \brief Set the probe ID (tag) from a probe
  * \param probe The probe we want to update
@@ -393,15 +425,8 @@ bool network_process_sendq(network_t * network)
     printf("333333333333333333333333333333333");
     probe_dump(probe);
     printf("444444444444444444444444444444444");
-    // DEBUG
-    {
-        probe_t * probe_should_be;
-        if ((probe_should_be = probe_dup(probe))) {
-            probe_update_fields(probe_should_be);
-            probe_dump(probe_should_be);
-        }
-    }
     */
+    probe_should_be(probe);
 
     // Make a packet from the probe structure 
     if (!(packet = probe_create_packet(probe))) {

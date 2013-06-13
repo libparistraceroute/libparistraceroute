@@ -7,7 +7,6 @@
  */
 
 #include <stdbool.h>
-#include "stackedlist.h"
 #include "field.h"
 #include "layer.h"
 #include "buffer.h"
@@ -83,7 +82,7 @@ void probe_dump(const probe_t * probe);
  * \return true iif successfull  
  */
 
-bool probe_set_field_ext(probe_t * probe, size_t depth, field_t * field);
+bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field);
 
 /**
  * \brief Set a field according to a given field name. The first
@@ -93,7 +92,7 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, field_t * field);
  * \return true iif successfull  
  */
 
-bool probe_set_field(probe_t * probe, field_t * field);
+bool probe_set_field(probe_t * probe, const field_t * field);
 
 /**
  * \brief Update 'length', 'checksum' and 'protocol' fields for each
@@ -111,7 +110,7 @@ bool probe_update_fields(probe_t * probe);
  * \return true iif successful,
  */
 
-bool probe_set_fields(probe_t * probe, field_t * field1, ...);
+bool probe_set_fields(probe_t * probe, const field_t * field1, ...);
 
 /**
  * \brief Assigns a set of fields to a probe
@@ -234,6 +233,16 @@ size_t probe_get_payload_size(const probe_t * probe);
  */
 
 const char * probe_get_protocol_name(const probe_t * probe, size_t i);
+
+/**
+ * \brief Retrieve the i-th layer stored in a probe.
+ * \param probe The queried probe
+ * \param The index of the layer (from 0 to probe_get_num_layers(probe) - 1).
+ *   The last layer is the payload.
+ * \return The corresponding layer, NULL if i is invalid.
+ */
+
+layer_t * probe_get_layer(const probe_t * probe, size_t i);
 
 /**
  * \brief Retrieve the number of layers (number of headers + 1 (payload))

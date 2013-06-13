@@ -117,11 +117,11 @@ bool ipv6_set_src_ip(uint8_t * ipv6_header, const field_t * field){
 
 field_t * ipv6_get_src_ip(const uint8_t * ipv6_header){
     char res[IPV6_STRSIZE];
-    struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
+    const struct ip6_hdr * ip6_hed = (const struct ip6_hdr *) ipv6_header;
 
     memset(res, 0, IPV6_STRSIZE);
     inet_ntop(AF_INET6, &ip6_hed->ip6_src, res, IPV6_STRSIZE);
-    return field_create_string(IPV6_FIELD_SRC_IP, res);
+    return STR(IPV6_FIELD_SRC_IP, res);
 }
 
 /**
@@ -144,11 +144,11 @@ bool ipv6_set_dst_ip(uint8_t * ipv6_header, const field_t * field){
 
 field_t * ipv6_get_dst_ip(const uint8_t * ipv6_header){
     char res[IPV6_STRSIZE];
-    struct ip6_hdr *ip6_hed = (struct ip6_hdr *) ipv6_header;
+    const struct ip6_hdr *ip6_hed = (const struct ip6_hdr *) ipv6_header;
 
     memset(res, 0, IPV6_STRSIZE);
     inet_ntop(AF_INET6, &ip6_hed->ip6_dst, res, IPV6_STRSIZE);
-    return field_create_string(IPV6_FIELD_DST_IP, res);
+    return STR(IPV6_FIELD_DST_IP, res);
 }
 
 
@@ -157,41 +157,41 @@ static protocol_field_t ipv6_fields[] = {
 
     {
 //        .key      = IPV6_FIELD_VERSION,
-//        .type     = TYPE_INT4,
+//        .type     = TYPE_UINT4,
 //        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un2_vfc), // ip6_un1_flow contains 4 bits version, 8 bits tcl, 20 bits flow-ID
 //    }, {
 //        .key      = IPV6_FIELD_TCL,
-//        .type     = TYPE_INT8,
+//        .type     = TYPE_UINT8,
 //        .offset   = offsetof(struct ip6_hdr, ip6_un1_flow,) // Same as above 8 bits
 //    }, {
         .key      = IPV6_FIELD_FLOWLABEL_LOWER,
-        .type     = TYPE_INT16,
+        .type     = TYPE_UINT16,
         .offset   = (offsetof(struct ip6_hdr,  ip6_ctlun.ip6_un1.ip6_un1_flow) +2), // Same as above 20 bits /reduce it to 16 for testing.
     }, {
         .key      = IPV6_FIELD_PAYLOADLENGTH,
-        .type     = TYPE_INT16,
+        .type     = TYPE_UINT16,
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_plen),
     }, {
         .key      = IPV6_FIELD_NEXT_HEADER,
-        .type     = TYPE_INT8,
+        .type     = TYPE_UINT8,
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
     }, {
         .key      = IPV6_FIELD_HOPLIMIT,
-        .type     = TYPE_INT8,
+        .type     = TYPE_UINT8,
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_hlim),
     }, {
         .key      = IPV6_FIELD_PROTOCOL,
-        .type     = TYPE_INT8,
+        .type     = TYPE_UINT8,
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
     }, {
         .key      = IPV6_FIELD_SRC_IP,
-        .type     = TYPE_INT128,
+        .type     = TYPE_UINT128,
         .offset   = offsetof(struct ip6_hdr, ip6_src),
         .set      = ipv6_set_src_ip,
         .get      = ipv6_get_src_ip,
     }, {
        .key      = IPV6_FIELD_DST_IP,
-       .type     = TYPE_INT128,
+       .type     = TYPE_UINT128,
        .offset   = offsetof(struct ip6_hdr, ip6_dst),
        .set      = ipv6_set_dst_ip,
        .get      = ipv6_get_dst_ip,
@@ -280,7 +280,7 @@ size_t ipv6_get_header_size(const uint8_t * ipv6_header) {
  * \return The size of the default header.
  */
 
-void ipv6_write_default_header(uint8_t * ipv6_header) {
+size_t ipv6_write_default_header(uint8_t * ipv6_header) {
     size_t size = sizeof(struct ip6_hdr);
     if (ipv6_header) memcpy(ipv6_header, &ipv6_default, size);
     return size;

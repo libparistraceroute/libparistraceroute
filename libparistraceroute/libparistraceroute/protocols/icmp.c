@@ -26,19 +26,19 @@
 static protocol_field_t icmp_fields[] = {
     {
         .key = ICMP_FIELD_TYPE,
-        .type = TYPE_INT8,
+        .type = TYPE_UINT8,
         .offset = offsetof(struct icmphdr, type),
     }, {
         .key = ICMP_FIELD_CODE,
-        .type = TYPE_INT8,
+        .type = TYPE_UINT8,
         .offset = offsetof(struct icmphdr, code),
     }, {
         .key = ICMP_FIELD_CHECKSUM,
-        .type = TYPE_INT16,
+        .type = TYPE_UINT16,
         .offset = offsetof(struct icmphdr, checksum),
     }, {
         .key = ICMP_FIELD_REST_OF_HEADER,
-        .type = TYPE_INT16,
+        .type = TYPE_UINT16,
         .offset = offsetof(struct icmphdr, un), // XXX union type 
         // optional = 0
     },
