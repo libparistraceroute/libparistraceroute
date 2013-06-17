@@ -1,4 +1,5 @@
 #include "probe_group.h"
+
 #include <float.h> // DBL_MAX
 #include <stdio.h>
 
@@ -16,13 +17,16 @@ static double get_node_delay(const tree_node_t * node) {
 static void update_delay(tree_node_t * node, double delay)
 {
     double parent_delay;
+    field_t * delay_field;
 
     if (node->parent) {
         parent_delay = get_node_delay(node->parent);
         if (parent_delay > delay) {
-            probe_set_delay(get_node_probe(node->parent), delay);
+            delay_field = DOUBLE("delay", delay);
+            probe_set_delay(get_node_probe(node->parent), delay_field);
+            field_free(delay_field);
             update_delay(node->parent, delay);
-        } 
+        }
     }
 }
 
@@ -32,11 +36,11 @@ probe_group_t * probe_group_create() {
 
     if (!(probe_group = malloc(sizeof(probe_group_t)))) goto ERR_MALLOC;
     if (!(probe = probe_create())) goto ERR_PROBE_CREATE;
-    probe_set_delay(probe, DBL_MAX);
+    probe_set_delay(probe, DOUBLE("delay",DBL_MAX));
     if (!(probe_group->tree_probes = tree_create(
         (ELEMENT_FREE) probe_free,
         (ELEMENT_DUMP) probe_dump)
-    )) goto ERR_TREE_CREATE; 
+    )) goto ERR_TREE_CREATE;
 
     if (!(tree_add_root(probe_group->tree_probes, probe))) goto ERR_ADD_ROOT;
 
@@ -68,7 +72,7 @@ bool probe_group_add(probe_group_t * probe_group, tree_node_t * node_caller, pro
     if (tree_node_add_child(node_caller, probe)) {
         delay = probe_get_delay(probe);
         if (get_node_delay(node_caller) > delay) {
-            probe_set_delay(get_node_probe(node_caller), delay);            
+            probe_set_delay(get_node_probe(node_caller),DOUBLE("delay", delay));
             update_delay(node_caller, delay);
         }
         ret = true;
@@ -81,7 +85,7 @@ tree_node_t * probe_group_get_root(probe_group_t * probe_group) {
     return tree_get_root(probe_group->tree_probes);
 }
 
-bool probe_group_del(tree_node_t * node_caller, size_t index) 
+bool probe_group_del(tree_node_t * node_caller, size_t index)
 {
     tree_node_t * node_del;
     size_t        i, num_children;
@@ -95,9 +99,9 @@ bool probe_group_del(tree_node_t * node_caller, size_t index)
         num_children = tree_node_get_num_children(node_caller);
         delay = DBL_MAX;
         for (i = 0; i < num_children; ++i) {
-            delay = MIN(delay, get_node_delay(tree_node_get_ith_child(node_caller, i))); 
+            delay = MIN(delay, get_node_delay(tree_node_get_ith_child(node_caller, i)));
         }
-        probe_set_delay(get_node_probe(node_caller), delay);
+        probe_set_delay(get_node_probe(node_caller),DOUBLE("delay", delay));
         update_delay(node_caller, delay);
         return true;
     }
@@ -126,7 +130,7 @@ void probe_group_iter_next_scheduled_probes(tree_node_t * node, void (* callback
 
 double probe_group_get_next_delay(const probe_group_t * probe_group) {
     if (!(probe_group)) goto ERR_PROBE_GROUP;
-    return get_node_delay(tree_get_root(probe_group->tree_probes)); 
+    return get_node_delay(tree_get_root(probe_group->tree_probes));
 
 ERR_PROBE_GROUP:
     return -1;

@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdbool.h> // bool
 
+struct generator_s;
 // TODO allow to define bit level fields (for instance for flags)
 // it could be use to manage properly i4 fields
 
@@ -32,7 +33,8 @@ typedef enum {
     TYPE_INT128,           /**< 128 bit integer*/
     TYPE_INTMAX,           /**< max integer    */
     TYPE_DOUBLE,           /**< double         */
-    TYPE_STRING            /**< string         */
+    TYPE_STRING,           /**< string         */
+    TYPE_GENERATOR         /**< generator_t    */
 } fieldtype_t;
 
 /**
@@ -41,16 +43,17 @@ typedef enum {
  */
 
 typedef union {
-    void         * value;  /**< Pointer to raw data                */
-    uint8_t        int4:4; /**< Value of data as a   4 bit integer */
-    uint8_t        int8;   /**< Value of data as a   8 bit integer */
-    uint16_t       int16;  /**< Value of data as a  16 bit integer */
-    uint32_t       int32;  /**< Value of data as a  32 bit integer */
-    uint64_t       int64;  /**< Value of data as a  64 bit integer */
-    uint128_t      int128; /**< Value of data as a 128 bit integer */
-    uintmax_t      intmax; /**< Value of data as a max integer     */
-    double         dbl;    /**< Value of data as a doubler     */
-    char         * string; /**< Pointer to string data             */
+    void                * value;     /**< Pointer to raw data                */
+    uint8_t               int4:4;    /**< Value of data as a   4 bit integer */
+    uint8_t               int8;      /**< Value of data as a   8 bit integer */
+    uint16_t              int16;     /**< Value of data as a  16 bit integer */
+    uint32_t              int32;     /**< Value of data as a  32 bit integer */
+    uint64_t              int64;     /**< Value of data as a  64 bit integer */
+    uint128_t             int128;    /**< Value of data as a 128 bit integer */
+    uintmax_t             intmax;    /**< Value of data as a max integer     */
+    double                dbl;       /**< Value of data as a double          */
+    char                * string;    /**< Pointer to string data             */
+    struct generator_s  * generator; /**< Pointer to generator_t data        */
 } value_t;
 
 /**
@@ -144,6 +147,15 @@ field_t * field_create_double(const char * key, double value);
  */
 
 field_t * field_create_string(const char * key, const char * value);
+
+/**
+ * \brief Create a field structure to hold a generator
+ * \param key The name which identify the field to create
+ * \param value Value to copy in the field
+ * \return Structure containing the newly created field
+ */
+
+field_t * field_create_generator(const char * key, struct generator_s * value);
 
 /**
  * \brief Create a field structure to hold an address
@@ -258,6 +270,15 @@ field_t * field_dup(const field_t * field);
  */
 
 #define STR(x, y) field_create_string(x, y)
+
+
+/**
+ * \brief Macro shorthand for field_create_generator
+ * \param x Pointer to a char * key to identify the field
+ * \param y Pointer to the generator to store in the field
+ * \return Structure containing the newly created field
+ */
+#define GENERATOR(x, y) field_create_generator(x, y)
 
 /**
  * \brief Return the size (in bytes) related to a field type

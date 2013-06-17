@@ -53,6 +53,22 @@ void generator_free(generator_t * generator) {
     }
 }
 
+size_t generator_get_size(const generator_t * generator) {
+    return generator->size;
+}
+
+generator_t * generator_dup(const generator_t * generator) {
+    generator_t * gdup;
+    size_t        size = generator_get_size(generator);
+
+    if (!(gdup = malloc(size))) goto ERR_MALLOC;
+    memcpy(gdup, generator, size);
+    return gdup;
+
+ERR_MALLOC:
+    return NULL;
+}
+
 bool generator_set_field(generator_t * generator, field_t * field) {
     size_t    i, num_fields = generator->num_fields;
     field_t * field_to_update;
@@ -81,8 +97,7 @@ bool generator_set_field_and_free(generator_t * generator, field_t * field)
 void generator_dump(const generator_t * generator) {
     size_t i, num_fields = generator_get_num_fields(generator);
 
-    printf("*** GENERATOR : %s ", generator->name);
-    printf("***\n");
+    printf("*** GENERATOR : %s ***\n", generator->name);
     printf("generator parameters : \n");
     for (i = 0; i < num_fields; ++i) {
         printf("%s : ", field_get_key(generator->fields + i) );
@@ -106,6 +121,15 @@ bool generator_extract_value(const generator_t * generator, const char * key, vo
     if (!(field = generator_get_field(generator, key))) return false;
     memcpy(value, &field->value, field_get_size(field));
     return true;
+}
+
+double generator_get_value(generator_t * generator) {
+    return generator->value;
+}
+
+double generator_get_next_value(generator_t * generator) {
+    generator->value = generator->get_next_value(generator);
+    return generator->value;
 }
 
 bool generator_set_fields(generator_t * generator, const field_t * fields, size_t num_fields)

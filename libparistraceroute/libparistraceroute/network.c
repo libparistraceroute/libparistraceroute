@@ -149,25 +149,20 @@ static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
 }
 
 static bool update_timer(int timerfd, double delay) {
-    struct itimerspec  * delay_timer;
-    bool ret = false;
+    struct itimerspec    delay_timer;
 
-     if (!(delay_timer = calloc(1, sizeof(struct itimerspec)))) goto ERR_CALLOC;
-
-    if (delay < 0) goto ERR_INVALID_TIMEOUT;
+    memset(&delay_timer, 0, sizeof(struct itimerspec));
+    if (delay < 0) goto ERR_INVALID_DELAY;
 
     // Prepare the itimerspec structure
-    itimerspec_set_delay(delay_timer, delay);
+    itimerspec_set_delay(&delay_timer, delay);
 
     // Update the timer
-    ret = (timerfd_settime(timerfd, 0, delay_timer, NULL) != -1);
-    free(delay_timer);
-    return ret;
+    return (timerfd_settime(timerfd, 0, &delay_timer, NULL) != -1);
 
-ERR_INVALID_TIMEOUT:
-    free(delay_timer);
-ERR_CALLOC:
-    return ret;
+ERR_INVALID_DELAY:
+    fprintf(stderr, "update_timer: invalid delay (delay = %lf)\n", delay);
+    return false;
 }
 
 /**

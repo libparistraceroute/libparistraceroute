@@ -16,7 +16,7 @@ typedef struct {
     generator_t * generator; // parent class
 } uniform_generator_t;
 
-static double uniform_generator_get_next_value(generator_t * uniform_generator, size_t i) {
+static double uniform_generator_get_next_value(generator_t * uniform_generator) {
     double next_value;
     generator_extract_value(uniform_generator, "mean", &next_value);
     return next_value;
@@ -36,7 +36,8 @@ static generator_t uniform = {
     .get_next_value = uniform_generator_get_next_value,
     .fields         = uniform_fields,
     .num_fields     = 1,
-
+    .size           =  sizeof(uniform_generator_t),
+    .value          = -1,
 };
 
 GENERATOR_REGISTER(uniform);

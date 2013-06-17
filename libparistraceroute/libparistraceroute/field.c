@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
+
 #include "field.h"
+#include "generator.h"
 
 field_t * field_create_int4(const char * key, uint8_t value)
 {
@@ -113,6 +115,19 @@ field_t * field_create_string(const char * key, const char * value)
     return field;
 }
 
+field_t * field_create_generator(const char * key, struct generator_s * value)
+{
+    field_t * field = malloc(sizeof(field_t));
+
+    if (field) {
+        field->key = strdup(key);
+        field->value.generator = generator_dup(value);
+        field->type = TYPE_GENERATOR;
+    }
+    return field;
+}
+
+
 field_t * field_create(fieldtype_t type, const char * key, const void * value)
 {
     switch (type) {
@@ -132,6 +147,8 @@ field_t * field_create(fieldtype_t type, const char * key, const void * value)
             return field_create_double(key, *(const double *) value);
         case TYPE_STRING:
             return field_create_string(key, (const char *) value);
+        case TYPE_GENERATOR:
+            return field_create_generator(key, (struct generator_s *) value);
         case TYPE_INT4:
         default:
             break;

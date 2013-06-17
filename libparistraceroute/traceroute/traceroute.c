@@ -135,6 +135,75 @@ double delay_callback(size_t i){
  * \param argv Array of arguments
  * \return Execution code
  */
+
+int main(int argc, char ** argv) {
+    buffer_t  * payload;
+    probe_t   * probe,
+              * p1,
+              * p2,
+              * p3;
+    network_t * network;
+    double      delay;
+
+    printf("bonjour\n");
+    if (!(probe = probe_create())) {
+        perror("E: Cannot create probe skeleton");
+        //goto ERR_PROBE_CREATE;
+    }
+    if (!(payload = buffer_create())) {
+        perror("E: Cannot allocate payload buffer");
+        //goto ERR_BUFFER_CREATE;
+    }
+    buffer_write_bytes(payload, "\0\0", 2);
+    char dst_ip[] = "1.1.1.2";
+    probe_set_protocols(probe, "ipv4", "udp", NULL);
+    probe_write_payload(probe, payload);
+    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
+
+
+    generator_t * generator;
+    //tree_node_t * node;
+    // field_t * f = DOUBLE("mean", 2);
+    // const field_t * fa[1] = {f};
+    if (!(generator = generator_create_by_name("uniform"))) goto ERR_GENERATOR_CREATE;
+       // if (!(node = probe_group_create(generator, probe_skel, 10)))                 goto ERR_PROBE_GROUP_CREATE;
+    generator_dump(generator);
+    field_t * f = GENERATOR("delay", generator);
+    probe_set_delay(probe, GENERATOR("delay", generator));
+    probe_dump(probe);
+    //printf("next_value : %f \n", generator->get_next_value(generator));
+   // probe_tree_generator(probe, generator, 3);
+
+    if(!(network = network_create())) perror("E: Cannot create network");
+    //p3 = probe_dup(probe);
+ //   probe_set_delay(p3, 3);
+    //probe_group_add(network->group_probes, NULL, p3);
+    //p1 = probe_dup(probe);
+   // probe_set_delay(p1, 2);
+   // probe_group_add(network->group_probes, NULL, p1);
+    //p2 = probe_dup(probe);
+    //probe_set_delay(p2, 1);
+    //probe_group_add(network->group_probes, NULL , p2);
+    //probe_group_dump(network->group_probes);
+    //delay = network_get_next_scheduled_probe_delay(network);
+    //printf("delay %f\n", delay);
+    ///printf("-------------------tree after delete---------------------------------\n");
+    //probe_group_del(probe_group_get_root(network->group_probes), 2);
+    //probe_group_dump(network->group_probes);
+    //delay = network_get_next_scheduled_probe_delay(network);
+    //printf("delay %f\n", delay);
+    //network_process_scheduled_probe(network);
+    //printf(" update \n");
+    //network_update_next_scheduled_delay(network);
+    printf("bye\n");
+
+   //tree_free(tree);
+    return 0;
+ERR_GENERATOR_CREATE:
+    return 0;
+}
+
+/*
 int main(int argc, char ** argv)
 {
     buffer_t             * payload;
@@ -142,12 +211,13 @@ int main(int argc, char ** argv)
     probe_t              * probe;
     pt_loop_t            * loop;
     int                    ret = EXIT_FAILURE;
+    buffer_t             * payload;
 //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
 
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-   //char dst_ip[] = "8.8.8.8";
-   char dst_ip[] = "1.1.1.2";
+   char dst_ip[] = "8.8.8.8";
+   //char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
         perror("E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
@@ -206,3 +276,4 @@ ERR_LOOP_CREATE:
 ERR_BUFFER_CREATE:
     exit(ret);
 }
+*/
