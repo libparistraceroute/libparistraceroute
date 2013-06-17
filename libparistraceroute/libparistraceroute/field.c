@@ -71,13 +71,10 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
         case TYPE_UINT32:
             return field_create_uint32(key, ntohl(*(uint32_t *) value));
         case TYPE_UINT64:
-            return field_create_uint64(key, ntohl(*(uint64_t *) value));
         case TYPE_UINT128:
-            // return field_create_uint128(key, ntohl(*(uint128_t *) value));
+        case TYPE_UINTMAX:
             perror("field_create_from_network: Not yet implemented");
             return NULL;
-        case TYPE_UINTMAX:
-            return field_create_uintmax(key, ntohl(*(uintmax_t *) value));
         case TYPE_STRING:
             return field_create_string(key, (const char *) value);
         default:
