@@ -1,127 +1,158 @@
-#include "algorithm.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sys/signalfd.h>
-#include <signal.h>
 #include "pt_loop.h"
+
+#include <stdbool.h>       // bool
+#include <stdio.h>         // perror 
+#include <stdlib.h>        // malloc, free
+#include <string.h>        // memset
+#include <errno.h>         // perror
+#include <unistd.h>        // close
+#include <sys/epoll.h>     // epoll_ctl
+#include <sys/signalfd.h>  // eventfd
+#include <signal.h>        // SIGINT, SIGQUIT
+
+#include "algorithm.h"
 
 #define MAXEVENTS 100
 
 /**
  * \brief (Internal usage) Release from the memory loop->user_events;
- * \parma loop The main loop
+ * \param loop The main loop
  */
 
-static void pt_loop_clear_user_events(pt_loop_t * loop);
+static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
+    dynarray_clear(loop->events_user, NULL); //(ELEMENT_FREE) event_free); TODO this provoke a segfault in case of stars
+}
 
-pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *), void * user_data)
-{
-    int                  s,
-                         network_sendq_fd,
-                         network_recvq_fd,
-                         network_sniffer_fd,
-                         network_timerfd;
-    pt_loop_t          * loop;
-    struct epoll_event * network_sendq_event = calloc(1, sizeof(struct epoll_event));
-    struct epoll_event * network_recvq_event = calloc(1, sizeof(struct epoll_event));
-    struct epoll_event * network_sniffer_event = calloc(1, sizeof(struct epoll_event));
-    struct epoll_event * algorithm_event = calloc(1, sizeof(struct epoll_event)) ;
-    struct epoll_event * user_event = calloc(1, sizeof(struct epoll_event));
-    struct epoll_event * network_timerfd_event = calloc(1, sizeof(struct epoll_event));
-    struct epoll_event * signal_event = calloc(1, sizeof(struct epoll_event));
-    sigset_t             mask; // Signal management
+/**
+ * \brief Register a file descriptor in Paris Traceroute loop
+ * \param loop The main loop
+ * \param fd A file descriptor
+ * \return true iif successfull
+ */
 
-    if (!(loop = malloc(sizeof(pt_loop_t)))) {
-        goto ERR_LOOP;
+static bool register_efd(pt_loop_t * loop, int fd) {
+    bool   ret;
+    struct epoll_event event;
+
+    // Check whether the fd is fine or not
+    if (fd == -1) goto ERR_FD;
+
+    // Prepare epoll event structure
+    memset(&event, 0, sizeof(struct epoll_event));
+    event.data.fd = fd;
+    event.events = EPOLLIN; // | EPOLLET;
+
+    // Register fd in pt_loop 
+    if (epoll_ctl(loop->efd, EPOLL_CTL_ADD, fd, &event) == -1) {
+        perror("Error epoll_ctl");
+        goto ERR_EPOLL_CTL;
     }
+    return true;
 
-    loop->handler_user = handler_user;
+ERR_EPOLL_CTL:
+ERR_FD:
+    return false;
+}
 
-    /* epoll file descriptor */
-    loop->efd = epoll_create1(0);
-    if (loop->efd == -1)
-        goto ERR_EPOLL;
-    
-    /* eventfd for algorithms */
-    loop->eventfd_algorithm = eventfd(0, EFD_SEMAPHORE);
-    if ((loop->eventfd_algorithm = eventfd(0, EFD_SEMAPHORE)) == -1)
-        goto ERR_EVENTFD_ALGORITHM;
-    algorithm_event->data.fd = loop->eventfd_algorithm;
-    algorithm_event->events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_algorithm, algorithm_event);
-    if (s == -1)
-        goto ERR_EVENTFD_ADD_ALGORITHM;
+/**
+ * \brief Prepare a EFD_SEMAPHORE event_fd
+ * \return The correspnding file descriptor, -1 in case of failure
+ */
 
-    /* eventfd for user */
-    loop->eventfd_user = eventfd(0, EFD_SEMAPHORE);
-    if (loop->eventfd_user == -1)
-        goto ERR_EVENTFD_USER;
-    user_event->data.fd = loop->eventfd_user;
-    user_event->events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl(loop->efd, EPOLL_CTL_ADD, loop->eventfd_user, user_event);
-    if (s == -1)
-        goto ERR_EVENTFD_ADD_USER;
-  
-    /* Signal processing */
+static inline int make_event_fd() {
+    int fd;
+
+    if ((fd = eventfd(0, EFD_SEMAPHORE)) == -1) {
+        perror("Error eventfd");
+    }
+    return fd;
+}
+
+/**
+ * \brief Prepare a signal file descriptor used to handle SIGINT and SIGQUIT signals
+ * \return The correspnding file descriptor, -1 in case of failure
+ */
+
+static int make_signal_fd() {
+    int       sfd;
+    sigset_t  mask;
+
+    // Signal processing
+    // Block signals so that they are not managed by their handlers anymore
     sigemptyset(&mask);
     sigaddset(&mask, SIGINT);
     sigaddset(&mask, SIGQUIT);
 
-    /* Block signals so that they are not managed by their handlers anymore */
-    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
         goto ERR_SIGPROCMASK;
+    }
 
-    loop->sfd = signalfd(-1, &mask, 0);
-    if (loop->sfd == -1)
+    if ((sfd = signalfd(-1, &mask, 0)) == -1) {
+        perror("Error signalfd");
         goto ERR_SIGNALFD;
+    }
 
-    signal_event->data.fd = loop->sfd;
-    signal_event->events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, loop->sfd, signal_event);
-    if (s == -1) 
-        goto ERR_SIGNALFD_ADD;
-   
-    /* network */
-    loop->network = network_create();
-    if (!(loop->network))
-        goto ERR_NETWORK;
+    return sfd;
 
-    /* sending queue */
-    network_sendq_fd = network_get_sendq_fd(loop->network);
-    network_sendq_event->data.fd = network_sendq_fd;
-    network_sendq_event->events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sendq_fd, network_sendq_event);
-    if (s == -1)
-        goto ERR_SENDQ_ADD;
+ERR_SIGPROCMASK:
+ERR_SIGNALFD:
+    return -1;
+}
+
+/**
+ * \brief Create an ALGORITHM* event carrying a nested user event.
+ * \param loop The main loop
+ * \param type Type of event
+ */
+
+static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
+    // Allocate the event
+    event_t * event = event_create(
+        type,
+        nested_event,
+        loop->cur_instance,
+        nested_event ? (ELEMENT_FREE) event_free : NULL
+    );
+    if (!event) return false; 
+
+    // Raise the event
+    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
+    return true;
+}
+
+pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *), void * user_data)
+{
+    pt_loop_t          * loop;
+
+    if (!(loop = malloc(sizeof(pt_loop_t)))) goto ERR_MALLOC;
+    loop->handler_user = handler_user;
+
+    // Prepare epoll file descriptor
+    if ((loop->efd = epoll_create1(0)) == -1) {
+        perror("Error epoll_create1");
+        goto ERR_EPOLL;
+    }
     
-    /* receiving queue */
-    network_recvq_fd = network_get_recvq_fd(loop->network);
-    network_recvq_event->data.fd = network_recvq_fd;
-    network_recvq_event->events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_recvq_fd, network_recvq_event);
-    if (s == -1) 
-        goto ERR_RECVQ_ADD;
+    // Prepare algorithm events fd and register it in loop->efd
+    if ((loop->eventfd_algorithm = make_event_fd()) == -1) goto ERR_MAKE_EVENTFD_ALGORITHM;
+    if (!register_efd(loop, loop->eventfd_algorithm))      goto ERR_EVENTFD_ALGORITHM;
 
-    /* sniffer */
-    network_sniffer_fd = network_get_sniffer_fd(loop->network);
-    network_sniffer_event->data.fd = network_sniffer_fd;
-    network_sniffer_event->events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_sniffer_fd, network_sniffer_event);
-    if (s == -1)
-        goto ERR_SNIFFER_ADD;
+    // Prepare user events fd and register it in loop->efd
+    if ((loop->eventfd_user = make_event_fd()) == -1)      goto ERR_MAKE_EVENTFD_USER;
+    if (!register_efd(loop, loop->eventfd_user))           goto ERR_EVENTFD_USER;
+ 
+    // Signal processing
+    if ((loop->sfd = make_signal_fd()) == -1)              goto ERR_MAKE_SIGNALFD;
+    if (!register_efd(loop, loop->sfd))                    goto ERR_SIGNALFD;
+   
+    // Prepare network layer and register it in pt_loop 
+    if (!(loop->network = network_create()))                        goto ERR_NETWORK_CREATE;
+    if (!register_efd(loop, network_get_sendq_fd(loop->network)))   goto ERR_EVENTFD_SENDQ;
+    if (!register_efd(loop, network_get_recvq_fd(loop->network)))   goto ERR_EVENTFD_RECVQ;
+    if (!register_efd(loop, network_get_sniffer_fd(loop->network))) goto ERR_EVENTFD_SNIFFER;
+    if (!register_efd(loop, network_get_timerfd(loop->network)))    goto ERR_EVENTFD_TIMEOUT;
 
-    /* Timerfd */
-    network_timerfd = network_get_timerfd(loop->network);
-    network_timerfd_event->data.fd = network_timerfd;
-    network_timerfd_event->events = EPOLLIN; // | EPOLLET;
-    s = epoll_ctl (loop->efd, EPOLL_CTL_ADD, network_timerfd, network_timerfd_event);
-    if (s == -1)
-        goto ERR_TIMERFD_ADD;
-
-    // Buffer where events are returned
+    // Buffer where pending events are stored 
     if (!(loop->epoll_events = calloc(MAXEVENTS, sizeof(struct epoll_event)))) {
         goto ERR_EVENTS;
     }
@@ -141,26 +172,26 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
 ERR_EVENTS_USER:
     free(loop->epoll_events);
 ERR_EVENTS:
-ERR_TIMERFD_ADD:
-ERR_SNIFFER_ADD:
-ERR_RECVQ_ADD:
-ERR_SENDQ_ADD:
+ERR_EVENTFD_TIMEOUT:
+ERR_EVENTFD_SNIFFER:
+ERR_EVENTFD_RECVQ:
+ERR_EVENTFD_SENDQ:
     network_free(loop->network);
-ERR_NETWORK:
-ERR_SIGNALFD_ADD:
+ERR_NETWORK_CREATE:
+ERR_SIGNALFD:
     close(loop->sfd);
 ERR_SIGNALFD:
 ERR_SIGPROCMASK:
-ERR_EVENTFD_ADD_USER:
     close(loop->eventfd_user);
 ERR_EVENTFD_USER:
-ERR_EVENTFD_ADD_ALGORITHM:
     close(loop->eventfd_algorithm);
+ERR_MAKE_EVENTFD_USER:
 ERR_EVENTFD_ALGORITHM:
     close(loop->efd);
+ERR_MAKE_EVENTFD_ALGORITHM:
 ERR_EPOLL:
     free(loop);
-ERR_LOOP:
+ERR_MALLOC:
     return NULL;
 }
 
@@ -193,32 +224,25 @@ inline size_t pt_loop_get_num_user_events(pt_loop_t * loop) {
     return loop->events_user->size;
 }
 
-static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
-    dynarray_clear(loop->events_user, NULL); //(ELEMENT_FREE) event_free); TODO this provoke a segfault in case of stars
-}
-
 /**
- * \brief User-defined handler called by libparistraceroute 
- * \param loop The libparistraceroute loop
- * \param algorithm_outputs Information updated by the algorithm
- * \return An integer used by pt_loop()
- *   - <0: there is failure, stop pt_loop
- *   - =0: algorithm has successfully ended, stop the loop
- *   - >0: the algorithm has not yet ended, continue
+ * \brief Process every pending user events (e.g. pt_loop_get_num_user_events(loop) events)
+ * \param loop The main loop
+ * \return true iif successfull
  */
 
-int pt_loop_process_user_events(pt_loop_t * loop) {
+static int pt_loop_process_user_events(pt_loop_t * loop) {
     event_t      ** events        = pt_loop_get_user_events(loop); 
     size_t          i, num_events = pt_loop_get_num_user_events(loop);
     uint64_t        ret;
     ssize_t         count;
 
     for (i = 0; i < num_events; i++) {
-        // decrement the associated eventfd counter
-        count = read(loop->eventfd_user, &ret, sizeof(ret));
-        if (count == -1)
+        if (read(loop->eventfd_user, &ret, sizeof(ret)) == -1) {
             return -1;
+        }
+        // TODO decrement the associated eventfd counter
 
+        // Call user-defined handler and pass the current user event
         loop->handler_user(loop, events[i], loop->user_data);
     }
     return 1;
@@ -323,55 +347,19 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
 bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 {
-    /*
-    // See network.h: This code is relevant for 2nd approach
-    probe_t * probe_duplicated;
-
-    printf("In pt_send_probe:\n");
-    probe_dump(probe);
-
-    if (!(probe_duplicated = probe_dup(probe))) {
-        perror("pt_send_probe: Cannot duplicate probe\n");
-        goto ERR_PROBE_DUP;
-    }
-
-    printf("In pt_send_probe (duplicated probe):\n");
-    probe_dump(probe);
-    */
-    probe_t * probe_duplicated = probe;
-
     // Annotate which algorithm has generated this probe
-    probe_set_caller(probe_duplicated, loop->cur_instance);
-    probe_set_queueing_time(probe_duplicated, get_timestamp());
+    probe_set_caller(probe, loop->cur_instance);
+    probe_set_queueing_time(probe, get_timestamp());
 
     // Assign a probe tag
     // TODO for the moment, probe tagging is hardcoded in the network layer
-    queue_push_element(loop->network->sendq, probe_duplicated);
+    queue_push_element(loop->network->sendq, probe);
 
     return true;
-    /*
-ERR_PROBE_DUP:
-    return false;
-    */
 }
 
 void pt_loop_terminate(pt_loop_t * loop) {
     loop->stop = PT_LOOP_TERMINATE;
-}
-
-static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
-    // Allocate the event
-    event_t * event = event_create(
-        type,
-        nested_event,
-        loop->cur_instance,
-        nested_event ? (ELEMENT_FREE) event_free : NULL
-    );
-    if (!event) return false; 
-
-    // Raise the event
-    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
-    return true;
 }
 
 bool pt_raise_event(pt_loop_t * loop, event_t * event) {
