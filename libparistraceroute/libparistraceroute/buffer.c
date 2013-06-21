@@ -92,11 +92,7 @@ void buffer_dump(const buffer_t * buffer) {
     size_t i, n = buffer->size;
 
     for (i = 0; i < n; i++) {
-        printf("%2x ", buffer->data[i]);
+        printf("%02x ", buffer->data[i]);
     }
 }
-
-
-
-
 

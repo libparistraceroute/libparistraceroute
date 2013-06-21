@@ -31,7 +31,6 @@ static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
  */
 
 static bool register_efd(pt_loop_t * loop, int fd) {
-    bool   ret;
     struct epoll_event event;
 
     // Check whether the fd is fine or not
@@ -180,8 +179,7 @@ ERR_EVENTFD_SENDQ:
 ERR_NETWORK_CREATE:
 ERR_SIGNALFD:
     close(loop->sfd);
-ERR_SIGNALFD:
-ERR_SIGPROCMASK:
+ERR_MAKE_SIGNALFD:
     close(loop->eventfd_user);
 ERR_EVENTFD_USER:
     close(loop->eventfd_algorithm);
@@ -234,7 +232,6 @@ static int pt_loop_process_user_events(pt_loop_t * loop) {
     event_t      ** events        = pt_loop_get_user_events(loop); 
     size_t          i, num_events = pt_loop_get_num_user_events(loop);
     uint64_t        ret;
-    ssize_t         count;
 
     for (i = 0; i < num_events; i++) {
         if (read(loop->eventfd_user, &ret, sizeof(ret)) == -1) {

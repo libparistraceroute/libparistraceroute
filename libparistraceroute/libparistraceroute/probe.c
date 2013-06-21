@@ -238,7 +238,8 @@ static layer_t * probe_get_layer(const probe_t * probe, size_t i) {
 }
 
 static layer_t * probe_get_layer_payload(const probe_t * probe) {
-    return probe_get_layer(probe, probe_get_num_layers(probe) - 1);
+    layer_t * payload_layer = probe_get_layer(probe, probe_get_num_layers(probe) - 1);
+    return payload_layer->protocol ? NULL : payload_layer;
 }
 
 static bool probe_push_layer(probe_t * probe, layer_t * layer) {
@@ -248,26 +249,27 @@ static bool probe_push_layer(probe_t * probe, layer_t * layer) {
 static bool probe_push_payload(probe_t * probe, size_t payload_size) {
     layer_t * payload_layer,
             * first_layer;
-    size_t    headers_offset;
+    uint8_t * payload_bytes;
+    size_t    packet_size;
 
     // Check whether a payload is already set
     if ((payload_layer = probe_get_layer_payload(probe))) {
-        if (!payload_layer->protocol) {
-            fprintf(stderr, "Payload already set\n");
-            goto ERR_PAYLOAD_ALREADY_SET;
-        }
+        fprintf(stderr, "Payload already set\n");
+        goto ERR_PAYLOAD_ALREADY_SET;
     }
 
-    // There is no payload, so the segment size of the first layer (if any)
-    // is equal to the sum of the header's sizes.
-    headers_offset = (first_layer = probe_get_layer(probe, 0)) ?
-        first_layer->segment_size : 0;
+    // Get the first protocol layer
+    if (!(first_layer = probe_get_layer(probe, 0))) {
+        fprintf(stderr, "No protocol layer defined in this probe\n");
+        goto ERR_NO_FIRST_LAYER;
+    }
 
-    if (!(payload_layer = layer_create_from_segment(
-        NULL,
-        packet_get_bytes(probe->packet) + headers_offset,
-        payload_size
-    ))) {
+    // The first segment stores the packet size, thus:
+    // @payload = @first_segment + packet_size - payload_size
+    packet_size = first_layer->segment_size;
+    payload_bytes = packet_get_bytes(probe->packet) + packet_size - payload_size;
+
+    if (!(payload_layer = layer_create_from_segment(NULL, payload_bytes, payload_size))) {
         goto ERR_LAYER_CREATE;
     }
 
@@ -278,11 +280,9 @@ static bool probe_push_payload(probe_t * probe, size_t payload_size) {
     }
 
     // Resize the payload if required
-    if (payload_size > 0) {
-       if (!probe_payload_resize(probe, payload_size)) {
-           fprintf(stderr, "Can't resize payload\n");
-           goto ERR_PAYLOAD_RESIZE;
-       }
+    if (!probe_payload_resize(probe, payload_size)) {
+        fprintf(stderr, "Can't resize payload\n");
+        goto ERR_PAYLOAD_RESIZE;
     }
     return true;
 
@@ -291,6 +291,7 @@ ERR_PAYLOAD_RESIZE:
 ERR_PUSH_LAYER:
     layer_free(payload_layer);
 ERR_LAYER_CREATE:
+ERR_NO_FIRST_LAYER:
 ERR_PAYLOAD_ALREADY_SET:
     return false;
 }
@@ -422,6 +423,32 @@ void probe_dump(const probe_t * probe)
     printf("\n");
 }
 
+void probe_debug(const probe_t * probe) {
+    size_t    i, num_layers = probe_get_num_layers(probe); 
+    layer_t * layer1,
+            * layer2;
+    probe_t * probe_should_be;
+
+    if ((probe_should_be = probe_dup(probe))) {
+
+        // Compute expected values
+        probe_update_fields(probe_should_be);
+
+        // Dump fields
+        printf("** PROBE **\n\n");
+        printf("probe delay : %f\n\n", probe_get_delay(probe));
+        for (i = 0; i < num_layers; i++) {
+            layer1 = probe_get_layer(probe, i);
+            layer2 = probe_get_layer(probe_should_be, i);
+            layer_debug(layer1, layer2, i);
+            printf("\n");
+        }
+        printf("\n");
+
+        probe_free(probe_should_be);
+    }
+}
+
 //-----------------------------------------------------------
 // Buffer management 
 //-----------------------------------------------------------
@@ -493,6 +520,7 @@ static const protocol_t * default_get_next_protocol(const layer_t * layer) {
         next_protocol_id = field->value.int8;
         if (!(next_protocol = protocol_search_by_id(next_protocol_id))) {
             fprintf(stderr, "Unknown protocol ID: %d\n", next_protocol_id);
+            protocols_dump();
         }
         field_free(field);
     }
@@ -730,9 +758,26 @@ bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int o
     layer_t * payload_layer;
     size_t    payload_size = buffer_get_size(payload);
 
-    return (payload_layer = probe_get_layer_payload(probe))
-        && (probe_payload_resize(probe, payload_size))
-        && (layer_write_payload_ext(payload_layer, payload, offset));
+    if (!(payload_layer = probe_get_layer_payload(probe))) {
+        goto ERR_PROBE_GET_LAYER_PAYLOAD;
+    }
+
+    if (payload_size > probe_get_payload_size(probe)) {
+        if(!probe_payload_resize(probe, payload_size)) {
+            goto ERR_PROBE_PAYLOAD_RESIZE;
+        }
+    }
+
+    if (!layer_write_payload_ext(payload_layer, payload, offset)) {
+        goto ERR_LAYER_WRITE_PAYLOAD_EXT;
+    }
+
+    return true;
+
+ERR_LAYER_WRITE_PAYLOAD_EXT:
+ERR_PROBE_PAYLOAD_RESIZE:
+ERR_PROBE_GET_LAYER_PAYLOAD:
+    return false;
 }
 
 //-----------------------------------------------------------

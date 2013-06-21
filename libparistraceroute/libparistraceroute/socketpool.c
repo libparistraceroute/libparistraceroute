@@ -98,8 +98,8 @@ bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * pa
     }
 
     // Send the packet
-    size = buffer_get_size(packet->buffer);
-    if (sendto(socketpool->socket, buffer_get_data(packet->buffer), size, 0, (struct sockaddr *) &sock, sizeof(sock)) < 0){
+    size = packet_get_size(packet);
+    if (sendto(socketpool->socket, packet_get_bytes(packet), size, 0, (struct sockaddr *) &sock, sizeof(sock)) < 0){
         perror("send_data: sending error in queue");
         return false; 
     }

@@ -71,16 +71,6 @@ static struct udphdr udp_default = {
     .CHECKSUM = 0
 };
 
-
-/**
- * \brief Retrieve the number of fields in a UDP header
- * \return The number of fields
- */
-
-size_t udp_get_num_fields(void) {
-    return sizeof(udp_fields) / sizeof(protocol_field_t);
-}
-
 /**
  * \brief Retrieve the size of an UDP header 
  * \param udp_header Address of an UDP header or NULL
@@ -169,7 +159,6 @@ buffer_t * udp_create_pseudo_header(const uint8_t * ip_segment)
 static protocol_t udp = {
     .name                 = "udp",
     .protocol             = IPPROTO_UDP, 
-    .get_num_fields       = udp_get_num_fields,
     .write_checksum       = udp_write_checksum,
     .create_pseudo_header = udp_create_pseudo_header,
     .fields               = udp_fields,

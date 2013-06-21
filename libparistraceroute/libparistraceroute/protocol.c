@@ -1,15 +1,20 @@
 #include "protocol.h"
 
 #include <string.h>         // strcmp(), ...
-#include <search.h>         // tfind(), ...
+#include <search.h>         // tfind(), preorder...
 #include <stdio.h>          // perror()
-
 
 #include "common.h"         // ELEMENT_COMPARE
 #include "protocol_field.h" // protocol_field_t
 
-// static ?
-void * protocols_root;
+// Protocols are registered in the following trees.
+// We require two trees since a protocol may be retrieved
+// by using either its name or its protocol_id.
+
+static void * protocols_root;     /**< Tree ordered by name */
+static void * protocols_id_root;  /**< Tree ordered by id   */
+
+// TODO tdestroy(protocols_root, NULL) when leaving
 
 static int protocol_compare(
     const protocol_t * protocol1,
@@ -18,7 +23,7 @@ static int protocol_compare(
     return strcmp(protocol1->name, protocol2->name);
 }
 
-static int protocol_compare_id(
+static int protocol_id_compare(
     const protocol_t * protocol1,
     const protocol_t * protocol2
 ) {
@@ -40,13 +45,8 @@ const protocol_t * protocol_search_by_id(uint8_t id)
 {
     protocol_t ** protocol, search;
 
-    if (id == 58) {
-        perror("protocol_search_by_id: fix this hack :)");
-        return protocol_search("icmp6");
-    }
-
     search.protocol = id;
-    protocol = tfind(&search, &protocols_root, (ELEMENT_COMPARE) protocol_compare_id);
+    protocol = tfind(&search, &protocols_id_root, (ELEMENT_COMPARE) protocol_id_compare);
 
     return protocol ? *protocol : NULL;
 }
@@ -54,17 +54,8 @@ const protocol_t * protocol_search_by_id(uint8_t id)
 void protocol_register(protocol_t * protocol)
 {
     // Insert the protocol in the tree if the keys does not exist yet
-    tsearch(protocol, &protocols_root, (ELEMENT_COMPARE) protocol_compare);
-}
-
-void protocol_write_header_callback(field_t * field, void * data)
-{
-    protocol_field_t * protocol_field;
-    char *buf = data;
-
-    protocol_field = NULL; // TODO search field->key
-
-    memcpy(buf + protocol_field->offset, field->value.value, field_get_type_size(protocol_field->type));
+    tsearch(protocol, &protocols_root,    (ELEMENT_COMPARE) protocol_compare);
+    tsearch(protocol, &protocols_id_root, (ELEMENT_COMPARE) protocol_id_compare);
 }
 
 const protocol_field_t * protocol_get_field(const protocol_t * protocol, const char * name)
@@ -79,12 +70,14 @@ const protocol_field_t * protocol_get_field(const protocol_t * protocol, const c
     return NULL;
 }
 
-void protocol_iter_fields(protocol_t *protocol, void *data, void (*callback)(protocol_field_t *field, void *data))
-{
-    // TODO iterate on protocol->fields until reaching .key = NULL and remove get_num_fields callback from each protocol
-    size_t i, num_fields = protocol->get_num_fields();
-    for (i = 0; i < num_fields; i++) {
-        callback(&protocol->fields[i], data);
+void protocol_iter_fields(
+    const protocol_t * protocol,
+    void             * data,
+    void            (* callback)(const protocol_field_t * field, void * data)
+) {
+    const protocol_field_t * protocol_field;
+    for (protocol_field = protocol->fields; protocol_field->key; protocol_field++) {
+        callback(protocol_field, data);
     }
 }
 
@@ -104,3 +97,29 @@ uint16_t csum(const uint16_t * bytes, size_t size) {
     return (uint16_t) ~sum;
 }
 
+static inline void callback_protocol_field_dump(const protocol_field_t * protocol_field, void * data) {
+    protocol_field_dump(protocol_field);
+}
+
+void protocol_dump(const protocol_t * protocol) {
+    printf("*** %3d %s\n", protocol->protocol, protocol->name);
+    protocol_iter_fields(protocol, NULL, callback_protocol_field_dump);
+} 
+
+static void callback_protocols_dump(const void * node, VISIT visit, int level) {
+    const protocol_t * protocol;
+
+    switch (visit) {
+        case preorder: // 1st visit (not leaf)
+        case leaf:     // 1st visit (leaf)
+            protocol = *((protocol_t * const *) node);
+            protocol_dump(protocol);
+            break;
+        default:       // endorder (2nd visit) and postorder (3nd visit)
+            break;
+    }
+}
+
+void protocols_dump() {
+    twalk(protocols_root, callback_protocols_dump);
+}

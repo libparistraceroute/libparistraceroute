@@ -97,3 +97,7 @@ void packet_set_buffer(packet_t * packet, buffer_t * buffer) {
     packet->buffer = buffer;
 }
 
+void packet_dump(const packet_t * packet) {
+    buffer_dump(packet->buffer);
+    printf(" sent to (%s, %d)\n", packet->dst_ip, packet->dst_port);
+}

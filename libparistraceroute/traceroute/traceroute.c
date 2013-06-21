@@ -125,10 +125,6 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     //event_free(event); // TODO this may provoke seg fault in case of stars
 }
 
-double delay_callback(size_t i){
-    return (double) (i + 1);
-}
-
 /**
  * \brief Main program
  * \param argc Number of arguments
@@ -146,10 +142,10 @@ int main(int argc, char ** argv)
 
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-   //char dst_ip[] = "8.8.8.8";
-   char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "8.8.8.8";
+    //char dst_ip[] = "1.1.1.2";
     if (!(payload = buffer_create())) {
-        perror("E: Cannot allocate payload buffer");
+        fprintf(stderr, "E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
     }
 
@@ -160,36 +156,39 @@ int main(int argc, char ** argv)
     traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
     options.num_probes = 3;
-    //options.min_ttl = 4;
+    //options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
     if (!(loop = pt_loop_create(algorithm_handler, NULL))) {
-        perror("E: Cannot create libparistraceroute loop");
+        fprintf(stderr, "E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
 
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe = probe_create())) {
-        perror("E: Cannot create probe skeleton");
+        fprintf(stderr, "E: Cannot create probe skeleton");
         goto ERR_PROBE_CREATE;
     }
 
     probe_set_protocols(probe, "ipv4", "udp", NULL);
     probe_write_payload(probe, payload);
-    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
-    probe_dump(probe);
+    probe_set_fields(probe,
+        STR("dst_ip",   dst_ip),
+        I16("dst_port", 30000),
+        NULL
+    );
 
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {
-        perror("E: Cannot add 'traceroute' algorithm");
+        fprintf(stderr, "E: Cannot add 'traceroute' algorithm");
         goto ERR_INSTANCE;
     }
 
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop, 0) < 0) {
-        perror("E: Main loop interrupted");
+        fprintf(stderr, "E: Main loop interrupted");
         goto ERR_IN_PT_LOOP;
     }
     ret = EXIT_SUCCESS;

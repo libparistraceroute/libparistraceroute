@@ -26,12 +26,15 @@ bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * buffe
     return ret;
 }
 
-inline size_t protocol_field_get_offset(const protocol_field_t * protocol_field)
-{
+inline size_t protocol_field_get_offset(const protocol_field_t * protocol_field) {
     return protocol_field->offset;
 }
 
-inline size_t protocol_field_get_size(const protocol_field_t * protocol_field)
-{
+inline size_t protocol_field_get_size(const protocol_field_t * protocol_field) {
    return field_get_type_size(protocol_field->type);
 }
+
+void protocol_field_dump(const protocol_field_t * protocol_field) {
+    printf("> %s\n", protocol_field->key);
+}
+

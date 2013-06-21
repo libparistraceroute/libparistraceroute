@@ -138,11 +138,13 @@ bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned
 {
     if (layer->protocol) {
         // The layer embeds a nested layer
+        fprintf(stderr, "Calling layer_write_payload_ext not for a payload\n");
         return false;
     }
 
     if (offset + buffer_get_size(payload) > layer->segment_size) {
         // The buffer allocated to this layer is too small
+        fprintf(stderr, "Payload too small\n");
         return false;
     }
 
@@ -186,7 +188,7 @@ bool layer_extract(const layer_t * layer, const char * field_name, void * value)
     return ret;
 }
 
-void layer_dump(layer_t * layer, unsigned int indent)
+void layer_dump(const layer_t * layer, unsigned int indent)
 {
     size_t             i, size;
     protocol_field_t * protocol_field;
@@ -226,3 +228,44 @@ void layer_dump(layer_t * layer, unsigned int indent)
     }
 }
 
+
+void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent) {
+    protocol_field_t * protocol_field;
+    field_t          * field1,
+                     * field2;
+    const char       * sep = "----------\n";
+
+    if (!layer1->protocol) {
+        layer_dump(layer1, indent);
+    } else {
+        print_indent(indent);
+        printf("LAYER: %s\n", layer1->protocol->name);
+        print_indent(indent);
+        printf(sep);
+        
+        // Dump each (relevant) field
+        for(protocol_field = layer1->protocol->fields; protocol_field->key; protocol_field++) {
+            // Print field2 (if relevant)
+            if (strcmp(protocol_field->key, "length")   == 0
+            ||  strcmp(protocol_field->key, "checksum") == 0
+            ||  strcmp(protocol_field->key, "protocol") == 0) {
+                // Print caption
+                print_indent(indent);
+                printf("%-15s ", protocol_field->key);
+
+                // Print field1
+                field1 = layer_create_field(layer1, protocol_field->key);
+                field_dump(field1);
+                field_free(field1);
+
+                // Print field2
+                field2 = layer_create_field(layer2, protocol_field->key);
+                printf("\t");
+                field_dump(field2);
+                field_free(field2);
+
+                printf("\n");
+            }
+        }
+    }
+}

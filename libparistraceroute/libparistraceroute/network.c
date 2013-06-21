@@ -1,11 +1,11 @@
 #include <stdlib.h>      // malloc ...
 #include <string.h>      // memset
-#include <stdio.h>
-#include <time.h>
-#include <float.h>
+#include <stdio.h>       // fprintf
+#include <time.h>        // time_t
 #include <unistd.h>      // close
 #include <sys/timerfd.h> // timerfd_create, timerfd_settime
 #include <arpa/inet.h>   // htons
+#include <limits.h>      // INT_MAX
 
 #include "network.h"
 #include "common.h"
@@ -17,21 +17,22 @@
 // TODO static variable as timeout. Control extra_delay and timeout values consistency
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
-/* network options */
- const double wait[3] = {5,     0,   INT_MAX};
+// Network options
+const double wait[3] = {5, 0, INT_MAX};
 
 static struct opt_spec network_cl_options[] = {
-    /* action             short long      metavar     help    variable XXX */
-    {opt_store_double_lim,"w",  "--wait", "waittime", HELP_w, wait},
+    // action              short long      metavar     help    variable
+    {opt_store_double_lim, "w",  "--wait", "waittime", HELP_w, wait},
 };
 
-/** \brief return the commandline options related to network
-  * \return a pointer to an opt_spec structure
-  */
+/**
+ * \brief return the commandline options related to network
+ * \return a pointer to an opt_spec structure
+ */
+
 struct opt_spec * network_get_cl_options() {
     return network_cl_options;
 }
-
 
 /**
  * \brief Extract the probe ID (tag) from a probe
@@ -115,13 +116,13 @@ static void network_flying_probes_dump(network_t * network) {
 }
 
 /**
-  * \brief Get the oldest probe in network
-  * \param network Pointer to network instance
-  * \return a pointer to oldest probe
-  */
+ * \brief Get the oldest probe in network
+ * \param network Pointer to network instance
+ * \return A pointer to oldest probe if any, NULL otherwise
+ */
 
 static probe_t * network_get_oldest_probe(const network_t * network) {
-        return dynarray_get_ith_element(network->probes, 0);
+    return dynarray_get_ith_element(network->probes, 0);
 }
 
 /**
@@ -136,6 +137,12 @@ static probe_t * network_get_oldest_probe(const network_t * network) {
 static double network_get_probe_timeout(const network_t * network, const probe_t * probe) {
     return network_get_timeout(network) - (get_timestamp() - probe_get_sending_time(probe));
 }
+
+/**
+ * \brief Update a itimerspec instance according to a delay
+ * \param itimerspec The itimerspec instance we want to update
+ * \param delay A delay in seconds
+ */
 
 static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
     time_t delay_sec;
@@ -152,8 +159,7 @@ static bool update_timer(int timerfd, double delay) {
     struct itimerspec  * delay_timer;
     bool ret = false;
 
-     if (!(delay_timer = calloc(1, sizeof(struct itimerspec)))) goto ERR_CALLOC;
-
+    if (!(delay_timer = calloc(1, sizeof(struct itimerspec)))) goto ERR_CALLOC;
     if (delay < 0) goto ERR_INVALID_TIMEOUT;
 
     // Prepare the itimerspec structure
@@ -179,38 +185,6 @@ ERR_CALLOC:
 
 static bool network_update_next_timeout(network_t * network)
 {
-    /*
-    struct itimerspec   timeout;
-    probe_t           * probe;
-    double              next_timeout;
-
-    if ((probe = network_get_oldest_probe(network))) {
-        // The timer will updated according to the lifetime of the oldest flying probe
-//        next_timeout = network_get_timeout(network) - (get_timestamp() - probe_get_sending_time(probe));
-        next_timeout = network_get_probe_timeout(network, probe);, ,
-
-        if (next_timeout <= 0) {
-            // This should never occurs. If so, it means that we do not have raised enough
-            // PROBE_TIMEOUT event in network_drop_oldest_flying_probe
-            fprintf(stderr, "The new oldest probe has already expired!\n");
-            printf("negative timeout %f\n", next_timeout);
-            goto ERR_INVALID_TIMEOUT;
-        }
-    } else {
-        // The timer will be disarmed since there is no more flying probes
-        next_timeout = 0;
-    }
-
-    // Prepare the itimerspec structure
-    itimerspec_set_delay(&timeout, next_timeout);
-
-    // Update the timer
-    return timerfd_settime(network->timerfd, 0, &timeout, NULL) != -1;
-
-ERR_INVALID_TIMEOUT:
-    return false;
-    */
-
     probe_t * probe;
     double    next_timeout;
 
@@ -244,7 +218,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     probe_t  * probe;
     size_t     i, num_flying_probes;
 
-    // Get the 3-rd checksum field stored in the reply, since it stores our probe ID.
+    // Fetch the tag from the reply. Its the 3rd checksum field.
     if(!(reply_extract_tag(reply, &tag_reply))) {
         // This is not an IP/ICMP/IP/* reply :(
         fprintf(stderr, "Can't retrieve tag from reply\n");
@@ -427,7 +401,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     // Write the probe ID in the buffer
     if (!(buffer_write_bytes(payload, &tag, tag_size))) {
         fprintf(stderr, "Can't set data\n");
-        goto ERR_BUFFER_SET_DATA;
+        goto ERR_BUFFER_WRITE_BYTES;
     }
 
     // Write the tag at offset zero of the payload
@@ -436,13 +410,14 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_PROBE_WRITE_PAYLOAD;
     }
 
-    // Update checksum (TODO: should be done automatically by probe_set_fields)
+    // Fix checksum to get a well-formed packet
+    // TODO call probe_update_checksum
     if (!(probe_update_fields(probe))) {
         fprintf(stderr, "Can't update fields\n");
         goto ERR_PROBE_UPDATE_FIELDS;
     }
 
-    // Retrieve the checksum of UDP checksum
+    // Retrieve the checksum of UDP checksum (host-side endianness)
     if (!(probe_extract_tag(probe, &checksum))) {
         fprintf(stderr, "Can't extract tag\n");
         goto ERR_PROBE_EXTRACT_CHECKSUM;
@@ -454,20 +429,29 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_PROBE_SET_TAG;
     }
 
+    // Update checksum (network-side endianness)
+    checksum = htons(checksum);
+
     // Write the old checksum in the payload
-    buffer_write_bytes(payload, &checksum, tag_size);
+    if (!buffer_write_bytes(payload, &checksum, tag_size)) {
+        fprintf(stderr, "Can't write buffer (2)\n");
+        goto ERR_PROBE_WRITE_PAYLOAD2; 
+    }
+
     if (!(probe_write_payload(probe, payload))) {
         fprintf(stderr, "Can't write payload (2)\n");
-        goto ERR_PROBE_WRITE_PAYLOAD2;
+        goto ERR_BUFFER_WRITE_BYTES2;
     }
+
     return true;
 
+ERR_BUFFER_WRITE_BYTES2:
 ERR_PROBE_WRITE_PAYLOAD2:
 ERR_PROBE_SET_TAG:
 ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:
 ERR_PROBE_WRITE_PAYLOAD:
-ERR_BUFFER_SET_DATA:
+ERR_BUFFER_WRITE_BYTES:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
 ERR_INVALID_PAYLOAD:
@@ -492,29 +476,11 @@ bool network_process_sendq(network_t * network)
     // Its address will be saved in network->probes and freed later.
     probe = queue_pop_element(network->sendq, NULL);
 
-    /*
-    //printf("222222222222222222222222222222222");
-    //probe_dump(probe);
-    */
-
+    // Tag the probe
     if (!network_tag_probe(network, probe)) {
         fprintf(stderr, "Can't tag probe\n");
         goto ERR_TAG_PROBE;
     }
-
-    /*
-    printf("333333333333333333333333333333333");
-    probe_dump(probe);
-    printf("444444444444444444444444444444444");
-    // DEBUG
-    {
-        probe_t * probe_should_be;
-        if ((probe_should_be = probe_dup(probe))) {
-            probe_update_fields(probe_should_be);
-            probe_dump(probe_should_be);
-        }
-    }
-    */
 
     // Make a packet from the probe structure
     if (!(packet = probe_create_packet(probe))) {
@@ -536,8 +502,6 @@ bool network_process_sendq(network_t * network)
         fprintf(stderr, "Can't register probe\n");
         goto ERR_PUSH_PROBE;
     }
-
-    //network_flying_probes_dump(network);
 
     // We've just sent a probe and currently, this is the only one in transit.
     // So currently, there is no running timer, prepare timerfd.

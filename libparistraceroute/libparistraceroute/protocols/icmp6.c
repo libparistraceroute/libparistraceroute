@@ -5,6 +5,7 @@
 #include <stddef.h>        // offsetof()
 #include <netinet/icmp6.h> // icmp6_hdr
 #include <netinet/ip6.h>   // ip6_hdr
+#include <netinet/in.h>    // IPPROTO_ICMPV6 
 #include <arpa/inet.h>
 
 #include "../protocol.h"
@@ -20,16 +21,7 @@
 #define ICMP6_DEFAULT_CHECKSUM  0
 #define ICMP6_DEFAULT_BODY      0
 
-// Compat
-#define ICMP6_FIELD_PROTOCOL    "protocol"
-
-// implem TODO to remove see ipv6_pseudo_header_t
-#define HD_ICMP6_DADDR 16
-#define HD_ICMP6_LEN 32
-#define HD_ICMP6_PAD 36
-#define HD_ICMP6_NXH 39
-
-/* ICMP fields */
+// ICMP fields
 static protocol_field_t icmp6_fields[] = {
     {   
         .key = ICMP6_FIELD_TYPE,
@@ -60,16 +52,6 @@ static struct icmp6_hdr icmp6_default = {
     .icmp6_cksum  = ICMP6_DEFAULT_CHECKSUM,
     .icmp6_dataun = ICMP6_DEFAULT_BODY // XXX union type
 };
-
-/**
- * \brief Retrieve the number of fields in a ICMP header
- * \return The number of fields
- * TODO does this make sense for ICMPv6?
- */
-
-size_t icmp6_get_num_fields(void) {
-    return sizeof(icmp6_fields) / sizeof(protocol_field_t);
-}
 
 /**
  * \brief Retrieve the size of an ICMP6 header
@@ -105,28 +87,28 @@ size_t icmp6_write_default_header(uint8_t * icmpv6_header) {
 
 // XXX http://en.wikipedia.org/wiki/ICMPv6#Message_checksum
 
-bool icmp6_write_checksum(uint8_t * buf, buffer_t * psh)
+bool icmp6_write_checksum(uint8_t * icmp_header, buffer_t * ip_psh)
 {
+    // TODO reimplement this function like udp_write_checksum
+
     uint8_t * tmp;
     size_t    len;
-    uint16_t  res;
-    struct icmp6_hdr * icmp6_hed = (struct icmp6_hdr *) buf;
+    struct icmp6_hdr * icmp6_hed = (struct icmp6_hdr *) icmp_header;
 
-    if (!psh) { // pseudo header required
+    if (!ip_psh) { // pseudo header required
         errno = EINVAL;
         return false;
     }
 
     // TODO use csum
-    len = sizeof(struct icmp6_hdr) + buffer_get_size(psh);
+    len = sizeof(struct icmp6_hdr) + buffer_get_size(ip_psh);
     if (!(tmp = malloc(len))) { // not enough memory
         return false;
     }
 
-    memcpy(tmp, buffer_get_data(psh), buffer_get_size(psh));
-    memcpy(tmp + buffer_get_size(psh), icmp6_hed, sizeof(struct icmp6_hdr));
-    res = csum(*(uint16_t **) &tmp, (len >> 1));
-    icmp6_hed->icmp6_cksum = res;
+    memcpy(tmp, buffer_get_data(ip_psh), buffer_get_size(ip_psh));
+    memcpy(tmp + buffer_get_size(ip_psh), icmp6_hed, sizeof(struct icmp6_hdr));
+    icmp6_hed->icmp6_cksum = csum(*(uint16_t **) &tmp, (len >> 1));
 
     free(tmp);
     return true;
@@ -134,12 +116,11 @@ bool icmp6_write_checksum(uint8_t * buf, buffer_t * psh)
 
 static protocol_t icmp6 = {
     .name                 = "icmp6",
-    .protocol             = 1, // DO not change ... BREAKS paristraceroute
-    .get_num_fields       = icmp6_get_num_fields,
+    .protocol             = IPPROTO_ICMPV6,
     .write_checksum       = icmp6_write_checksum,
     .create_pseudo_header = ipv6_pseudo_header_create,
     .fields               = icmp6_fields,
-    .write_default_header = icmp6_write_default_header, // TODO generic
+    .write_default_header = icmp6_write_default_header, // TODO generic memcpy + header size
     .get_header_size      = icmp6_get_header_size,
 };
 

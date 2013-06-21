@@ -88,6 +88,13 @@ packet_t * packet_dup(const packet_t * packet);
 void packet_free(packet_t * packet);
 
 /**
+ * \brief Dump packet contents
+ * \param packet The packet instance we want to print
+ */
+
+void packet_dump(const packet_t * packet);
+
+/**
  * \brief Guess the IP version of a packet stored in a buffer
  *   according to the 4 first bits.
  * \param buffer The buffer storing an (IP) packet

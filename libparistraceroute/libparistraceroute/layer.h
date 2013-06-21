@@ -176,6 +176,7 @@ bool layer_extract(const layer_t * layer, const char * field_name, void * value)
  *    before each printed line.
  */
 
-void layer_dump(layer_t * layer, unsigned int indent);
+void layer_dump(const layer_t * layer, unsigned int indent);
+void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent);
 
 #endif

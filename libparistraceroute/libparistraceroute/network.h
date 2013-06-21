@@ -17,17 +17,12 @@
  * place where a packet scheduler might be implemented (rate limits, etc.).
  */
 
-#include <stdint.h>
-#include <limits.h>
-
-
-#include "packet.h"
-#include "queue.h"
-#include "socketpool.h"
-#include "sniffer.h"
-#include "dynarray.h"
-#include "optparse.h"
-#include "probe_group.h"
+#include "queue.h"       // queue_t
+#include "socketpool.h"  // socketpool_t
+#include "sniffer.h"     // sniffer_t
+#include "dynarray.h"    // dynarray_t
+#include "optparse.h"    // opt_spec
+#include "probe_group.h" // probe_group_t
 
 // If no matching reply has been sniffed in the next 3 sec, we
 // consider that we won't never sniff such a reply. The

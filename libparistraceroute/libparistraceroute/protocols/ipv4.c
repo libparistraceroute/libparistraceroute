@@ -279,6 +279,7 @@ size_t ipv4_get_header_size(const uint8_t * ipv4_header) {
  *    according to its other fields (including tot_len).
  * \param ipv4_header An initialized IPv4 header. Checksum may be
  *    not initialized, will be ignored, and overwritten
+ * \param psh (Unused) You may pass NULL.
  * \return true iif successful 
  */
 
@@ -352,15 +353,6 @@ static protocol_field_t ipv4_fields[] = {
     // options if header length > 5 (not yet implemented)
 };
 
-/**
- * \brief Retrieve the number of fields in a IPv4 header
- * \return The number of fields
- */
-
-size_t ipv4_get_num_fields(void) {
-    return sizeof(ipv4_fields) / sizeof(protocol_field_t);
-}
-
 //-----------------------------------------------------------
 // Default IPv4 values
 //-----------------------------------------------------------
@@ -405,7 +397,6 @@ bool ipv4_instance_of(uint8_t * bytes) {
 static protocol_t ipv4 = {
     .name                 = "ipv4",
     .protocol             = IPPROTO_IPIP, // XXX only IP over IP (encapsulation). Beware probe.c, icmpv4_get_next_protocol_id 
-    .get_num_fields       = ipv4_get_num_fields,
     .write_checksum       = ipv4_write_checksum,
     .create_pseudo_header = NULL,
     .fields               = ipv4_fields,

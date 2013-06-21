@@ -287,15 +287,6 @@ void ipv6_write_default_header(uint8_t * ipv6_header) {
 }
 
 /**
- * \brief Retrieve the number of fields in a IPv6 header
- * \return The number of fields
- */
-
-size_t ipv6_get_num_fields(void) {
-    return sizeof(ipv6_fields) / sizeof(protocol_field_t);
-}
-
-/**
  * \brief Test whether a sequence of bytes seems to be an IPv6 packet
  * \param bytes The sequence of evaluated bytes.
  * \return true iif it seems to be an IPv6 packet.
@@ -308,7 +299,6 @@ bool ipv6_instance_of(uint8_t * bytes) {
 static protocol_t ipv6 = {
     .name                 = "ipv6",
     .protocol             = 6,
-    .get_num_fields       = ipv6_get_num_fields,
     .write_checksum       = NULL, // IPv6 has no checksum, it depends on upper layers
     .create_pseudo_header = NULL,
     .fields               = ipv6_fields,

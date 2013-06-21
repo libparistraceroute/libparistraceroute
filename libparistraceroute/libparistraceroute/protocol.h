@@ -32,7 +32,7 @@ typedef struct {
      * Pointer to a function that will return the number of fields this protocol has
      */
 
-    size_t (*get_num_fields)(void);
+    //size_t (*get_num_fields)(void);
     
     /**
      * \brief Points to a callback which updates the checksum of the segment related to
@@ -127,13 +127,13 @@ void protocol_register(protocol_t *protocol);
  * \brief Apply a function to every field in a protocol
  * \param protocol Pointer to a protocol_t structure describing the
  *    protocol to iterate over
- * \param data Pointer to hold the returned data (?)
- * \param callback Pointer to a callback function that takes the data
- *    from a protocol_field_t structure (field) and sets the pointer
- *    'data' to the data from the field
+ * \param data User data pass to the callback 
+ * \param callback Pointer to a function call whenever a protocol_field_t
+ *    of the protocol_t instance is visited. This callback receives a
+ *    pointer to the current protocol_field_t and to data.
  */
 
-void protocol_iter_fields(protocol_t * protocol, void * data, void (*callback)(protocol_field_t * field, void * data));
+void protocol_iter_fields(const protocol_t * protocol, void * data, void (*callback)(const protocol_field_t * field, void * data));
 
 /**
  * \brief Retrieve a field belonging to a protocol according to its name
@@ -152,6 +152,19 @@ const protocol_field_t * protocol_get_field(const protocol_t * protocol, const c
  */
 
 uint16_t csum(const uint16_t * buf, size_t size);
+
+/**
+ * \brief Print information stored in a protocol instance
+ * \param protocol A protocol_t instance
+ */
+
+void protocol_dump(const protocol_t * protocol);
+
+/**
+ * \brief Print every protocol managed by libparistraceroute 
+ */
+
+void protocols_dump();
 
 #define PROTOCOL_REGISTER(MOD)    \
 static void __init_ ## MOD (void) __attribute__ ((constructor));    \
