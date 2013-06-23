@@ -9,6 +9,7 @@
 #include <sys/epoll.h>     // epoll_ctl
 #include <sys/signalfd.h>  // eventfd
 #include <signal.h>        // SIGINT, SIGQUIT
+#include <netinet/in.h>    // IPPROTO_ICMP, IPPROTO_ICMPV6
 
 #include "algorithm.h"
 
@@ -145,11 +146,12 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     if (!register_efd(loop, loop->sfd))                    goto ERR_SIGNALFD;
    
     // Prepare network layer and register it in pt_loop 
-    if (!(loop->network = network_create()))                        goto ERR_NETWORK_CREATE;
-    if (!register_efd(loop, network_get_sendq_fd(loop->network)))   goto ERR_EVENTFD_SENDQ;
-    if (!register_efd(loop, network_get_recvq_fd(loop->network)))   goto ERR_EVENTFD_RECVQ;
-    if (!register_efd(loop, network_get_sniffer_fd(loop->network))) goto ERR_EVENTFD_SNIFFER;
-    if (!register_efd(loop, network_get_timerfd(loop->network)))    goto ERR_EVENTFD_TIMEOUT;
+    if (!(loop->network = network_create()))                           goto ERR_NETWORK_CREATE;
+    if (!register_efd(loop, network_get_sendq_fd(loop->network)))      goto ERR_EVENTFD_SENDQ;
+    if (!register_efd(loop, network_get_recvq_fd(loop->network)))      goto ERR_EVENTFD_RECVQ;
+    if (!register_efd(loop, network_get_icmpv4_sockfd(loop->network))) goto ERR_EVENTFD_SNIFFER_ICMPV4;
+    if (!register_efd(loop, network_get_icmpv6_sockfd(loop->network))) goto ERR_EVENTFD_SNIFFER_ICMPV6;
+    if (!register_efd(loop, network_get_timerfd(loop->network)))       goto ERR_EVENTFD_TIMEOUT;
 
     // Buffer where pending events are stored 
     if (!(loop->epoll_events = calloc(MAXEVENTS, sizeof(struct epoll_event)))) {
@@ -172,7 +174,8 @@ ERR_EVENTS_USER:
     free(loop->epoll_events);
 ERR_EVENTS:
 ERR_EVENTFD_TIMEOUT:
-ERR_EVENTFD_SNIFFER:
+ERR_EVENTFD_SNIFFER_ICMPV6:
+ERR_EVENTFD_SNIFFER_ICMPV4:
 ERR_EVENTFD_RECVQ:
 ERR_EVENTFD_SENDQ:
     network_free(loop->network);
@@ -253,10 +256,11 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     // TODO set a flag to avoid issues due to several threads
     // and put a critical section to manage this flag
 
-    int network_sendq_fd   = network_get_sendq_fd(loop->network);
-    int network_recvq_fd   = network_get_recvq_fd(loop->network);
-    int network_sniffer_fd = network_get_sniffer_fd(loop->network);
-    int network_timerfd    = network_get_timerfd(loop->network);
+    int network_sendq_fd      = network_get_sendq_fd(loop->network);
+    int network_recvq_fd      = network_get_recvq_fd(loop->network);
+    int network_icmpv4_sockfd = network_get_icmpv4_sockfd(loop->network);
+    int network_icmpv6_sockfd = network_get_icmpv6_sockfd(loop->network);
+    int network_timerfd       = network_get_timerfd(loop->network);
     ssize_t s;
     struct signalfd_siginfo fdsi;
 
@@ -281,21 +285,23 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
             || !(loop->epoll_events[i].events & EPOLLIN)
             ) {
                 // An error has occured on this fd
-                perror("epoll error\n");
+                perror("epoll error");
                 close(cur_fd);
                 continue;
             }
             
             if (cur_fd == network_sendq_fd) {
                 if (!network_process_sendq(loop->network)) {
-                    perror("pt_loop: Can't send packet\n");
+                    fprintf(stderr, "pt_loop: Can't send packet\n");
                 }
             } else if (cur_fd == network_recvq_fd) {
                 if (!network_process_recvq(loop->network)) {
-                    perror("pt_loop: Cannot fetch packet\n");
+                    fprintf(stderr, "pt_loop: Cannot fetch packet\n");
                 }
-            } else if (cur_fd == network_sniffer_fd) {
-                network_process_sniffer(loop->network);
+            } else if (cur_fd == network_icmpv4_sockfd) {
+                network_process_sniffer(loop->network, IPPROTO_ICMP);
+            } else if (cur_fd == network_icmpv6_sockfd) {
+                network_process_sniffer(loop->network, IPPROTO_ICMPV6);
             } else if (cur_fd == loop->eventfd_algorithm) {
                 
                 // There is one common queue shared by every instancied algorithms.

@@ -346,8 +346,12 @@ inline int network_get_recvq_fd(network_t * network) {
     return queue_get_fd(network->recvq);
 }
 
-inline int network_get_sniffer_fd(network_t * network) {
-    return sniffer_get_sockfd(network->sniffer);
+inline int network_get_icmpv4_sockfd(network_t * network) {
+    return sniffer_get_icmpv4_sockfd(network->sniffer);
+}
+
+inline int network_get_icmpv6_sockfd(network_t * network) {
+    return sniffer_get_icmpv6_sockfd(network->sniffer);
 }
 
 inline int network_get_timerfd(network_t * network) {
@@ -574,8 +578,8 @@ ERR_PACKET_POP:
     return false;
 }
 
-void network_process_sniffer(network_t * network) {
-    sniffer_process_packets(network->sniffer);
+void network_process_sniffer(network_t * network, uint8_t protocol_id) {
+    sniffer_process_packets(network->sniffer, protocol_id);
 }
 
 bool network_drop_expired_flying_probe(network_t * network)

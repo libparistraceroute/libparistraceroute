@@ -109,7 +109,7 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     // If we have a setter function, we use it, otherwise write the value directly
     if (protocol_field->set) {
         if (!(protocol_field->set(layer->segment, field))) {
-            fprintf(stderr, "layer_set_field: can't set field '%s'\n", field->key);
+            fprintf(stderr, "layer_set_field: can't set field '%s' (layer %s)\n", field->key, layer->protocol->name);
             goto ERR_PROTOCOL_FIELD_SET;
         }
     } else {

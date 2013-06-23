@@ -133,7 +133,7 @@ field_t * ipv6_get_src_ip(const uint8_t * ipv6_header){
 
 bool ipv6_set_dst_ip(uint8_t * ipv6_header, const field_t * field){
     struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
-    return (inet_pton(AF_INET6, (const char *) field->value.string, &ip6_hed->ip6_dst) != 1);
+    return (inet_pton(AF_INET6, (const char *) field->value.string, &ip6_hed->ip6_dst) != -1);
 }
 
 /**
