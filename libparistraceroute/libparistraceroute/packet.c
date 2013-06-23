@@ -68,7 +68,7 @@ bool packet_resize(packet_t * packet, size_t new_size) {
     return buffer_resize(packet->buffer, new_size);
 }
 
-uint8_t * packet_get_bytes(packet_t * packet) {
+uint8_t * packet_get_bytes(const packet_t * packet) {
     return buffer_get_data(packet->buffer);
 }
 

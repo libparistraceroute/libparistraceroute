@@ -2,6 +2,7 @@
 #include <stdio.h>  // perror
 #include <string.h> // memcpy
 
+#include "address.h"
 #include "pt_loop.h"
 #include "probe.h"
 #include "algorithm.h"
@@ -135,15 +136,37 @@ int main(int argc, char ** argv)
 {
     buffer_t             * payload;
     algorithm_instance_t * instance;
+    traceroute_options_t   options = traceroute_get_default_options();
     probe_t              * probe;
     pt_loop_t            * loop;
+    int                    family;
     int                    ret = EXIT_FAILURE;
-//    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
+    const char           * ip_protocol_name;
+    //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
 
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-    char dst_ip[] = "8.8.8.8";
+    //char dst_ip[] = "8.8.8.8";
     //char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
+
+    if (!address_guess_family(dst_ip, &family)) {
+        fprintf(stderr, "E: Cannot guess family of destination address (%s)", dst_ip);
+        goto ERR_ADDRESS_GUESS_FAMILY;
+    }
+
+    switch (family) {
+        case AF_INET:
+            ip_protocol_name = "ipv4";
+            break;
+        case AF_INET6:
+            ip_protocol_name = "ipv6";
+            break;
+        default:
+            fprintf(stderr, "Internet family not supported (%d)\n", family);
+            goto ERR_FAMILY;
+    } 
+
     if (!(payload = buffer_create())) {
         fprintf(stderr, "E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
@@ -153,10 +176,9 @@ int main(int argc, char ** argv)
     buffer_write_bytes(payload, "\0\0", 2);
 
     // Prepare options related to the 'traceroute' algorithm
-    traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
-    options.num_probes = 3;
-    //options.max_ttl = 1;
+    options.num_probes = 1;
+    options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
@@ -172,13 +194,15 @@ int main(int argc, char ** argv)
         goto ERR_PROBE_CREATE;
     }
 
-    probe_set_protocols(probe, "ipv4", "udp", NULL);
+    probe_set_protocols(probe, ip_protocol_name, "udp", NULL);
     probe_write_payload(probe, payload);
     probe_set_fields(probe,
         STR("dst_ip",   dst_ip),
         I16("dst_port", 30000),
         NULL
     );
+
+    probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {
@@ -203,5 +227,7 @@ ERR_PROBE_CREATE:
 ERR_LOOP_CREATE:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
+ERR_FAMILY:
+ERR_ADDRESS_GUESS_FAMILY:
     exit(ret);
 }

@@ -70,7 +70,7 @@ size_t packet_get_size(const packet_t * packet);
  * \return The corresponding pointer.
  */
 
-uint8_t * packet_get_bytes(packet_t * packet);
+uint8_t * packet_get_bytes(const packet_t * packet);
 
 /**
  * \brief Duplicate a packet

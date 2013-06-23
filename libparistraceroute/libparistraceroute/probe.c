@@ -224,7 +224,12 @@ static bool probe_update_checksum(probe_t * probe)
 
             // Compute the checksum according to the layer's buffer and
             // the pseudo header (if any).
-            layer->protocol->write_checksum(layer->segment, pseudo_header);
+            if (layer->protocol->write_checksum) {
+                if(!layer->protocol->write_checksum(layer->segment, pseudo_header)) {
+                    fprintf(stderr, "Error while updating checksum (layer %s)", layer->protocol->name);
+                    return false;
+                }
+            }
 
             // Release the pseudo header (if any) from the memory
             if (pseudo_header) free(pseudo_header);

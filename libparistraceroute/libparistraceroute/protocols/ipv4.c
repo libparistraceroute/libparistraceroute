@@ -244,7 +244,7 @@ bool ipv4_finalize(uint8_t * ipv4_header)
                    ret = true;
 
 	if (do_update_src_ip) {
-        ret &= ipv4_get_default_src_ip(iph->daddr, &iph->saddr);
+        ret = ipv4_get_default_src_ip(iph->daddr, &iph->saddr);
 	}
 
 	return ret;

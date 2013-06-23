@@ -93,6 +93,7 @@ void buffer_dump(const buffer_t * buffer) {
 
     for (i = 0; i < n; i++) {
         printf("%02x ", buffer->data[i]);
+        if (i % 16 == 15) printf("\n");
     }
 }
 

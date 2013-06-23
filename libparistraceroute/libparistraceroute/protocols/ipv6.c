@@ -117,7 +117,7 @@ bool ipv6_set_src_ip(uint8_t * ipv6_header, const field_t * field){
 
 field_t * ipv6_get_src_ip(const uint8_t * ipv6_header){
     char res[IPV6_STRSIZE];
-    struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
+    const struct ip6_hdr * ip6_hed = (const struct ip6_hdr *) ipv6_header;
 
     memset(res, 0, IPV6_STRSIZE);
     inet_ntop(AF_INET6, &ip6_hed->ip6_src, res, IPV6_STRSIZE);
@@ -144,7 +144,7 @@ bool ipv6_set_dst_ip(uint8_t * ipv6_header, const field_t * field){
 
 field_t * ipv6_get_dst_ip(const uint8_t * ipv6_header){
     char res[IPV6_STRSIZE];
-    struct ip6_hdr *ip6_hed = (struct ip6_hdr *) ipv6_header;
+    const struct ip6_hdr * ip6_hed = (const struct ip6_hdr *) ipv6_header;
 
     memset(res, 0, IPV6_STRSIZE);
     inet_ntop(AF_INET6, &ip6_hed->ip6_dst, res, IPV6_STRSIZE);
@@ -215,52 +215,67 @@ static struct ip6_hdr ipv6_default = {
 };
 
 
+bool ipv6_get_default_src_ip(struct in6_addr dst_ipv6, struct in6_addr * psrc_ipv6) {
+    struct sockaddr_in6 addr, name;
+    int                 sockfd;
+    short               family  = AF_INET6;
+    socklen_t           addrlen = sizeof(struct sockaddr_in6);
+
+    if ((sockfd = socket(family, SOCK_DGRAM, 0)) == -1) {
+        goto ERR_SOCKET;
+    }
+
+    memset(&addr, 0, addrlen);
+    addr.sin6_family = family;
+    addr.sin6_addr = dst_ipv6;
+
+    if (connect(sockfd, (struct sockaddr *) &addr, addrlen) == -1) {
+        goto ERR_CONNECT; 
+    }
+
+    if (getsockname(sockfd, (struct sockaddr *) &name, &addrlen) == -1) {
+        goto ERR_GETSOCKNAME;
+    }
+
+    close(sockfd);
+    *psrc_ipv6 = name.sin6_addr;
+    return true;
+
+ERR_GETSOCKNAME:
+    close(sockfd);
+ERR_CONNECT:
+ERR_SOCKET:
+    return false;
+}
+
 /**
  * \brief A set of actions to be done before sending the packet.
  * \param ipv6_header Address of the IPv6 header we want to update.
  */
 
-int ipv6_finalize(uint8_t * ipv6_header) {
-    // destination address = force finding source
-    // Need to reset IPversion
-    struct ip6_hdr *ip6_hed = (struct ip6_hdr *) ipv6_header;
+bool ipv6_finalize(uint8_t * ipv6_header) {
+    size_t           i;
+    struct ip6_hdr * iph = (struct ip6_hdr *) ipv6_header;
+    bool             do_update_src_ip = true,
+                     ret = true;
 
-    ip6_hed->ip6_ctlun.ip6_un2_vfc = (uint8_t) 0x60;
+    iph->ip6_ctlun.ip6_un2_vfc = (uint8_t) 0x60;
 
-    // Setting source address
-    int ip_src_notset = 0;
-    int i;
-
-    // Addup all parts of the field, if 0 no source has been specified
-    for(i = 0; i < 8; i++) {
-        ip_src_notset += ip6_hed->ip6_src.__in6_u.__u6_addr16[i];
+    // If at least one byte of the src_ip is not null, we suppose
+    // that the src_ip has been set...
+    for (i = 0; i < 8 && !do_update_src_ip; i++) {
+        if (iph->ip6_src.__in6_u.__u6_addr16[i] != 0) {
+            do_update_src_ip = false;
+            break;
+        }
     }
 
-    if(!ip_src_notset) {
-        int sock;
-        struct sockaddr_in6 addr, name;
-        int len = sizeof(struct sockaddr_in6);
-
-        sock = socket(AF_INET6, SOCK_DGRAM, 0);
-        if (sock < 0)
-            return 0; // Cannot create datagram socket
-
-        memset(&addr, 0, len);
-
-        addr.sin6_family = AF_INET6;
-        addr.sin6_addr   = ip6_hed->ip6_dst;
-        addr.sin6_port   = htons(32000); // XXX why 32000 ?
-
-        if (connect(sock,(struct sockaddr*)&addr,sizeof(struct sockaddr_in6)) < 0)
-            return 0; // Cannot connect socket
-
-        if (getsockname(sock,(struct sockaddr*)&name,(socklen_t*)&len) < -1)
-            return 0; // Cannot getsockname
-
-        memcpy((char *)&ip6_hed->ip6_src, (char *)&name.sin6_addr, sizeof(struct in6_addr));
-        close(sock);
+    // ... otherwise, we set the src_ip
+    if (do_update_src_ip) {
+        ret = ipv6_get_default_src_ip(iph->ip6_dst, &iph->ip6_src);
     }
-    return 0;
+
+    return ret;
 }
 
 /**
@@ -280,7 +295,7 @@ size_t ipv6_get_header_size(const uint8_t * ipv6_header) {
  * \return The size of the default header.
  */
 
-void ipv6_write_default_header(uint8_t * ipv6_header) {
+size_t ipv6_write_default_header(uint8_t * ipv6_header) {
     size_t size = sizeof(struct ip6_hdr);
     if (ipv6_header) memcpy(ipv6_header, &ipv6_default, size);
     return size;
