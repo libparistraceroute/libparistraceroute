@@ -17,17 +17,12 @@
  * place where a packet scheduler might be implemented (rate limits, etc.).
  */
 
-#include <stdint.h>
-#include <limits.h>
-
-
-#include "packet.h"
-#include "queue.h"
-#include "socketpool.h"
-#include "sniffer.h"
-#include "dynarray.h"
-#include "optparse.h"
-#include "probe_group.h"
+#include "queue.h"       // queue_t
+#include "socketpool.h"  // socketpool_t
+#include "sniffer.h"     // sniffer_t
+#include "dynarray.h"    // dynarray_t
+#include "optparse.h"    // opt_spec
+#include "probe_group.h" // probe_group_t
 
 // If no matching reply has been sniffed in the next 3 sec, we
 // consider that we won't never sniff such a reply. The
@@ -45,7 +40,8 @@ extern const double   wait[];
  * \brief Structure describing a network
  */
 
-// TODO memory management: two possible approaches (currently : (1))
+// Two possible approaches
+// We choose (1) because this is more efficient
 //
 // ---------------------------------------------------------------------------
 // 1) Delegate probe_t and packet_t frees to upper layers
@@ -60,31 +56,31 @@ extern const double   wait[];
 //
 // *** Probes memory management:
 //
-// The network layer must never free probe (e.g. probe_t instances referenced
+// The network layer..must never free probe (e.g. probe_t instances referenced
 // in network->probes and in network->sendq) since they are allocated by the
 // upper layers.
 //
-// Upper layers must never alters probe passed to the network layer while they
-// are in flight, otherwise the network layer won't be able to match replies
+// Upper layers must never alters probe passed to the network layer..while they
+// are in flight, otherwise the network layer..won't be able to match replies
 // with their corresponding probes.
 //
 // If needed, upper layers could duplicate these probe by using probe_dup.
 //
 // *** Replies memory management:
 //
-// The network layer do not free by itself packet_t referenced in
+// The network layer..do not free by itself packet_t referenced in
 // network->recvq since they'll be wrapped in probe_t by pt_loop. Freeing those
 // probe_t instance will free the corresponding packet_t instance in the
-// network layer.
+// network layer..
 //
 // Upper layer must never alter reply raised by PROBE_REPLY event otherwise the
-// corresponding packet_t instance (stored in the network layer) will also be
+// corresponding packet_t instance (stored in the network layer.) will also be
 // altered.
 //
 // If needed, upper layers could duplicate these probe by using probe_dup.
 //
 // ---------------------------------------------------------------------------
-// 2) Duplicate probe_t instance passed to the network layer and duplicate
+// 2) Duplicate probe_t instance passed to the network layer..and duplicate
 // packet_t instance raised to pt_loop
 // ---------------------------------------------------------------------------
 //
@@ -93,13 +89,13 @@ extern const double   wait[];
 // - Less efficient
 // + Network layer cannot be impacted by upper layers. Thus, upper layers can
 //   alter probe_t instances (probes & replies) passed and received from the
-//   network layer.
+//   network layer..
 // + Upper layer can push several times the same probe_t without using
 //   probe_dup.
 //
 // *** Probe and replies memory management:
 //
-// The network layer has to free its probe_t and packet_t by itself in
+// The network layer..has to free its probe_t and packet_t by itself in
 // network_free().  Each probe_t instance is only referenced once (either in
 // network->sendq if it is not yet sent, or either in network->probes if it is
 // in flight).
@@ -109,16 +105,16 @@ extern const double   wait[];
 // dynarray for archive or duplicate detection purposes.
 
 typedef struct network_s {
-    socketpool_t  * socketpool;    /**< Pool of sockets used by this network */
-    queue_t       * sendq;         /**< Queue containing packet to send  (probe_t instances) */
-    queue_t       * recvq;         /**< Queue containing received packet (packet_t instances) */
-    sniffer_t     * sniffer;       /**< Sniffer to use on this network */
-    dynarray_t    * probes;        /**< Probes in transit, from the oldest probe_t instance to the youngest one. */
-    int             timerfd;       /**< Used for probe timeouts. Linux specific. Activated when a probe timeout occurs */
-    uint16_t        last_tag;      /**< Last probe ID used */
-    double          timeout;       /**< The timeout value used by this network (in seconds) */
+    socketpool_t  * socketpool;        /**< Pool of sockets used by this network */
+    queue_t       * sendq;             /**< Queue containing packet to send  (probe_t instances) */
+    queue_t       * recvq;             /**< Queue containing received packet (packet_t instances) */
+    sniffer_t     * sniffer;           /**< Sniffer to use on this network */
+    dynarray_t    * probes;            /**< Probes in transit, from the oldest probe_t instance to the youngest one. */
+    int             timerfd;           /**< Used for probe timeouts. Linux specific. Activated when a probe timeout occurs */
+    uint16_t        last_tag;          /**< Last probe ID used */
+    double          timeout;           /**< The timeout value used by this network (in seconds) */
     int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */
-    probe_group_t * group_probes;  /**< Structure of probe_group may contain a group af probes or a group of groups of probes */
+    probe_group_t * group_probes;      /**< Structure of probe_group may contain a group af probes or a group of groups of probes */
 } network_t;
 
 /**
@@ -131,21 +127,21 @@ struct opt_spec * network_get_cl_options();
 
 /**
  * \brief Create a new network structure
- * \return A newly created network_t structure
+ * \return The newly created network layer.
  */
 
 network_t* network_create(void);
 
 /**
  * \brief Delete a network structure
- * \param network Pointer to the network structure to delete
+ * \param network The network layer..
  */
 
 void network_free(network_t * network);
 
 /**
  * \brief Retrieve the timeout set in a network_t instance.
- * \param network The network_t instance we're querying.
+ * \param network The network layer..
  * \return The value of the timeout used by the network.
  */
 
@@ -153,7 +149,11 @@ double network_get_timeout(const network_t * network);
 
 /**
  * \brief Set a new timeout for the network structure.
+<<<<<<< HEAD
  * \param network The network_t instance we're updating.
+=======
+ * \param network The network layer..
+>>>>>>> origin/akram
  * \param new_timeout The new timeout.
  */
 
@@ -162,7 +162,7 @@ void network_set_timeout(network_t * network, double new_timeout);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   packet is ready to be sent.
- * \param network The network_t instance we're querying.
+ * \param network The network layer..
  * \return The corresponding file descriptor.
  */
 
@@ -171,7 +171,7 @@ int network_get_sendq_fd(network_t * network);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   packet_t instance has been sniffed
- * \param network The network_t instance we're querying
+ * \param network The network layer..
  * \return The corresponding file descriptor
  */
 
@@ -180,7 +180,7 @@ int network_get_sniffer_fd(network_t * network);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   packet_t instance has been pushed in the recv queue.
- * \param network The network_t instance we're querying
+ * \param network The network layer..
  * \return The corresponding file descriptor
  */
 
@@ -189,7 +189,7 @@ int network_get_recvq_fd(network_t * network);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   timeout occurs.
- * \param network The network_t instance we're querying
+ * \param network The network layer..
  * \return The corresponding file descriptor
  */
 
@@ -198,7 +198,7 @@ int network_get_timerfd(network_t * network);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   delay occurs.
- * \param network The network_t instance we're querying
+ * \param network The network layer..
  * \return The corresponding file descriptor
  */
 
@@ -207,7 +207,7 @@ int network_get_group_timerfd(network_t * network);
 /**
  * \brief Retrieve the tree of probes handled by this
  *   network instance
- * \param network The network_t instance we're querying
+ * \param network The network layer..
  * \return a Pointer to the tree of group of probes
  */
 
@@ -215,7 +215,7 @@ probe_group_t * network_get_group_probes(network_t * network);
 
 /**
  * \brief Send the next packet stored network->sendq
- * \param network The network to use for the queue and for sending
+ * \param network The network layer..
  * \return true iif successfull
  */
 
@@ -223,21 +223,28 @@ bool network_process_sendq(network_t * network);
 
 /**
  * \brief Process received packets: match them with a probe, or discard them.
- * \param network Pointer to a network structure
- * In practice, the receive queue stores all the packets received by the sniffer.
+ * In practice, the receive queue stores all the packets handled by the sniffer.
+ * \param network The network layer.
  * \return true iif successful
  */
 
 bool network_process_recvq(network_t * network);
 
-void network_process_sniffer(network_t * network);
+/**
+ * \brief Make the network layer..query its embedded sniffer instance in order
+ *   to fetch a received packet.
+ * \param network The network layer..
+ * \param protocol_id The family of the packet to fetch (IPPROTO_ICMP, IPPROTO_ICMPV6)
+ */
+
+void network_process_sniffer(network_t * network, uint8_t protocol_id);
 
 /**
  * \brief Drop the oldest flying probe (if any) attached to a network_t
  *    instance. The oldest probe is removed from network->probes
  *    and network->timerfd is refreshed to manage the next timeout
  *    if there is still at least one flying probe.
- * \param network Pointer to a network structure
+ * \param network The network layer.
  * \return true iif successful
  */
 
@@ -245,18 +252,18 @@ bool network_drop_expired_flying_probe(network_t * network);
 
 /**
  * \brief handle the scheduled probes when network->scheduled_timerfd is activated
- * \param network Pointer to the handled network instance
+ * \param network The network layer.
  */
 
 void network_process_scheduled_probe(network_t * network);
 
 /**
  * \brief Retrieve the next delay to send scheduled probes
- * \param network Pointer to the handled network instance
- * \return the next delay
+ * \param network The network layer.
+ * \return the next delay.
  */
 
-//double network_get_next_scheduled_probe_delay(const network_t * network);
+double network_get_next_scheduled_probe_delay(const network_t * network);
 
 /**
  * \brief Refresh the newtork->scheduled_timerfd to next delay value
@@ -277,11 +284,21 @@ bool network_update_scheduled_timer(network_t * network, double delay);
 bool update_timer(int timerfd, double delay);
 
 /**
- * \brief et an itimerspec structure to new  delay value
- * \param a Pointer to an itimerspec structure to update
- * \param delay The new delay
+ * \brief Retrieve the socket file descriptor related to the ICMPv4
+ *    raw socket managed by network->sniffer.
+ * \param network The network layer..
+ * \return The corresponding socket file descriptor.
  */
 
-//void itimerspec_set_delay(struct itimerspec * timer, double delay);
+int network_get_icmpv4_sockfd(network_t * network);
+
+/**
+ * \brief Retrieve the socket file descriptor related to the ICMPv6
+ *    raw socket managed by network->sniffer.
+ * \param network The network layer..
+ * \return The corresponding socket file descriptor.
+ */
+
+int network_get_icmpv6_sockfd(network_t * network);
 
 #endif

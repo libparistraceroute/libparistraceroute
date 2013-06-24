@@ -59,5 +59,12 @@ bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * buffe
 
 size_t protocol_field_get_offset(const protocol_field_t * protocol_field);
 
+/**
+ * \brief Print information related to a protocol_field_t instance
+ * \param protocol_field The protocol_field_t instance to print
+ */
+
+void protocol_field_dump(const protocol_field_t * protocol_field);
+
 #endif
 

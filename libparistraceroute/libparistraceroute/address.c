@@ -165,16 +165,6 @@ bool address_resolv(const char * str_ip, char ** phostname)
         goto ERR_ADDRESS_GUESS_FAMILY;
     }
 
-    /*
-    ip_len = family == AF_INET  ? sizeof(struct sockaddr_in)  :
-             family == AF_INET6 ? sizeof(struct sockaddr_in6) :
-             0;
-
-    if (!ip_len) {
-        perror("address_resolv: Invalid family");
-        goto ERR_INVALID_FAMILY;
-    }
-    */
     switch (family) {
         case AF_INET:  ip_len = sizeof(ipv4_t); break;
         case AF_INET6: ip_len = sizeof(ipv6_t); break;

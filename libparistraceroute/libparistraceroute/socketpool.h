@@ -4,7 +4,8 @@
 #include "packet.h"
 
 typedef struct {
-    int socket; // TODO rename sockfd
+    int ipv4_sockfd; /**< File descriptor of the IPv4 raw socket */
+    int ipv6_sockfd; /**< File descriptor of the IPv6 raw socket */
 } socketpool_t;
 
 /**

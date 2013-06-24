@@ -75,6 +75,13 @@ probe_t * probe_wrap_packet(packet_t * packet);
 void probe_dump(const probe_t * probe);
 
 /**
+ * \brief Print probe contents and their corresponding expected value
+ * \param probe The probe_t instance to print
+ */
+
+void probe_debug(const probe_t * probe);
+
+/**
  * \brief Set a field according to a given field name. The first
  *    matching field belonging to a i-th layer is updated,
  *    such that i > depth.

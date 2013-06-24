@@ -42,7 +42,8 @@ void address_dump(const address_t * address);
  * \brief Guess address family of an IP
  * \param str_ip IP (string format)
  * \param pfamily Address of an integer in which the address
- *   family will be written
+ *   family will be written. *pfamily may be equal to AF_INET
+ *   AF_INET6, etc.
  * \return true iif successfull
  */
 

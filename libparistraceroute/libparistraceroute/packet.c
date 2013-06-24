@@ -68,7 +68,7 @@ bool packet_resize(packet_t * packet, size_t new_size) {
     return buffer_resize(packet->buffer, new_size);
 }
 
-uint8_t * packet_get_bytes(packet_t * packet) {
+uint8_t * packet_get_bytes(const packet_t * packet) {
     return buffer_get_data(packet->buffer);
 }
 
@@ -97,3 +97,7 @@ void packet_set_buffer(packet_t * packet, buffer_t * buffer) {
     packet->buffer = buffer;
 }
 
+void packet_dump(const packet_t * packet) {
+    buffer_dump(packet->buffer);
+    printf(" sent to (%s, %d)\n", packet->dst_ip, packet->dst_port);
+}

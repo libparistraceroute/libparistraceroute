@@ -70,7 +70,7 @@ size_t packet_get_size(const packet_t * packet);
  * \return The corresponding pointer.
  */
 
-uint8_t * packet_get_bytes(packet_t * packet);
+uint8_t * packet_get_bytes(const packet_t * packet);
 
 /**
  * \brief Duplicate a packet
@@ -86,6 +86,13 @@ packet_t * packet_dup(const packet_t * packet);
  */
 
 void packet_free(packet_t * packet);
+
+/**
+ * \brief Dump packet contents
+ * \param packet The packet instance we want to print
+ */
+
+void packet_dump(const packet_t * packet);
 
 /**
  * \brief Guess the IP version of a packet stored in a buffer

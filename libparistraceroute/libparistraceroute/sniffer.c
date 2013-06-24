@@ -6,31 +6,31 @@
 #include <sys/socket.h>  // socket, bind
 #include <sys/types.h>   // socket, bind
 #include <arpa/inet.h>
-#include <netinet/in.h>  // IPPROTO_ICMP
+#include <netinet/in.h>  // IPPROTO_ICMP, IPPROTO_ICMPV6
 
 #include "sniffer.h"
 
 #define BUFLEN 4096
 
 /**
- * \brief Initialize a raw socket in a sniffer_t instance
+ * \brief Initialize an ICMPv4 raw socket in a sniffer_t instance
  * \param sniffer A pointer to a sniffer_t instance
  * \param port The listening port
  * \return true iif successful
  */
 
-static bool sniffer_create_raw_socket(sniffer_t * sniffer, uint16_t port)
+static bool create_icmpv4_socket(sniffer_t * sniffer, uint16_t port)
 {
 	struct sockaddr_in saddr;
 
-	// Create a raw socket (man 7 ip)
-	if ((sniffer->sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
-        perror("sniffer_create_raw_socket: error while creating socket");
+	// Create a raw socket (man 7 ip) listening ICMPv4 packets
+	if ((sniffer->icmpv4_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
+        perror("create_icmpv4_socket: error while creating socket");
         goto ERR_SOCKET;
     }
 
     // Make the socket non-blocking
-    if (fcntl(sniffer->sockfd, F_SETFD, O_NONBLOCK) != 0) {
+    if (fcntl(sniffer->icmpv4_sockfd, F_SETFD, O_NONBLOCK) == -1) {
         goto ERR_FCNTL;
     }
 	
@@ -40,8 +40,8 @@ static bool sniffer_create_raw_socket(sniffer_t * sniffer, uint16_t port)
 	saddr.sin_addr.s_addr = INADDR_ANY;
 	saddr.sin_port        = htons(port);
 
-	if (bind(sniffer->sockfd, (struct sockaddr *) &saddr, sizeof(struct sockaddr_in)) != 0) {
-        perror("sniffer_create_raw_socket: error while binding the socket");
+	if (bind(sniffer->icmpv4_sockfd, (struct sockaddr *) &saddr, sizeof(struct sockaddr_in)) == -1) {
+        perror("create_icmpv4_socket: error while binding the socket");
         goto ERR_BIND;
     }
 
@@ -49,25 +49,90 @@ static bool sniffer_create_raw_socket(sniffer_t * sniffer, uint16_t port)
 
 ERR_BIND:
 ERR_FCNTL:
-    close(sniffer->sockfd);
+    close(sniffer->icmpv4_sockfd);
 ERR_SOCKET:
     return false;
 }
+
+/**
+ * \brief Initialize an ICMPv6 raw socket in a sniffer_t instance
+ * \param sniffer A pointer to a sniffer_t instance
+ * \param port The listening port
+ * \return true iif successful
+ */
+
+static bool create_icmpv6_socket(sniffer_t * sniffer, uint16_t port)
+{
+    struct in6_addr anyaddr = IN6ADDR_ANY_INIT;
+    struct sockaddr_in6 saddr;
+    int    on = 1;
+
+	// Create a raw socket (man 7 ip) listening ICMPv6 packets
+    if ((sniffer->icmpv6_sockfd = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6)) == -1) {
+        perror("create_icmpv6_socket: error while creating socket");
+        goto ERR_SOCKET;
+    }
+
+    // Make the socket non-blocking
+    if (fcntl(sniffer->icmpv6_sockfd, F_SETFD, O_NONBLOCK) == -1) {
+        goto ERR_FCNTL;
+    }
+
+    // IPV6 socket options we actually need this for reconstruction of an IPv6 Packet lateron
+    // - dst_ip + arriving interface
+    // - TCL
+    // - Hoplimit
+    // http://h71000.www7.hp.com/doc/731final/tcprn/v53_relnotes_025.html
+
+    if ((setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO,  &on, sizeof(on)) == -1)
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &on, sizeof(on)) == -1)
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVRTHDR,    &on, sizeof(on)) == -1)
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVHOPOPTS,  &on, sizeof(on)) == -1)
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVDSTOPTS,  &on, sizeof(on)) == -1)
+//    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVTCLASS,   &on, sizeof(on)) == -1)
+    ) {
+        perror("create_icmpv6_socket: error in setsockopt");
+        goto ERR_SETSOCKOPT;
+    }
+
+    // Bind to ::1
+    saddr.sin6_family = AF_INET6;
+    saddr.sin6_addr   = anyaddr;
+    saddr.sin6_port   = htons(port);
+
+    if (bind(sniffer->icmpv6_sockfd, (struct sockaddr *) &saddr, sizeof(struct sockaddr_in6)) == -1) {
+        perror("create_icmpv6_socket: error while binding the socket");
+        goto ERR_BIND;
+    }
+
+    return true;
+
+ERR_BIND:
+ERR_SETSOCKOPT:
+ERR_FCNTL:
+    close(sniffer->icmpv6_sockfd);
+ERR_SOCKET:
+    return false;
+}
+
 
 sniffer_t * sniffer_create(void * recv_param, bool (*recv_callback)(packet_t *, void *))
 {
     sniffer_t * sniffer;
 
-    // TODO: We currently only listen for ICMP thanks to a raw socket which
+    // TODO: We currently only listen for ICMP thanks to raw sockets which
     // requires root privileges
 	// Can we set port to 0 to capture all packets wheter ICMP, UDP or TCP?
     if (!(sniffer = malloc(sizeof(sniffer_t)))) goto ERR_MALLOC;
-    if (!sniffer_create_raw_socket(sniffer, 0)) goto ERR_CREATE_RAW_SOCKET;
+    if (!create_icmpv4_socket(sniffer, 0))      goto ERR_CREATE_ICMPV4_SOCKET;
+    if (!create_icmpv6_socket(sniffer, 0))      goto ERR_CREATE_ICMPV6_SOCKET;
     sniffer->recv_param = recv_param;
     sniffer->recv_callback = recv_callback;
     return sniffer;
 
-ERR_CREATE_RAW_SOCKET:
+ERR_CREATE_ICMPV6_SOCKET:
+    close(sniffer->icmpv4_sockfd);
+ERR_CREATE_ICMPV4_SOCKET:
     free(sniffer);
 ERR_MALLOC:
     return NULL;
@@ -76,22 +141,90 @@ ERR_MALLOC:
 void sniffer_free(sniffer_t * sniffer)
 {
     if (sniffer) {
-        close(sniffer->sockfd);
+        close(sniffer->icmpv4_sockfd);
+        close(sniffer->icmpv6_sockfd);
         free(sniffer);
     }
 }
 
-int sniffer_get_sockfd(sniffer_t *sniffer) {
-    return sniffer->sockfd;
+int sniffer_get_icmpv4_sockfd(sniffer_t *sniffer) {
+    return sniffer->icmpv4_sockfd;
 }
 
-void sniffer_process_packets(sniffer_t * sniffer)
+int sniffer_get_icmpv6_sockfd(sniffer_t *sniffer) {
+    return sniffer->icmpv6_sockfd;
+}
+
+/*
+#include <netinet/ip6.h> // ip6_hdr
+static ssize_t recv_ipv6(int ipv6_sockfd, uint8_t * recv_bytes, size_t len, int flags) {
+    // Here the IPv6 Madness starts. Unlike IPv4 we will NOT receive full packets, but only the payload of the ICMP6 packet.
+    // Therefore we need to get a bunch of auxilliary data to keep in touch with the IPv4 structure paris-traceroute mainly has.
+    // The whole structure needs to be seriously changed to become protocol agnostic :(
+    ssize_t          num_bytes;
+    struct ip6_hdr * ip6_hed = malloc(sizeof(struct ip6_hdr));
+    struct in6_addr  src_ip;
+
+    ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_flow = (uint32_t) 6; // setting IPv6 Version, TCL, Flow... No chance to get flow info from incoming packet? Seriously?
+    ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_nxt  = (uint8_t) IPPROTO_ICMPV6; // We already know it is ICMP6, due to filter options
+
+    struct iovec iov[1];
+    iov[0].iov_base = recv_bytes;
+    iov[0].iov_len  = len;
+
+    uint8_t          cmsgbuf[BUFLEN];
+    struct cmsghdr * cmsg;
+    struct msghdr    msg;
+
+    msg.msg_name = &src_ip;
+    msg.msg_namelen = sizeof(src_ip);
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = cmsgbuf;
+    msg.msg_controllen = sizeof(cmsgbuf);
+
+    num_bytes = recvmsg(ipv6_sockfd, &msg, 0);
+    printf("num_bytes = %ld\n", num_bytes);
+
+    ////////////////
+    ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_plen = htons(num_bytes);
+
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        if (cmsg->cmsg_type == IPV6_PKTINFO) {
+            memcpy(&ip6_hed->ip6_dst, CMSG_DATA(cmsg), sizeof(struct in6_addr));
+        } else if ( cmsg->cmsg_type == IPV6_HOPLIMIT) {
+            memcpy(&ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_hlim, CMSG_DATA(cmsg), sizeof(uint8_t));
+        }
+    }
+
+    //  Need to get
+    struct sockaddr_in6 *in6 = msg.msg_name;
+    memcpy(&ip6_hed->ip6_src, &in6->sin6_addr , sizeof(struct in6_addr));
+    ///////////////////
+    uint8_t *tmpbuf = malloc(num_bytes + sizeof(struct ip6_hdr));
+    memcpy(tmpbuf, ip6_hed, sizeof(struct ip6_hdr));
+    memcpy(tmpbuf + sizeof(struct ip6_hdr), recv_bytes, num_bytes);
+    ///////////////////
+
+    return num_bytes;
+}
+*/
+
+void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
 {
     uint8_t    recv_bytes[BUFLEN];
     ssize_t    num_bytes;
     packet_t * packet;
 
-	num_bytes = recv(sniffer->sockfd, recv_bytes, BUFLEN, 0);
+    switch (protocol_id) {
+        case IPPROTO_ICMP:
+            num_bytes = recv(sniffer->icmpv4_sockfd, recv_bytes, BUFLEN, 0);
+            break;
+        case IPPROTO_ICMPV6:
+            num_bytes = recv(sniffer->icmpv6_sockfd, recv_bytes, BUFLEN, 0);
+            break;
+    }
+
 	if (num_bytes >= 4) {
 		// We have to make some modifications on the datagram
 		// received because the raw format varies between
@@ -108,6 +241,18 @@ void sniffer_process_packets(sniffer_t * sniffer)
 #endif
 		if (sniffer->recv_callback != NULL) {
             packet = packet_create_from_bytes(recv_bytes, num_bytes);
+
+            ///////// DEBUG
+            if (protocol_id == IPPROTO_ICMPV6) {
+                printf(">>>>>>>>>>>> Packet sniffed\n");
+                // In IPv6 recv only fetches bytes starting from the ICMPv6 layer! 
+                // http://h71000.www7.hp.com/doc/731final/tcprn/v53_relnotes_025.html
+                printf("num_bytes = %ld\n", num_bytes);
+                packet_dump(packet);
+                printf(">>>>>>>>>>>>> Calling sniffer callback\n");
+            }
+            ///////// DEBUG
+
 			if (!(sniffer->recv_callback(packet, sniffer->recv_param))) {
                 fprintf(stderr, "Error in sniffer's callback\n");
             }

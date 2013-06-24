@@ -22,8 +22,9 @@
  */
 
 typedef struct {
-    int     sockfd;       /**< Raw socket for listening to the network */
-    void  * recv_param;   /**< This pointer is passed whenever recv_callback is called */
+    int     icmpv4_sockfd;  /**< Raw socket for sniffing ICMPv4 packets */
+    int     icmpv6_sockfd;  /**< Raw socket for sniffing ICMPv6 packets */
+    void  * recv_param;     /**< This pointer is passed whenever recv_callback is called */
     bool (* recv_callback)(packet_t * packet, void * recv_param); /**< Callback for received packets */
 } sniffer_t;
 
@@ -43,12 +44,32 @@ sniffer_t * sniffer_create(void * recv_param, bool (*recv_callback)(packet_t *, 
 void sniffer_free(sniffer_t * sniffer);
 
 /**
- * \brief Return the file descriptor related to the raw socket manage by the sniffer.
+ * \brief Return the file descriptor related to the ICMPv4 raw socket
+ *    managed by the sniffer.
  * \param sniffer Points to a sniffer_t instance.
+ * \return The corresponding socket file descriptor.
  */
 
-int sniffer_get_sockfd(sniffer_t * sniffer);
+int sniffer_get_icmpv4_sockfd(sniffer_t * sniffer);
 
-void sniffer_process_packets(sniffer_t * sniffer);
+/**
+ * \brief Return the file descriptor related to the ICMPv6 raw socket
+ *    managed by the sniffer.
+ * \param sniffer Points to a sniffer_t instance.
+ * \return The corresponding socket file descriptor.
+ */
+
+int sniffer_get_icmpv6_sockfd(sniffer_t * sniffer);
+
+/**
+ * \brief Fetch a packet from the listening socket. The sniffer then
+ *   call recv_callback and pass to this function this packet and
+ *   eventual data stored in sniffer->recv_packet. If this callback
+ *   returns false, a message is printed. 
+ * \param sniffer Points to a sniffer_t instance.
+ * \param protocol_id The family of the packet to fetch (IPPROTO_ICMP, IPPROTO_ICMPV6)
+ */
+
+void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id);
 
 #endif

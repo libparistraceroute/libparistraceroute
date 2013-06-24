@@ -71,16 +71,6 @@ static struct udphdr udp_default = {
     .CHECKSUM = 0
 };
 
-
-/**
- * \brief Retrieve the number of fields in a UDP header
- * \return The number of fields
- */
-
-size_t udp_get_num_fields(void) {
-    return sizeof(udp_fields) / sizeof(protocol_field_t);
-}
-
 /**
  * \brief Retrieve the size of an UDP header 
  * \param udp_header Address of an UDP header or NULL
@@ -129,7 +119,7 @@ bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
 
     // Allocate the buffer which will contains the pseudo header
     size_psh = ntohs(udp_hdr->LENGTH) + buffer_get_size(ip_psh);
-    if (!(psh = malloc(size_psh * sizeof(uint8_t)))) {
+    if (!(psh = malloc(size_psh))) {
         return false;
     }
 
@@ -151,25 +141,27 @@ bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
 
 buffer_t * udp_create_pseudo_header(const uint8_t * ip_segment)
 {
-    // TODO dispatch IPv4 and IPv6 header
-    // http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
-    // XXX IPv6 hacks -> todo generic.
-    /* buffer_t *psh;
-    unsigned char ip_version = buffer_guess_ip_version(ip_segment); 
-   
-       psh = ip_version == 6 ? udp_create_psh_ipv6(ip_segment) :
-                        == 4 ? udp_create_psh_ipv4(ip_segment) :
-                        NULL;
-       if(!psh){
-           perror("E:can not create udp pseudo header");
-       }*/
-    return ipv4_pseudo_header_create(ip_segment);
+    buffer_t * buffer = NULL;
+
+    // TODO Duplicated from packet.c (see packet_guess_address_family)
+    // TODO we should use instanceof
+    switch (ip_segment[0] >> 4) {
+        case 4:
+            buffer = ipv4_pseudo_header_create(ip_segment);
+            break;
+        case 6:
+            buffer = ipv6_pseudo_header_create(ip_segment);
+            break;
+        default:
+            break;
+    }
+
+    return buffer;
 }
 
 static protocol_t udp = {
     .name                 = "udp",
     .protocol             = IPPROTO_UDP, 
-    .get_num_fields       = udp_get_num_fields,
     .write_checksum       = udp_write_checksum,
     .create_pseudo_header = udp_create_pseudo_header,
     .fields               = udp_fields,

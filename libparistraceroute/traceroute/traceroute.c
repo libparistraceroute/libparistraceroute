@@ -2,6 +2,7 @@
 #include <stdio.h>  // perror
 #include <string.h> // memcpy
 
+#include "address.h"
 #include "pt_loop.h"
 #include "probe.h"
 #include "algorithm.h"
@@ -125,7 +126,6 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     //event_free(event); // TODO this may provoke seg fault in case of stars
 }
 
-
 /**
  * \brief Main program
  * \param argc Number of arguments
@@ -133,91 +133,43 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
  * \return Execution code
  */
 
-int main(int argc, char ** argv) {
-    buffer_t  * payload;
-    probe_t   * probe,
-              * p1,
-              * p2,
-              * p3;
-    network_t * network;
-    double      delay;
-
-    printf("bonjour\n");
-    if (!(probe = probe_create())) {
-        perror("E: Cannot create probe skeleton");
-        //goto ERR_PROBE_CREATE;
-    }
-    if (!(payload = buffer_create())) {
-        perror("E: Cannot allocate payload buffer");
-        //goto ERR_BUFFER_CREATE;
-    }
-    buffer_write_bytes(payload, "\0\0", 2);
-    char dst_ip[] = "1.1.1.2";
-    probe_set_protocols(probe, "ipv4", "udp", NULL);
-    probe_write_payload(probe, payload);
-    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
-
-
-    generator_t * generator,
-                * g;
-    if (!(generator = generator_create_by_name("uniform"))) goto ERR_GENERATOR_CREATE;
-    if (!(g = generator_create_by_name("uniform"))) goto ERR_GENERATOR_CREATE;
-
-    field_t * f = DOUBLE("delay", 3);
-    probe_set_delay(probe, f);
-    if(!(network = network_create())) perror("E: Cannot create network");
-    probe_group_add(network->group_probes, NULL, PROBE, probe);
-    p3 = probe_dup(probe);
-    probe_set_delay(p3, GENERATOR("delay", generator));
-    probe_set_left_to_send(p3, 4);
-    probe_group_add(network->group_probes, NULL, PROBE, p3);
-    p1 = probe_dup(probe);
-    probe_set_delay(p1, GENERATOR("delay", g));
-    probe_group_add(network->group_probes, NULL, PROBE, p1);
-    //p2 = probe_dup(probe);
-    probe_group_dump(network->group_probes);
-    //probe_set_delay(p2, 1);
-    //probe_group_add(network->group_probes, NULL , p2);
-    //probe_group_dump(network->group_probes);
-    //delay = network_get_next_scheduled_probe_delay(network);
-    //printf("delay %f\n", delay);
-    printf("-------------------tree after process---------------------------------\n");
-    //probe_group_del(probe_group_get_root(network->group_probes), 2);
-    //probe_group_dump(network->group_probes);
-    //delay = network_get_next_scheduled_probe_delay(network);
-    //printf("delay %f\n", delay);
-    network_process_scheduled_probe(network);
-    //printf(" update \n");
-    probe_group_dump(network->group_probes);
-    //network_update_next_scheduled_delay(network);
-    printf("-------------------tree after process 2--------------------------------\n");
-    network_process_scheduled_probe(network);
-    probe_group_dump(network->group_probes);
-    printf("bye\n");
-
-   //tree_free(tree);
-    return 0;
-ERR_GENERATOR_CREATE:
-    return 0;
-}
-
-/*
 int main(int argc, char ** argv)
 {
     buffer_t             * payload;
     algorithm_instance_t * instance;
+    traceroute_options_t   options = traceroute_get_default_options();
     probe_t              * probe;
     pt_loop_t            * loop;
+    int                    family;
     int                    ret = EXIT_FAILURE;
-    buffer_t             * payload;
-//    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
+    const char           * ip_protocol_name;
+    //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
 
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-   char dst_ip[] = "8.8.8.8";
-   //char dst_ip[] = "1.1.1.2";
+    //char dst_ip[] = "8.8.8.8";
+    //char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
+
+    if (!address_guess_family(dst_ip, &family)) {
+        fprintf(stderr, "E: Cannot guess family of destination address (%s)", dst_ip);
+        goto ERR_ADDRESS_GUESS_FAMILY;
+    }
+
+    switch (family) {
+        case AF_INET:
+            ip_protocol_name = "ipv4";
+            break;
+        case AF_INET6:
+            ip_protocol_name = "ipv6";
+            break;
+        default:
+            fprintf(stderr, "Internet family not supported (%d)\n", family);
+            goto ERR_FAMILY;
+    }
+
     if (!(payload = buffer_create())) {
-        perror("E: Cannot allocate payload buffer");
+        fprintf(stderr, "E: Cannot allocate payload buffer");
         goto ERR_BUFFER_CREATE;
     }
 
@@ -225,39 +177,44 @@ int main(int argc, char ** argv)
     buffer_write_bytes(payload, "\0\0", 2);
 
     // Prepare options related to the 'traceroute' algorithm
-    traceroute_options_t options = traceroute_get_default_options();
     options.dst_ip = dst_ip;
-    options.num_probes = 3;
-    //options.min_ttl = 4;
+    options.num_probes = 1;
+    options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
     if (!(loop = pt_loop_create(algorithm_handler, NULL))) {
-        perror("E: Cannot create libparistraceroute loop");
+        fprintf(stderr, "E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
 
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe = probe_create())) {
-        perror("E: Cannot create probe skeleton");
+        fprintf(stderr, "E: Cannot create probe skeleton");
         goto ERR_PROBE_CREATE;
     }
 
-    probe_set_protocols(probe, "ipv4", "udp", NULL);
+    probe_set_protocols(probe, ip_protocol_name, "udp", NULL);
     probe_write_payload(probe, payload);
-    probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
+    probe_set_fields(probe,
+        STR("dst_ip",   dst_ip),
+        I16("dst_port", 30000),
+        NULL
+    );
+
+    probe_set_delay(probe, DOUBLE("delay",0));
     probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {
-        perror("E: Cannot add 'traceroute' algorithm");
+        fprintf(stderr, "E: Cannot add 'traceroute' algorithm");
         goto ERR_INSTANCE;
     }
 
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop, 0) < 0) {
-        perror("E: Main loop interrupted");
+        fprintf(stderr, "E: Main loop interrupted");
         goto ERR_IN_PT_LOOP;
     }
     ret = EXIT_SUCCESS;
@@ -272,6 +229,7 @@ ERR_PROBE_CREATE:
 ERR_LOOP_CREATE:
     buffer_free(payload);
 ERR_BUFFER_CREATE:
+ERR_FAMILY:
+ERR_ADDRESS_GUESS_FAMILY:
     exit(ret);
 }
-*/

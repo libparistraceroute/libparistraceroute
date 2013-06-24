@@ -97,9 +97,6 @@ size_t icmp_write_default_header(uint8_t * icmpv4_header) {
  * \param ip_psh Pass NULL 
  * \sa http://www.networksorcery.com/enp/protocol/icmp.htm#Checksum
  * \return true if everything is ok, false otherwise
- *    errno stores:
- *    - EINVAL if pseudo_hdr is invalid (!= NULL)
- *    - ENOMEM if a memory error arises
  */
 
 bool icmp_write_checksum(uint8_t * icmp_header, buffer_t * ip_psh)
@@ -120,7 +117,6 @@ bool icmp_write_checksum(uint8_t * icmp_header, buffer_t * ip_psh)
 static protocol_t icmp = {
     .name                 = "icmp",
     .protocol             = IPPROTO_ICMP,
-    .get_num_fields       = icmp_get_num_fields,
     .write_checksum       = icmp_write_checksum,
     .fields               = icmp_fields,
     .write_default_header = icmp_write_default_header, // TODO generic

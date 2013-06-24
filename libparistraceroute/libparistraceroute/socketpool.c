@@ -25,56 +25,74 @@ union sockaddr_union {
 
 typedef union sockaddr_union sockaddr_u;
 
-bool socketpool_create_raw_socket(socketpool_t *socketpool)
-{
-	int sockfd;
-	int one = 1; // ???
+/**
+ * \brief Create a raw socket.
+ * \param family Internet address family (AF_INET, AF_INET6).
+ * \param psockfd Address of an integer, where the resulting socket
+ *    file descriptor is written if successful
+ * \return true iif successfull, false otherwise.
+ */
 
-    if ((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) == -1) {
+static bool create_raw_socket(int family, int * psockfd) {
+	int       sockfd;
+	//int       optval = 1; // ???
+    //socklen_t optlen = sizeof(optval);
+
+    if ((sockfd = socket(family, SOCK_RAW, IPPROTO_RAW)) == -1) {
         perror("Cannot create a raw socket (are you root?)");
         goto ERR_SOCKET;
     }
 
-	if (setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &one, sizeof(int)) < 0){
+    /*
+	if (setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &optval, optlen) < 0){
 		perror("Cannot set socket options");
         goto ERR_SETSOCKOPT;
 	}
+    */
 
-	socketpool->socket = sockfd;
+	*psockfd = sockfd;
     return true;
 
-ERR_SETSOCKOPT:
+//ERR_SETSOCKOPT:
 ERR_SOCKET:
     return false;
 }
 
-socketpool_t * socketpool_create(void)
-{
+socketpool_t * socketpool_create() {
     socketpool_t * socketpool;
     
-    if (!(socketpool = malloc(sizeof(socketpool_t)))) goto ERR_MALLOC;
-    if (!(socketpool_create_raw_socket(socketpool)))  goto ERR_CREATE_RAW_SOCKET;
+    if (!(socketpool = malloc(sizeof(socketpool_t))))             goto ERR_MALLOC;
+    if (!(create_raw_socket(AF_INET,  &socketpool->ipv4_sockfd))) goto ERR_CREATE_RAW_SOCKET_IPV4;
+    if (!(create_raw_socket(AF_INET6, &socketpool->ipv6_sockfd))) goto ERR_CREATE_RAW_SOCKET_IPV6;
     return socketpool;
 
-ERR_CREATE_RAW_SOCKET:
+ERR_CREATE_RAW_SOCKET_IPV6:
+    close(socketpool->ipv4_sockfd);
+ERR_CREATE_RAW_SOCKET_IPV4:
     free(socketpool);
 ERR_MALLOC:
     return NULL;
 }
 
-void socketpool_free(socketpool_t * socketpool)
-{
-	if (close(socketpool->socket) < 0) {
-		perror("socketpool_free: error while closing socket");
-	}
-    free(socketpool);
+void socketpool_free(socketpool_t * socketpool) {
+    if (socketpool) {
+        if (close(socketpool->ipv4_sockfd) == -1) {
+            perror("socketpool_free: Error while closing IPv4 socket");
+        }
+        if (close(socketpool->ipv6_sockfd) == -1) {
+            perror("socketpool_free: Error while closing IPv6 socket");
+        }
+        free(socketpool);
+    }
 }
 
 bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * packet)
 {
-    size_t            size;
-	sockaddr_u        sock;
-    int               family;
+	sockaddr_u              sock;
+    int                     family;
+    int                     sockfd;
+    socklen_t               socklen;
+    const struct sockaddr * dst_addr;
     
     if (!(address_guess_family(packet->dst_ip, &family))) {
         return false;
@@ -86,21 +104,27 @@ bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * pa
             sock.sin.sin_family = AF_INET;
             sock.sin.sin_port   = htons(packet->dst_port);
             inet_pton(AF_INET, packet->dst_ip, &sock.sin.sin_addr);
+            sockfd = socketpool->ipv4_sockfd;
+            socklen = sizeof(struct sockaddr_in);
+            dst_addr = &sock.sin;
             break;
         case AF_INET6:
             sock.sin6.sin6_family = AF_INET6;
-            sock.sin6.sin6_port   = htons(packet->dst_port);
+            // TODO mmmh we need to set port to 0... why?
+            sock.sin6.sin6_port   = 0; // htons(packet->dst_port);
             inet_pton(AF_INET6, packet->dst_ip, &sock.sin6.sin6_addr);
+            sockfd = socketpool->ipv6_sockfd;
+            socklen = sizeof(struct sockaddr_in6);
+            dst_addr = &sock.sin6;
             break;
         default:
-            perror("Invalid address family");
+            fprintf(stderr, "socketpool_send_packet: Address family not supported");
             return false; 
     }
 
     // Send the packet
-    size = buffer_get_size(packet->buffer);
-    if (sendto(socketpool->socket, buffer_get_data(packet->buffer), size, 0, (struct sockaddr *) &sock, sizeof(sock)) < 0){
-        perror("send_data: sending error in queue");
+    if (sendto(sockfd, packet_get_bytes(packet), packet_get_size(packet), 0, dst_addr, socklen) == -1) {
+        perror("send_data: Sending error in queue");
         return false; 
     }
 
