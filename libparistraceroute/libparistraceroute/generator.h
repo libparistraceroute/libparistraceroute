@@ -11,7 +11,7 @@
 typedef struct generator_s {
     const char * name;                                    /**< Name of the generator */
     double    (* get_next_value)(struct generator_s * g); /**< We generate the i-th value */
-    field_t    * fields;
+    field_t   ** fields;
     size_t       num_fields;
     size_t       size;
     double       value;
@@ -36,6 +36,16 @@ void generator_free(generator_t * generator);
 
 void generator_dump(const generator_t * generator);
 
+/**
+ * \brief
+ */
+
+generator_t * generator_dup(const generator_t * generator);
+
+/**
+ * \brief
+ */
+
 size_t generator_get_size(const generator_t * generator);
 
 /**
@@ -43,12 +53,6 @@ size_t generator_get_size(const generator_t * generator);
  */
 
 size_t generator_get_num_fields(const generator_t * generator);
-
-/**
- * \brief
- */
-
-bool generator_set_fields(generator_t * generator, const field_t * fields, size_t num_fields);
 
 /**
  * \brief
@@ -62,6 +66,11 @@ bool generator_extract_value(const generator_t * generator, const char * key, vo
 
 double generator_get_value(generator_t * generator);
 
+/**
+ * \brief
+ */
+
+double generator_get_next_value(generator_t * generator);
 /**
  * \brief
  */

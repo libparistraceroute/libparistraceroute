@@ -9,7 +9,7 @@
 
 layer_t * layer_create(void) {
     layer_t * layer = calloc(1, sizeof(layer_t));
-    if (!layer) goto ERR_CALLOC; 
+    if (!layer) goto ERR_CALLOC;
     layer->mask = NULL;
     return layer;
 
@@ -83,6 +83,11 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     const protocol_field_t * protocol_field;
     size_t                   protocol_field_size;
 
+    if (field->type == TYPE_GENERATOR) {
+        // TODO we should simply fetch the next generated value
+        fprintf(stderr, "layer_set_field: invalid field\n");
+        goto ERR_INVALID_FIELD;
+    }
     if (!field) {
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
@@ -101,15 +106,15 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     // variable len (such as IPv4 with options, etc.).
     protocol_field_size = field_get_type_size(protocol_field->type);
     if (protocol_field->offset + protocol_field_size > layer->header_size) {
-        fprintf(stderr, "layer_set_field: buffer too small\n"); 
+        fprintf(stderr, "layer_set_field: buffer too small\n");
         goto ERR_BUFFER_TOO_SMALL;
     }
 
-    // Copy the field value into the buffer 
+    // Copy the field value into the buffer
     // If we have a setter function, we use it, otherwise write the value directly
     if (protocol_field->set) {
         if (!(protocol_field->set(layer->segment, field))) {
-            fprintf(stderr, "layer_set_field: can't set field '%s'\n", field->key);
+            fprintf(stderr, "layer_set_field: can't set field '%s' in layer %s\n", field->key, layer->protocol->name);
             goto ERR_PROTOCOL_FIELD_SET;
         }
     } else {
@@ -171,19 +176,27 @@ ERR_CREATE_LAYER:
 
 bool layer_extract(const layer_t * layer, const char * field_name, void * value) {
     const protocol_field_t * protocol_field;
-    bool  ret = false;
+    field_t                * field;
 
-    if (layer && layer->protocol) {
-        if ((protocol_field = protocol_get_field(layer->protocol, field_name))) {
-            memcpy(
-                value,
-                layer->segment + protocol_field->offset,
-                field_get_type_size(protocol_field->type)
-            );
-            ret = true;
-        }
-    }
-    return ret;
+    if (!(layer && layer->protocol)) goto ERR_PARAM;
+    if (!(protocol_field = protocol_get_field(layer->protocol, field_name))) goto ERR_PROTOCOL_GET_FIELD;
+
+    // TODO this is crappy
+    if (!(field = field_create_from_network(
+            protocol_field->type,
+            protocol_field->key,
+            layer->segment + protocol_field->offset
+        )
+    )) goto ERR_FIELD_CREATE;
+
+    memcpy(value, &field->value, field_get_size(field));
+    field_free(field);
+    return true;
+
+ERR_PROTOCOL_GET_FIELD:
+ERR_FIELD_CREATE:
+ERR_PARAM:
+    return false;
 }
 
 void layer_dump(layer_t * layer, unsigned int indent)
@@ -195,7 +208,7 @@ void layer_dump(layer_t * layer, unsigned int indent)
 
     // There is no nested layer, so data carried by this layer is the payload
     if (!layer->protocol) {
-        size = layer->segment_size; 
+        size = layer->segment_size;
         print_indent(indent);
         printf("PAYLOAD:\n");
         print_indent(indent);
@@ -213,13 +226,13 @@ void layer_dump(layer_t * layer, unsigned int indent)
         printf("LAYER: %s\n", layer->protocol->name);
         print_indent(indent);
         printf(sep);
-        
+
         // Dump each field
         for(protocol_field = layer->protocol->fields; protocol_field->key; protocol_field++) {
             field = layer_create_field(layer, protocol_field->key);
             print_indent(indent);
             printf("%-15s ", protocol_field->key);
-            field_dump(field);    
+            field_dump(field);
             printf("\n");
             field_free(field);
         }

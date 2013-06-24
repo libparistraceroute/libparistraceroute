@@ -21,7 +21,7 @@ static field_t * generator_get_field(const generator_t * generator, const char *
     field_t * field;
 
     if (generator->fields) {
-        for (field = generator->fields; field->key; field++) {
+        for (field = generator->fields[0]; field->key; field++) {
             if (strcmp(field->key, key) == 0) {
                 return field;
             }
@@ -32,22 +32,40 @@ static field_t * generator_get_field(const generator_t * generator, const char *
 
 generator_t * generator_create_by_name(const char * name)
 {
+    size_t              size, i , num_fields;
     generator_t       * generator;
     const generator_t * search;
 
-    if (!(generator = calloc(1, sizeof(generator_t)))) goto ERR_CALLOC;
-    if (!(search = generator_search(name))) goto ERR_SEARCH;
-    memcpy(generator, search, sizeof(generator_t));
+    if (!(search = generator_search(name))) {
+        fprintf(stderr, "Unknown generator %s", name);
+        goto ERR_SEARCH;
+    }
+
+    size = generator_get_size(search);
+    if (!(generator = calloc(1, size))) goto ERR_CALLOC;
+    memcpy(generator, search, size);
+    num_fields = generator->num_fields;
+    if (!(generator->fields = malloc(num_fields * sizeof(field_t *)))) goto ERR_MALLOC;
+    for (i = 0; i < num_fields; ++i) {
+        if (!(generator->fields[i] = field_dup((const field_t *)(search->fields + i)))) goto ERR_DUP;
+    }
     return generator;
 
-ERR_SEARCH:
-    printf("generator not found \n");
+ERR_DUP:
+    free(generator->fields);
+ERR_MALLOC:
+    generator_free(generator);
 ERR_CALLOC:
+ERR_SEARCH:
     return NULL;
 }
 
 void generator_free(generator_t * generator) {
+    size_t i, num_fields = generator_get_num_fields(generator);
     if (generator) {
+        for (i = 0; i < num_fields; ++i) {
+            if (generator->fields[i]) field_free(generator->fields[i]);
+        }
         free(generator->fields);
         free(generator);
     }
@@ -74,7 +92,7 @@ bool generator_set_field(generator_t * generator, field_t * field) {
     field_t * field_to_update;
 
     for (i = 0; i < num_fields; i++) {
-        field_to_update = &generator->fields[i];
+        field_to_update = generator->fields[i];
         if (field_match(field_to_update, field)) {
             return field_set_value(field_to_update, &field->value);
         }
@@ -93,22 +111,15 @@ bool generator_set_field_and_free(generator_t * generator, field_t * field)
     return ret;
 }
 
-
 void generator_dump(const generator_t * generator) {
     size_t i, num_fields = generator_get_num_fields(generator);
 
     printf("*** GENERATOR : %s ***\n", generator->name);
-    printf("generator parameters : \n");
     for (i = 0; i < num_fields; ++i) {
-        printf("%s : ", field_get_key(generator->fields + i) );
-        field_dump(generator->fields + i);
+        printf("\t%s : ", field_get_key(generator->fields[i]) );
+        field_dump(generator->fields[i]);
         printf("\n");
     }
-    printf("************************\n");
-}
-
-field_t * generator_get_fields(const generator_t * generator) {
-    return generator->fields;
 }
 
 size_t generator_get_num_fields(const generator_t * generator) {
@@ -128,31 +139,8 @@ double generator_get_value(generator_t * generator) {
 }
 
 double generator_get_next_value(generator_t * generator) {
-    generator->value = generator->get_next_value(generator);
+    generator->value += generator->get_next_value(generator);
     return generator->value;
-}
-
-bool generator_set_fields(generator_t * generator, const field_t * fields, size_t num_fields)
-{
-    field_t * field,
-            * field_to_update;
-    bool      ret = true;
-    size_t    i;
-
-    for (i = 0; i < num_fields; ++i) {
-        field = (generator->fields + i);
-
-        if ((field_to_update = generator_get_field(generator, field->key))) {
-            if (field_to_update->type != field->type) {
-                ret = false;
-            } else {
-                memcpy(&field_to_update->value, &field->value, field_get_size(field));
-            }
-        } else {
-            ret = false;
-        }
-    }
-    return ret;
 }
 
 const generator_t * generator_search(const char * name)

@@ -125,9 +125,6 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     //event_free(event); // TODO this may provoke seg fault in case of stars
 }
 
-double delay_callback(size_t i){
-    return (double) (i + 1);
-}
 
 /**
  * \brief Main program
@@ -161,40 +158,41 @@ int main(int argc, char ** argv) {
     probe_set_fields(probe, STR("dst_ip", dst_ip), I16("dst_port", 30000), NULL);
 
 
-    generator_t * generator;
-    //tree_node_t * node;
-    // field_t * f = DOUBLE("mean", 2);
-    // const field_t * fa[1] = {f};
+    generator_t * generator,
+                * g;
     if (!(generator = generator_create_by_name("uniform"))) goto ERR_GENERATOR_CREATE;
-       // if (!(node = probe_group_create(generator, probe_skel, 10)))                 goto ERR_PROBE_GROUP_CREATE;
-    generator_dump(generator);
-    field_t * f = GENERATOR("delay", generator);
-    probe_set_delay(probe, GENERATOR("delay", generator));
-    probe_dump(probe);
-    //printf("next_value : %f \n", generator->get_next_value(generator));
-   // probe_tree_generator(probe, generator, 3);
+    if (!(g = generator_create_by_name("uniform"))) goto ERR_GENERATOR_CREATE;
 
+    field_t * f = DOUBLE("delay", 3);
+    probe_set_delay(probe, f);
     if(!(network = network_create())) perror("E: Cannot create network");
-    //p3 = probe_dup(probe);
- //   probe_set_delay(p3, 3);
-    //probe_group_add(network->group_probes, NULL, p3);
-    //p1 = probe_dup(probe);
-   // probe_set_delay(p1, 2);
-   // probe_group_add(network->group_probes, NULL, p1);
+    probe_group_add(network->group_probes, NULL, PROBE, probe);
+    p3 = probe_dup(probe);
+    probe_set_delay(p3, GENERATOR("delay", generator));
+    probe_set_left_to_send(p3, 4);
+    probe_group_add(network->group_probes, NULL, PROBE, p3);
+    p1 = probe_dup(probe);
+    probe_set_delay(p1, GENERATOR("delay", g));
+    probe_group_add(network->group_probes, NULL, PROBE, p1);
     //p2 = probe_dup(probe);
+    probe_group_dump(network->group_probes);
     //probe_set_delay(p2, 1);
     //probe_group_add(network->group_probes, NULL , p2);
     //probe_group_dump(network->group_probes);
     //delay = network_get_next_scheduled_probe_delay(network);
     //printf("delay %f\n", delay);
-    ///printf("-------------------tree after delete---------------------------------\n");
+    printf("-------------------tree after process---------------------------------\n");
     //probe_group_del(probe_group_get_root(network->group_probes), 2);
     //probe_group_dump(network->group_probes);
     //delay = network_get_next_scheduled_probe_delay(network);
     //printf("delay %f\n", delay);
-    //network_process_scheduled_probe(network);
+    network_process_scheduled_probe(network);
     //printf(" update \n");
+    probe_group_dump(network->group_probes);
     //network_update_next_scheduled_delay(network);
+    printf("-------------------tree after process 2--------------------------------\n");
+    network_process_scheduled_probe(network);
+    probe_group_dump(network->group_probes);
     printf("bye\n");
 
    //tree_free(tree);

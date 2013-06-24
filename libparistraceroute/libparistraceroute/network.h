@@ -117,13 +117,13 @@ typedef struct network_s {
     int             timerfd;       /**< Used for probe timeouts. Linux specific. Activated when a probe timeout occurs */
     uint16_t        last_tag;      /**< Last probe ID used */
     double          timeout;       /**< The timeout value used by this network (in seconds) */
-    int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */ 
+    int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */
     probe_group_t * group_probes;  /**< Structure of probe_group may contain a group af probes or a group of groups of probes */
 } network_t;
 
 /**
  * \brief Get the commandline options related to the layer network
- * \returna pointer to a tructure containing the options 
+ * \returna pointer to a tructure containing the options
  */
 
 // TODO rename network_get_opt_spec
@@ -153,7 +153,7 @@ double network_get_timeout(const network_t * network);
 
 /**
  * \brief Set a new timeout for the network structure.
- * \param network The network_t instance we're updating. 
+ * \param network The network_t instance we're updating.
  * \param new_timeout The new timeout.
  */
 
@@ -161,7 +161,7 @@ void network_set_timeout(network_t * network, double new_timeout);
 
 /**
  * \brief Retrieve the file descriptor activated whenever a
- *   packet is ready to be sent. 
+ *   packet is ready to be sent.
  * \param network The network_t instance we're querying.
  * \return The corresponding file descriptor.
  */
@@ -170,9 +170,9 @@ int network_get_sendq_fd(network_t * network);
 
 /**
  * \brief Retrieve the file descriptor activated whenever a
- *   packet_t instance has been sniffed 
- * \param network The network_t instance we're querying 
- * \return The corresponding file descriptor 
+ *   packet_t instance has been sniffed
+ * \param network The network_t instance we're querying
+ * \return The corresponding file descriptor
  */
 
 int network_get_sniffer_fd(network_t * network);
@@ -180,8 +180,8 @@ int network_get_sniffer_fd(network_t * network);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   packet_t instance has been pushed in the recv queue.
- * \param network The network_t instance we're querying 
- * \return The corresponding file descriptor 
+ * \param network The network_t instance we're querying
+ * \return The corresponding file descriptor
  */
 
 int network_get_recvq_fd(network_t * network);
@@ -189,8 +189,8 @@ int network_get_recvq_fd(network_t * network);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   timeout occurs.
- * \param network The network_t instance we're querying 
- * \return The corresponding file descriptor 
+ * \param network The network_t instance we're querying
+ * \return The corresponding file descriptor
  */
 
 int network_get_timerfd(network_t * network);
@@ -198,25 +198,25 @@ int network_get_timerfd(network_t * network);
 /**
  * \brief Retrieve the file descriptor activated whenever a
  *   delay occurs.
- * \param network The network_t instance we're querying 
- * \return The corresponding file descriptor 
+ * \param network The network_t instance we're querying
+ * \return The corresponding file descriptor
  */
 
 int network_get_group_timerfd(network_t * network);
 
 /**
- * \brief Retrieve the tree of probes handled by this 
+ * \brief Retrieve the tree of probes handled by this
  *   network instance
- * \param network The network_t instance we're querying 
- * \return a Pointer to the tree of group of probes 
+ * \param network The network_t instance we're querying
+ * \return a Pointer to the tree of group of probes
  */
 
 probe_group_t * network_get_group_probes(network_t * network);
 
 /**
- * \brief Send the next packet on the queue
+ * \brief Send the next packet stored network->sendq
  * \param network The network to use for the queue and for sending
- * \return true iif successfull 
+ * \return true iif successfull
  */
 
 bool network_process_sendq(network_t * network);
@@ -225,7 +225,7 @@ bool network_process_sendq(network_t * network);
  * \brief Process received packets: match them with a probe, or discard them.
  * \param network Pointer to a network structure
  * In practice, the receive queue stores all the packets received by the sniffer.
- * \return true iif successful 
+ * \return true iif successful
  */
 
 bool network_process_recvq(network_t * network);
@@ -236,7 +236,7 @@ void network_process_sniffer(network_t * network);
  * \brief Drop the oldest flying probe (if any) attached to a network_t
  *    instance. The oldest probe is removed from network->probes
  *    and network->timerfd is refreshed to manage the next timeout
- *    if there is still at least one flying probe. 
+ *    if there is still at least one flying probe.
  * \param network Pointer to a network structure
  * \return true iif successful
  */
@@ -245,23 +245,43 @@ bool network_drop_expired_flying_probe(network_t * network);
 
 /**
  * \brief handle the scheduled probes when network->scheduled_timerfd is activated
- * \param network Pointer to the handled network instance 
+ * \param network Pointer to the handled network instance
  */
+
 void network_process_scheduled_probe(network_t * network);
 
 /**
  * \brief Retrieve the next delay to send scheduled probes
  * \param network Pointer to the handled network instance
- * \return the next delay  
+ * \return the next delay
  */
-double network_get_next_scheduled_probe_delay(const network_t * network);
+
+//double network_get_next_scheduled_probe_delay(const network_t * network);
 
 /**
  * \brief Refresh the newtork->scheduled_timerfd to next delay value
- * \param Pointer to handled network instance
- * return true iif successful 
+ * \param network Pointer to handled network instance
+ * \param delay The new delay
+ * return true iif successful
  */
-bool network_update_next_scheduled_delay(network_t * network);
 
+bool network_update_scheduled_timer(network_t * network, double delay);
+
+/**
+ * \brief Refresh timerfd to a new  delay value
+ * \param timerfd the timer file descriptor to update
+ * \param delay The new delay
+ * return true iif successful
+ */
+
+bool update_timer(int timerfd, double delay);
+
+/**
+ * \brief et an itimerspec structure to new  delay value
+ * \param a Pointer to an itimerspec structure to update
+ * \param delay The new delay
+ */
+
+//void itimerspec_set_delay(struct itimerspec * timer, double delay);
 
 #endif

@@ -33,19 +33,19 @@
 static protocol_field_t icmp6_fields[] = {
     {   
         .key = ICMP6_FIELD_TYPE,
-        .type = TYPE_INT8,
+        .type = TYPE_UINT8,
         .offset = offsetof(struct icmp6_hdr, icmp6_type),
     }, {
         .key = ICMP6_FIELD_CODE,
-        .type = TYPE_INT8,
+        .type = TYPE_UINT8,
         .offset = offsetof(struct icmp6_hdr, icmp6_code),
     }, {
         .key = ICMP6_FIELD_CHECKSUM,
-        .type = TYPE_INT16,
+        .type = TYPE_UINT16,
         .offset = offsetof(struct icmp6_hdr, icmp6_cksum),
     }, {
         .key = ICMP6_FIELD_BODY,
-        .type = TYPE_INT32,
+        .type = TYPE_UINT32,
         .offset = offsetof(struct icmp6_hdr, icmp6_dataun), // XXX union type
     },
     // TODO Multiple possibilities for the last field ! 

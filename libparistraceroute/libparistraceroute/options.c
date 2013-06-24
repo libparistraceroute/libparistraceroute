@@ -37,7 +37,7 @@ static opt_spec_t * options_search_colliding_option(options_t * options, opt_spe
              printf("----option 2----\n");
             option_dump(option);
             break;
-        } else { 
+        } else {
             options_i = NULL;
         }
     }
@@ -52,7 +52,10 @@ options_t * options_create(void (* callback)(opt_spec_t * option1, opt_spec_t * 
         goto ERR_MALLOC;
     }
 
-    if (!(options->optspecs = vector_create(sizeof(opt_spec_t), NULL, option_dump))) {
+    if (!(options->optspecs = vector_create(sizeof(opt_spec_t),
+                                            NULL,
+                                            (void *)(const struct opt_spec_t *)option_dump
+                                            ))) {
         goto ERR_VECTOR_CREATE;
     }
 
@@ -78,9 +81,9 @@ bool options_add_options(options_t * options, opt_spec_t * optspecs, size_t num_
 
     for (i = 0; i < num_options; i++) {
         options_add_option(options, optspecs + i);
-        
+
     }
-    return true; 
+    return true;
 }
 
 bool options_add_option(options_t * options, opt_spec_t * option)
@@ -99,7 +102,7 @@ bool options_add_option(options_t * options, opt_spec_t * option)
 }
 
 bool options_add_common(options_t * options, const char * version_data)
-{   
+{
     bool ret = false;
 
     if(options && version_data) {
@@ -125,7 +128,7 @@ bool option_rename_lf(opt_spec_t * option, char * lf) {
 /*
 void option_replace(opt_spec_t * option1, opt_spec_t * option2) {
     option_rename_1(option1,option2);
-     option2 = option2 + 1; 
+     option2 = option2 + 1;
     printf("first option replaced\n");
 }
 

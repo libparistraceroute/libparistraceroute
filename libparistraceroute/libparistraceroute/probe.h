@@ -7,7 +7,6 @@
  */
 
 #include <stdbool.h>
-#include "stackedlist.h"
 #include "field.h"
 #include "layer.h"
 #include "buffer.h"
@@ -35,6 +34,7 @@ typedef struct {
     double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) */
     double       recv_time;     /**< Only set if this instance is related to a reply. Timestamp set by network layer just after sniffing the reply */
     field_t    * delay;         /**< The time to send this probe */
+    size_t       left_to_send;  /**< Number of times left to use this probe instance to send packets */
 } probe_t;
 
 /**
@@ -86,7 +86,7 @@ void probe_dump(const probe_t * probe);
  * \return true iif successfull
  */
 
-bool probe_set_field_ext(probe_t * probe, size_t depth, field_t * field);
+bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field);
 
 /**
  * \brief Set a field according to a given field name. The first
@@ -96,7 +96,7 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, field_t * field);
  * \return true iif successfull
  */
 
-bool probe_set_field(probe_t * probe, field_t * field);
+bool probe_set_field(probe_t * probe, const field_t * field);
 
 /**
  * \brief Update 'length', 'checksum' and 'protocol' fields for each
@@ -114,7 +114,7 @@ bool probe_update_fields(probe_t * probe);
  * \return true iif successful,
  */
 
-bool probe_set_fields(probe_t * probe, field_t * field1, ...);
+bool probe_set_fields(probe_t * probe, const field_t * field1, ...);
 
 /**
  * \brief Assigns a set of fields to a probe
@@ -239,6 +239,16 @@ size_t probe_get_payload_size(const probe_t * probe);
 const char * probe_get_protocol_name(const probe_t * probe, size_t i);
 
 /**
+ * \brief Retrieve the i-th layer stored in a probe.
+ * \param probe The queried probe
+ * \param The index of the layer (from 0 to probe_get_num_layers(probe) - 1).
+ *   The last layer is the payload.
+ * \return The corresponding layer, NULL if i is invalid.
+ */
+
+layer_t * probe_get_layer(const probe_t * probe, size_t i);
+
+/**
  * \brief Retrieve the number of layers (number of headers + 1 (payload))
  * \param probe The queried probe
  * \return The number of layer stored in this probe.
@@ -262,14 +272,16 @@ void probe_set_recv_time(probe_t * probe, double time);
 
 double probe_get_recv_time(const probe_t * probe);
 
-//void probe_set_delay(probe_t * probe, double delay);
-
-void probe_set_delay(probe_t * probe, field_t * delay);
-
+bool probe_set_delay(probe_t * probe, field_t * delay);
 
 double probe_get_delay(const probe_t * probe);
 
-tree_t * probe_tree_generator(probe_t * probe_skel, double delay, size_t num_nodes);
+double probe_get_next_delay(const probe_t * probe);
+
+size_t probe_get_left_to_send(probe_t * probe);
+
+void probe_set_left_to_send(probe_t * probe, size_t num_left);
+
 
 
 /******************************************************************************
