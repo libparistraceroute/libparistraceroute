@@ -378,7 +378,7 @@ probe_t * probe_dup(const probe_t * probe)
     ret->queueing_time = probe->queueing_time;
     ret->recv_time     = probe->recv_time;
     ret->caller        = probe->caller;
-    ret->delay         = field_dup(probe->delay);
+    ret->delay         = probe->delay ? field_dup(probe->delay) : NULL;
     return ret;
 
     /*
@@ -410,8 +410,10 @@ void probe_dump(const probe_t * probe)
     layer_t * layer;
 
     printf("** PROBE **\n\n");
-    printf("probe delay \n\n");
-    field_dump(probe->delay);
+    if (probe->delay) {
+        printf("probe delay \n\n");
+        field_dump(probe->delay);
+    }
     printf("\n\n");
     printf("number of probes left to send: (%u) \n\n", probe->left_to_send);
     printf("probe structure\n\n");
@@ -814,21 +816,24 @@ bool probe_set_field(probe_t * probe, const field_t * field) {
 
 bool probe_set_metafield_ext(probe_t * probe, size_t depth, field_t * field)
 {
-    bool          ret = false;
+    bool          ret = true;
     field_t     * hacked_field;
 
     // TODO: TEMP HACK IPv4 flow id is encoded in src_port
     if (strcmp(field->key, "flow_id") != 0) {
         fprintf(stderr, "probe_set_metafield_ext: cannot set %s\n", field->key);
+        printf("ret0 = %d\n", ret);
         return false;
     }
 
     if ((hacked_field = I16("src_port", 24000 + field->value.int16))) {
+        printf("setting field %s\n", hacked_field->key);
         ret = probe_set_field(probe, hacked_field);
+        printf("ret1 = %d\n", ret);
         field_free(hacked_field);
     }
 
-    field_free(field);
+        printf("ret2 = %d\n", ret);
     return ret;
 
     /*
@@ -863,18 +868,18 @@ const field_t * probe_create_metafield(const probe_t * probe, const char * name)
     return probe_create_metafield_ext(probe, name, 0);
 }
 
-bool probe_set_fields(probe_t * probe, const field_t * field1, ...) {
+bool probe_set_fields(probe_t * probe, field_t * field1, ...) {
     va_list   args;
-    const field_t * field;
+    field_t * field;
     bool      ret = true;
 
     va_start(args, field1);
-    for (field = field1; field; field = va_arg(args, const field_t *)) {
+    for (field = field1; field; field = va_arg(args, field_t *)) {
         // Update the first matching field
         if (!probe_set_field(probe, field)) {
             // No matching field found, update the first matching metafield
-            if ((ret &= probe_set_metafield(probe, field))) {
-                fprintf(stderr, "probe_set_fields: Cannot not set field %s\n", field->key);
+            if (!(ret &= probe_set_metafield(probe, field))) {
+                fprintf(stderr, "probe_set_fields: Cannot set field '%s'\n", field->key);
             }
         }
         field_free(field);

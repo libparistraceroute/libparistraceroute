@@ -3,14 +3,32 @@
 #include <string.h>      // memcpy, memset
 #include <unistd.h>      // fnctl
 #include <fcntl.h>       // fnctl
-#include <sys/socket.h>  // socket, bind
+#include <sys/socket.h>  // socket, bind, 
 #include <sys/types.h>   // socket, bind
 #include <arpa/inet.h>
 #include <netinet/in.h>  // IPPROTO_ICMP, IPPROTO_ICMPV6
+#include <netinet/ip6.h> // ip6_hdr
 
 #include "sniffer.h"
 
 #define BUFLEN 4096
+
+// Some implementation does not respects RFC3542
+// http://livre.g6.asso.fr/index.php/L'implémentation
+#ifndef IPV6_RECVHOPLIMIT
+#  define IPV6_RECVHOPLIMIT IPV6_HOPLIMIT
+#endif
+#ifndef IPV6_RECVPKTINFO
+#  define IPV6_RECVPKTINFO IPV6_PKTINFO
+#endif
+
+
+// From /usr/include/netinet/in.h
+struct in6_pktinfo
+{
+    struct in6_addr ipi6_addr;  /* src/dst IPv6 address */
+    unsigned int ipi6_ifindex;  /* send/recv interface index */
+};
 
 /**
  * \brief Initialize an ICMPv4 raw socket in a sniffer_t instance
@@ -83,13 +101,14 @@ static bool create_icmpv6_socket(sniffer_t * sniffer, uint16_t port)
     // - TCL
     // - Hoplimit
     // http://h71000.www7.hp.com/doc/731final/tcprn/v53_relnotes_025.html
+    // http://livre.g6.asso.fr/index.php/L'impl%C3%A9mentation
 
-    if ((setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO,  &on, sizeof(on)) == -1)
-    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &on, sizeof(on)) == -1)
-    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVRTHDR,    &on, sizeof(on)) == -1)
-    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVHOPOPTS,  &on, sizeof(on)) == -1)
-    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVDSTOPTS,  &on, sizeof(on)) == -1)
-//    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVTCLASS,   &on, sizeof(on)) == -1)
+    if ((setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO,  &on, sizeof(on)) == -1) // struct in6_pktinfo
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &on, sizeof(on)) == -1) // int
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVRTHDR,    &on, sizeof(on)) == -1) // struct ip6_rthdr
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVHOPOPTS,  &on, sizeof(on)) == -1) // struct ip6_hbh
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVDSTOPTS,  &on, sizeof(on)) == -1) // struct ip6_dest
+    ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVTCLASS,   &on, sizeof(on)) == -1) // int
     ) {
         perror("create_icmpv6_socket: error in setsockopt");
         goto ERR_SETSOCKOPT;
@@ -210,6 +229,102 @@ static ssize_t recv_ipv6(int ipv6_sockfd, uint8_t * recv_bytes, size_t len, int 
 }
 */
 
+ssize_t recv_ipv6_header(int sockfd, void * bytes, size_t len, int flags) {
+    ssize_t           num_bytes;
+    char              cmsg_buf[BUFLEN];
+    struct cmsghdr  * cmsg;
+    struct in6_addr   src_ip; // sockaddr_in6
+    struct ip6_hdr  * ip6_header = (struct ip6_hdr *) bytes;
+
+    struct iovec iov = {
+        .iov_base = bytes,
+        .iov_len  = len 
+    };
+
+    struct msghdr msg = {
+        .msg_name       = &src_ip,          // socket address
+        .msg_namelen    = sizeof(src_ip),   // sizeof socket
+        .msg_iov        = &iov,             // buffer (scather/gather array)
+        .msg_iovlen     = 1,                // number of msg_iov elements
+        .msg_control    = cmsg_buf,         // auxiliary data
+        .msg_controllen = sizeof(cmsg_buf), // sizeof auxiliary data
+        .msg_flags      = flags             // flags related to recv messages
+    };
+
+    memset(bytes, 0, sizeof(struct ip6_hdr)); // DEBUG
+    buffer_t buffer;
+    buffer.data = bytes;
+    buffer.size = sizeof(struct ip6_hdr);
+    buffer_dump(&buffer);
+    printf("\n");
+
+    if ((num_bytes = recvmsg(sockfd, &msg, flags)) == -1) {
+        fprintf(stderr, "recv_ipv6_header: Can't fetch data\n");
+        goto ERR_RECVMSG;
+    }
+
+    buffer_dump(&buffer);
+    printf("\n");
+    printf("num_bytes = %ld size expected = %ld\n", num_bytes, sizeof(struct ip6_hdr)); 
+
+    // len
+    printf("> len\n");
+    ip6_header->ip6_ctlun.ip6_un1.ip6_un1_plen = htons(num_bytes);
+    buffer_dump(&buffer);
+    printf("\n");
+
+    // src_ip
+    printf("> src_ip\n");
+    struct sockaddr_in6 *in6 = msg.msg_name;
+    memcpy(&ip6_header->ip6_src, &in6->sin6_addr , sizeof(struct in6_addr));
+    buffer_dump(&buffer);
+    printf("\n");
+
+    if (msg.msg_flags & MSG_TRUNC) {
+        fprintf(stderr, "recv_ipv6_header: data truncated\n");
+        goto ERR_MSG_TRUNC;
+    }
+
+    if (msg.msg_flags & MSG_CTRUNC) {
+        fprintf(stderr, "recv_ipv6_header: auxiliary data truncated\n");
+        goto ERR_MSG_CTRUNK;
+    }
+
+
+    // Fetch each auxiliary data
+    struct in6_pktinfo * pi;
+
+    printf("Fetching auxiliary data\n");
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        if (cmsg->cmsg_level == IPPROTO_IPV6) {
+            switch(cmsg->cmsg_type) {
+                case IPV6_PKTINFO: // dst_ip
+                    printf("> dst_ip IPV6_PKTINFO\n"); 
+                    pi = (struct in6_pktinfo *) CMSG_DATA(cmsg);
+                    memcpy(&(ip6_header->ip6_dst), &(pi->ipi6_addr), sizeof(struct in6_addr));
+                    break;
+                case IPV6_HOPLIMIT: // ttl
+                    printf("> ttl IPV6_HOPLIMIT\n"); 
+                    ip6_header->ip6_ctlun.ip6_un1.ip6_un1_hlim = *(int *) CMSG_DATA(cmsg);
+                    break;
+                default:
+                    printf("> Ignoring cmsg %d\n", cmsg->cmsg_type);
+                    break;
+            }
+            buffer_dump(&buffer);
+            printf("\n");
+        } else {
+            printf("Ignoring msg (level = %d\n)", cmsg->cmsg_level);
+        }
+    }
+
+    return num_bytes;
+ERR_MSG_CTRUNK:
+ERR_MSG_TRUNC:
+ERR_RECVMSG:
+    return 0;
+}
+
 void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
 {
     uint8_t    recv_bytes[BUFLEN];
@@ -221,7 +336,8 @@ void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
             num_bytes = recv(sniffer->icmpv4_sockfd, recv_bytes, BUFLEN, 0);
             break;
         case IPPROTO_ICMPV6:
-            num_bytes = recv(sniffer->icmpv6_sockfd, recv_bytes, BUFLEN, 0);
+            num_bytes =  recv_ipv6_header(sniffer->icmpv6_sockfd, recv_bytes, BUFLEN, 0);
+            num_bytes += recv(sniffer->icmpv6_sockfd + num_bytes, recv_bytes, BUFLEN - num_bytes, 0);
             break;
     }
 

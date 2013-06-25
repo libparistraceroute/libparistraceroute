@@ -121,7 +121,7 @@ bool probe_update_fields(probe_t * probe);
  * \return true iif successful,
  */
 
-bool probe_set_fields(probe_t * probe, const field_t * field1, ...);
+bool probe_set_fields(probe_t * probe, field_t * field1, ...);
 
 /**
  * \brief Assigns a set of fields to a probe

@@ -154,7 +154,7 @@ void user_handler(pt_loop_t * loop, event_t * event, void * user_data)
     switch (event->type) {
         case ALGORITHM_TERMINATED:
             algorithm_name = event->issuer->algorithm->name;
-            if (strcmp(algorithm_name, "mda") != 0) {
+            if (strcmp(algorithm_name, "mda") == 0) {
                 // Dump full lattice, only when MDA_NEW_LINK is not handled
                 mda_interface_dump(event->issuer->data, do_resolv);
             }
@@ -258,6 +258,7 @@ int main(int argc, char ** argv)
     }
 
     // Dedicated options 
+    printf("1) data->algorithm = %s\n", data->algorithm);
     if (strcmp(data->algorithm, "traceroute") == 0
     ||  strcmp(data->algorithm, "paris-traceroute") == 0) {
         traceroute_options = traceroute_get_default_options();
@@ -291,6 +292,7 @@ int main(int argc, char ** argv)
     network_set_timeout(loop->network, wait[0]);
     
     // Add an algorithm instance in the main loop
+    printf("2) data->algorithm = %s\n", data->algorithm);
     if (!pt_algorithm_add(loop, data->algorithm, data->options, probe_skel)) {
         perror("E: Cannot add the chosen algorithm");
         goto ERR_INSTANCE;
