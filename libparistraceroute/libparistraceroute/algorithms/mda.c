@@ -17,13 +17,13 @@
 // DEBUG
 #include "../probe.h"
 
+static unsigned min_ttl[3]    = OPTIONS_TRACEROUTE_MIN_TTL;
+static unsigned max_ttl[3]    = OPTIONS_TRACEROUTE_MAX_TTL;
+static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH; 
 
-// Bounded pairs parameters  |  def1 min1 max1 def2 min2 max2      mda_enabled
-const unsigned mda_values[7] = {95,  0,   100, 5,   1,   INT_MAX , 0};
-
-/* MDA options */
+// MDA options
 static struct opt_spec mda_cl_options[3] = {
-    /* action           short long          metavar             help    variable XXX */
+    // action           short long          metavar             help    variable
     {opt_store_int_lim, "f",  "--first",    "first_ttl",        HELP_f, min_ttl},
     {opt_store_int_lim, "m",  "--max-hops", "max_ttl",          HELP_m, max_ttl},
     {opt_store_int_2,   "M",  "--mda",      "bound,max_branch", HELP_M, mda_values}    
@@ -34,8 +34,15 @@ static struct opt_spec mda_cl_options[3] = {
 };
 
 struct opt_spec * mda_get_cl_options() {
-
     return mda_cl_options;
+}
+
+unsigned options_mda_get_bound() {
+    return mda_values[0];
+}
+
+unsigned options_mda_get_max_branch() {
+    return mda_values[3];
 }
 
 inline mda_options_t mda_get_default_options() {

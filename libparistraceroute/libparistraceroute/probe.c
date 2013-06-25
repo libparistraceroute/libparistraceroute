@@ -415,7 +415,7 @@ void probe_dump(const probe_t * probe)
         field_dump(probe->delay);
     }
     printf("\n\n");
-    printf("number of probes left to send: (%u) \n\n", probe->left_to_send);
+    printf("number of probes left to send: (%ld) \n\n", probe->left_to_send);
     printf("probe structure\n\n");
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);

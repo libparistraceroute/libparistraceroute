@@ -30,10 +30,10 @@
 // thanks to network_set_timeout() and network_get_timeout().
 
 #define NETWORK_DEFAULT_TIMEOUT 3
-
-// network commandline options stuff
-extern const double   wait[];
+#define OPTIONS_NETWORK_WAIT {NETWORK_DEFAULT_TIMEOUT, 0, INT_MAX}
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
+
+double options_network_get_timeout();
 
 /**
  * \struct network_t
@@ -149,11 +149,7 @@ double network_get_timeout(const network_t * network);
 
 /**
  * \brief Set a new timeout for the network structure.
-<<<<<<< HEAD
- * \param network The network_t instance we're updating.
-=======
  * \param network The network layer..
->>>>>>> origin/akram
  * \param new_timeout The new timeout.
  */
 

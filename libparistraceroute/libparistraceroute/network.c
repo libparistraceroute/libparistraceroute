@@ -18,11 +18,11 @@
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
 // Network options
-const double wait[3] = {5, 0, INT_MAX};
+const double timeout[3] = {5, 0, INT_MAX};
 
 static struct opt_spec network_cl_options[] = {
     // action              short long      metavar     help    variable
-    {opt_store_double_lim, "w",  "--wait", "waittime", HELP_w, wait},
+    {opt_store_double_lim, "w",  "--wait", "waittime", HELP_w, timeout},
 };
 
 /**
@@ -32,6 +32,10 @@ static struct opt_spec network_cl_options[] = {
 
 struct opt_spec * network_get_cl_options() {
     return network_cl_options;
+}
+
+double options_network_get_timeout() {
+    return timeout[0]; 
 }
 
 /**
@@ -687,7 +691,7 @@ void network_process_scheduled_probe(network_t * network) {
         // Handle every probe that must be sent right now
         probe_group_iter_next_scheduled_probes(
             probe_group_get_root(network->group_probes),
-            network_process_probe_node,
+            (void (*) (void *, tree_node_t *, size_t)) network_process_probe_node,
             (void *) network
         );
     }

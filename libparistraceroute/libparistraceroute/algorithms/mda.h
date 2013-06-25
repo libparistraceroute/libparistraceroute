@@ -13,8 +13,8 @@
 #define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
 #define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
 
-extern const unsigned mda_values[];
-
+//                                   def1 min1 max1 def2 min2 max2      mda_enabled
+#define OPTIONS_MDA_BOUND_MAXBRANCH {95,  0,   100, 5,   1,   INT_MAX , 0}
 
 typedef struct {
     traceroute_options_t traceroute_options;
@@ -32,6 +32,10 @@ typedef struct {
     void          (* data_free)(void *); /**< Called in event_free to release data. Ignored if NULL. */
     void           * zero;
 } mda_event_t;
+
+unsigned options_mda_get_bound();
+unsigned options_mda_get_max_branch();
+
 
 struct opt_spec * mda_get_cl_options();
 

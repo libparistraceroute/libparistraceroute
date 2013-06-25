@@ -11,12 +11,9 @@
 
 #include "traceroute.h"
 
-
-// Bounded integer parameters | def    min  max
-const unsigned min_ttl[3]    = {1,     1,   255};
-const unsigned max_ttl[3]    = {30,    1,   255};
-
-//traceroute command line options
+// Bounded integer parameters
+static unsigned min_ttl[3] = OPTIONS_TRACEROUTE_MIN_TTL; 
+static unsigned max_ttl[3] = OPTIONS_TRACEROUTE_MAX_TTL;
 
 static struct opt_spec traceroute_cl_options[] = {
     // action       short  long       metavar    help           data
@@ -24,6 +21,14 @@ static struct opt_spec traceroute_cl_options[] = {
     {opt_store_int_lim, "m",  "--max-hops", "MAX_TTL", "maximum TTL", max_ttl},
 };
 
+
+uint8_t options_traceroute_get_min_ttl() {
+    return min_ttl[0];
+}
+
+uint8_t options_traceroute_get_max_ttl() {
+    return max_ttl[0];
+}
 
 struct opt_spec * traceroute_get_cl_options() {
     return traceroute_cl_options;

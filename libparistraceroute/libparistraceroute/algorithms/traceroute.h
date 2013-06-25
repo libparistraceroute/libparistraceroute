@@ -1,12 +1,11 @@
 #ifndef ALGORITHMS_TRACEROUTE_H
 #define ALGORITHMS_TRACEROUTE_H
 
-//traceroute commandline staff
+#define OPTIONS_TRACEROUTE_MIN_TTL {1,  1, 255}
+#define OPTIONS_TRACEROUTE_MAX_TTL {30, 1, 255}
 
-extern const unsigned min_ttl[];
-extern const unsigned max_ttl[];
-
-
+uint8_t options_traceroute_get_min_ttl();
+uint8_t options_traceroute_get_max_ttl();
 
 /*
  * Principle: (from man page)
