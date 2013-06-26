@@ -1,6 +1,6 @@
 #include <errno.h>       // errno, EINVAL
 #include <stdlib.h>      // malloc
-#include <stdio.h>       // TODO debug 
+#include <stdio.h>       // TODO debug
 #include <stdbool.h>     // bool
 #include <string.h>      // memset()
 
@@ -30,7 +30,7 @@ struct opt_spec * traceroute_get_cl_options() {
 }
 
 
-// TODO to remove, see opt_spec 
+// TODO to remove, see opt_spec
 inline traceroute_options_t traceroute_get_default_options() {
     traceroute_options_t traceroute_options = {
         .min_ttl    = 1,
@@ -101,7 +101,7 @@ static void traceroute_data_free(traceroute_data_t * traceroute_data) {
 static inline bool destination_reached(const char * dst_ip, const probe_t * reply) {
     bool   ret = false;
     char * discovered_ip;
-    
+
     if (probe_extract(reply, "src_ip", &discovered_ip)) {
         ret = !strcmp(discovered_ip, dst_ip);
         free(discovered_ip);
@@ -117,10 +117,9 @@ bool send_traceroute_probe(
 ) {
     probe_t * probe;
 
-    // Probe must be duplicated to avoid side effect. Indeed, once sent
     // a probe must never be altered, otherwise the network layer may
     // manage corrupted probes.
-    if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP; 
+    if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP;
     if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
     if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;
     return pt_send_probe(loop, probe);
@@ -158,7 +157,6 @@ bool send_traceroute_probes(
     return true;
 }
 
-
 /**
  * \brief Handle events to a traceroute algorithm instance
  * \param loop The main loop
@@ -173,7 +171,7 @@ bool send_traceroute_probes(
 int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
 {
     traceroute_data_t    * data = NULL;     // Current state of the algorithm instance
-    probe_t              * probe;           // Probe 
+    probe_t              * probe;           // Probe
     const probe_t        * reply;           // Reply
     probe_reply_t        * probe_reply;     // (Probe, Reply) pair
     traceroute_options_t * options = opts;  // Options passed to this instance
@@ -182,7 +180,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     switch (event->type) {
 
         case ALGORITHM_INIT:
-            // Check options 
+            // Check options
             if (!options || options->min_ttl > options->max_ttl) {
                 errno = EINVAL;
                 goto FAILURE;
@@ -201,13 +199,13 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             probe_reply = (probe_reply_t *) event->data;
             reply       = probe_reply->reply;
 
-            // Reinitialize star counters, check wether we've discovered an IP address 
+            // Reinitialize star counters, check wether we've discovered an IP address
             data->num_stars = 0;
             data->num_undiscovered = 0;
             ++(data->num_replies);
-            data->destination_reached |= destination_reached(options->dst_ip, reply); 
+            data->destination_reached |= destination_reached(options->dst_ip, reply);
 
-            // Notify the caller we've discovered an IP address 
+            // Notify the caller we've discovered an IP address
             pt_raise_event(loop, event_create(TRACEROUTE_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             break;
 
@@ -219,7 +217,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             ++(data->num_stars);
             ++(data->num_replies);
 
-            // Notify the caller we've got a probe timeout 
+            // Notify the caller we've got a probe timeout
             pt_raise_event(loop, event_create(TRACEROUTE_STAR, probe, NULL, (ELEMENT_FREE) probe_free));
             break;
 
@@ -272,13 +270,13 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     if (has_terminated) {
         pt_raise_terminated(loop);
     }
-    
-    // Handled event must always been free when leaving the handler 
+
+    // Handled event must always been free when leaving the handler
     event_free(event);
     return 0;
 
 FAILURE:
-    // Handled event must always been free when leaving the handler 
+    // Handled event must always been free when leaving the handler
     event_free(event);
 
     // Sent to the current instance a ALGORITHM_FAILURE notification.

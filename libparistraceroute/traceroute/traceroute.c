@@ -8,6 +8,7 @@
 #include "algorithm.h"
 #include "algorithms/traceroute.h"
 #include "tree.h"
+#include "generators/uniform.c"
 #include "generator.h"
 
 
@@ -140,6 +141,7 @@ int main(int argc, char ** argv)
     traceroute_options_t   options = traceroute_get_default_options();
     probe_t              * probe;
     pt_loop_t            * loop;
+    generator_t          * generator;
     int                    family;
     int                    ret = EXIT_FAILURE;
     const char           * ip_protocol_name;
@@ -148,8 +150,9 @@ int main(int argc, char ** argv)
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
     //char dst_ip[] = "8.8.8.8";
-    //char dst_ip[] = "1.1.1.2";
-    char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
+    char dst_ip[] = "1.1.1.2";
+    //char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
+
 
     if (!address_guess_family(dst_ip, &family)) {
         fprintf(stderr, "E: Cannot guess family of destination address (%s)", dst_ip);
@@ -179,7 +182,7 @@ int main(int argc, char ** argv)
     // Prepare options related to the 'traceroute' algorithm
     options.dst_ip = dst_ip;
     options.num_probes = 1;
-    options.max_ttl = 1;
+    //options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
@@ -203,7 +206,12 @@ int main(int argc, char ** argv)
         NULL
     );
 
-    probe_set_delay(probe, DOUBLE("delay",0));
+    //if (!(generator = generator_create_by_name("uniform"))) goto ERR_GENERATOR;
+    //generator_set_field(generator, DOUBLE("mean", 10));
+    //generator->value = 3;
+    //generator_dump(generator);
+    probe_set_delay(probe, DOUBLE("delay", 5));
+    //probe_set_left_to_send(probe, 3);
     probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm
@@ -223,6 +231,8 @@ int main(int argc, char ** argv)
 ERR_IN_PT_LOOP:
     // instance is freed by pt_loop_free
 ERR_INSTANCE:
+    //generator_free(generator);
+//ERR_GENERATOR:
     probe_free(probe);
 ERR_PROBE_CREATE:
     pt_loop_free(loop);

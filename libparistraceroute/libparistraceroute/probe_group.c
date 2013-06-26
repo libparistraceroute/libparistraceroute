@@ -76,16 +76,16 @@ static void set_node_delay(tree_node_t * node, double delay)
     }
 }
 
-void update_delay(probe_group_t * probe_group, tree_node_t * node, double delay)
+void  probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node, double delay)
 {
     double node_delay = get_node_delay(node);
 
     if (node_delay > delay) {
         set_node_delay(node, delay);
         if (node->parent) {
-            update_delay(probe_group, node->parent, delay);
+             probe_group_update_delay(probe_group, node->parent, delay);
         } else {
-             update_timer(probe_group->scheduling_timerfd, delay);
+            update_timer(probe_group->scheduling_timerfd, delay);
         }
     }
 }
@@ -168,19 +168,20 @@ void probe_group_free(probe_group_t * probe_group) {
     }
 }
 
-bool probe_group_add(probe_group_t * probe_group, tree_node_t * node_caller, tree_node_tag_t tag, void * data)
+static bool probe_group_add_impl(probe_group_t * probe_group, tree_node_t * node_caller, tree_node_tag_t tag, void * data)
 {
     bool                ret = false;
     double              delay;
     tree_node_t       * new_child;
     tree_node_probe_t * tree_node_probe;
 
+    //printf("adding a node\n");
     if (!node_caller) node_caller = probe_group_get_root(probe_group);
     if (!(tree_node_probe = tree_node_probe_create(tag, data))) goto ERR_CREATE;
     if ((new_child = tree_node_add_child(node_caller, tree_node_probe))) {
     delay = get_node_delay(new_child);
     if (get_node_delay(node_caller) > delay)
-        update_delay(probe_group, node_caller, delay);
+         probe_group_update_delay(probe_group, node_caller, delay);
         ret = true;
     }
 
@@ -188,6 +189,14 @@ bool probe_group_add(probe_group_t * probe_group, tree_node_t * node_caller, tre
 ERR_CREATE:
     return false;
 }
+
+bool probe_group_add(probe_group_t * probe_group, probe_t * probe)
+{
+   // printf("time at adding (%-5.2lfms)\n", get_timestamp());
+    return probe_group_add_impl(probe_group, NULL, PROBE, probe);
+}
+
+
 
 tree_node_t * probe_group_get_root(probe_group_t * probe_group) {
     return tree_get_root(probe_group->tree_probes);
@@ -210,7 +219,7 @@ bool probe_group_del(probe_group_t * probe_group, tree_node_t * node_caller, siz
             delay = MIN(delay, get_node_delay(tree_node_get_ith_child(node_caller, i)));
         }
         set_node_delay(node_caller, delay);
-        update_delay(probe_group, node_caller, delay);
+         probe_group_update_delay(probe_group, node_caller, delay);
 
         return true;
     }

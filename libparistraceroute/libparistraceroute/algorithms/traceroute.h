@@ -1,23 +1,24 @@
 #ifndef ALGORITHMS_TRACEROUTE_H
 #define ALGORITHMS_TRACEROUTE_H
 
+#include "../generator.h"
+
 //traceroute commandline staff
 
+// TODO
 extern const unsigned min_ttl[];
 extern const unsigned max_ttl[];
 
-
-
 /*
  * Principle: (from man page)
- * 
+ *
  * traceroute - print the route packets trace to network host
- * 
+ *
  * traceroute  tracks the route packets taken from an IP network on
  * their way to a given host. It utilizes the IP protocol's time to
  * live (TTL) field and * attempts to elicit an ICMP TIME_EXCEEDED
  * response from each gateway along the path to the host.
- * 
+ *
  * Algorithm:
  *
  *     INIT:
@@ -26,7 +27,7 @@ extern const unsigned max_ttl[];
  *
  *     SEND:
  *         send num_probes probes with TTL = cur_ttl
- * 
+ *
  *     PROBE_REPLY:
  *         if < num_probes
  *             continue waiting
@@ -77,12 +78,12 @@ typedef struct {
 } traceroute_event_t;
 
 typedef struct {
-    bool         destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
-    uint8_t      ttl;                 /**< TTL currently explored                   */
-    size_t       num_replies;         /**< Total of probe sent for this instance    */
-    size_t       num_undiscovered;    /**< Number of consecutive undiscovered hops  */
-    size_t       num_stars;           /**< Number of probe lost for the current hop */
-    dynarray_t * probes;              /**< Probe instances allocated by traceroute  */
+    bool          destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
+    uint8_t       ttl;                 /**< TTL currently explored                   */
+    size_t        num_replies;         /**< Total of probe sent for this instance    */
+    size_t        num_undiscovered;    /**< Number of consecutive undiscovered hops  */
+    size_t        num_stars;           /**< Number of probe lost for the current hop */
+    dynarray_t  * probes;              /**< Probe instances allocated by traceroute  */
 } traceroute_data_t;
 
 #endif
