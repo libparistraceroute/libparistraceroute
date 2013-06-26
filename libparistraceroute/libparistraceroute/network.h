@@ -30,10 +30,10 @@
 // thanks to network_set_timeout() and network_get_timeout().
 
 #define NETWORK_DEFAULT_TIMEOUT 3
-
-// network commandline options stuff
-extern const double   wait[];
+#define OPTIONS_NETWORK_WAIT {NETWORK_DEFAULT_TIMEOUT, 0, INT_MAX}
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
+
+double options_network_get_timeout();
 
 /**
  * \struct network_t

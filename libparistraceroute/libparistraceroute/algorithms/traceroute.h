@@ -1,13 +1,13 @@
 #ifndef ALGORITHMS_TRACEROUTE_H
 #define ALGORITHMS_TRACEROUTE_H
 
-#include "../generator.h"
+#define OPTIONS_TRACEROUTE_MIN_TTL {1,  1, 255}
+#define OPTIONS_TRACEROUTE_MAX_TTL {30, 1, 255}
+#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
+#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
 
-//traceroute commandline staff
-
-// TODO
-extern const unsigned min_ttl[];
-extern const unsigned max_ttl[];
+uint8_t options_traceroute_get_min_ttl();
+uint8_t options_traceroute_get_max_ttl();
 
 /*
  * Principle: (from man page)

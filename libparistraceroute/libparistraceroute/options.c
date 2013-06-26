@@ -32,10 +32,10 @@ static opt_spec_t * options_search_colliding_option(options_t * options, opt_spe
         options_i =  vector_get_ith_element(options->optspecs, i);
         if (option_is_same(options_i, option)) {
             fprintf(stderr, "W: option collision detected\n");
-            printf("----option 1----\n");
-            option_dump(options_i);
-             printf("----option 2----\n");
-            option_dump(option);
+//            printf("----option 1----\n");
+//            option_dump(options_i);
+  //           printf("----option 2----\n");
+    //        option_dump(option);
             break;
         } else {
             options_i = NULL;

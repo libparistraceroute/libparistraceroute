@@ -150,7 +150,7 @@ static void print1opt(struct opt_spec *o, FILE *f, int helppos)
 static struct opt_spec *sethelppos(struct opt_spec *opts)
 {
     int pos, mvlen;
-    
+
     globals.helppos = 0;
     for ( ; opts->action; ++opts) {
         if (opts->action == opt_text) {
@@ -191,7 +191,7 @@ static struct opt_spec *sethelppos(struct opt_spec *opts)
 static void printopts(FILE *f)
 {
     struct opt_spec *o, *o2;
-    
+
     print1opt(&globals.header, f, 0);
     o = globals.opts;
     while (o->action) {
@@ -220,7 +220,7 @@ void opt_err_sfx(void)
     }
     exit(EXIT_FAILURE);
 }
-    
+
 void opt_err(const char *msg)
 {
     opt_err_pfx();
@@ -347,8 +347,8 @@ int opt_store_int_lim_en(char *arg, void *data)
     p[0] = val;
     p[3] = 1;
     return 0;
-}    
-        
+}
+
 
 int opt_store_double(char *arg, void *data)
 {
@@ -413,10 +413,10 @@ int opt_store_int_2(char *arg, void *data){
         i++;
         tab[i] = strtok(NULL,",");
         if (i == 3 ) {
-         opt_err("this option requires two values seperated by ','");            
+         opt_err("this option requires two values seperated by ','");
         }
         if (i < 2 && !tab[i]) {
-         opt_err("this option requires two values seperated by ','");                     
+         opt_err("this option requires two values seperated by ','");
         }
     }
 
@@ -437,7 +437,7 @@ int opt_store_int_2(char *arg, void *data){
         opt_err_sfx();
     }
     p[0] = val1;
-    
+
      val2 = strtol(tab[1], &end, 10);
     errno = 0;
       if (end == tab[0] || end[0])
@@ -453,14 +453,14 @@ int opt_store_int_2(char *arg, void *data){
     return 0;
  }
 
-    
-        
 
-    
+
+
+
 static void badchoice(const char **choices, const char *arg)
 {
     int i;
-    
+
     for (i = 0; !EMPTY(choices[i]); ++i)
         ;
     if (choices[i]) {
@@ -673,7 +673,7 @@ int opt_parse(const char *usage, struct opt_spec *opts, char **argv)
         while (*++a) {
             globals.sf[1] = *a;
             for (o = opts;
-                 o->action && (!o->sf || !strchr(o->sf, *a)); ++o) 
+                 o->action && (!o->sf || !strchr(o->sf, *a)); ++o)
                 ;
             if (!o->action)
                 unknown(globals.sf);
@@ -704,4 +704,4 @@ char ***opt_remainder(void)
 
 
 
-    
+
