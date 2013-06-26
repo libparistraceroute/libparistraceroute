@@ -16,6 +16,8 @@ Otherwise we require a raw socket in the sniffer to retrieve ICMP layers.
 TCP: see scamper
 */
 
+// TODO use sockaddr_storage ?
+// http://stackoverflow.com/questions/8835322/api-using-sockaddr-storage
 union sockaddr_union {
 	struct sockaddr      sa;
 //	struct sockaddr_ll   sll;

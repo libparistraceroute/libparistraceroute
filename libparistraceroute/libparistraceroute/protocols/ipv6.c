@@ -230,6 +230,7 @@ bool ipv6_get_default_src_ip(struct in6_addr dst_ipv6, struct in6_addr * psrc_ip
     addr.sin6_addr = dst_ipv6;
 
     if (connect(sockfd, (struct sockaddr *) &addr, addrlen) == -1) {
+        perror("E: Cannot create IPv6 socket");
         goto ERR_CONNECT;
     }
 

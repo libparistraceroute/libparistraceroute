@@ -13,6 +13,17 @@
 
 #define BUFLEN 4096
 
+// Solaris/Sun
+// http://livre.g6.asso.fr/index.php/L%27exemple_%C2%AB_mini-ping_%C2%BB_revisit%C3%A9
+#ifdef sun // Solaris
+#  define _XOPEN_SOURCE 500 // correct recvmsg/sendmsg/msg/CMSG_xx syntax
+#  define __EXTENSIONS__
+#  ifndef CMSG_SPACE // Solaris <= 9
+#    define CMSG_SPACE(l) ((size_t)_CMSG_HDR_ALIGN(sizeof (struct cmsghdr) + (l)))
+#    define CMSG_LEN(l) ((size_t)_CMSG_DATA_ALIGN(sizeof (struct cmsghdr)) + (l))
+#  endif
+#endif
+
 // Some implementation does not respects RFC3542
 // http://livre.g6.asso.fr/index.php/L'implémentation
 #ifndef IPV6_RECVHOPLIMIT
@@ -174,111 +185,105 @@ int sniffer_get_icmpv6_sockfd(sniffer_t *sniffer) {
     return sniffer->icmpv6_sockfd;
 }
 
-/*
-#include <netinet/ip6.h> // ip6_hdr
-static ssize_t recv_ipv6(int ipv6_sockfd, uint8_t * recv_bytes, size_t len, int flags) {
-    // Here the IPv6 Madness starts. Unlike IPv4 we will NOT receive full packets, but only the payload of the ICMP6 packet.
-    // Therefore we need to get a bunch of auxilliary data to keep in touch with the IPv4 structure paris-traceroute mainly has.
-    // The whole structure needs to be seriously changed to become protocol agnostic :(
-    ssize_t          num_bytes;
-    struct ip6_hdr * ip6_hed = malloc(sizeof(struct ip6_hdr));
-    struct in6_addr  src_ip;
+/**
+ *
+ */
 
-    ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_flow = (uint32_t) 6; // setting IPv6 Version, TCL, Flow... No chance to get flow info from incoming packet? Seriously?
-    ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_nxt  = (uint8_t) IPPROTO_ICMPV6; // We already know it is ICMP6, due to filter options
+static bool rebuild_ipv6_header(
+    struct ip6_hdr            * ip6_header,
+    struct msghdr             * msg,
+    const struct sockaddr_in6 * from,
+    ssize_t                     num_bytes
+) {
+    bool                 ret = true;
+    struct cmsghdr     * cmsg;
+    struct in6_pktinfo * pktinfo;
+    uint32_t             tcl;
 
-    struct iovec iov[1];
-    iov[0].iov_base = recv_bytes;
-    iov[0].iov_len  = len;
+    // Now we can rebuild the IPv6 layer
+    // ip_version (hardcoded), traffic class (updated later), flow label (hardcoded) 
+    ip6_header->ip6_ctlun.ip6_un1.ip6_un1_flow = htonl(0x60000000);
 
-    uint8_t          cmsgbuf[BUFLEN];
-    struct cmsghdr * cmsg;
-    struct msghdr    msg;
+    // length
+    ip6_header->ip6_ctlun.ip6_un1.ip6_un1_plen = htons(num_bytes);
 
-    msg.msg_name = &src_ip;
-    msg.msg_namelen = sizeof(src_ip);
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-    msg.msg_control = cmsgbuf;
-    msg.msg_controllen = sizeof(cmsgbuf);
+    // src_ip
+    memcpy(&ip6_header->ip6_src, &(from->sin6_addr), sizeof(struct in6_addr));
 
-    num_bytes = recvmsg(ipv6_sockfd, &msg, 0);
-    printf("num_bytes = %ld\n", num_bytes);
+    // protocol
+    ip6_header-> ip6_ctlun.ip6_un1.ip6_un1_nxt = IPPROTO_ICMPV6;
 
-    ////////////////
-    ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_plen = htons(num_bytes);
-
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-        if (cmsg->cmsg_type == IPV6_PKTINFO) {
-            memcpy(&ip6_hed->ip6_dst, CMSG_DATA(cmsg), sizeof(struct in6_addr));
-        } else if ( cmsg->cmsg_type == IPV6_HOPLIMIT) {
-            memcpy(&ip6_hed->ip6_ctlun.ip6_un1.ip6_un1_hlim, CMSG_DATA(cmsg), sizeof(uint8_t));
+    // Fetch ancillary data (e.g last parts of the IPv6 header)
+    for (cmsg = CMSG_FIRSTHDR(msg); cmsg; cmsg = CMSG_NXTHDR(msg, cmsg)) {
+        if (cmsg->cmsg_level == IPPROTO_IPV6) {
+            switch (cmsg->cmsg_type) {
+                // Possible values: http://www.lehman.cuny.edu/cgi-bin/man-cgi?socket.h+3
+                case IPV6_PKTINFO: // dst_ip
+                    pktinfo = (struct in6_pktinfo *) CMSG_DATA(cmsg);
+                    memcpy(&(ip6_header->ip6_dst), &(pktinfo->ipi6_addr), sizeof(struct in6_addr));
+                    break;
+                case IPV6_HOPLIMIT: // ttl
+                    ip6_header->ip6_ctlun.ip6_un1.ip6_un1_hlim = *(uint8_t *) CMSG_DATA(cmsg);
+                    break;
+                case IPV6_TCLASS: // traffic class
+                    tcl = *(uint8_t *) CMSG_DATA(cmsg);
+                    *((uint32_t *) &(ip6_header->ip6_ctlun.ip6_un1.ip6_un1_flow)) |= htonl(tcl << 8);
+                    break;
+                default:
+                    // This should never occur
+                    fprintf(stderr, "Unhandled cmsg of type %d\n", cmsg->cmsg_type);
+                    ret = false;
+                    break;
+            }
+        } else {
+            // This should never occur
+            fprintf(stderr, "Ignoring msg (level = %d\n)", cmsg->cmsg_level);
+            ret = false;
         }
     }
 
-    //  Need to get
-    struct sockaddr_in6 *in6 = msg.msg_name;
-    memcpy(&ip6_hed->ip6_src, &in6->sin6_addr , sizeof(struct in6_addr));
-    ///////////////////
-    uint8_t *tmpbuf = malloc(num_bytes + sizeof(struct ip6_hdr));
-    memcpy(tmpbuf, ip6_hed, sizeof(struct ip6_hdr));
-    memcpy(tmpbuf + sizeof(struct ip6_hdr), recv_bytes, num_bytes);
-    ///////////////////
-
-    return num_bytes;
+    return ret;
 }
-*/
 
-ssize_t recv_ipv6_header(int sockfd, void * bytes, size_t len, int flags) {
-    ssize_t           num_bytes;
-    char              cmsg_buf[BUFLEN];
-    struct cmsghdr  * cmsg;
-    struct in6_addr   src_ip; // sockaddr_in6
-    struct ip6_hdr  * ip6_header = (struct ip6_hdr *) bytes;
+/**
+ * \brief Fetch an IPv6/ICMPv6 packet from an IPv6 socket
+ * \param ipv6_sockfd An IPv6 socket which is sniffing an ICMPv6 packet
+ * \param bytes A preallocated buffer in which we write the full IPv6 packet.
+ * \param len The size of the preallocated buffer 
+ * \param flags
+ */
+
+static ssize_t recv_icmpv6(int ipv6_sockfd, void * bytes, size_t len, int flags) {
+    ssize_t               num_bytes;
+    char                  cmsg_buf[BUFLEN];
+    struct sockaddr_in6   from;
+    struct ip6_hdr      * ip6_header = (struct ip6_hdr *) bytes;
 
     struct iovec iov = {
-        .iov_base = bytes,
-        .iov_len  = len 
+        .iov_base = ((uint8_t *) bytes) + sizeof(struct ip6_hdr),
+        .iov_len  = len - sizeof(struct ip6_hdr) 
     };
 
     struct msghdr msg = {
-        .msg_name       = &src_ip,          // socket address
-        .msg_namelen    = sizeof(src_ip),   // sizeof socket
+        .msg_name       = &from,            // socket address
+        .msg_namelen    = sizeof(from),     // sizeof socket
         .msg_iov        = &iov,             // buffer (scather/gather array)
         .msg_iovlen     = 1,                // number of msg_iov elements
-        .msg_control    = cmsg_buf,         // auxiliary data
-        .msg_controllen = sizeof(cmsg_buf), // sizeof auxiliary data
+        .msg_control    = cmsg_buf,         // ancillary data
+        .msg_controllen = sizeof(cmsg_buf), // sizeof ancillary data
         .msg_flags      = flags             // flags related to recv messages
     };
 
-    memset(bytes, 0, sizeof(struct ip6_hdr)); // DEBUG
-    buffer_t buffer;
-    buffer.data = bytes;
-    buffer.size = sizeof(struct ip6_hdr);
-    buffer_dump(&buffer);
-    printf("\n");
+    // We do not need memset since we will explicitely set each bit of
+    // the IPv6 header. Uncomment to debug.
+    //memset(bytes, 0, sizeof(struct ip6_hdr));
 
-    if ((num_bytes = recvmsg(sockfd, &msg, flags)) == -1) {
+    // Fetch the bytes nested in the IPv6 packet (in the case of traceroute,
+    // we fetch ICMPv6/UDP/payload layers).
+    if ((num_bytes = recvmsg(ipv6_sockfd, &msg, flags)) == -1) {
         fprintf(stderr, "recv_ipv6_header: Can't fetch data\n");
         goto ERR_RECVMSG;
     }
-
-    buffer_dump(&buffer);
-    printf("\n");
-    printf("num_bytes = %ld size expected = %ld\n", num_bytes, sizeof(struct ip6_hdr)); 
-
-    // len
-    printf("> len\n");
-    ip6_header->ip6_ctlun.ip6_un1.ip6_un1_plen = htons(num_bytes);
-    buffer_dump(&buffer);
-    printf("\n");
-
-    // src_ip
-    printf("> src_ip\n");
-    struct sockaddr_in6 *in6 = msg.msg_name;
-    memcpy(&ip6_header->ip6_src, &in6->sin6_addr , sizeof(struct in6_addr));
-    buffer_dump(&buffer);
-    printf("\n");
 
     if (msg.msg_flags & MSG_TRUNC) {
         fprintf(stderr, "recv_ipv6_header: data truncated\n");
@@ -286,39 +291,17 @@ ssize_t recv_ipv6_header(int sockfd, void * bytes, size_t len, int flags) {
     }
 
     if (msg.msg_flags & MSG_CTRUNC) {
-        fprintf(stderr, "recv_ipv6_header: auxiliary data truncated\n");
+        fprintf(stderr, "recv_ipv6_header: ancillary data truncated\n");
         goto ERR_MSG_CTRUNK;
     }
 
-
-    // Fetch each auxiliary data
-    struct in6_pktinfo * pi;
-
-    printf("Fetching auxiliary data\n");
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-        if (cmsg->cmsg_level == IPPROTO_IPV6) {
-            switch(cmsg->cmsg_type) {
-                case IPV6_PKTINFO: // dst_ip
-                    printf("> dst_ip IPV6_PKTINFO\n"); 
-                    pi = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-                    memcpy(&(ip6_header->ip6_dst), &(pi->ipi6_addr), sizeof(struct in6_addr));
-                    break;
-                case IPV6_HOPLIMIT: // ttl
-                    printf("> ttl IPV6_HOPLIMIT\n"); 
-                    ip6_header->ip6_ctlun.ip6_un1.ip6_un1_hlim = *(int *) CMSG_DATA(cmsg);
-                    break;
-                default:
-                    printf("> Ignoring cmsg %d\n", cmsg->cmsg_type);
-                    break;
-            }
-            buffer_dump(&buffer);
-            printf("\n");
-        } else {
-            printf("Ignoring msg (level = %d\n)", cmsg->cmsg_level);
-        }
+    if(!rebuild_ipv6_header(ip6_header, &msg, &from, num_bytes)) {
+        fprintf(stderr, "recv_ipv6_header: error in rebuild_ipv6_header\n");
+        goto ERR_REBUILD_IPV6_HEADER;
     }
 
-    return num_bytes;
+    return num_bytes + sizeof(struct ip6_hdr);
+ERR_REBUILD_IPV6_HEADER:
 ERR_MSG_CTRUNK:
 ERR_MSG_TRUNC:
 ERR_RECVMSG:
@@ -328,7 +311,7 @@ ERR_RECVMSG:
 void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
 {
     uint8_t    recv_bytes[BUFLEN];
-    ssize_t    num_bytes;
+    ssize_t    num_bytes = 0;
     packet_t * packet;
 
     switch (protocol_id) {
@@ -336,8 +319,7 @@ void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
             num_bytes = recv(sniffer->icmpv4_sockfd, recv_bytes, BUFLEN, 0);
             break;
         case IPPROTO_ICMPV6:
-            num_bytes =  recv_ipv6_header(sniffer->icmpv6_sockfd, recv_bytes, BUFLEN, 0);
-            num_bytes += recv(sniffer->icmpv6_sockfd + num_bytes, recv_bytes, BUFLEN - num_bytes, 0);
+            num_bytes = recv_icmpv6(sniffer->icmpv6_sockfd, recv_bytes, BUFLEN, 0);
             break;
     }
 
@@ -357,17 +339,6 @@ void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
 #endif
 		if (sniffer->recv_callback != NULL) {
             packet = packet_create_from_bytes(recv_bytes, num_bytes);
-
-            ///////// DEBUG
-            if (protocol_id == IPPROTO_ICMPV6) {
-                printf(">>>>>>>>>>>> Packet sniffed\n");
-                // In IPv6 recv only fetches bytes starting from the ICMPv6 layer! 
-                // http://h71000.www7.hp.com/doc/731final/tcprn/v53_relnotes_025.html
-                printf("num_bytes = %ld\n", num_bytes);
-                packet_dump(packet);
-                printf(">>>>>>>>>>>>> Calling sniffer callback\n");
-            }
-            ///////// DEBUG
 
 			if (!(sniffer->recv_callback(packet, sniffer->recv_param))) {
                 fprintf(stderr, "Error in sniffer's callback\n");
