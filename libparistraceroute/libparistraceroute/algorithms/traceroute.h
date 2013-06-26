@@ -3,20 +3,22 @@
 
 #define OPTIONS_TRACEROUTE_MIN_TTL {1,  1, 255}
 #define OPTIONS_TRACEROUTE_MAX_TTL {30, 1, 255}
+#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
+#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
 
 uint8_t options_traceroute_get_min_ttl();
 uint8_t options_traceroute_get_max_ttl();
 
 /*
  * Principle: (from man page)
- * 
+ *
  * traceroute - print the route packets trace to network host
- * 
+ *
  * traceroute  tracks the route packets taken from an IP network on
  * their way to a given host. It utilizes the IP protocol's time to
  * live (TTL) field and * attempts to elicit an ICMP TIME_EXCEEDED
  * response from each gateway along the path to the host.
- * 
+ *
  * Algorithm:
  *
  *     INIT:
@@ -25,7 +27,7 @@ uint8_t options_traceroute_get_max_ttl();
  *
  *     SEND:
  *         send num_probes probes with TTL = cur_ttl
- * 
+ *
  *     PROBE_REPLY:
  *         if < num_probes
  *             continue waiting
@@ -76,12 +78,12 @@ typedef struct {
 } traceroute_event_t;
 
 typedef struct {
-    bool         destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
-    uint8_t      ttl;                 /**< TTL currently explored                   */
-    size_t       num_replies;         /**< Total of probe sent for this instance    */
-    size_t       num_undiscovered;    /**< Number of consecutive undiscovered hops  */
-    size_t       num_stars;           /**< Number of probe lost for the current hop */
-    dynarray_t * probes;              /**< Probe instances allocated by traceroute  */
+    bool          destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
+    uint8_t       ttl;                 /**< TTL currently explored                   */
+    size_t        num_replies;         /**< Total of probe sent for this instance    */
+    size_t        num_undiscovered;    /**< Number of consecutive undiscovered hops  */
+    size_t        num_stars;           /**< Number of probe lost for the current hop */
+    dynarray_t  * probes;              /**< Probe instances allocated by traceroute  */
 } traceroute_data_t;
 
 #endif

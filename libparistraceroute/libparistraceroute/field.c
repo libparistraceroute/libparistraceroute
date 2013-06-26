@@ -190,40 +190,43 @@ bool field_match(const field_t * field1, const field_t * field2) {
 
 void field_dump(const field_t * field)
 {
-    switch (field->type) {
-        case TYPE_UINT4:
-            printf("%-10hhu (0x%1x)", field->value.int4, field->value.int4);
-            break;
-        case TYPE_UINT8:
-            printf("%-10hhu (0x%02x)", field->value.int8, field->value.int8);
-            break;
-        case TYPE_UINT16:
-            printf("%-10hu (0x%04x)", field->value.int16, field->value.int16);
-            break;
-        case TYPE_UINT32:
-            printf("%-10u (0x%08x)", field->value.int32, field->value.int32);
-            break;
-        case TYPE_UINT64:
-            printf("%lu", field->value.int64);
-            break;
-        case TYPE_UINT128:
-            perror("Not yet implemented");
-            //printf("%llu", field->value.int128); //TODO does printf work this way for 128 bit ints?
-            break;
-        case TYPE_DOUBLE:
-            printf("%lf", field->value.dbl);
-            break;
-        case TYPE_UINTMAX:
-            printf("%ju", field->value.intmax);
-            break;
-        case TYPE_STRING:
-            printf("%s", field->value.string);
-            break;
-        case TYPE_GENERATOR :
-            generator_dump(field->value.generator);
-            break;
-        default:
-            break;
+    if (field) {
+
+        switch (field->type) {
+            case TYPE_UINT4:
+                printf("%-10hhu (0x%1x)", field->value.int4, field->value.int4);
+                break;
+            case TYPE_UINT8:
+                printf("%-10hhu (0x%02x)", field->value.int8, field->value.int8);
+                break;
+            case TYPE_UINT16:
+                printf("%-10hu (0x%04x)", field->value.int16, field->value.int16);
+                break;
+            case TYPE_UINT32:
+                printf("%-10u (0x%08x)", field->value.int32, field->value.int32);
+                break;
+            case TYPE_UINT64:
+                printf("%lu", field->value.int64);
+                break;
+            case TYPE_UINT128:
+                perror("Not yet implemented");
+                //printf("%llu", field->value.int128); //TODO does printf work this way for 128 bit ints?
+                break;
+            case TYPE_DOUBLE:
+                printf("%lf", field->value.dbl);
+                break;
+            case TYPE_UINTMAX:
+                printf("%ju", field->value.intmax);
+                break;
+            case TYPE_STRING:
+                printf("%s", field->value.string);
+                break;
+            case TYPE_GENERATOR :
+                generator_dump(field->value.generator);
+                break;
+            default:
+                break;
+        }
     }
 }
 

@@ -60,13 +60,11 @@ double probe_group_get_next_delay(const probe_group_t * probe_group);
 /**
  * \brief Add a probe in the probe_group
  * \param probe_group the probe_group_t instance containing the node_caller
- * \param node_caller The node related to the calling instance (pass NULL if not needed)
- * \param tag tag to the type of data contained in The node to add (double or probe_t)
- * \param pointer to the data contained in The node to add (pointer to double or probe_t)
+ * \param pointer to probe to  add
  * \return true iif successful
  */
 
-bool probe_group_add(probe_group_t * probe_group, tree_node_t * node_caller, tree_node_tag_t tag, void * data);
+bool probe_group_add(probe_group_t * probe_group, probe_t * probe);
 
 /**
  * \brief Delete a probe in the probe_group
@@ -115,6 +113,6 @@ double get_node_next_delay(const tree_node_t * node);
  * \param delay the delay value.
  */
 
-void update_delay(probe_group_t * probe_group, tree_node_t * node, double delay);
+void  probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node, double delay);
 
 #endif

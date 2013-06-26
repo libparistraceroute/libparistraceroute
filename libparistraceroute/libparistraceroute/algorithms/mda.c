@@ -1,5 +1,5 @@
 /* TODO
- * The algorithm will have to expose a set of options to the commandline if it wants 
+ * The algorithm will have to expose a set of options to the commandline if it wants
  * to be called from it
  */
 
@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <limits.h>                  // INT_MAX
+#include <limits.h>         // INT_MAX
 
 #include "mda.h"
 #include "optparse.h"
@@ -19,14 +19,14 @@
 
 static unsigned min_ttl[3]    = OPTIONS_TRACEROUTE_MIN_TTL;
 static unsigned max_ttl[3]    = OPTIONS_TRACEROUTE_MAX_TTL;
-static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH; 
+static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH;
 
 // MDA options
 static struct opt_spec mda_cl_options[3] = {
     // action           short long          metavar             help    variable
     {opt_store_int_lim, "f",  "--first",    "first_ttl",        HELP_f, min_ttl},
     {opt_store_int_lim, "m",  "--max-hops", "max_ttl",          HELP_m, max_ttl},
-    {opt_store_int_2,   "M",  "--mda",      "bound,max_branch", HELP_M, mda_values}    
+    {opt_store_int_2,   "M",  "--mda",      "bound,max_branch", HELP_M, mda_values}
     // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest
     // max missing
@@ -36,7 +36,13 @@ static struct opt_spec mda_cl_options[3] = {
 struct opt_spec * mda_get_cl_options() {
     return mda_cl_options;
 }
+unsigned options_mda_get_min_ttl() {
+    return min_ttl[0];
+}
 
+unsigned options_mda_get_max_ttl() {
+    return max_ttl[0];
+}
 unsigned options_mda_get_bound() {
     return mda_values[0];
 }
@@ -45,6 +51,9 @@ unsigned options_mda_get_max_branch() {
     return mda_values[3];
 }
 
+unsigned options_mda_get_is_set() {
+    return mda_values[6];
+}
 inline mda_options_t mda_get_default_options() {
 
     mda_options_t mda_options = {
@@ -163,7 +172,7 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
     tosend = mda_stopping_points(MAX(num_next+1, 2), data->confidence) - interface->sent;
 
     //printf("processing interface %s (tosend= %u)\n", interface->address, tosend);
-    
+
     //printf("Interface %s : tosend %d - sent %u - received %u\n", interface->address, tosend, interface->sent, interface->received);
     if ((tosend <= 0) && (interface->sent == interface->received + interface->timeout)) {
         return LATTICE_DONE; // Done enumerating, walking/DFS can continue
@@ -214,7 +223,7 @@ int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data)
 
     if (num_flows_avail > tosend)
         num_flows_avail = tosend;
-    
+
     /* Previous processing should have ensured we have enough flow_ids
      * available... */
     for (i = 0; i < num_flows_avail; i++) {
@@ -314,23 +323,23 @@ int mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pdata, pro
     mda_data_t * data;
 
     // DEBUG
-    probe_dump(skel);
-    printf("min_ttl = %d max_ttl = %d num_probes = %lu dst_ip = %s bound = %d max_branch = %d\n",
-        options->traceroute_options.min_ttl,
-        options->traceroute_options.max_ttl,
-        options->traceroute_options.num_probes,
-        options->traceroute_options.dst_ip ? options->traceroute_options.dst_ip : "",
-        options->bound,
-        options->max_branch
-    );
-    
+    //probe_dump(skel);
+   // printf("min_ttl = %d max_ttl = %d num_probes = %lu dst_ip = %s bound = %d max_branch = %d\n",
+     //   options->traceroute_options.min_ttl,
+       // options->traceroute_options.max_ttl,
+       // options->traceroute_options.num_probes,
+       // options->traceroute_options.dst_ip ? options->traceroute_options.dst_ip : "",
+       // options->bound,
+       // options->max_branch
+    //);
+
     // Create local data structure
     if (!(data = mda_data_create()))                     goto ERR_MDA_DATA_CREATE;
-    if (!(probe_extract(skel, "dst_ip", &data->dst_ip))) goto ERR_EXTRACT_DST_IP; 
+    if (!(probe_extract(skel, "dst_ip", &data->dst_ip))) goto ERR_EXTRACT_DST_IP;
 
     // Initialize algorithm's data
     data->skel = skel;
-    data->loop = loop;   
+    data->loop = loop;
     *pdata = data;
 
     // Create a dummy first hop, root of a lattice of discovered interfaces:
@@ -367,7 +376,7 @@ int mda_search_source(lattice_elt_t * elt, void * data)
                 return LATTICE_INTERRUPT_ALL;
             }
         }
-    
+
         return LATTICE_INTERRUPT_NEXT; // don't process children
     }
 
@@ -461,7 +470,7 @@ int mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * data, prob
     //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id);
 
     /* The couple probe-reply defines a link (origin, destination)
-     * 
+     *
      * origin: can be identified thanks to two parameters of the probe
      *  - probe->ttl - 1 : since we typically probe the next hop
      *  - probe->flow_id : disambiguate between several possible
@@ -503,10 +512,10 @@ int mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * data, prob
              * hops */
             if (source_interface->ttl + 1 < dest_interface->ttl)
                 dest_interface->ttl = source_interface->ttl + 1;
-            /* dest_interface->nb_stars = 0; 
-             * 
+            /* dest_interface->nb_stars = 0;
+             *
              * XXX should be always 0
-             * e.g. for closing diamonds with stars 
+             * e.g. for closing diamonds with stars
              * but we cannot have several parallel interfaces with stars at the
              * moment
              */
@@ -641,7 +650,7 @@ ERR_EXTRACT_TTL:
  */
 
 int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * opts)
-{ 
+{
     mda_data_t * data;
     const mda_options_t * options = opts;
 
@@ -654,7 +663,7 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
             data = *pdata;
             mda_handler_reply(loop, event, data, skel, options);
             break;
-        case PROBE_TIMEOUT: 
+        case PROBE_TIMEOUT:
             data = *pdata;
             mda_handler_timeout(loop, event, data, skel, options);
             break;

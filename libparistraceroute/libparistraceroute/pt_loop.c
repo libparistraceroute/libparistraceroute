@@ -1,7 +1,7 @@
 #include "pt_loop.h"
 
 #include <stdbool.h>       // bool
-#include <stdio.h>         // perror 
+#include <stdio.h>         // perror
 #include <stdlib.h>        // malloc, free
 #include <string.h>        // memset
 #include <errno.h>         // perror
@@ -42,7 +42,7 @@ static bool register_efd(pt_loop_t * loop, int fd) {
     event.data.fd = fd;
     event.events = EPOLLIN; // | EPOLLET;
 
-    // Register fd in pt_loop 
+    // Register fd in pt_loop
     if (epoll_ctl(loop->efd, EPOLL_CTL_ADD, fd, &event) == -1) {
         perror("Error epoll_ctl");
         goto ERR_EPOLL_CTL;
@@ -113,7 +113,7 @@ static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_
         loop->cur_instance,
         nested_event ? (ELEMENT_FREE) event_free : NULL
     );
-    if (!event) return false; 
+    if (!event) return false;
 
     // Raise the event
     pt_algorithm_throw(loop, loop->cur_instance->caller, event);
@@ -132,7 +132,7 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
         perror("Error epoll_create1");
         goto ERR_EPOLL;
     }
-    
+
     // Prepare algorithm events fd and register it in loop->efd
     if ((loop->eventfd_algorithm = make_event_fd()) == -1) goto ERR_MAKE_EVENTFD_ALGORITHM;
     if (!register_efd(loop, loop->eventfd_algorithm))      goto ERR_EVENTFD_ALGORITHM;
@@ -140,20 +140,21 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     // Prepare user events fd and register it in loop->efd
     if ((loop->eventfd_user = make_event_fd()) == -1)      goto ERR_MAKE_EVENTFD_USER;
     if (!register_efd(loop, loop->eventfd_user))           goto ERR_EVENTFD_USER;
- 
+
     // Signal processing
     if ((loop->sfd = make_signal_fd()) == -1)              goto ERR_MAKE_SIGNALFD;
     if (!register_efd(loop, loop->sfd))                    goto ERR_SIGNALFD;
-   
-    // Prepare network layer and register it in pt_loop 
+
+    // Prepare network layer and register it in pt_loop
     if (!(loop->network = network_create()))                           goto ERR_NETWORK_CREATE;
     if (!register_efd(loop, network_get_sendq_fd(loop->network)))      goto ERR_EVENTFD_SENDQ;
     if (!register_efd(loop, network_get_recvq_fd(loop->network)))      goto ERR_EVENTFD_RECVQ;
     if (!register_efd(loop, network_get_icmpv4_sockfd(loop->network))) goto ERR_EVENTFD_SNIFFER_ICMPV4;
     if (!register_efd(loop, network_get_icmpv6_sockfd(loop->network))) goto ERR_EVENTFD_SNIFFER_ICMPV6;
     if (!register_efd(loop, network_get_timerfd(loop->network)))       goto ERR_EVENTFD_TIMEOUT;
+    if (!register_efd(loop, network_get_group_timerfd(loop->network))) goto ERR_EVENTFD_GROUP;
 
-    // Buffer where pending events are stored 
+    // Buffer where pending events are stored
     if (!(loop->epoll_events = calloc(MAXEVENTS, sizeof(struct epoll_event)))) {
         goto ERR_EVENTS;
     }
@@ -173,6 +174,7 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
 ERR_EVENTS_USER:
     free(loop->epoll_events);
 ERR_EVENTS:
+ERR_EVENTFD_GROUP:
 ERR_EVENTFD_TIMEOUT:
 ERR_EVENTFD_SNIFFER_ICMPV6:
 ERR_EVENTFD_SNIFFER_ICMPV4:
@@ -232,7 +234,7 @@ inline size_t pt_loop_get_num_user_events(pt_loop_t * loop) {
  */
 
 static int pt_loop_process_user_events(pt_loop_t * loop) {
-    event_t      ** events        = pt_loop_get_user_events(loop); 
+    event_t      ** events        = pt_loop_get_user_events(loop);
     size_t          i, num_events = pt_loop_get_num_user_events(loop);
     uint64_t        ret;
 
@@ -261,6 +263,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     int network_icmpv4_sockfd = network_get_icmpv4_sockfd(loop->network);
     int network_icmpv6_sockfd = network_get_icmpv6_sockfd(loop->network);
     int network_timerfd       = network_get_timerfd(loop->network);
+    int network_group_timerfd = network_get_group_timerfd(loop->network);
     ssize_t s;
     struct signalfd_siginfo fdsi;
 
@@ -289,7 +292,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 close(cur_fd);
                 continue;
             }
-            
+
             if (cur_fd == network_sendq_fd) {
                 if (!network_process_sendq(loop->network)) {
                     fprintf(stderr, "pt_loop: Can't send packet\n");
@@ -298,12 +301,15 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 if (!network_process_recvq(loop->network)) {
                     fprintf(stderr, "pt_loop: Cannot fetch packet\n");
                 }
+            } else if (cur_fd == network_group_timerfd) {
+               // printf("pt_loop processing scheduled probes\n");
+                network_process_scheduled_probe(loop->network);
             } else if (cur_fd == network_icmpv4_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMP);
             } else if (cur_fd == network_icmpv6_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMPV6);
             } else if (cur_fd == loop->eventfd_algorithm) {
-                
+
                 // There is one common queue shared by every instancied algorithms.
                 // We call pt_process_algorithms_iter() to find for which instance
                 // the event has been raised. Then we process this event thanks
@@ -314,8 +320,8 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
                 // Throw this event to the user-defined handler
                 pt_loop_process_user_events(loop);
-                
-                // Flush the queue 
+
+                // Flush the queue
                 pt_loop_clear_user_events(loop);
             } else if (cur_fd == loop->sfd) {
                 // Handling signals
@@ -356,8 +362,8 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 
     // Assign a probe tag
     // TODO for the moment, probe tagging is hardcoded in the network layer
-    queue_push_element(loop->network->sendq, probe);
-
+    //queue_push_element(loop->network->sendq, probe);
+    network_send_probe(loop->network, probe);
     return true;
 }
 

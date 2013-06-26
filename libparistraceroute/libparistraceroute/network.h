@@ -149,7 +149,7 @@ double network_get_timeout(const network_t * network);
 
 /**
  * \brief Set a new timeout for the network structure.
- * \param network The network layer..
+ * \param network The network layer.
  * \param new_timeout The new timeout.
  */
 
@@ -245,6 +245,13 @@ void network_process_sniffer(network_t * network, uint8_t protocol_id);
  */
 
 bool network_drop_expired_flying_probe(network_t * network);
+
+/**
+ * \brief handle the scheduled probes when network->scheduled_timerfd is activated
+ * \param network The network layer.
+ */
+
+bool network_send_probe(network_t * network, probe_t * probe);
 
 /**
  * \brief handle the scheduled probes when network->scheduled_timerfd is activated

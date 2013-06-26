@@ -18,7 +18,7 @@
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
 // Network options
-const double timeout[3] = {5, 0, INT_MAX};
+static double timeout[3] = {5, 0, INT_MAX};
 
 static struct opt_spec network_cl_options[] = {
     // action              short long      metavar     help    variable
@@ -35,7 +35,7 @@ struct opt_spec * network_get_cl_options() {
 }
 
 double options_network_get_timeout() {
-    return timeout[0]; 
+    return timeout[0];
 }
 
 /**
@@ -61,7 +61,7 @@ static inline bool reply_extract_tag(const probe_t * reply, uint16_t * ptag_repl
 }
 
 static void probe_should_be(const probe_t * probe) {
-    probe_t    * probe_should_be;
+    probe_t          * probe_should_be;
     layer_t          * layer1,
                      * layer2;
     const protocol_t * protocol;
@@ -492,6 +492,23 @@ ERR_INVALID_PAYLOAD:
     return false;
 }
 
+bool network_send_probe(network_t * network, probe_t * probe)
+{
+    double delay;
+
+    if (probe) delay = probe_get_delay(probe);
+    if (delay == 0) {
+        if (!(queue_push_element(network->sendq, probe)))     goto ERR_QUEUE_PUSH_ELEMENT;
+    } else {
+        if (!(probe_group_add(network->group_probes, probe))) goto ERR_PROBE_GROUP_ADD;
+    }
+    return true;
+
+ERR_PROBE_GROUP_ADD:
+ERR_QUEUE_PUSH_ELEMENT:
+    return false;
+}
+
 // TODO This could be replaced by watchers: FD -> action
 bool network_process_sendq(network_t * network)
 {
@@ -529,7 +546,8 @@ bool network_process_sendq(network_t * network)
     }
 
     // Update the sending time
-    probe_set_sending_time(probe, get_timestamp());
+     //printf(" (%-5.2lfms)\n ", 1000 *(get_timestamp() -  probe_get_sending_time(probe)));
+     probe_set_sending_time(probe, get_timestamp());
 
     // Register this probe in the list of flying probes
     if (!(dynarray_push_element(network->probes, probe))) {
@@ -659,7 +677,6 @@ double network_get_next_scheduled_probe_delay(const network_t * network) {
 
 static bool network_process_probe_node(network_t * network, tree_node_t * node, size_t i)
 {
-    size_t              num_probes_to_send;
     tree_node_probe_t * tree_node_probe = get_node_data(node);
     probe_t           * probe;
 
@@ -667,14 +684,17 @@ static bool network_process_probe_node(network_t * network, tree_node_t * node, 
     probe = (probe_t *) (tree_node_probe->data.probe);
     //TODO packet_from_probe must manage generator
     if (!(queue_push_element(network->sendq, probe)))                   goto ERR_QUEUE_PUSH;
-
+    /*
     probe_set_left_to_send(probe, probe_get_left_to_send(probe) - 1);
     num_probes_to_send = probe_get_left_to_send(probe);
 
     if (num_probes_to_send == 0) {
+    */
+    if (--(probe->left_to_send) == 0) {
         if (!(probe_group_del(network->group_probes, node->parent, i)))  goto ERR_PROBE_GROUP_DEL;
     } else {
-        update_delay(network->group_probes, node, get_node_next_delay(node));
+        // TODO rename probe_group_update_delay
+       probe_group_update_delay(network->group_probes, node, get_node_next_delay(node));
         return true;
     }
 
