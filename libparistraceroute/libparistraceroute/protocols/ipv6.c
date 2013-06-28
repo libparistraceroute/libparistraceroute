@@ -3,7 +3,7 @@
 #include <unistd.h>       // close()
 #include <arpa/inet.h>    // inet_pton()
 #include <netinet/ip6.h>
-#include <stdio.h>       //perror
+#include <stdio.h>        // perror
 #include <sys/types.h>
 #include <netdb.h>
 #include <sys/socket.h>

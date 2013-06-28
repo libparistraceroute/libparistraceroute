@@ -39,6 +39,7 @@ const char * algorithm_names[] = {
 };
 
 static bool is_ipv4   = true;
+static bool is_ipv6   = false;
 static bool is_udp    = false;
 static bool do_resolv = true;
 
@@ -51,16 +52,16 @@ const char * protocol_names[] = {
 static int  dst_port[4]  = {3000,  0,   UINT16_MAX, 0};
 static int  src_port[4]  = {3838,  0,   UINT16_MAX, 1};
 
-struct opt_spec cl_options[] = {
+struct opt_spec runnable_options[] = {
     // action              sf   lf                   metavar             help         data
     {opt_store_choice,     "a", "--algo",            "ALGORITHM",        HELP_a,      algorithm_names},
     {opt_store_1,          "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
-    {opt_store_0,          "6", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,      &is_ipv4},
+    {opt_store_0,          "6", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,      &is_ipv6},
     {opt_store_choice,     "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
-    {opt_store_1,          "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
+    {opt_store_1,          "U", "--udp",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
     {opt_store_0,          "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_resolv},
-    {opt_store_int_lim_en, "s", "--source_port",     "PORT",             HELP_s,      src_port},
-    {opt_store_int_lim_en, "d", "--dest_port",       "PORT",             HELP_d,      dst_port},
+    {opt_store_int_lim_en, "s", "--src-port",        "PORT",             HELP_s,      src_port},
+    {opt_store_int_lim_en, "d", "--drc-port",        "PORT",             HELP_d,      dst_port},
 };
 
 //---------------------------------------------------------------------------
@@ -153,7 +154,6 @@ void my_traceroute_handler(
     }
 }
 
-
 /**
  * \brief Handle events raised by libparistraceroute
  * \param loop The main loop
@@ -202,62 +202,112 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     }
 }
 
+/**
+ * \brief Prepare options supported by paris-traceroute
+ * \return A pointer to the corresponding options_t instance if successfull, NULL otherwise
+ */
+
+static options_t * init_options(const char * version) {
+    options_t * options;
+
+    // Building the command line options
+    // TODO add marker to end options (like protocol_field)
+    if (!(options = options_create(NULL))) {
+        goto ERR_OPTIONS_CREATE;
+    }
+
+    // We have to add traceroute command line options before those of mda
+    // to manage properly colliding options 
+    options_add_options(options, traceroute_get_cl_options(), 2);
+    options_add_options(options, mda_get_cl_options(),        3);
+    options_add_options(options, network_get_cl_options(),    1);
+    options_add_options(options, runnable_options,            9);
+    options_add_common (options, version);
+    return options;
+
+ERR_OPTIONS_CREATE:
+    return NULL;
+}
+
 int main(int argc, char ** argv)
 {
     traceroute_options_t      traceroute_options;
     traceroute_options_t    * ptraceroute_options;
     mda_options_t             mda_options;
     probe_t                 * probe;
-    pt_loop_t               * loop      = NULL;
-    int                       exit_code = EXIT_FAILURE, i;
+    pt_loop_t               * loop;
+    int                       exit_code = EXIT_FAILURE;
+    int                       family;
     address_t                 dst_addr;
-    options_t               * options = NULL;
+    options_t               * options;
     const char              * version = "version 1.0";
     char                    * dst_ip;
-    //const char              * dst_ip1;
-    const char              * algorithm_name;
+    const char              * algorithm_name = algorithm_names[0]; 
+    const char              * ip_protocol_name;
     void                    * algorithm_options;
 
-    //building the command line options
-    // TODO add marker to end options (like protocol_field)
-    options = options_create(NULL);
-    // We have to add traceroute command line options before those of mda because when collision
-    // we keep the first options
-    options_add_options(options, traceroute_get_cl_options(), 2);
-    options_add_options(options, mda_get_cl_options(),        3);
-    options_add_options(options, network_get_cl_options(),    1);
-    options_add_options(options, cl_options,                  9);
-    options_add_common(options, version);
-//    options_dump(options);
+    if (!(options = init_options(version))) {
+        fprintf(stderr, "E: Can't initialize options\n");
+        goto ERR_INIT_OPTIONS;
+    }
 
     // Retrieve values passed in the command-line
     opt_options1st();
     if (opt_parse("usage: %s [options] host", (struct opt_spec *)(options->optspecs->cells), argv) != 1) {
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
-        exit(EXIT_FAILURE);
+        goto ERR_OPT_PARSE;
     }
-    algorithm_name = algorithm_names[0];
+
+    // We assume that the target IP address is always the last argument
+    dst_ip = argv[argc - 1];
+    printf("dst_ip = %s\n", dst_ip);
 
     // Verify that the user pass option related to mda iif this is the chosen algorithm.
     if (options_mda_get_is_set()) {
-        if (strcmp(algorithm_names[0], "mda") != 0) {
+        if (strcmp(algorithm_name, "mda") != 0) {
             perror("E: You cannot pass options related to mda when using another algorithm ");
             goto ERR_INVALID_ALGORITHM;
         }
     }
-    dst_addr.family = is_ipv4 ? AF_INET : AF_INET6;
-    // Iterate on argv to retrieve the target IP address
-    for (i = 0; argv[i] && i < argc; ++i);
-    dst_ip = argv[i - 1];
-    printf("dst_ip = %s\n", dst_ip);
 
-    // TODO check whether dst_addr is a FQDN. Use address_ip_from_string if address family is known.
-    if (address_ip_from_string(dst_addr.family, dst_ip, &(dst_addr.ip)) != 0) {
+    // TODO akram: test whether -4 and/or -6 have been set.
+    // If no one is set, call address_guess_family.
+    // If only one is set to true, set family to AF_INET or AF_INET6
+    // If the both have been set, print an error.
+    /*
+    if (!is_ipv4 && !is_ipv6) {
+        fprintf(stderr, "E: Cannot guess address family of this address %s\n", dst_ip);
+        goto ERR_ADDRESS_GUESS_FAMILY;
+    }
+    */
+    // Get address family if not defined by the user
+    address_guess_family(dst_ip, &family);
+
+    switch (family) {
+        case AF_INET:
+            ip_protocol_name = "ipv4";
+            break;
+        case AF_INET6:
+            ip_protocol_name = "ipv6";
+            break;
+        default:
+            fprintf(stderr, "Internet family not supported (%d)\n", family);
+            goto ERR_FAMILY;
+    }
+
+    // Translate the string IP / FQDN into an address_t * instance 
+    if (address_from_string(family, dst_ip, &dst_addr) != 0) {
+        fprintf(stderr, "E: Invalid destination address %s\n", dst_ip);
         goto ERR_ADDRESS_IP_FROM_STRING;
     }
 
-    is_ipv4 ? ipv4_dump(&(dst_addr.ip)) : ipv6_dump(&(dst_addr.ip));
+    //// DEBUG
+    printf("Address\n");
+    address_dump(&dst_addr);
+    printf("\n");
 
+    // If dst_ip is not a FQDN, we've to get the corresponding IP string.
+    // This is a crappy patch while ipv*.c protocols module do not use field carrying address_t instance
     if ((address_to_string(&dst_addr, &dst_ip)) != 0) goto ERR_ADDRESS_TO_STRING;
 
     // Prepare data
@@ -271,7 +321,7 @@ int main(int argc, char ** argv)
 
     probe_set_protocols(
         probe,
-        is_ipv4 ? "ipv4" : "ipv6",
+        ip_protocol_name,
         is_udp  ? "udp"  : protocol_names[0],
         NULL
     );
@@ -285,7 +335,7 @@ int main(int argc, char ** argv)
         I16("src_port", src_port[0]),
         NULL
     );
-    probe_set_delay(probe, DOUBLE("delay", 0));
+
     // Option -U sets port to 53 (DNS)
     if (is_udp && !dst_port[3]) {
         probe_set_fields(probe, I16("dst_port", 53), NULL);
@@ -295,16 +345,12 @@ int main(int argc, char ** argv)
     if (strcmp(algorithm_name, "paris-traceroute") == 0) {
         traceroute_options  = traceroute_get_default_options();
         ptraceroute_options = &traceroute_options;
-        ptraceroute_options->min_ttl = options_traceroute_get_min_ttl();
-        ptraceroute_options->max_ttl = options_traceroute_get_max_ttl();
         algorithm_options   = &traceroute_options;
         algorithm_name      = "traceroute";
     } else if ((strcmp(algorithm_name, "mda") == 0) || options_mda_get_is_set()) {
         mda_options            = mda_get_default_options();
         ptraceroute_options    = &mda_options.traceroute_options;
         algorithm_options      = &mda_options;
-       // ptraceroute_options->min_ttl = options_mda_get_min_ttl();
-       // ptraceroute_options->max_ttl = options_mda_get_max_ttl();
         mda_options.bound      = options_mda_get_bound();
         mda_options.max_branch = options_mda_get_max_branch();
     } else {
@@ -314,12 +360,10 @@ int main(int argc, char ** argv)
 
     // Common options
     if (ptraceroute_options) {
-    //    printf("coucou\n");
         ptraceroute_options->min_ttl = options_traceroute_get_min_ttl();
         ptraceroute_options->max_ttl = options_traceroute_get_max_ttl();
         ptraceroute_options->dst_ip  = dst_ip;
     }
-
 
     // Create libparistraceroute loop
     if (!(loop = pt_loop_create(algorithm_handler, NULL))) {
@@ -347,7 +391,6 @@ int main(int argc, char ** argv)
 ERR_PT_LOOP:
 ERR_INSTANCE:
 ERR_UNKNOWN_ALGORITHM:
-ERR_INVALID_ALGORITHM:
     probe_free(probe);
 ERR_PROBE_SKEL:
     // pt_loop_free() automatically removes algorithms instances,
@@ -357,7 +400,12 @@ ERR_PROBE_SKEL:
 ERR_LOOP_CREATE:
 ERR_ADDRESS_TO_STRING:
 ERR_ADDRESS_IP_FROM_STRING:
+ERR_FAMILY:
+ERR_ADDRESS_GUESS_FAMILY:
+ERR_INVALID_ALGORITHM:
     if (errno) perror(gai_strerror(errno));
+ERR_OPT_PARSE:
+ERR_INIT_OPTIONS:
     exit(exit_code);
 }
 

@@ -410,18 +410,20 @@ void probe_dump(const probe_t * probe)
     layer_t * layer;
 
     printf("** PROBE **\n\n");
+
     if (probe->delay) {
         printf("probe delay \n\n");
         field_dump(probe->delay);
+        printf("number of probes left to send: (%ld) \n\n", probe->left_to_send);
+        printf("probe structure\n\n");
     }
-    printf("\n\n");
-    printf("number of probes left to send: (%ld) \n\n", probe->left_to_send);
-    printf("probe structure\n\n");
+
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         layer_dump(layer, i);
         printf("\n");
     }
+
     printf("\n");
 }
 
@@ -822,18 +824,14 @@ bool probe_set_metafield_ext(probe_t * probe, size_t depth, field_t * field)
     // TODO: TEMP HACK IPv4 flow id is encoded in src_port
     if (strcmp(field->key, "flow_id") != 0) {
         fprintf(stderr, "probe_set_metafield_ext: cannot set %s\n", field->key);
-        printf("ret0 = %d\n", ret);
         return false;
     }
 
     if ((hacked_field = I16("src_port", 24000 + field->value.int16))) {
-        printf("setting field %s\n", hacked_field->key);
         ret = probe_set_field(probe, hacked_field);
-        printf("ret1 = %d\n", ret);
         field_free(hacked_field);
     }
 
-        printf("ret2 = %d\n", ret);
     return ret;
 
     /*
@@ -936,26 +934,50 @@ ERR_DUP:
 
 double probe_get_delay(const probe_t * probe)
 {
-    switch (probe->delay->type) {
-        case TYPE_DOUBLE :
-            return probe->delay->value.dbl;
-        case TYPE_GENERATOR :
-            return generator_get_value(probe->delay->value.generator);
-        default :
-            return DBL_MAX;
+    const field_t * field_delay = probe->delay;
+    double          delay;
+
+    if (field_delay) {
+        switch (field_delay->type) {
+            case TYPE_DOUBLE :
+                delay = field_delay->value.dbl;
+                break;
+            case TYPE_GENERATOR :
+                delay = generator_get_value(field_delay->value.generator);
+                break;
+            default :
+                delay = 0;
+                fprintf(stderr, "Invalid 'delay' type field\n");
+                break;
+        }
+    } else {
+        delay = DELAY_BEST_EFFORT;
     }
+    return delay;
 }
 
-double probe_get_next_delay(const probe_t * probe)
+double probe_next_delay(probe_t * probe)
 {
-    switch (probe->delay->type) {
-        case TYPE_DOUBLE :
-            return probe->delay->value.dbl += probe->delay->value.dbl;
-        case TYPE_GENERATOR :
-            return generator_get_next_value(probe->delay->value.generator);
-        default:
-            return DBL_MAX;
+    field_t * field_delay = probe->delay;
+    double    delay;
+
+    if (field_delay) {
+        switch (field_delay->type) {
+            case TYPE_DOUBLE :
+                field_delay->value.dbl += field_delay->value.dbl;
+                delay = field_delay->value.dbl;
+                break;
+            case TYPE_GENERATOR :
+                delay = generator_next_value(field_delay->value.generator);
+                break;
+            default:
+                fprintf(stderr, "Invalid 'delay' type field\n");
+                break;
+        }
+    } else {
+        delay = DELAY_BEST_EFFORT;
     }
+    return delay;
 }
 
 size_t probe_get_left_to_send(probe_t * probe) {
@@ -965,8 +987,6 @@ size_t probe_get_left_to_send(probe_t * probe) {
 void probe_set_left_to_send(probe_t * probe, size_t num_left) {
     probe->left_to_send = num_left;
 }
-
-
 
 // Iterator
 

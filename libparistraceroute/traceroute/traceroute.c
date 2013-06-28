@@ -7,10 +7,6 @@
 #include "probe.h"
 #include "algorithm.h"
 #include "algorithms/traceroute.h"
-#include "tree.h"
-#include "generators/uniform.c"
-#include "generator.h"
-
 
 /**
  * \brief Handle raised traceroute_event_t events.
@@ -141,7 +137,6 @@ int main(int argc, char ** argv)
     traceroute_options_t   options = traceroute_get_default_options();
     probe_t              * probe;
     pt_loop_t            * loop;
-    generator_t          * generator;
     int                    family;
     int                    ret = EXIT_FAILURE;
     const char           * ip_protocol_name;
@@ -225,8 +220,6 @@ int main(int argc, char ** argv)
 ERR_IN_PT_LOOP:
     // instance is freed by pt_loop_free
 ERR_INSTANCE:
-    //generator_free(generator);
-//ERR_GENERATOR:
     probe_free(probe);
 ERR_PROBE_CREATE:
     pt_loop_free(loop);

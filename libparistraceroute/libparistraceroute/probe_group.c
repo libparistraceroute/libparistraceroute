@@ -50,7 +50,7 @@ double get_node_next_delay(const tree_node_t * node)
         case DOUBLE:
             return data->data.delay;
         case PROBE:
-            return probe_get_next_delay((probe_t *)(data->data.probe));
+            return probe_next_delay((probe_t *)(data->data.probe));
         default:
             return DBL_MAX;
     }

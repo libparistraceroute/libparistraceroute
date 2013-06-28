@@ -15,60 +15,13 @@
 
 static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
     if (inet_ntop(family, ip, buffer, buffer_len)) {
-        printf("%s \n", buffer);
+        printf(buffer);
     } else {
         printf("???");
     }
 }
 
-void ipv4_dump(const ipv4_t * ipv4) {
-    char buffer[INET_ADDRSTRLEN];
-    ip_dump(AF_INET, ipv4, buffer, INET_ADDRSTRLEN);
-}
-
-void ipv6_dump(const ipv6_t * ipv6) {
-    char buffer[INET6_ADDRSTRLEN];
-    ip_dump(AF_INET6, ipv6, buffer, INET6_ADDRSTRLEN);
-}
-
-void address_dump(const address_t * address) {
-    char buffer[INET6_ADDRSTRLEN];
-    ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
-}
-/*
-void address_string_from_ip(char * address_string, int family, const ip_t ip)
-{
-    switch (family) {
-        case AF_INET:
-            char buffer
-    }
-    inet_ntop(family, &ip, buffer, buffer_len)
-}
-*/
-bool address_guess_family(const char * str_ip, int * pfamily) {
-	struct addrinfo * addrinf;
-	int               err ;
-
-    if (!(addrinf = malloc(sizeof(struct addrinfo)))) {
-        goto ERR_MALLOC;
-    }
-
-    if ((err = getaddrinfo(str_ip, NULL, NULL, &addrinf)) != 0) {
-        goto ERR_GETADDRINFO;
-    }
-
-    *pfamily = addrinf->ai_family;
-    free(addrinf);
-    return true;
-
-ERR_GETADDRINFO:
-    fprintf(stderr, "Invalid address (%s): %s\n", str_ip, gai_strerror(err));
-ERR_MALLOC:
-    return false;
-}
-
-
-int address_ip_from_string(int family, const char * hostname, ip_t * ip)
+int ip_from_string(int family, const char * hostname, ip_t * ip)
 {
     struct addrinfo   hints,
                     * ai,
@@ -118,9 +71,62 @@ ERROR_GETADDRINFO:
     return ret;
 }
 
-int address_from_string(const char * hostname, address_t * address) {
-    address->family = (strchr(hostname, '.') != NULL) ? AF_INET : AF_INET6;
-    return address_ip_from_string(address->family, hostname, &address->ip);
+void ipv4_dump(const ipv4_t * ipv4) {
+    char buffer[INET_ADDRSTRLEN];
+    ip_dump(AF_INET, ipv4, buffer, INET_ADDRSTRLEN);
+}
+
+void ipv6_dump(const ipv6_t * ipv6) {
+    char buffer[INET6_ADDRSTRLEN];
+    ip_dump(AF_INET6, ipv6, buffer, INET6_ADDRSTRLEN);
+}
+
+void address_dump(const address_t * address) {
+    char buffer[INET6_ADDRSTRLEN];
+    switch (address->family) {
+        case AF_INET : printf("IPv4: "); break; 
+        case AF_INET6: printf("IPv6: "); break; 
+    }
+    ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
+}
+
+bool address_guess_family(const char * str_ip, int * pfamily) {
+    struct addrinfo   hints,
+                    * result,
+                    * rp;
+    int               err ;
+    
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family   = AF_UNSPEC;    // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags    = AI_PASSIVE;
+
+    if ((err = getaddrinfo(str_ip, NULL, &hints, &result)) != 0) {
+        fprintf(stderr, gai_strerror(err));
+        goto ERR_GETADDRINFO;
+    }
+
+    if (!result) goto ERR_NO_RESULT;
+
+    /*
+    printf("==>\n");
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        printf("family = %d\n", rp->ai_family);
+    }
+    */
+
+    // We retrieve family from the first result
+    *pfamily = result->ai_family;
+    return true;
+
+ERR_NO_RESULT:
+ERR_GETADDRINFO:
+    fprintf(stderr, "Invalid address (%s): %s\n", str_ip, gai_strerror(err));
+    return false;
+}
+int address_from_string(int family, const char * hostname, address_t * address) {
+    address->family = family; 
+    return ip_from_string(family, hostname, &address->ip);
 }
 
 int address_to_string(const address_t * address, char ** pbuffer)
@@ -129,7 +135,7 @@ int address_to_string(const address_t * address, char ** pbuffer)
     struct sockaddr_in    sa4;
     struct sockaddr_in6   sa6;
     socklen_t             sa_len;
-    size_t                buffer_len;
+    int                   ret;
 
     switch (address->family) {
         case AF_INET:
@@ -138,7 +144,6 @@ int address_to_string(const address_t * address, char ** pbuffer)
             sa4.sin_port   = 0;
             sa4.sin_addr   = address->ip.ipv4;
             sa_len         = sizeof(struct sockaddr_in);
-            buffer_len     = INET_ADDRSTRLEN;
             break;
         case AF_INET6:
             sa = (struct sockaddr *) &sa6;
@@ -146,17 +151,21 @@ int address_to_string(const address_t * address, char ** pbuffer)
             sa6.sin6_port   = 0;
             sa6.sin6_addr   = address->ip.ipv6;
             sa_len          = sizeof(struct sockaddr_in6);
-            buffer_len      = INET6_ADDRSTRLEN;
             break;
         default:
             *pbuffer = NULL;
             return EINVAL;
     }
 
-    if (!(*pbuffer = malloc(buffer_len))) {
-        return ENOMEM;
+    if (!(*pbuffer = malloc(NI_MAXHOST))) {
+        return NULL;
     }
-    return  getnameinfo(sa, sa_len, *pbuffer, buffer_len, NULL, 0, NI_NUMERICHOST);
+
+    if ((ret = getnameinfo(sa, sa_len, *pbuffer, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))) {
+        fprintf("address_to_string: %s", gai_strerror(ret));
+    }
+
+    return ret;
 }
 
 bool address_resolv(const char * str_ip, char ** phostname)
@@ -166,7 +175,7 @@ bool address_resolv(const char * str_ip, char ** phostname)
     int              family;
     size_t           ip_len;
     bool             ret;
-
+    
     if (!str_ip) goto ERR_INVALID_PARAMETER;
 
     if (!(address_guess_family(str_ip, &family))) {

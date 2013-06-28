@@ -16,6 +16,7 @@
 #include "tree.h"
 #include "generator.h"
 
+#define DELAY_BEST_EFFORT -1 // This MUST be < 0, see network_send_probe
 /**
  * \struct probe_t
  * \brief Structure representing a probe
@@ -281,15 +282,29 @@ double probe_get_recv_time(const probe_t * probe);
 
 bool probe_set_delay(probe_t * probe, field_t * delay);
 
+/**
+ * \brief Retrieve the delay related to a probe skeleton.
+ * \param probe The probe skeleton used to craft the probe packet.
+ * \return How long we've to wait before sending the corresponding probe
+ *    packet (>= 0) if scheduled,  DELAY_BEST_EFFORT otherwise (in this
+ *    case it can be sent as soon as possible).
+ */
+
 double probe_get_delay(const probe_t * probe);
 
-double probe_get_next_delay(const probe_t * probe);
+/**
+ * \brief Update the delay related to a probe skeleton.
+ * \param probe The probe skeleton used to craft the probe packet.
+ *    Its delay is updated.
+ * \return The updated delay (>= 0) if scheduled, DELAY_BEST_EFFORT
+ *    otherwise.
+ */
+
+double probe_next_delay(probe_t * probe);
 
 size_t probe_get_left_to_send(probe_t * probe);
 
 void probe_set_left_to_send(probe_t * probe, size_t num_left);
-
-
 
 /******************************************************************************
  * probe_reply_t
