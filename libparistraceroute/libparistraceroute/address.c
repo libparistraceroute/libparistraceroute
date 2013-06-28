@@ -15,7 +15,7 @@
 
 static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
     if (inet_ntop(family, ip, buffer, buffer_len)) {
-        printf(buffer);
+        printf("%s \n", buffer);
     } else {
         printf("???");
     }
@@ -35,11 +35,20 @@ void address_dump(const address_t * address) {
     char buffer[INET6_ADDRSTRLEN];
     ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
 }
-
+/*
+void address_string_from_ip(char * address_string, int family, const ip_t ip)
+{
+    switch (family) {
+        case AF_INET:
+            char buffer
+    }
+    inet_ntop(family, &ip, buffer, buffer_len)
+}
+*/
 bool address_guess_family(const char * str_ip, int * pfamily) {
 	struct addrinfo * addrinf;
 	int               err ;
-    
+
     if (!(addrinf = malloc(sizeof(struct addrinfo)))) {
         goto ERR_MALLOC;
     }
@@ -147,8 +156,7 @@ int address_to_string(const address_t * address, char ** pbuffer)
     if (!(*pbuffer = malloc(buffer_len))) {
         return ENOMEM;
     }
-
-    return getnameinfo(sa, sa_len, *pbuffer, buffer_len, NULL, 0, NI_NUMERICHOST);
+    return  getnameinfo(sa, sa_len, *pbuffer, buffer_len, NULL, 0, NI_NUMERICHOST);
 }
 
 bool address_resolv(const char * str_ip, char ** phostname)
@@ -158,7 +166,7 @@ bool address_resolv(const char * str_ip, char ** phostname)
     int              family;
     size_t           ip_len;
     bool             ret;
-    
+
     if (!str_ip) goto ERR_INVALID_PARAMETER;
 
     if (!(address_guess_family(str_ip, &family))) {

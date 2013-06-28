@@ -149,9 +149,9 @@ int main(int argc, char ** argv)
 
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-    //char dst_ip[] = "8.8.8.8";
-    //char dst_ip[] = "1.1.1.2";
-    char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
+   // char dst_ip[] = "8.8.8.8";
+    char dst_ip[] = "1.1.1.2";
+    //char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
 
     if (!address_guess_family(dst_ip, &family)) {
         fprintf(stderr, "E: Cannot guess family of destination address (%s)", dst_ip);

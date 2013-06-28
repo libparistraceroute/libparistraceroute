@@ -23,11 +23,12 @@
 // Command line stuff
 //---------------------------------------------------------------------------
 
+#define HELP_a "Traceroute algorithm: one of  'paris-traceroute' [default],'mda'"
 #define HELP_4 "Use IPv4"
+#define HELP_6 "Use IPv6"
 #define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
 #define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
 #define HELP_n "Do not resolve IP addresses to their domain names"
-#define HELP_a "Traceroute algorithm: one of  'paris-traceroute' [default],'mda'"
 #define HELP_d "set PORT as destination port (default: 3000)"
 #define HELP_s "set PORT as source port (default: 3083)"
 
@@ -37,8 +38,6 @@ const char * algorithm_names[] = {
     NULL
 };
 
-// TODO use bool and update option parsing if required
-// static variables, needed for command-line parsing
 static bool is_ipv4   = true;
 static bool is_udp    = false;
 static bool do_resolv = true;
@@ -56,10 +55,10 @@ struct opt_spec cl_options[] = {
     // action              sf   lf                   metavar             help         data
     {opt_store_choice,     "a", "--algo",            "ALGORITHM",        HELP_a,      algorithm_names},
     {opt_store_1,          "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
+    {opt_store_0,          "6", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,      &is_ipv4},
     {opt_store_choice,     "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
     {opt_store_1,          "U", "--UDP",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
     {opt_store_0,          "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_resolv},
-//    {opt_store_double_lim, "w", "--wait",            "waittime",         HELP_w,      timeout},
     {opt_store_int_lim_en, "s", "--source_port",     "PORT",             HELP_s,      src_port},
     {opt_store_int_lim_en, "d", "--dest_port",       "PORT",             HELP_d,      dst_port},
 };
@@ -214,7 +213,8 @@ int main(int argc, char ** argv)
     address_t                 dst_addr;
     options_t               * options = NULL;
     const char              * version = "version 1.0";
-    const char              * dst_ip;
+    char                    * dst_ip;
+    //const char              * dst_ip1;
     const char              * algorithm_name;
     void                    * algorithm_options;
 
@@ -226,7 +226,7 @@ int main(int argc, char ** argv)
     options_add_options(options, traceroute_get_cl_options(), 2);
     options_add_options(options, mda_get_cl_options(),        3);
     options_add_options(options, network_get_cl_options(),    1);
-    options_add_options(options, cl_options,                  8);
+    options_add_options(options, cl_options,                  9);
     options_add_common(options, version);
 //    options_dump(options);
 
@@ -245,15 +245,20 @@ int main(int argc, char ** argv)
             goto ERR_INVALID_ALGORITHM;
         }
     }
-
+    dst_addr.family = is_ipv4 ? AF_INET : AF_INET6;
     // Iterate on argv to retrieve the target IP address
     for (i = 0; argv[i] && i < argc; ++i);
     dst_ip = argv[i - 1];
+    printf("dst_ip = %s\n", dst_ip);
 
     // TODO check whether dst_addr is a FQDN. Use address_ip_from_string if address family is known.
-    if (address_from_string(dst_ip, &dst_addr) != 0) {
-        goto ERR_ADDRESS_FROM_STRING;
+    if (address_ip_from_string(dst_addr.family, dst_ip, &(dst_addr.ip)) != 0) {
+        goto ERR_ADDRESS_IP_FROM_STRING;
     }
+
+    is_ipv4 ? ipv4_dump(&(dst_addr.ip)) : ipv6_dump(&(dst_addr.ip));
+
+    if ((address_to_string(&dst_addr, &dst_ip)) != 0) goto ERR_ADDRESS_TO_STRING;
 
     // Prepare data
     printf("Traceroute to %s using algorithm %s\n\n", dst_ip, algorithm_name);
@@ -350,7 +355,8 @@ ERR_PROBE_SKEL:
     // Options and probe must be manually removed.
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
-ERR_ADDRESS_FROM_STRING:
+ERR_ADDRESS_TO_STRING:
+ERR_ADDRESS_IP_FROM_STRING:
     if (errno) perror(gai_strerror(errno));
     exit(exit_code);
 }

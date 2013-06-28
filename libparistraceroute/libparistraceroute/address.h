@@ -52,9 +52,9 @@ bool address_guess_family(const char * str_ip, int * pfamily);
 /**
  * \brief Initialize an address_t according to a string. If hostname
  *    contains a ".", it is considered as an IPv4 host. If hostname
- *    is a FQDN you should use address_ip_from_string(). 
+ *    is a FQDN you should use address_ip_from_string().
  * \param hostname An IP address (string format). Do not pass a FQDN.
- * \return see getaddrinfo's returned values 
+ * \return see getaddrinfo's returned values
  */
 
 int address_from_string(const char * hostname, address_t * address);
@@ -64,20 +64,20 @@ int address_from_string(const char * hostname, address_t * address);
  * \param family Address family (AF_INET or AF_INET6)
  * \param hostname An IP address (human readable format) or a hostname)
  * \param ip A pre-allocated ip_t that we update
- * \return see getaddrinfo's returned values 
+ * \return see getaddrinfo's returned values
  */
 
 int address_ip_from_string(int family, const char * hostname, ip_t * ip);
 
 /**
  * \brief Convert an IP address into a human readable string
- * \param addr The address that must be converted
+ * \param addr The address to convert
  * \param pbuffer The address of a char * that will be updated to point
  *    to an allocated buffer.
  * \return The value returned by getnameinfo
  */
 
-int address_to_string(const address_t * addr, char ** pbuffer); 
+int address_to_string(const address_t * addr, char ** pbuffer);
 
 /**
  * \brief Converts an IP stored in a string into its corresponding hostname
@@ -86,11 +86,11 @@ int address_to_string(const address_t * addr, char ** pbuffer);
  *    *phostname is automatically allocated if it is required.
  *    If the resolution fails, *phostname remains equal to NULL.
  *    Otherwise, *phostname points to the FQDN and must be freed once it is no more used.
- * \return true iif successfull 
+ * \return true iif successfull
  */
 
 bool address_resolv(const char * str_ip, char ** phostname);
 
 // TODO address_resolv(const address_t * address, char ** phostname)
 
-#endif 
+#endif

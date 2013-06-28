@@ -5,6 +5,7 @@
 #include <sys/types.h>          // getaddrinfo
 #include <netdb.h>              // getaddrinfo
 #include <arpa/inet.h>          // inet_pton
+#include <string.h>             // memset
 
 #include "socketpool.h"
 #include "address.h"
@@ -99,6 +100,7 @@ bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * pa
     if (!(address_guess_family(packet->dst_ip, &family))) {
         return false;
     }
+    memset(&sock, 0, sizeof(sockaddr_u));
 
     // Prepare socket 
     switch (family) {

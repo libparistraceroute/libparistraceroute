@@ -125,6 +125,7 @@ static bool create_icmpv6_socket(sniffer_t * sniffer, uint16_t port)
         goto ERR_SETSOCKOPT;
     }
 
+    memset(&saddr, 0, sizeof(struct sockaddr_in6));
     // Bind to ::1
     saddr.sin6_family = AF_INET6;
     saddr.sin6_addr   = anyaddr;
