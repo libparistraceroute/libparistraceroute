@@ -46,17 +46,6 @@ inline traceroute_options_t traceroute_get_default_options() {
     return traceroute_options;
 };
 
-/**
- * \brief Complete the options passed as parameter with the
- *   traceroute-specific options
- * \param options A dynarray containing zero or more opt_spec
- *   instances
- */
-
-void traceroute_update_options(dynarray_t * options) {
-    // TODO push_element pour chaque opt initialisé avec l'options
-}
-
 //-----------------------------------------------------------------
 // Traceroute algorithm's data
 //-----------------------------------------------------------------
@@ -114,7 +103,15 @@ static inline bool destination_reached(const char * dst_ip, const probe_t * repl
     return ret;
 }
 
-bool send_traceroute_probe(
+/**
+ * \brief Send a traceroute probe packet
+ * \param loop The main loop
+ * \param traceroute_data Data attached to this instance of traceroute algorithm
+ * \param probe_skel The probe skeleton used to craft the probe packet
+ * \param ttl The TTL that we set for this packet
+ */
+
+static bool send_traceroute_probe(
     pt_loop_t         * loop,
     traceroute_data_t * traceroute_data,
     const probe_t     * probe_skel,
@@ -139,7 +136,7 @@ ERR_PROBE_DUP:
 /**
  * \brief Send n traceroute probes toward a destination with a given TTL
  * \param pt_loop The paris traceroute loop
- * \param probe_skel The probe skeleton which indicates how to forge a probe
+ * \param probe_skel The probe skeleton used to craft the probe packet
  * \param num_probes The amount of probe to send
  * \param ttl Time To Live related to our probe
  * \return true if successful
@@ -168,7 +165,7 @@ bool send_traceroute_probes(
  * \param event The raised event
  * \param pdata Points to a (void *) address that may be altered by traceroute_handler in order
  *   to manage data related to this instance.
- * \param probe_skel The probe skeleton
+ * \param probe_skel The probe skeleton used to craft the probe packet
  * \param opts Points to the option related to this instance (== loop->cur_instance->options)
  */
 
@@ -180,11 +177,13 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     const probe_t        * reply;           // Reply
     probe_reply_t        * probe_reply;     // (Probe, Reply) pair
     traceroute_options_t * options = opts;  // Options passed to this instance
-    bool                   has_terminated = false;
+    bool                   has_terminated = true;
 
+    printf("tarceroute : min_ttl = %u , max_ttl = %u\n", options->min_ttl, options->max_ttl);
     switch (event->type) {
 
         case ALGORITHM_INIT:
+            printf("init\n");
             // Check options
             if (!options || options->min_ttl > options->max_ttl) {
                 errno = EINVAL;
@@ -204,6 +203,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             probe_reply = (probe_reply_t *) event->data;
             reply       = probe_reply->reply;
 
+            printf("reply\n");
             // Reinitialize star counters, check wether we've discovered an IP address
             data->num_stars = 0;
             data->num_undiscovered = 0;
@@ -219,6 +219,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             probe = (probe_t *) event->data;
 
             // Update counters
+            printf("timeout\n");
             ++(data->num_stars);
             ++(data->num_replies);
 
@@ -227,6 +228,8 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
             break;
 
         case ALGORITHM_TERMINATED:
+
+            printf("terminated\n");
             // The caller allows us to free traceroute's data
             traceroute_data_free(*pdata);
             *pdata = NULL;
@@ -245,30 +248,38 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     // Explore next hop
     if ((data->num_replies % options->num_probes) == 0) {
         if (data->destination_reached) {
+            printf("destination_reached\n");
             // We've reached the destination
             pt_raise_event(loop, event_create(TRACEROUTE_DESTINATION_REACHED, NULL, NULL, NULL));
             pt_raise_terminated(loop);
         } else if (data->ttl > options->max_ttl) {
+            printf("max_ttl\n");
             // We've reached the maximum TTL
             pt_raise_event(loop, event_create(TRACEROUTE_MAX_TTL_REACHED, NULL, NULL, NULL));
             pt_raise_terminated(loop);
         } else if (data->num_stars == options->num_probes) {
+            printf("only stars at this hop\n");
             // We've only discovered stars for the current hop
-            ++(data->num_undiscovered);
+            (data->num_undiscovered)++;
             if (data->num_undiscovered == 3) {
+                printf("too many stars\n");
                 // We've only discovered stars for the last 3 hops, so give up
                 pt_raise_event(loop, event_create(TRACEROUTE_TOO_MANY_STARS, NULL, NULL, NULL));
                 pt_raise_terminated(loop);
-            }
-        } else {
-            // Discover the next hop
-            if (!send_traceroute_probes(loop, data, probe_skel, options->num_probes, data->ttl)) {
-                goto FAILURE;
-            }
-            (data->ttl)++;
-        }
-    }
+            } //else has_terminated = false;
+         }
+    } else {
+        has_terminated = false;
 
+        // Discover the next hop
+        if (!send_traceroute_probes(loop, data, probe_skel, options->num_probes, data->ttl)) {
+            goto FAILURE;
+        }
+        (data->ttl)++;
+        }
+
+
+    printf("has_terminated = %d\n", has_terminated);
     // Notify the caller the algorithm has terminated. The caller can still
     // use traceroute's data. It has to run pt_instance_free once this
     // data if no more needed.

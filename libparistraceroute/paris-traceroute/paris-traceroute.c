@@ -231,7 +231,7 @@ int main(int argc, char ** argv)
 //    options_dump(options);
 
     // Retrieve values passed in the command-line
-    opt_options1st();
+     opt_options1st();
     if (opt_parse("usage: %s [options] host", (struct opt_spec *)(options->optspecs->cells), argv) != 1) {
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
         exit(EXIT_FAILURE);
@@ -257,7 +257,7 @@ int main(int argc, char ** argv)
     }
 
     is_ipv4 ? ipv4_dump(&(dst_addr.ip)) : ipv6_dump(&(dst_addr.ip));
-
+    address_dump(&dst_addr);
     if ((address_to_string(&dst_addr, &dst_ip)) != 0) goto ERR_ADDRESS_TO_STRING;
 
     // Prepare data
