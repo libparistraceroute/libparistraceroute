@@ -19,7 +19,7 @@ static bool optspec_is_same(const opt_spec_t * option1, const opt_spec_t * optio
 }
 
 /**
- * \brief Print an opt_spect_t instance. 
+ * \brief Print an opt_spect_t instance.
  * \param option The opt_spect_t instance we want to print.
  */
 
@@ -103,7 +103,7 @@ bool options_add_option(options_t * options, opt_spec_t * option)
         ret = options->collision_callback(colliding_option, option);
 
         // Unhandled collision, print an error message
-        if (!ret) { 
+        if (!ret) {
             fprintf(
                 stderr,
                 "W: option collision detected (%s, %s)\n",
@@ -141,14 +141,8 @@ bool option_rename_lf(opt_spec_t * option, char * lf) {
     return (option->lf = strdup(lf)) != NULL;
 }
 
-/*
-void option_replace(opt_spec_t * option1, opt_spec_t * option2) {
-    option_rename_1(option1,option2);
-     option2 = option2 + 1;
-    printf("first option replaced\n");
+int options_parse(options_t * options, const char * usage, char ** args)
+{
+    opt_options1st();
+    return opt_parse(usage, (struct opt_spec *)(options->optspecs->cells), args);
 }
-
-void option_rename_2(opt_spec_t * * option1, opt_spec_t * * option2) {
-    option_rename_1(option2,option1);
-}
-*/

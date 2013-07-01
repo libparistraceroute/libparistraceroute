@@ -17,16 +17,12 @@
 // DEBUG
 #include "../probe.h"
 
-static unsigned min_ttl[3]    = OPTIONS_TRACEROUTE_MIN_TTL;
-static unsigned max_ttl[3]    = OPTIONS_TRACEROUTE_MAX_TTL;
 static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH;
 
 // MDA options
 static struct opt_spec mda_cl_options[3] = {
     // action           short long          metavar             help    variable
-    {opt_store_int_lim, "f",  "--first",    "first_ttl",        HELP_f, min_ttl}, // TODO why do we re-declare this inherited options from traceroute?
-    {opt_store_int_lim, "m",  "--max-hops", "max_ttl",          HELP_m, max_ttl}, // TODO why do we re-declare this inherited options from traceroute?
-    {opt_store_int_2,   "M",  "--mda",      "bound,max_branch", HELP_M, mda_values}
+    {opt_store_int_2,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values}
     // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest
     // max missing
@@ -36,13 +32,7 @@ static struct opt_spec mda_cl_options[3] = {
 struct opt_spec * mda_get_cl_options() {
     return mda_cl_options;
 }
-unsigned options_mda_get_min_ttl() {
-    return min_ttl[0];
-}
 
-unsigned options_mda_get_max_ttl() {
-    return max_ttl[0];
-}
 unsigned options_mda_get_bound() {
     return mda_values[0];
 }

@@ -304,4 +304,11 @@ int network_get_icmpv4_sockfd(network_t * network);
 
 int network_get_icmpv6_sockfd(network_t * network);
 
+/**
+ * \brief Debug function. Dump tags of every flying probes
+ * \param network The queried network layer
+ */
+
+void network_flying_probes_dump(network_t * network);
+
 #endif

@@ -66,13 +66,20 @@ size_t options_get_num_options(const options_t * options);
 
 void option_rename(opt_spec_t * option, char sf[], char lf[]);
 
-//void option_rename_2(opt_spec_t * option1, opt_spec_t * option2); 
+//void option_rename_2(opt_spec_t * option1, opt_spec_t * option2);
 
 /**
  * \brief Dump an options_t instance
- * \param options Pointer to 
+ * \param options Pointer to
  */
 void options_dump(const options_t * options);
 
+/**
+ * \brief parse command line options forcing the options before the argument
+ * \param options Pointer to options used
+ * \param usage a string containig the message to put when no argument passed
+ * \param args vector containing the arguments passed
+ */
+int options_parse(options_t * options, const char * usage, char ** args);
 
 #endif

@@ -360,11 +360,8 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
     probe_set_caller(probe, loop->cur_instance);
     probe_set_queueing_time(probe, get_timestamp());
 
-    // Assign a probe tag
-    // TODO for the moment, probe tagging is hardcoded in the network layer
-    //queue_push_element(loop->network->sendq, probe);
-    network_send_probe(loop->network, probe);
-    return true;
+    // Tagging is achieved by network layer
+    return network_send_probe(loop->network, probe);
 }
 
 void pt_loop_terminate(pt_loop_t * loop) {

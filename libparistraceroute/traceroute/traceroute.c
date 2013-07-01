@@ -175,7 +175,7 @@ int main(int argc, char ** argv)
 
     // Prepare options related to the 'traceroute' algorithm
     options.dst_ip = dst_ip;
-    options.num_probes = 1;
+    options.num_probes = 3;
     //options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
@@ -200,7 +200,6 @@ int main(int argc, char ** argv)
         NULL
     );
 
-    probe_set_delay(probe, DOUBLE("delay", 0));
     probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm

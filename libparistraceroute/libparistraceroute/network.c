@@ -17,6 +17,8 @@
 // TODO static variable as timeout. Control extra_delay and timeout values consistency
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
+// TODO add option -v which print debug information when seeking probe/reply
+
 // Network options
 static double timeout[3] = {5, 0, INT_MAX};
 
@@ -60,38 +62,6 @@ static inline bool reply_extract_tag(const probe_t * reply, uint16_t * ptag_repl
     return probe_extract_ext(reply, "checksum", 3, ptag_reply);
 }
 
-static void probe_should_be(const probe_t * probe) {
-    probe_t          * probe_should_be;
-    layer_t          * layer1,
-                     * layer2;
-    const protocol_t * protocol;
-    uint16_t           length1, length2, checksum1, checksum2;
-    size_t             i, num_layers = probe_get_num_layers(probe);
-
-    printf("probe should be: ==============================\n");
-    if ((probe_should_be = probe_dup(probe))) {
-        probe_update_fields(probe_should_be);
-        for (i = 0; i < num_layers; ++i) {
-            // protocol_field_get
-            layer1 = probe_get_layer(probe, i);
-            layer2 = probe_get_layer(probe_should_be, i);
-            protocol = layer1->protocol;
-            if (protocol) {
-                if (layer_extract(layer1, "length", &length1)
-                &&  layer_extract(layer2, "length", &length2)) {
-                    printf("> layer %s: length = %04x (should be %04x)\n", protocol->name, length1, length2);
-                }
-
-                if (layer_extract(layer1, "checksum", &checksum1)
-                &&  layer_extract(layer2, "checksum", &checksum2)) {
-                    printf("> layer %s: checksum = %04x (should be %04x)\n", protocol->name, checksum1, checksum2);
-                }
-            }
-        }
-        probe_free(probe_should_be);
-    }
-}
-
 /**
  * \brief Set the probe ID (tag) from a probe
  * \param probe The probe we want to update
@@ -131,12 +101,7 @@ static uint16_t network_get_available_tag(network_t * network) {
     return ++network->last_tag;
 }
 
-/**
- * \brief Dump tags of every flying probes
- * \param network The queried network layer
- */
-
-static void network_flying_probes_dump(network_t * network) {
+void network_flying_probes_dump(network_t * network) {
     size_t     i, num_flying_probes = dynarray_get_size(network->probes);
     uint16_t   tag_probe;
     probe_t  * probe;
