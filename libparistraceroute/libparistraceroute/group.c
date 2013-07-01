@@ -43,10 +43,10 @@ probe_t * group_get_probe(const group_t * group, size_t i) {
     return dynarray_get_ith_element(group->probes, i);
 }
 
-bool group_add_probe(group_t * group, const probe_t * probe) {
+bool group_add_probe(group_t * group, probe_t * probe) {
     
     if (!(group && probe)) return false;
-    return dynarray_push_element(group->probes, probe);
+    return dynarray_push_element(group->probes, (void *) probe);
 }
 
 bool group_add_n_probes(group_t * group, probe_t * probes, size_t n) {
