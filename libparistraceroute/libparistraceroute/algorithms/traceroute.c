@@ -1,6 +1,6 @@
 #include <errno.h>       // errno, EINVAL
 #include <stdlib.h>      // malloc
-#include <stdio.h>       // TODO debug
+#include <stdio.h>       // fprintf 
 #include <stdbool.h>     // bool
 #include <string.h>      // memset()
 
@@ -18,7 +18,7 @@ static unsigned max_undiscovered[3] = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED;
 static unsigned num_queries[3]      = OPTIONS_TRACEROUTE_NUM_QUERIES;
 
 static struct opt_spec traceroute_opt_specs[] = {
-    // action           short long                  metavar    help           data
+    // action           short long                  metavar        help    data
     {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",   HELP_f, min_ttl},
     {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",     HELP_m, max_ttl},
     {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES", HELP_q, num_queries},
@@ -38,7 +38,6 @@ struct opt_spec * traceroute_get_opt_specs() {
     return traceroute_opt_specs;
 }
 
-// TODO to remove, see opt_spec
 inline traceroute_options_t traceroute_get_default_options() {
     traceroute_options_t traceroute_options = {
         .min_ttl          = OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,

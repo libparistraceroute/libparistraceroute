@@ -1,7 +1,8 @@
 #ifndef DYNARRAY_H
 #define DYNARRAY_H
 
-#include <stdbool.h>
+#include <stddef.h>  // size_t
+#include <stdbool.h> // bool
 
 /**
  * \file dynarray.h

@@ -13,6 +13,7 @@
 #include "optparse.h"
 #include "../algorithm.h"
 #include "../pt_loop.h"    // pt_send_probe
+#include "../lattice.h"    // LATTICE_*
 
 // DEBUG
 #include "../probe.h"

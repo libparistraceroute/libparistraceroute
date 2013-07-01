@@ -247,7 +247,7 @@ int main(int argc, char ** argv)
     const char              * version = "version 1.0";
     const char              * usage = "usage: %s [options] host";
     char                    * dst_ip;
-    const char              * algorithm_name = algorithm_names[0];
+    const char              * algorithm_name;
     const char              * ip_protocol_name;
     void                    * algorithm_options;
 
@@ -264,6 +264,9 @@ int main(int argc, char ** argv)
 
     // We assume that the target IP address is always the last argument
     dst_ip = argv[argc - 1];
+
+    // Retrieve the algorithm set by the user (or the default one)
+    algorithm_name = algorithm_names[0];
 
     // Verify that the user pass option related to mda iif this is the chosen algorithm.
     if (options_mda_get_is_set()) {
