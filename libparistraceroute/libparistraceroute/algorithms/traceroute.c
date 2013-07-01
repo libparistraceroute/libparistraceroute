@@ -12,13 +12,15 @@
 #include "traceroute.h"
 
 // Bounded integer parameters
-static unsigned min_ttl[3] = OPTIONS_TRACEROUTE_MIN_TTL;
-static unsigned max_ttl[3] = OPTIONS_TRACEROUTE_MAX_TTL;
+static unsigned min_ttl[3]          = OPTIONS_TRACEROUTE_MIN_TTL;
+static unsigned max_ttl[3]          = OPTIONS_TRACEROUTE_MAX_TTL;
+static unsigned max_undiscovered[3] = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED;
 
 static struct opt_spec traceroute_cl_options[] = {
-    // action       short  long       metavar    help           data
-    {opt_store_int_lim, "f",  "--first",    "first_ttl", HELP_f, min_ttl},
-    {opt_store_int_lim, "m",  "--max-hops", "max_ttl",   HELP_m, max_ttl},
+    // action           short long                  metavar    help           data
+    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL", HELP_f, min_ttl},
+    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",   HELP_m, max_ttl},
+    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_TTL",   HELP_M, max_undiscovered},
 };
 
 
@@ -34,28 +36,17 @@ struct opt_spec * traceroute_get_cl_options() {
     return traceroute_cl_options;
 }
 
-
 // TODO to remove, see opt_spec
 inline traceroute_options_t traceroute_get_default_options() {
     traceroute_options_t traceroute_options = {
-        .min_ttl    = 1,
-        .max_ttl    = 30,
-        .num_probes = 3,
-        .dst_ip     = NULL
+        .min_ttl          = 1,
+        .max_ttl          = 30,
+        .num_probes       = 3,
+        .max_undiscovered = 3,
+        .dst_ip           = NULL
     };
     return traceroute_options;
 };
-
-/**
- * \brief Complete the options passed as parameter with the
- *   traceroute-specific options
- * \param options A dynarray containing zero or more opt_spec
- *   instances
- */
-
-void traceroute_update_options(dynarray_t * options) {
-    // TODO push_element pour chaque opt initialisé avec l'options
-}
 
 //-----------------------------------------------------------------
 // Traceroute algorithm's data
@@ -127,12 +118,14 @@ bool send_traceroute_probe(
     if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP;
     if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
     if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;
+
     return pt_send_probe(loop, probe);
 
 ERR_PROBE_PUSH_ELEMENT:
 ERR_PROBE_SET_FIELDS:
     probe_free(probe);
 ERR_PROBE_DUP:
+    fprintf(stderr, "Error in send_traceroute_probe\n");
     return false;
 }
 
@@ -255,8 +248,8 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
         } else if (data->num_stars == options->num_probes) {
             // We've only discovered stars for the current hop
             ++(data->num_undiscovered);
-            if (data->num_undiscovered == 3) {
-                // We've only discovered stars for the last 3 hops, so give up
+            if (data->num_undiscovered == options->max_undiscovered) {
+                // We've only discovered stars for the last "max_undiscovered" hops, so give up
                 pt_raise_event(loop, event_create(TRACEROUTE_TOO_MANY_STARS, NULL, NULL, NULL));
                 pt_raise_terminated(loop);
             }

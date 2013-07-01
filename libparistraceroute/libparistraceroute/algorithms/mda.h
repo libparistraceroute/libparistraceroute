@@ -9,7 +9,7 @@
 #include "../vector.h"
 
 //mda command line help messages
-#define HELP_M "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
+#define HELP_B "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
 
 //                                   def1 min1 max1 def2 min2 max2      mda_enabled
 #define OPTIONS_MDA_BOUND_MAXBRANCH {95,  0,   100, 5,   1,   INT_MAX , 0}

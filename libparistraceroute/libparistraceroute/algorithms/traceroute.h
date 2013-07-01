@@ -1,13 +1,21 @@
 #ifndef ALGORITHMS_TRACEROUTE_H
 #define ALGORITHMS_TRACEROUTE_H
 
-#define OPTIONS_TRACEROUTE_MIN_TTL {1,  1, 255}
-#define OPTIONS_TRACEROUTE_MAX_TTL {30, 1, 255}
-#define HELP_f "Start from the min_ttl hop (instead from 1), min_ttl must be between 1 and 255"
-#define HELP_m "Set the max number of hops (max TTL to be reached). Default is 30, max_ttl must be between 1 and 255"
+#define OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT            1
+#define OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT            30
+#define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT   3
+
+#define OPTIONS_TRACEROUTE_MIN_TTL          {OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,          1, 255}
+#define OPTIONS_TRACEROUTE_MAX_TTL          {OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,          1, 255}
+#define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED {OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT, 1, 255}
+
+#define HELP_f "Start from the MIN_TTL hop (instead from 1), MIN_TTL must be between 1 and 255"
+#define HELP_m "Set the max number of hops (MAX_TTL to be reached). Default is 30, MAX_TTL must be between 1 and 255"
+#define HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)"
 
 uint8_t options_traceroute_get_min_ttl();
 uint8_t options_traceroute_get_max_ttl();
+uint8_t options_traceroute_get_max_undiscovered();
 
 /*
  * Principle: (from man page)
@@ -42,10 +50,11 @@ uint8_t options_traceroute_get_max_ttl();
 //--------------------------------------------------------------------
 
 typedef struct {
-    uint8_t      min_ttl;    /**< Minimum ttl at which to send probes */
-    uint8_t      max_ttl;    /**< Maximum ttl at which to send probes */
-    size_t       num_probes; /**< Number of probes per hop            */
-    const char * dst_ip;     /**< The target IP */
+    uint8_t      min_ttl;          /**< Minimum ttl at which to send probes */
+    uint8_t      max_ttl;          /**< Maximum ttl at which to send probes */
+    size_t       num_probes;       /**< Number of probes per hop            */
+    size_t       max_undiscovered; /**< Maximum number of consecutives undiscovered hops */
+    const char * dst_ip;           /**< The target IP */
 } traceroute_options_t;
 
 struct opt_spec * traceroute_get_cl_options();
