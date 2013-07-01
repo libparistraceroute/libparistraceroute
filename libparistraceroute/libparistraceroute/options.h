@@ -8,10 +8,18 @@
 typedef struct opt_spec opt_spec_t;
 
 typedef struct {
-    void (* collision_callback)(
-        opt_spec_t * option1,
-        opt_spec_t * option2
-    ); /**< A callback to handle collision between two options */
+    /**
+     * A callback to handle collision between two options. If set to NULL (default value)
+     * the options_t instance keep option1 and ignore option2.
+     * \param option1 An opt_spec_t instance already stored in this options_t instance
+     * \param option2 An opt_spec_t instance that we attempt to insert in this options_t instance
+     * \return Must return true if the collision has been properly handled, false otherwise.
+     */
+
+    bool (* collision_callback)(
+        opt_spec_t       * option1,
+        const opt_spec_t * option2
+    );
 
     vector_t * optspecs;  /**< A pointer to a vector structure containing optspecs instances */
 } options_t;
@@ -22,7 +30,7 @@ typedef struct {
  * \return A pointer to options structure
  */
 
-options_t * options_create(void (* collision_callback)(opt_spec_t * option1, opt_spec_t * option2));
+options_t * options_create(bool (* collision_callback)(opt_spec_t * option1, const opt_spec_t * option2));
 
 /**
  * \brief Add options to an array of options

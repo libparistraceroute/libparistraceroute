@@ -110,7 +110,7 @@ bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * pa
             inet_pton(AF_INET, packet->dst_ip, &sock.sin.sin_addr);
             sockfd = socketpool->ipv4_sockfd;
             socklen = sizeof(struct sockaddr_in);
-            dst_addr = &sock.sin;
+            dst_addr = (struct sockaddr *) &sock.sin;
             break;
         case AF_INET6:
             sock.sin6.sin6_family = AF_INET6;
@@ -119,7 +119,7 @@ bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * pa
             inet_pton(AF_INET6, packet->dst_ip, &sock.sin6.sin6_addr);
             sockfd = socketpool->ipv6_sockfd;
             socklen = sizeof(struct sockaddr_in6);
-            dst_addr = &sock.sin6;
+            dst_addr = (struct sockaddr *) &sock.sin6;
             break;
         default:
             fprintf(stderr, "socketpool_send_packet: Address family not supported");

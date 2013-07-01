@@ -64,13 +64,13 @@ bool generator_extract_value(const generator_t * generator, const char * key, vo
  * \brief
  */
 
-double generator_get_value(generator_t * generator);
+double generator_get_value(const generator_t * generator);
 
 /**
  * \brief
  */
 
-double generator_get_next_value(generator_t * generator);
+double generator_next_value(generator_t * generator);
 /**
  * \brief
  */

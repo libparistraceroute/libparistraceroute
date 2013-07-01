@@ -3,18 +3,21 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include "optparse.h"
 
 #define EMPTY(s) (!(s) || !*(s))
 
 static struct {
-    int width, maxhelppos, indent;
-    const char *helppfx;
-    char sf[3]; /* Initialised to 0 from here on. */
-    const char *prog, *usage, *helplf;
-    char helpsf, **argv;
-    struct opt_spec *opts, *curr, header;
+    int               width, maxhelppos, indent;
+    const char      * helppfx;
+    char              sf[3]; /* Initialised to 0 from here on. */
+    const char      * prog, *usage, *helplf;
+    char               helpsf, **argv;
+    struct opt_spec * opts,
+                    * curr,
+                      header;
     int opts1st, helppos;
 } globals = {79, 24, 2, "  ", "-?"};
 
@@ -262,14 +265,14 @@ int opt_stop(char *arg, void *data)
 int opt_store_0(char *arg, void *data)
 {
     assert(!arg && data);
-    *(int *)data = 0;
+    *(bool *)data = false;
     return 0;
 }
 
 int opt_store_1(char *arg, void *data)
 {
     assert(!arg && data);
-    *(int *)data = 1;
+    *(bool *)data = true;
     return 0;
 }
 

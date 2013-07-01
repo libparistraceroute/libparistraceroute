@@ -313,7 +313,7 @@ network_t * network_create(void)
     if ((network->scheduled_timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
         goto ERR_GROUP_TIMERFD;
     }
-    if (!(network->group_probes = probe_group_create(network->scheduled_timerfd))) {
+    if (!(network->scheduled_probes = probe_group_create(network->scheduled_timerfd))) {
         goto ERR_GROUP;
     }
     if (!(network->sniffer = sniffer_create(network->recvq, network_sniffer_callback))) {
@@ -329,7 +329,7 @@ network_t * network_create(void)
 ERR_PROBES:
     sniffer_free(network->sniffer);
 ERR_SNIFFER:
-    probe_group_free(network->group_probes);
+    probe_group_free(network->scheduled_probes);
 ERR_GROUP :
     close(network->scheduled_timerfd);
 ERR_GROUP_TIMERFD :
@@ -355,7 +355,7 @@ void network_free(network_t * network)
         queue_free(network->sendq, (ELEMENT_FREE) probe_free);
         queue_free(network->recvq, (ELEMENT_FREE) probe_free);
         socketpool_free(network->socketpool);
-        probe_group_free(network->group_probes);
+        probe_group_free(network->scheduled_probes);
         free(network);
     }
 }
@@ -392,8 +392,8 @@ inline int network_get_group_timerfd(network_t * network) {
     return network->scheduled_timerfd;
 }
 
-probe_group_t * network_get_group_probes(network_t * network) {
-    return network->group_probes;
+probe_group_t * network_get_scheduled_probes(network_t * network) {
+    return network->scheduled_probes;
 }
 
 
@@ -494,19 +494,12 @@ ERR_INVALID_PAYLOAD:
 
 bool network_send_probe(network_t * network, probe_t * probe)
 {
-    double delay;
-
-    if (probe) delay = probe_get_delay(probe);
-    if (delay == 0) {
-        if (!(queue_push_element(network->sendq, probe)))     goto ERR_QUEUE_PUSH_ELEMENT;
-    } else {
-        if (!(probe_group_add(network->group_probes, probe))) goto ERR_PROBE_GROUP_ADD;
-    }
-    return true;
-
-ERR_PROBE_GROUP_ADD:
-ERR_QUEUE_PUSH_ELEMENT:
-    return false;
+    // - Best effort probes are directly pushed in our sendq.
+    // - Scheduled probes are scheduled, stored in the probe group, and
+    // pushed in the sendq when the probe_group notify pt_loop.
+    return probe_get_delay(probe) == DELAY_BEST_EFFORT ?
+        queue_push_element(network->sendq, probe):
+        probe_group_add(network->scheduled_probes, probe);
 }
 
 // TODO This could be replaced by watchers: FD -> action
@@ -671,7 +664,7 @@ bool network_drop_expired_flying_probe(network_t * network)
 
 /*
 double network_get_next_scheduled_probe_delay(const network_t * network) {
-    return probe_group_get_next_delay(network->group_probes);
+    return probe_group_get_next_delay(network->scheduled_probes);
 }
 */
 
@@ -691,10 +684,10 @@ static bool network_process_probe_node(network_t * network, tree_node_t * node, 
     if (num_probes_to_send == 0) {
     */
     if (--(probe->left_to_send) == 0) {
-        if (!(probe_group_del(network->group_probes, node->parent, i)))  goto ERR_PROBE_GROUP_DEL;
+        if (!(probe_group_del(network->scheduled_probes, node->parent, i)))  goto ERR_PROBE_GROUP_DEL;
     } else {
         // TODO rename probe_group_update_delay
-       probe_group_update_delay(network->group_probes, node, get_node_next_delay(node));
+       probe_group_update_delay(network->scheduled_probes, node, get_node_next_delay(node));
         return true;
     }
 
@@ -707,10 +700,10 @@ ERR_TAG:
 void network_process_scheduled_probe(network_t * network) {
     tree_node_t * root;
 
-    if ((root = probe_group_get_root(network->group_probes))) {
+    if ((root = probe_group_get_root(network->scheduled_probes))) {
         // Handle every probe that must be sent right now
         probe_group_iter_next_scheduled_probes(
-            probe_group_get_root(network->group_probes),
+            probe_group_get_root(network->scheduled_probes),
             (void (*) (void *, tree_node_t *, size_t)) network_process_probe_node,
             (void *) network
         );
@@ -738,7 +731,6 @@ void network_process_scheduled_probe(network_t * network) {
 //return false;
 //
 //    */
-//    // TODO rename group_probes -> probe_group
 //    bool ret = false;
 //
 //    if (!network) goto ERR_NETWORK;

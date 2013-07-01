@@ -114,7 +114,7 @@ typedef struct network_s {
     uint16_t        last_tag;          /**< Last probe ID used */
     double          timeout;           /**< The timeout value used by this network (in seconds) */
     int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */
-    probe_group_t * group_probes;      /**< Structure of probe_group may contain a group af probes or a group of groups of probes */
+    probe_group_t * scheduled_probes;  /**< Scheduled probes */ 
 } network_t;
 
 /**
