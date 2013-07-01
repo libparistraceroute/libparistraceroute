@@ -15,12 +15,14 @@
 static unsigned min_ttl[3]          = OPTIONS_TRACEROUTE_MIN_TTL;
 static unsigned max_ttl[3]          = OPTIONS_TRACEROUTE_MAX_TTL;
 static unsigned max_undiscovered[3] = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED;
+static unsigned num_queries[3]      = OPTIONS_TRACEROUTE_NUM_QUERIES;
 
-static struct opt_spec traceroute_cl_options[] = {
+static struct opt_spec traceroute_opt_specs[] = {
     // action           short long                  metavar    help           data
-    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL", HELP_f, min_ttl},
-    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",   HELP_m, max_ttl},
-    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_TTL",   HELP_M, max_undiscovered},
+    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",   HELP_f, min_ttl},
+    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",     HELP_m, max_ttl},
+    {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES", HELP_q, num_queries},
+    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_TTL",     HELP_M, max_undiscovered},
 };
 
 
@@ -32,17 +34,17 @@ uint8_t options_traceroute_get_max_ttl() {
     return max_ttl[0];
 }
 
-struct opt_spec * traceroute_get_cl_options() {
-    return traceroute_cl_options;
+struct opt_spec * traceroute_get_opt_specs() {
+    return traceroute_opt_specs;
 }
 
 // TODO to remove, see opt_spec
 inline traceroute_options_t traceroute_get_default_options() {
     traceroute_options_t traceroute_options = {
-        .min_ttl          = 1,
-        .max_ttl          = 30,
-        .num_probes       = 3,
-        .max_undiscovered = 3,
+        .min_ttl          = OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,
+        .max_ttl          = OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,
+        .num_probes       = OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,
+        .max_undiscovered = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT,
         .dst_ip           = NULL
     };
     return traceroute_options;
@@ -173,6 +175,7 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     const probe_t        * reply;           // Reply
     probe_reply_t        * probe_reply;     // (Probe, Reply) pair
     traceroute_options_t * options = opts;  // Options passed to this instance
+    bool                   discover_next_hop = false;
     bool                   has_terminated = false;
 
     switch (event->type) {
@@ -252,8 +255,15 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
                 // We've only discovered stars for the last "max_undiscovered" hops, so give up
                 pt_raise_event(loop, event_create(TRACEROUTE_TOO_MANY_STARS, NULL, NULL, NULL));
                 pt_raise_terminated(loop);
+            } else {
+                // Skip this hop and explore the next one
+                discover_next_hop = true;
             }
-        } else {
+        } else discover_next_hop = true;
+
+        if (discover_next_hop) {
+            data->num_stars = 0;
+
             // Discover the next hop
             if (!send_traceroute_probes(loop, data, probe_skel, options->num_probes, data->ttl)) {
                 goto FAILURE;
@@ -286,7 +296,7 @@ FAILURE:
 static algorithm_t traceroute = {
     .name    = "traceroute",
     .handler = traceroute_handler,
-    .options = (const struct opt_spec *) &traceroute_cl_options
+    .options = (const struct opt_spec *) &traceroute_opt_specs // TODO akram pass pointer to traceroute_get_opt_specs
 };
 
 ALGORITHM_REGISTER(traceroute);

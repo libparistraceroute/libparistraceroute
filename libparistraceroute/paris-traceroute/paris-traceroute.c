@@ -223,8 +223,8 @@ static options_t * init_options(const char * version) {
     // TODO akram add marker to end options (like protocol_field)
     // TODO akram remove the 3rd paramater of _add_options
     // TODO akram rename options_add_options -> options_add_opt_specs
-    options_add_options(options, traceroute_get_cl_options(), 2);
-    options_add_options(options, mda_get_cl_options(),        3);
+    options_add_options(options, traceroute_get_opt_specs(),  4);
+    options_add_options(options, mda_get_cl_options(),        1);
     options_add_options(options, network_get_cl_options(),    1);
     options_add_options(options, runnable_options,            9);
     options_add_common (options, version);
@@ -366,6 +366,7 @@ int main(int argc, char ** argv)
         ptraceroute_options->min_ttl = options_traceroute_get_min_ttl();
         ptraceroute_options->max_ttl = options_traceroute_get_max_ttl();
         ptraceroute_options->dst_ip  = dst_ip;
+        // TODO akram add -q -M
     }
 
     // Create libparistraceroute loop

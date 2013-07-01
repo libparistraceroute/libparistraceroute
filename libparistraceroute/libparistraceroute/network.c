@@ -17,6 +17,8 @@
 // TODO static variable as timeout. Control extra_delay and timeout values consistency
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
+// TODO add option -v which print debug information when seeking probe/reply
+
 // Network options
 static double timeout[3] = {5, 0, INT_MAX};
 

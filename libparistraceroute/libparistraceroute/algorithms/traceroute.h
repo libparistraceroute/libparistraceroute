@@ -4,17 +4,21 @@
 #define OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT            1
 #define OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT            30
 #define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT   3
+#define OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT        3
 
 #define OPTIONS_TRACEROUTE_MIN_TTL          {OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,          1, 255}
 #define OPTIONS_TRACEROUTE_MAX_TTL          {OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,          1, 255}
 #define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED {OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT, 1, 255}
+#define OPTIONS_TRACEROUTE_NUM_QUERIES      {OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,      1, 255}
 
-#define HELP_f "Start from the MIN_TTL hop (instead from 1), MIN_TTL must be between 1 and 255"
-#define HELP_m "Set the max number of hops (MAX_TTL to be reached). Default is 30, MAX_TTL must be between 1 and 255"
-#define HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)"
+#define HELP_f "Start from the MIN_TTL hop (instead from 1), MIN_TTL must be between 1 and 255."
+#define HELP_m "Set the max number of hops (MAX_TTL to be reached). Default is 30, MAX_TTL must be between 1 and 255."
+#define HELP_q "Set the number of probes per hop (default: 3)."
+#define HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)."
 
 uint8_t options_traceroute_get_min_ttl();
 uint8_t options_traceroute_get_max_ttl();
+uint8_t options_traceroute_get_num_queries();
 uint8_t options_traceroute_get_max_undiscovered();
 
 /*
@@ -57,8 +61,7 @@ typedef struct {
     const char * dst_ip;           /**< The target IP */
 } traceroute_options_t;
 
-struct opt_spec * traceroute_get_cl_options();
-// Default options
+struct opt_spec * traceroute_get_opt_specs();
 
 traceroute_options_t traceroute_get_default_options(void);
 
