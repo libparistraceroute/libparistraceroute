@@ -79,18 +79,18 @@ void options_dump(const options_t * options) {
     vector_dump(options->optspecs);
 }
 
-bool options_add_options(options_t * options, opt_spec_t * optspecs, size_t num_options)
+bool options_add_optspecs(options_t * options, opt_spec_t * optspecs)
 {
-    size_t i;
+    opt_spec_t * optspec;
     bool   ret = true;
 
-    for (i = 0; i < num_options && ret; i++) {
-        ret &= options_add_option(options, optspecs + i);
+    for (optspec = optspecs; optspec->action && ret; optspec++) {
+        ret &= options_add_optspec(options, optspec);
     }
     return ret;
 }
 
-bool options_add_option(options_t * options, opt_spec_t * option)
+bool options_add_optspec(options_t * options, opt_spec_t * option)
 {
     bool         ret;
     opt_spec_t * colliding_option = options_search_colliding_option(options, option);
@@ -121,13 +121,14 @@ bool options_add_common(options_t * options, const char * version_data)
 {
     bool ret = false;
 
-    if(options && version_data) {
+    if (options && version_data) {
         opt_spec_t common_options[] = {
             {opt_help,       "h", "--help"   , OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
             {opt_version,    "V", "--version", OPT_NO_METAVAR, OPT_NO_HELP, version_data},
-            {OPT_NO_ACTION}
+            {OPT_NO_ACTION},
+            END_OPT_SPECS
         };
-        options_add_options(options, common_options, 3);
+        options_add_optspecs(options, common_options);
         ret = true;
     }
     return ret;

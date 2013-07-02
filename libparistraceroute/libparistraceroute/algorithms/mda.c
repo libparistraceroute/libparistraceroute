@@ -1,8 +1,3 @@
-/* TODO
- * The algorithm will have to expose a set of options to the commandline if it wants
- * to be called from it
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +5,7 @@
 #include <limits.h>         // INT_MAX
 
 #include "mda.h"
-#include "optparse.h"
+#include "options.h"      // mda_opt_specs
 #include "../algorithm.h"
 #include "../pt_loop.h"    // pt_send_probe
 #include "../lattice.h"    // LATTICE_*
@@ -21,17 +16,18 @@
 static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH;
 
 // MDA options
-static struct opt_spec mda_cl_options[3] = {
+static struct opt_spec mda_opt_specs[3] = {
     // action           short long          metavar             help    variable
-    {opt_store_int_2,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values}
+    {opt_store_int_2,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values},
+    END_OPT_SPECS
     // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest
     // max missing
     //{OPT_NO_ACTION}
 };
 
-struct opt_spec * mda_get_cl_options() {
-    return mda_cl_options;
+struct opt_spec * mda_get_opt_specs() {
+    return mda_opt_specs;
 }
 
 unsigned options_mda_get_bound() {
@@ -676,7 +672,7 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
 static algorithm_t mda = {
     .name     = "mda",
     .handler  = mda_handler,
-    .options  = (const struct opt_spec *) &mda_cl_options
+    .options  = (const struct opt_spec *) &mda_opt_specs
 };
 
 ALGORITHM_REGISTER(mda);

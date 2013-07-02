@@ -1,6 +1,6 @@
 #include <errno.h>       // errno, EINVAL
 #include <stdlib.h>      // malloc
-#include <stdio.h>       // fprintf 
+#include <stdio.h>       // fprintf
 #include <stdbool.h>     // bool
 #include <string.h>      // memset()
 
@@ -8,7 +8,7 @@
 #include "../event.h"
 #include "../pt_loop.h"
 #include "../algorithm.h"
-
+#include "../options.h"
 #include "traceroute.h"
 
 // Bounded integer parameters
@@ -23,6 +23,7 @@ static struct opt_spec traceroute_opt_specs[] = {
     {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",     HELP_m, max_ttl},
     {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES", HELP_q, num_queries},
     {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_TTL",     HELP_M, max_undiscovered},
+    END_OPT_SPECS
 };
 
 
@@ -32,6 +33,14 @@ uint8_t options_traceroute_get_min_ttl() {
 
 uint8_t options_traceroute_get_max_ttl() {
     return max_ttl[0];
+}
+
+uint8_t options_traceroute_get_max_undiscovered() {
+    return max_undiscovered[0];
+}
+
+uint8_t options_traceroute_get_num_queries() {
+    return num_queries[0];
 }
 
 struct opt_spec * traceroute_get_opt_specs() {
@@ -185,6 +194,11 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     bool                   discover_next_hop = false;
     bool                   has_terminated = false;
 
+    //printf("min_tt = %u, max_ttl = %u, num_probes = %u, max_undiscoverd = %u\n",
+      //      options->min_ttl,
+        //    options->max_ttl,
+          //  options->num_probes,
+            //options->max_undiscovered);
     switch (event->type) {
 
         case ALGORITHM_INIT:
