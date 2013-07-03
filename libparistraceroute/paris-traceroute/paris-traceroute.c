@@ -23,14 +23,17 @@
 // Command line stuff
 //---------------------------------------------------------------------------
 
-#define HELP_4 "Use IPv4"
-#define HELP_6 "Use IPv6"
-#define HELP_a "Traceroute algorithm: one of  'paris-traceroute' [default],'mda'"
-#define HELP_d "set PORT as destination port (default: 3000)"
-#define HELP_n "Do not resolve IP addresses to their domain names"
-#define HELP_s "set PORT as source port (default: 3083)"
-#define HELP_P "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
-#define HELP_U "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
+#define HELP_4        "Use IPv4"
+#define HELP_6        "Use IPv6"
+#define HELP_a        "Traceroute algorithm: one of  'paris-traceroute' [default],'mda'"
+#define HELP_d        "set PORT as destination port (default: 33457)"
+#define HELP_n        "Do not resolve IP addresses to their domain names"
+#define HELP_s        "set PORT as source port (default: 33456)"
+#define HELP_P        "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
+#define HELP_U        "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
+#define HELP_v "print debug information when seeking probe/reply"
+#define TEXT          "paris-traceroute - print the IP-level routes between two Internet hosts."
+#define TEXT_OPTIONS  "Options"
 
 const char * algorithm_names[] = {
     "paris-traceroute", // default value
@@ -38,10 +41,11 @@ const char * algorithm_names[] = {
     NULL
 };
 
-static bool is_ipv4   = false;
-static bool is_ipv6   = false;
-static bool is_udp    = false;
-static bool do_resolv = true;
+static bool is_ipv4    = false;
+static bool is_ipv6    = false;
+static bool is_udp     = false;
+static bool do_resolv  = true;
+static bool is_verbose = false;
 
 const char * protocol_names[] = {
     "udp",
@@ -49,20 +53,23 @@ const char * protocol_names[] = {
 };
 
 // Bounded integer parameters
-//                        def    min  max         option_enabled
-static int dst_port[4] = {3000,  0,   UINT16_MAX, 0};
-static int src_port[4] = {3838,  0,   UINT16_MAX, 1};
+//                        def     min  max         option_enabled
+static int dst_port[4] = {33457,  0,   UINT16_MAX, 0};
+static int src_port[4] = {33456,  0,   UINT16_MAX, 1};
 
 struct opt_spec runnable_options[] = {
-    // action              sf   lf                   metavar             help         data
-    {opt_store_1,          "4", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,      &is_ipv4},
-    {opt_store_1,          "6", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,      &is_ipv6},
-    {opt_store_choice,     "a", "--algo",            "ALGORITHM",        HELP_a,      algorithm_names},
-    {opt_store_0,          "n", OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,      &do_resolv},
-    {opt_store_int_lim_en, "s", "--src-port",        "PORT",             HELP_s,      src_port},
-    {opt_store_int_lim_en, "d", "--drc-port",        "PORT",             HELP_d,      dst_port},
-    {opt_store_choice,     "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
-    {opt_store_1,          "U", "--udp",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
+    // action              sf          lf                   metavar             help          data
+    {opt_text,             OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,         OPT_NO_DATA},
+    {opt_text,             OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
+    {opt_store_1,          "4",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,       &is_ipv4},
+    {opt_store_1,          "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
+    {opt_store_1,          "v",        "--verbose",         OPT_NO_METAVAR,     HELP_v,       &is_verbose},
+    {opt_store_choice,     "a",        "--algo",            "ALGORITHM",        HELP_a,       algorithm_names},
+    {opt_store_0,          "n",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,       &do_resolv},
+    {opt_store_int_lim_en, "s",        "--src-port",        "PORT",             HELP_s,       src_port},
+    {opt_store_int_lim_en, "d",        "--drc-port",        "PORT",             HELP_d,       dst_port},
+    {opt_store_choice,     "P",        "--protocol",        "protocol",         HELP_P,       protocol_names},
+    {opt_store_1,          "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
     END_OPT_SPECS
 };
 
@@ -113,8 +120,8 @@ void my_traceroute_handler(
                         if (do_resolv) {
                             address_resolv(discovered_ip, &discovered_hostname);
                             if (discovered_hostname) printf("%s", discovered_hostname);
-                        }
-                        printf(" (%s) ", discovered_ip);
+                            printf(" (%s) ", discovered_ip);
+                        } else  printf(" %s ", discovered_ip);
                         free(discovered_ip);
                     }
                 }
@@ -144,16 +151,16 @@ void my_traceroute_handler(
             num_probes_printed++;
             break;
         case TRACEROUTE_TOO_MANY_STARS:
-            printf("Too many stars\n");
+            //printf("Too many stars\n");
             break;
         case TRACEROUTE_MAX_TTL_REACHED:
-            printf("Max ttl reached\n");
+            //printf("Max ttl reached\n");
             break;
         case TRACEROUTE_DESTINATION_REACHED:
             // The traceroute algorithm has terminated.
             // We could print additional results.
             // Interrupt the main loop.
-            printf("Destination reached\n");
+            //printf("Destination reached\n");
             break;
         default:
             break;
@@ -224,12 +231,10 @@ static options_t * init_options(const char * version) {
     if (!(options = options_create(NULL))) {
         goto ERR_OPTIONS_CREATE;
     }
-    // We have to add traceroute command line options before those of mda
-    // to manage properly colliding options
+    options_add_optspecs(options, runnable_options);
     options_add_optspecs(options, traceroute_get_opt_specs());
     options_add_optspecs(options, mda_get_opt_specs());
     options_add_optspecs(options, network_get_opt_specs());
-    options_add_optspecs(options, runnable_options);
     options_add_common(options, version);
     return options;
 
@@ -250,7 +255,7 @@ int main(int argc, char ** argv)
     address_t                 dst_addr;
     options_t               * options;
     const char              * version = "version 1.0";
-    const char              * usage = "usage: %s [options] host";
+    const char              * usage = "usage: %s [options] host\n";
     char                    * dst_ip;
     char                    * dst_ip_num;
     const char              * algorithm_name;
@@ -389,8 +394,14 @@ int main(int argc, char ** argv)
 
     // Set network timeout
     network_set_timeout(loop->network, options_network_get_timeout());
+    network_set_is_verbose(loop->network, is_verbose);
 
-    printf("Traceroute to %s (%s) using algorithm %s, %u hops max, %u bytes packets\n\n", dst_ip,dst_ip_num, algorithm_name, ptraceroute_options->max_ttl, packet_size);
+    printf("Traceroute to %s (%s), %u hops max, %u bytes packets\n\n",
+            dst_ip,
+            dst_ip_num,
+            ptraceroute_options->max_ttl,
+            packet_size);
+
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {
         perror("E: Cannot add the chosen algorithm");

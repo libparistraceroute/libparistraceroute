@@ -14,7 +14,11 @@
 static bool optspec_is_same(const opt_spec_t * option1, const opt_spec_t * option2) {
     return (option1 && option2
         && *(option1->action) == *(option2->action)
+        && option1->sf
+        && option2->sf
         && strcmp(option1->sf, option2->sf) == 0
+        && option1->lf
+        && option2->lf
         && strcmp(option1->lf, option2->lf) == 0);
 }
 

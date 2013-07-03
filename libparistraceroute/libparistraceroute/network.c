@@ -1,6 +1,7 @@
 #include <stdlib.h>      // malloc ...
 #include <string.h>      // memset
 #include <stdio.h>       // fprintf
+#include <stdbool.h>     // bool
 #include <time.h>        // time_t
 #include <unistd.h>      // close
 #include <sys/timerfd.h> // timerfd_create, timerfd_settime
@@ -18,15 +19,14 @@
 // TODO static variable as timeout. Control extra_delay and timeout values consistency
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
-// TODO add option -v which print debug information when seeking probe/reply
 
 // Network options
-static double timeout[3] = {5, 0, INT_MAX};
+static double timeout[3] = OPTIONS_NETWORK_WAIT;
 
 static struct opt_spec network_opt_specs[] = {
-    // action              short long      metavar     help    variable
-    {opt_store_double_lim, "w",  "--wait", "waittime", HELP_w, timeout},
-    END_OPT_SPECS
+    // action              short long          metavar         help    variable
+    {opt_store_double_lim, "w",  "--wait",     "waittime",     HELP_w, timeout},
+     END_OPT_SPECS
 };
 
 /**
@@ -42,6 +42,9 @@ double options_network_get_timeout() {
     return timeout[0];
 }
 
+void network_set_is_verbose(network_t * network, bool verbose) {
+     network->is_verbose = verbose;
+}
 /**
  * \brief Extract the probe ID (tag) from a probe
  * \param probe The queried probe
@@ -218,7 +221,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     size_t     i, num_flying_probes;
 
     // Fetch the tag from the reply. Its the 3rd checksum field.
-    if(!(reply_extract_tag(reply, &tag_reply))) {
+    if (!(reply_extract_tag(reply, &tag_reply))) {
         // This is not an IP/ICMP/IP/* reply :(
         fprintf(stderr, "Can't retrieve tag from reply\n");
         return NULL;
@@ -237,9 +240,11 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
 
     // No match found if we reached the end of the array
     if (i == num_flying_probes) {
-        fprintf(stderr, "network_get_matching_probe: This reply has been discarded: tag = 0x%x.\n", tag_reply);
-        probe_dump(reply);
-       // network_flying_probes_dump(network);
+        if (network->is_verbose) {
+            fprintf(stderr, "network_get_matching_probe: This reply has been discarded: tag = 0x%x.\n", tag_reply);
+            probe_dump(reply);
+        }
+        // network_flying_probes_dump(network);
         return NULL;
     }
 
@@ -291,6 +296,7 @@ network_t * network_create(void)
 
     network->last_tag = 0;
     network->timeout = NETWORK_DEFAULT_TIMEOUT;
+    network->is_verbose = false;
     return network;
 
 ERR_PROBES:
@@ -559,7 +565,7 @@ bool network_process_recvq(network_t * network)
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes
     if (!(probe = network_get_matching_probe(network, reply))) {
-        fprintf(stderr, "error probe discard\n");
+        if (network->is_verbose) fprintf(stderr, "error probe discard\n");
         goto ERR_PROBE_DISCARDED;
     }
 

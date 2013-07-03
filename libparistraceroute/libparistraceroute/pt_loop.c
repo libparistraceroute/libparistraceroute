@@ -295,14 +295,14 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
             if (cur_fd == network_sendq_fd) {
                 if (!network_process_sendq(loop->network)) {
-                    fprintf(stderr, "pt_loop: Can't send packet\n");
+                    if (loop->network->is_verbose) fprintf(stderr, "pt_loop: Can't send packet\n");
                 }
             } else if (cur_fd == network_recvq_fd) {
                 if (!network_process_recvq(loop->network)) {
-                    fprintf(stderr, "pt_loop: Cannot fetch packet\n");
+                    if (loop->network->is_verbose) fprintf(stderr, "pt_loop: Cannot fetch packet\n");
                 }
             } else if (cur_fd == network_group_timerfd) {
-               // printf("pt_loop processing scheduled probes\n");
+                // printf("pt_loop processing scheduled probes\n");
                 network_process_scheduled_probe(loop->network);
             } else if (cur_fd == network_icmpv4_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMP);
