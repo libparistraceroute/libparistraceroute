@@ -7,7 +7,7 @@
 #define DYNARRAY_SIZE_INIT  5
 #define DYNARRAY_SIZE_INC   5
 
-dynarray_t * dynarray_create(void)
+dynarray_t * dynarray_create()
 {
     dynarray_t * dynarray = malloc(sizeof(dynarray_t));
     if (dynarray) {
@@ -139,4 +139,15 @@ bool dynarray_set_ith_element(dynarray_t * dynarray, unsigned int i, void * elem
     if (i > dynarray->size) return false; // out of range
     dynarray->elements[i] = element;
     return true;
+}
+
+void dynarray_dump(const dynarray_t * dynarray, void (*element_dump)(void *)) {
+    size_t i, num_elements = dynarray_get_size(dynarray);
+
+    printf("[ ");
+    for (i = 0; i < num_elements; ++i) {
+        if (i > 0) printf(", ");
+        element_dump(dynarray_get_ith_element(dynarray, i));
+    }
+    printf(" ]");
 }

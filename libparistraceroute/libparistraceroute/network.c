@@ -236,8 +236,8 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     // No match found if we reached the end of the array
     if (i == num_flying_probes) {
         fprintf(stderr, "network_get_matching_probe: This reply has been discarded: tag = 0x%x.\n", tag_reply);
-        probe_dump(reply);
-       // network_flying_probes_dump(network);
+        // probe_dump(reply);
+        network_flying_probes_dump(network);
         return NULL;
     }
 

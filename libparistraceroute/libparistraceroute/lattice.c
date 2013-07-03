@@ -5,15 +5,17 @@
 #include <stdbool.h> // bool
 #include <stdio.h>   // fprintf
 
-// Lattice elements
+//---------------------------------------------------------------------------
+// lattice_elt_t 
+//---------------------------------------------------------------------------
 
 lattice_elt_t * lattice_elt_create(void * data)
 {
     lattice_elt_t * elt;
 
-    if (!(elt = malloc(sizeof(lattice_elt_t))))    goto ERR_MALLOC;
-    if (!(elt->next = dynarray_create()))          goto ERR_DYNARRAY_CREATE;
-    if (!(elt->siblings = dynarray_create()))      goto ERR_DYNARRAY_CREATE2;
+    if (!(elt = malloc(sizeof(lattice_elt_t))))     goto ERR_MALLOC;
+    if (!(elt->next = dynarray_create()))           goto ERR_DYNARRAY_CREATE;
+    if (!(elt->siblings = dynarray_create()))       goto ERR_DYNARRAY_CREATE2;
     if (!dynarray_push_element(elt->siblings, elt)) goto ERR_DYNARRAY_PUSH_ELEMENT;
     elt->data = data;
 
@@ -48,13 +50,15 @@ void * lattice_elt_get_data(const lattice_elt_t * elt) {
     return elt->data;
 }
 
-// Lattice
+//---------------------------------------------------------------------------
+// lattice_t 
+//---------------------------------------------------------------------------
 
 lattice_t * lattice_create() {
     lattice_t * lattice;
 
     if (!(lattice = calloc(1, sizeof(lattice_t)))) goto ERR_MALLOC;
-    if (!(lattice->roots = dynarray_create()))      goto ERR_DYNARRAY_CREATE;
+    if (!(lattice->roots = dynarray_create()))     goto ERR_DYNARRAY_CREATE;
       
     return lattice;
 ERR_DYNARRAY_CREATE:
@@ -75,23 +79,15 @@ void lattice_free(lattice_t * lattice, void (*lattice_element_free)(void *elemen
 // Accessors
 
 /*
-void lattice_set_data(lattice_t * lattice, void * data) {
-    lattice->data = data;
-}
-
-void * lattice_get_data(const lattice_t * lattice) {
-    return lattice->data;
-}
-*/
-
 void lattice_set_cmp(lattice_t * lattice, int (*cmp)(const void * x, const void * y)) {
     lattice->cmp = cmp;
 }
+*/
 
 static lattice_return_t lattice_walk_dfs_rec(
-    lattice_elt_t *elt, 
-    int (*visitor)(lattice_elt_t *, void *), 
-    void *data
+    lattice_elt_t * elt, 
+    int          (* visitor)(lattice_elt_t *, void *), 
+    void          * data
 ) {
     lattice_elt_t    * elt_iter;
     unsigned int       i, num_next;
@@ -151,10 +147,10 @@ static lattice_return_t lattice_walk_dfs(
 }
 
 lattice_return_t lattice_walk(
-    lattice_t      * lattice,
-    int           (* visitor)(lattice_elt_t *, void * data),
-    void           * data,
-    lattice_walk_t   walk
+    lattice_t         * lattice,
+    lattice_return_t (* visitor)(lattice_elt_t *, void * data),
+    void              * data,
+    lattice_walk_t      walk
 ) {
     switch (walk) {
         case LATTICE_WALK_DFS:
@@ -168,6 +164,7 @@ lattice_return_t lattice_walk(
     return LATTICE_ERROR;
 }
 
+/*
 static lattice_elt_t * lattice_find_elt(lattice_elt_t * elt, void * data, int (*cmp)(const void * elt1, const void * elt2))
 {
     lattice_elt_t * elt_iter,
@@ -204,63 +201,92 @@ static void * lattice_find(lattice_t * lattice, void * data)
 
     return NULL;
 }
+*/
 
-int lattice_add_element(lattice_t * lattice, lattice_elt_t * prev, void * data)
+bool lattice_add_element(lattice_t * lattice, lattice_elt_t * predecessor, void * data)
 {
     lattice_elt_t * elt;
    
-    if (!(elt = lattice_elt_create(data))) return -1; 
+    if (!(elt = lattice_elt_create(data))) goto ERR_LATTICE_ELT_CREATE;
 
-    if (!prev) {
-        dynarray_push_element(lattice->roots, elt);
-        return 0;
+    if (!predecessor) {
+        // No predecessors, so the new node is stored as a new root.
+        if (!dynarray_push_element(lattice->roots, elt)) {
+            goto ERR_DYNARRAY_PUSH_ELEMENT;
+        }
+    } else {
+        // This node has some a predecessor so connect the both nodes.
+        if (!lattice_connect(lattice, predecessor, elt)) {
+            goto ERR_LATTICE_CONNECT;
+        }
     }
 
-    return lattice_connect(lattice, prev, elt);
+    return true;
+
+ERR_LATTICE_CONNECT:
+ERR_DYNARRAY_PUSH_ELEMENT:
+    lattice_elt_free(elt);
+ERR_LATTICE_ELT_CREATE:
+    return false;
 }
 
-int lattice_connect(lattice_t *lattice, lattice_elt_t * prev, lattice_elt_t * elt)
+bool lattice_connect(lattice_t * lattice, lattice_elt_t * u, lattice_elt_t * v)
 {
-    size_t       i, j, num_next, num_siblings;
-    const void * data = lattice_elt_get_data(elt);
+    size_t          i, j, num_next, num_siblings;
+    const void    * elt_data = lattice_elt_get_data(v),
+                  * cur_data;
+    lattice_elt_t * cur_elt,
+                  * sibling;
     
     // Return if the element already existing in next hops
-    num_next = dynarray_get_size(prev->next);
+    num_next = dynarray_get_size(u->next);
     for (i = 0; i < num_next; i++) {
-        lattice_elt_t * elt_iter = dynarray_get_ith_element(prev->next, i);
-        const void * local_data = lattice_elt_get_data(elt_iter);
-        if ((lattice->cmp && (lattice->cmp(local_data, data) == 0))
-        ||  (local_data == data)) {
-            return 0;
+        cur_elt = dynarray_get_ith_element(u->next, i);
+        cur_data = lattice_elt_get_data(cur_elt);
+        if ((lattice->cmp && (lattice->cmp(cur_data, elt_data) == 0))
+        ||  (cur_data == elt_data)) {
+            return true;
         }
     }
     
     // We need to update all siblings: the siblings of my child are the children
     // of all my siblings
     // Go though all my siblings, including me
-    num_siblings = dynarray_get_size(prev->siblings);
+    num_siblings = dynarray_get_size(u->siblings);
     for (i = 0; i < num_siblings; i++) {
-        lattice_elt_t * sibling = dynarray_get_ith_element(prev->siblings, i);
+        sibling = dynarray_get_ith_element(u->siblings, i);
 
         num_next = dynarray_get_size(sibling->next);
         for (j = 0; j < num_next; j++) {
 
             // Existing interfaces get a new sibling
-            lattice_elt_t * elt_iter = dynarray_get_ith_element(sibling->next, j);
-            dynarray_push_element(elt_iter->siblings, elt);
+            cur_elt = dynarray_get_ith_element(sibling->next, j);
+            if (!dynarray_push_element(cur_elt->siblings, v)) {
+                goto ERR_DYNARRAY_PUSH_ELEMENT1;
+            }
 
             // Existing interfaces are a new sibling for the new interface
-            dynarray_push_element(elt->siblings, elt_iter);
+            if (!dynarray_push_element(v->siblings, cur_elt)) {
+                goto ERR_DYNARRAY_PUSH_ELEMENT2;
+            }
         }
     }
 
-    dynarray_push_element(prev->next, elt);
-    return 0;
+    if (!dynarray_push_element(u->next, v)) {
+        goto ERR_DYNARRAY_PUSH_ELEMENT3;
+    }
+
+    return true;
+
+ERR_DYNARRAY_PUSH_ELEMENT3:
+ERR_DYNARRAY_PUSH_ELEMENT2:
+ERR_DYNARRAY_PUSH_ELEMENT1:
+    return false;
 }
 
-int lattice_element_dump(lattice_elt_t * elt, void * data) {
+static lattice_return_t lattice_element_dump(lattice_elt_t * elt, void * data) {
     void (*dump)(void *) = data;
-    dump(elt);
+    if (dump) dump(elt);
     return LATTICE_CONTINUE;
 }
 

@@ -31,9 +31,16 @@ mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state);
 
 /**
  * \brief Release a mda_data_t structure from the memory
- * \param A pointer to the mda_data_t instance
+ * \param mda_flow A pointer to the mda_data_t instance
  */
 
-void mda_flow_free(mda_flow_t * flow);
+void mda_flow_free(mda_flow_t * mda_flow);
+
+/**
+ * \brief Convert a flow state in its corresponding character output.
+ * \param mda_flow A pointer to the mda_data_t instance.
+ * \return The corresponding caractère, 'E' in case of failure.
+ */
+char mda_flow_state_to_char(const mda_flow_t * mda_flow);
 
 #endif

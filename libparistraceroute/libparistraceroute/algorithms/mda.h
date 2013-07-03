@@ -37,30 +37,22 @@ unsigned options_mda_get_is_set();
 
 struct opt_spec * mda_get_cl_options();
 
-int mda_set_options(vector_t * vector);
+/**
+ * \brief Retrieve the default options of mda.
+ * \return The corresponding mda_options_t structure.
+ */
 
-mda_options_t mda_get_default_options(void);
+mda_options_t mda_get_default_options();
 
-bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst);
+/**
+ * \brief Default mda handler.
+ * \param loop The main loop.
+ * \param event The event handled by mda.
+ * \param pdata Data attached to the current mda algorithm instance.
+ * \param skel The probe skeleton used to craft probe packets.
+ * \param options The options passed to the current mda algorithm instance.
+ */
 
-int mda_interface_find_next_hops(lattice_elt_t * elt, mda_data_t * data);
-
-int mda_classify_interface(lattice_elt_t * elt, mda_data_t * data);
-
-int mda_process_interface(lattice_elt_t * elt, void * data);
-
-int mda_search_source(lattice_elt_t * elt, void * data);
-
-int mda_delete_flow(lattice_elt_t * elt, void * data);
-
-int mda_timeout_flow(lattice_elt_t * elt, void * data);
-
-// Handlers
-int mda_handler        (pt_loop_t * loop, event_t * event, void       ** pdata, probe_t * skel, void * options);
-int mda_handler_init   (pt_loop_t * loop, event_t * event, mda_data_t ** pdata, probe_t * skel, const mda_options_t * options);
-int mda_handler_reply  (pt_loop_t * loop, event_t * event, mda_data_t *  data,  probe_t * skel, const mda_options_t * options);
-int mda_handler_timeout(pt_loop_t * loop, event_t * event, mda_data_t *  data,  probe_t * skel, const mda_options_t * options);
-
-int mda_search_interface(lattice_elt_t * elt, void * data);
+int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * options);
 
 #endif

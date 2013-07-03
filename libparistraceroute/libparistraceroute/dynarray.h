@@ -29,7 +29,7 @@ typedef struct {
  * \return A dynarray_t structure representing an empty dynamic array
  */
 
-dynarray_t * dynarray_create(void);
+dynarray_t * dynarray_create();
 
 /**
  * \brief Duplicate a dynarray
@@ -117,5 +117,15 @@ void ** dynarray_get_elements(dynarray_t * dynarray);
  */
 
 void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i);
+
+/**
+ * \brief Dump dynarray contents.
+ * \param dynarray A dynarray_t instance.
+ * \param element This function is called back whenever we dump an element
+ *    stored in the dynarray. The address of the current element is passed
+ *    as parameter.
+ */
+
+void dynarray_dump(const dynarray_t * dynarray, void (*element_dump)(void *));
 
 #endif

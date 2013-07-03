@@ -171,14 +171,18 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     const traceroute_options_t * traceroute_options;
     const traceroute_data_t    * traceroute_data;
     mda_event_t                * mda_event;
+    mda_data_t                 * mda_data;
     const char                 * algorithm_name;
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
             algorithm_name = event->issuer->algorithm->name;
+            mda_data = event->issuer->data;
             if (strcmp(algorithm_name, "mda") == 0) {
                 // Dump full lattice, only when MDA_NEW_LINK is not handled
-                mda_interface_dump(event->issuer->data, do_resolv);
+                printf("Lattice:\n");
+                lattice_dump(mda_data->lattice, mda_lattice_elt_dump); 
+                printf("\n");
             }
             pt_loop_terminate(loop);
             break;
@@ -346,7 +350,7 @@ int main(int argc, char ** argv)
     }
 
     // TODO akram to remove once debugged
-    probe_dump(probe);
+//    probe_dump(probe);
 
     // Dedicated options (if any)
     if (strcmp(algorithm_name, "paris-traceroute") == 0) {
