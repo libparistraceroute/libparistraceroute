@@ -35,6 +35,7 @@
 
 double options_network_get_timeout();
 
+
 /**
  * \struct network_t
  * \brief Structure describing a network
@@ -115,6 +116,7 @@ typedef struct network_s {
     double          timeout;           /**< The timeout value used by this network (in seconds) */
     int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */
     probe_group_t * scheduled_probes;  /**< Scheduled probes */
+    bool            is_verbose;        /**< Print debug messages*/
 } network_t;
 
 /**
@@ -129,7 +131,7 @@ struct opt_spec * network_get_opt_specs();
  * \return The newly created network layer.
  */
 
-network_t* network_create(void);
+network_t * network_create(void);
 
 /**
  * \brief Delete a network structure
@@ -145,6 +147,14 @@ void network_free(network_t * network);
  */
 
 double network_get_timeout(const network_t * network);
+
+/**
+ * \brief Set verbose for the network structur.
+ * \param network The network instance.
+ * \param verbose equal true if the network will be verbose false otherwise.
+ */
+
+void network_set_is_verbose(network_t * network, bool verbose);
 
 /**
  * \brief Set a new timeout for the network structure.
