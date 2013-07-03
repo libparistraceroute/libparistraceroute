@@ -63,6 +63,7 @@ struct opt_spec runnable_options[] = {
     {opt_store_int_lim_en, "d", "--drc-port",        "PORT",             HELP_d,      dst_port},
     {opt_store_choice,     "P", "--protocol",        "protocol",         HELP_P,      protocol_names},
     {opt_store_1,          "U", "--udp",             OPT_NO_METAVAR,     HELP_U,      &is_udp},
+    END_OPT_SPECS
 };
 
 //---------------------------------------------------------------------------
@@ -102,20 +103,18 @@ void my_traceroute_handler(
                 uint8_t ttl;
 
                 if (probe_extract(probe, "ttl", &ttl)) {
-                    printf("%-2d", ttl);
+                    printf("%-2d  ", ttl);
                 }
-
-
                 // Print discovered IP
                 {
                     char * discovered_ip;
                     if (probe_extract(reply, "src_ip", &discovered_ip)) {
-                        printf(" %-16s ", discovered_ip);
                         //make name resolution if needed
                         if (do_resolv) {
                             address_resolv(discovered_ip, &discovered_hostname);
-                            if (discovered_hostname) printf("(%s)", discovered_hostname);
+                            if (discovered_hostname) printf("%s", discovered_hostname);
                         }
+                        printf(" (%s) ", discovered_ip);
                         free(discovered_ip);
                     }
                 }
@@ -129,6 +128,14 @@ void my_traceroute_handler(
             num_probes_printed++;
             break;
         case TRACEROUTE_STAR:
+            probe = (const probe_t *) traceroute_event->data;
+
+            if (num_probes_printed % traceroute_options->num_probes == 0) {
+                uint8_t ttl;
+            if (probe_extract(probe, "ttl", &ttl)) {
+                printf("%-2d  ", ttl);
+            }
+            }
             printf(" *");
             num_probes_printed++;
             break;
@@ -223,14 +230,11 @@ static options_t * init_options(const char * version) {
     }
     // We have to add traceroute command line options before those of mda
     // to manage properly colliding options
-    // TODO akram add marker to end options (like protocol_field)
-    // TODO akram remove the 3rd paramater of _add_options
-    // TODO akram rename options_add_options -> options_add_opt_specs
-    options_add_options(options, traceroute_get_opt_specs(),  4);
-    options_add_options(options, mda_get_cl_options(),        1);
-    options_add_options(options, network_get_cl_options(),    1);
-    options_add_options(options, runnable_options,            9);
-    options_add_common (options, version);
+    options_add_optspecs(options, traceroute_get_opt_specs());
+    options_add_optspecs(options, mda_get_opt_specs());
+    options_add_optspecs(options, network_get_opt_specs());
+    options_add_optspecs(options, runnable_options);
+    options_add_common(options, version);
     return options;
 
 ERR_OPTIONS_CREATE:
@@ -246,15 +250,18 @@ int main(int argc, char ** argv)
     pt_loop_t               * loop;
     int                       exit_code = EXIT_FAILURE;
     int                       family;
+    size_t                    packet_size;
     address_t                 dst_addr;
     options_t               * options;
     const char              * version = "version 1.0";
     const char              * usage = "usage: %s [options] host";
     char                    * dst_ip;
+    char                    * dst_ip_num;
     const char              * algorithm_name;
     const char              * ip_protocol_name;
     void                    * algorithm_options;
 
+    //prepare the commande line options
     if (!(options = init_options(version))) {
         fprintf(stderr, "E: Can't initialize options\n");
         goto ERR_INIT_OPTIONS;
@@ -316,10 +323,9 @@ int main(int argc, char ** argv)
 
     // If dst_ip is not a FQDN, we've to get the corresponding IP string.
     // This is a crappy patch while ipv*.c protocols module do not use field carrying address_t instance
-    if ((address_to_string(&dst_addr, &dst_ip)) != 0) goto ERR_ADDRESS_TO_STRING;
+    if ((address_to_string(&dst_addr, &dst_ip_num)) != 0) goto ERR_ADDRESS_TO_STRING;
 
     // Prepare data
-    printf("Traceroute to %s using algorithm %s\n\n", dst_ip, algorithm_name);
 
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe = probe_create())) {
@@ -338,7 +344,7 @@ int main(int argc, char ** argv)
     // Set default values
     probe_set_fields(
         probe,
-        STR("dst_ip",   dst_ip),
+        STR("dst_ip",   dst_ip_num),
         I16("dst_port", dst_port[0]),
         I16("src_port", src_port[0]),
         NULL
@@ -349,9 +355,7 @@ int main(int argc, char ** argv)
         probe_set_fields(probe, I16("dst_port", 53), NULL);
     }
 
-    // TODO akram to remove once debugged
-//    probe_dump(probe);
-
+    packet_size = packet_get_size(probe->packet);
     // Dedicated options (if any)
     if (strcmp(algorithm_name, "paris-traceroute") == 0) {
         traceroute_options  = traceroute_get_default_options();
@@ -371,10 +375,11 @@ int main(int argc, char ** argv)
 
     // Common options
     if (ptraceroute_options) {
-        ptraceroute_options->min_ttl = options_traceroute_get_min_ttl();
-        ptraceroute_options->max_ttl = options_traceroute_get_max_ttl();
-        ptraceroute_options->dst_ip  = dst_ip;
-        // TODO akram add -q -M
+        ptraceroute_options->min_ttl          = options_traceroute_get_min_ttl();
+        ptraceroute_options->max_ttl          = options_traceroute_get_max_ttl();
+        ptraceroute_options->num_probes       = options_traceroute_get_num_queries();
+        ptraceroute_options->max_undiscovered = options_traceroute_get_max_undiscovered();
+        ptraceroute_options->dst_ip           = dst_ip_num;
     }
 
     // Create libparistraceroute loop
@@ -386,6 +391,7 @@ int main(int argc, char ** argv)
     // Set network timeout
     network_set_timeout(loop->network, options_network_get_timeout());
 
+    printf("Traceroute to %s (%s) using algorithm %s, %u hops max, %u bytes packets\n\n", dst_ip,dst_ip_num, algorithm_name, ptraceroute_options->max_ttl, packet_size);
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {
         perror("E: Cannot add the chosen algorithm");
@@ -410,7 +416,7 @@ ERR_PROBE_SKEL:
     // Options and probe must be manually removed.
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
-    if (dst_ip) free(dst_ip); // allocated by address_to_string
+    if (dst_ip_num) free(dst_ip_num); // allocated by address_to_string
 ERR_ADDRESS_TO_STRING:
 ERR_ADDRESS_IP_FROM_STRING:
 ERR_FAMILY:

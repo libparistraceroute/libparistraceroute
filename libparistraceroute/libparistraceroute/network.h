@@ -114,7 +114,7 @@ typedef struct network_s {
     uint16_t        last_tag;          /**< Last probe ID used */
     double          timeout;           /**< The timeout value used by this network (in seconds) */
     int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */
-    probe_group_t * scheduled_probes;  /**< Scheduled probes */ 
+    probe_group_t * scheduled_probes;  /**< Scheduled probes */
 } network_t;
 
 /**
@@ -122,8 +122,7 @@ typedef struct network_s {
  * \returna pointer to a tructure containing the options
  */
 
-// TODO rename network_get_opt_spec
-struct opt_spec * network_get_cl_options();
+struct opt_spec * network_get_opt_specs();
 
 /**
  * \brief Create a new network structure

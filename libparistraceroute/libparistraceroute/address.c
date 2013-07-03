@@ -156,11 +156,11 @@ int address_to_string(const address_t * address, char ** pbuffer)
             return EINVAL;
     }
 
-    if (!(*pbuffer = malloc(NI_MAXHOST))) {
+    if (!(*pbuffer = malloc(INET6_ADDRSTRLEN))) {
         return ENOMEM;
     }
 
-    if ((ret = getnameinfo(sa, sa_len, *pbuffer, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))) {
+    if ((ret = getnameinfo(sa, sa_len, *pbuffer, NI_MAXHOST, NULL, 0, NI_NUMERICHOST)) != 0) {
         fprintf(stderr, "address_to_string: %s", gai_strerror(ret));
     }
 

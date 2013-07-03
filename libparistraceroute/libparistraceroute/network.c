@@ -11,6 +11,7 @@
 #include "common.h"
 #include "packet.h"
 #include "queue.h"
+#include "options.h"
 #include "probe.h"       // probe_extract
 #include "algorithm.h"   // pt_algorithm_throw
 
@@ -22,9 +23,10 @@
 // Network options
 static double timeout[3] = {5, 0, INT_MAX};
 
-static struct opt_spec network_cl_options[] = {
+static struct opt_spec network_opt_specs[] = {
     // action              short long      metavar     help    variable
     {opt_store_double_lim, "w",  "--wait", "waittime", HELP_w, timeout},
+    END_OPT_SPECS
 };
 
 /**
@@ -32,8 +34,8 @@ static struct opt_spec network_cl_options[] = {
  * \return a pointer to an opt_spec structure
  */
 
-struct opt_spec * network_get_cl_options() {
-    return network_cl_options;
+struct opt_spec * network_get_opt_specs() {
+    return network_opt_specs;
 }
 
 double options_network_get_timeout() {

@@ -5,6 +5,8 @@
 #include "optparse.h"  // optspec
 #include "vector.h"    // vector
 
+#define END_OPT_SPECS { .action = NULL}
+
 typedef struct opt_spec opt_spec_t;
 
 typedef struct {
@@ -36,37 +38,54 @@ options_t * options_create(bool (* collision_callback)(opt_spec_t * option1, con
  * \brief Add options to an array of options
  * \param options A pointer to an options_t structure containing the array of options to fill
  * \param option A pointer to an array of options to add
- * \param num_options The number of options to add
+ * \return true iif successful
  */
 
-// TODO return bool
-bool options_add_options(options_t * options, opt_spec_t * option, size_t num_options);
+bool options_add_optspecs(options_t * options, opt_spec_t * option);
 
 /**
  * \brief Add one option to an array of options
  * \param options A pointer to an options_t structure containing the array of options to fill
  * \param option A pointer to the  options to add
+ * \return true iif successful
  */
 
-// TODO return bool
-bool options_add_option(options_t * options, opt_spec_t * option);
+bool options_add_optspec(options_t * options, opt_spec_t * option);
 
 /**
  * \brief Add the common options (help and version) to an array of options
  * \param A pointer to an options_t structure containing the array of options to fill
  * \param A string containing the data to put in the version message
+ * \return true iif successful
  */
 
-// TODO return bool
 bool options_add_common(options_t * options, const char * version_data);
+
+/**
+ * \brief Get the number of otpons contained in an options_t instance
+ * \param A pointer to an options_t structure
+ * \return the number of options
+ */
 
 size_t options_get_num_options(const options_t * options);
 
-//void option_replace(opt_spec_t * option1, opt_spec_t * option2);
+/**
+ * \brief Rename the short form of an opt_spec_t instance
+ * \param A pointer to an opt_spec_t instance
+ * \param String containing the new short form
+ * \return true iif successful
+ */
 
-void option_rename(opt_spec_t * option, char sf[], char lf[]);
+bool option_rename_sf(opt_spec_t * option, char * sf);
 
-//void option_rename_2(opt_spec_t * option1, opt_spec_t * option2);
+/**
+ * \brief Rename the long form of an opt_spec_t instance
+ * \param A pointer to an opt_spec_t instance
+ * \param String containing the new long form
+ * \return true iif successful
+ */
+
+bool option_rename_lf(opt_spec_t * option, char * lf);
 
 /**
  * \brief Dump an options_t instance
@@ -75,7 +94,7 @@ void option_rename(opt_spec_t * option, char sf[], char lf[]);
 void options_dump(const options_t * options);
 
 /**
- * \brief parse command line options forcing the options before the argument
+ * \brief Parse command line options forcing the options before the argument
  * \param options Pointer to options used
  * \param usage a string containig the message to put when no argument passed
  * \param args vector containing the arguments passed

@@ -15,13 +15,13 @@ packet_t * packet_create(void) {
 ERR_BUFFER:
     free(packet);
 ERR_CALLOC:
-    return NULL; 
+    return NULL;
 }
 
 packet_t * packet_wrap_bytes(uint8_t * bytes, size_t num_bytes) {
     packet_t * packet;
 
-    if ((packet = packet_create())) { 
+    if ((packet = packet_create())) {
         packet->buffer->data = bytes;
         packet->buffer->size = num_bytes;
     }
@@ -31,7 +31,7 @@ packet_t * packet_wrap_bytes(uint8_t * bytes, size_t num_bytes) {
 packet_t * packet_create_from_bytes(uint8_t * bytes, size_t num_bytes) {
     packet_t * packet;
 
-    if ((packet = packet_create())) { 
+    if ((packet = packet_create())) {
         buffer_write_bytes(packet->buffer, bytes, num_bytes);
     }
     return packet;

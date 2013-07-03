@@ -16,6 +16,7 @@
 #define HELP_q "Set the number of probes per hop (default: 3)."
 #define HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)."
 
+// Get the different values of traceroute options
 uint8_t options_traceroute_get_min_ttl();
 uint8_t options_traceroute_get_max_ttl();
 uint8_t options_traceroute_get_num_queries();
