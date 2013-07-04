@@ -38,6 +38,15 @@ typedef enum {
 } fieldtype_t;
 
 /**
+ * \brief Convert a field type in the corresponding human
+ *    readable string. 
+ * \param type A field type.
+ * \return The corresponding string.
+ */
+
+const char * field_type_to_string(fieldtype_t type);
+
+/**
  * \union value_t
  * \brief Store a value carried by a field.
  */
@@ -317,8 +326,6 @@ bool field_match(const field_t * field1, const field_t * field2);
 const char * field_get_key(field_t * field);
 
 bool field_set_value(field_t * field, void * value);
-
-
 
 /**
  * \brief Print the content of a field

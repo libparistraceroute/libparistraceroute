@@ -11,33 +11,33 @@
 #include "../protocol.h"
 #include "ipv6_pseudo_header.h"
 
-#define ICMP6_FIELD_TYPE        "type"
-#define ICMP6_FIELD_CODE        "code"
-#define ICMP6_FIELD_CHECKSUM    "checksum"
-#define ICMP6_FIELD_BODY        "body"
+#define ICMPV6_FIELD_TYPE        "type"
+#define ICMPV6_FIELD_CODE        "code"
+#define ICMPV6_FIELD_CHECKSUM    "checksum"
+#define ICMPV6_FIELD_BODY        "body"
 
-#define ICMP6_DEFAULT_TYPE      0
-#define ICMP6_DEFAULT_CODE      0
-#define ICMP6_DEFAULT_CHECKSUM  0
-#define ICMP6_DEFAULT_BODY      0
+#define ICMPV6_DEFAULT_TYPE      0
+#define ICMPV6_DEFAULT_CODE      0
+#define ICMPV6_DEFAULT_CHECKSUM  0
+#define ICMPV6_DEFAULT_BODY      0
 
 // ICMP fields
-static protocol_field_t icmp6_fields[] = {
+static protocol_field_t icmpv6_fields[] = {
     {   
-        .key = ICMP6_FIELD_TYPE,
-        .type = TYPE_UINT8,
+        .key    = ICMPV6_FIELD_TYPE,
+        .type   = TYPE_UINT8,
         .offset = offsetof(struct icmp6_hdr, icmp6_type),
     }, {
-        .key = ICMP6_FIELD_CODE,
-        .type = TYPE_UINT8,
+        .key    = ICMPV6_FIELD_CODE,
+        .type   = TYPE_UINT8,
         .offset = offsetof(struct icmp6_hdr, icmp6_code),
     }, {
-        .key = ICMP6_FIELD_CHECKSUM,
-        .type = TYPE_UINT16,
+        .key    = ICMPV6_FIELD_CHECKSUM,
+        .type   = TYPE_UINT16,
         .offset = offsetof(struct icmp6_hdr, icmp6_cksum),
     }, {
-        .key = ICMP6_FIELD_BODY,
-        .type = TYPE_UINT32,
+        .key    = ICMPV6_FIELD_BODY,
+        .type   = TYPE_UINT32,
         .offset = offsetof(struct icmp6_hdr, icmp6_dataun), // XXX union type
     },
     // TODO Multiple possibilities for the last field ! 
@@ -46,11 +46,11 @@ static protocol_field_t icmp6_fields[] = {
 };
 
 /* Default ICMP values */
-static struct icmp6_hdr icmp6_default = {
-    .icmp6_code   = ICMP6_DEFAULT_TYPE,
-    .icmp6_type   = ICMP6_DEFAULT_CODE,
-    .icmp6_cksum  = ICMP6_DEFAULT_CHECKSUM,
-    .icmp6_dataun = ICMP6_DEFAULT_BODY // XXX union type
+static struct icmp6_hdr icmpv6_default = {
+    .icmp6_type   = ICMPV6_DEFAULT_TYPE,
+    .icmp6_code   = ICMPV6_DEFAULT_CODE,
+    .icmp6_cksum  = ICMPV6_DEFAULT_CHECKSUM,
+    .icmp6_dataun = ICMPV6_DEFAULT_BODY // XXX union type
 };
 
 /**
@@ -59,7 +59,7 @@ static struct icmp6_hdr icmp6_default = {
  * \return The size of an ICMP6 header
  */
 
-size_t icmp6_get_header_size(const uint8_t * icmpv6_header) {
+size_t icmpv6_get_header_size(const uint8_t * icmpv6_header) {
     return sizeof(struct icmp6_hdr);
 }
 
@@ -70,9 +70,9 @@ size_t icmp6_get_header_size(const uint8_t * icmpv6_header) {
  * \return The size of the default header.
  */
 
-size_t icmp6_write_default_header(uint8_t * icmpv6_header) {
+size_t icmpv6_write_default_header(uint8_t * icmpv6_header) {
     size_t size = sizeof(struct icmp6_hdr);
-    if (icmpv6_header) memcpy(icmpv6_header, &icmp6_default, size);
+    if (icmpv6_header) memcpy(icmpv6_header, &icmpv6_default, size);
     return size; 
 }
 
@@ -87,13 +87,13 @@ size_t icmp6_write_default_header(uint8_t * icmpv6_header) {
 
 // XXX http://en.wikipedia.org/wiki/ICMPv6#Message_checksum
 
-bool icmp6_write_checksum(uint8_t * icmp_header, buffer_t * ip_psh)
+bool icmpv6_write_checksum(uint8_t * icmp_header, buffer_t * ip_psh)
 {
     // TODO reimplement this function like udp_write_checksum
 
     uint8_t * tmp;
     size_t    len;
-    struct icmp6_hdr * icmp6_hed = (struct icmp6_hdr *) icmp_header;
+    struct    icmp6_hdr * icmpv6_hed = (struct icmp6_hdr *) icmp_header;
 
     if (!ip_psh) { // pseudo header required
         errno = EINVAL;
@@ -107,21 +107,21 @@ bool icmp6_write_checksum(uint8_t * icmp_header, buffer_t * ip_psh)
     }
 
     memcpy(tmp, buffer_get_data(ip_psh), buffer_get_size(ip_psh));
-    memcpy(tmp + buffer_get_size(ip_psh), icmp6_hed, sizeof(struct icmp6_hdr));
-    icmp6_hed->icmp6_cksum = csum(*(uint16_t **) &tmp, (len >> 1));
+    memcpy(tmp + buffer_get_size(ip_psh), icmpv6_hed, sizeof(struct icmp6_hdr));
+    icmpv6_hed->icmp6_cksum = csum(*(uint16_t **) &tmp, (len >> 1));
 
     free(tmp);
     return true;
 }
 
-static protocol_t icmp6 = {
-    .name                 = "icmp6",
+static protocol_t icmpv6 = {
+    .name                 = "icmpv6",
     .protocol             = IPPROTO_ICMPV6,
-    .write_checksum       = icmp6_write_checksum,
+    .write_checksum       = icmpv6_write_checksum,
     .create_pseudo_header = ipv6_pseudo_header_create,
-    .fields               = icmp6_fields,
-    .write_default_header = icmp6_write_default_header, // TODO generic memcpy + header size
-    .get_header_size      = icmp6_get_header_size,
+    .fields               = icmpv6_fields,
+    .write_default_header = icmpv6_write_default_header, // TODO generic memcpy + header size
+    .get_header_size      = icmpv6_get_header_size,
 };
 
-PROTOCOL_REGISTER(icmp6);
+PROTOCOL_REGISTER(icmpv6);

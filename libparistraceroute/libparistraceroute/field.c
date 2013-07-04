@@ -188,6 +188,23 @@ bool field_match(const field_t * field1, const field_t * field2) {
     return field1 && field2 && field1->type == field2->type && strcmp(field1->key, field2->key) == 0;
 }
 
+const char * field_type_to_string(fieldtype_t type) {
+    switch (type) {
+        case TYPE_UINT4:     return "uint4";
+        case TYPE_UINT8:     return "uint8";
+        case TYPE_UINT16:    return "uint16";
+        case TYPE_UINT32:    return "uint32";
+        case TYPE_UINT64:    return "uint64";
+        case TYPE_UINT128:   return "uint128";
+        case TYPE_UINTMAX:   return "uintmax";
+        case TYPE_DOUBLE:    return "double";
+        case TYPE_STRING:    return "string";
+        case TYPE_GENERATOR: return "generator";
+        default:             break;
+    }
+    return "???";
+}
+
 void field_dump(const field_t * field)
 {
     if (field) {

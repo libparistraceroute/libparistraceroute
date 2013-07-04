@@ -88,6 +88,7 @@ bool layer_set_field(layer_t * layer, const field_t * field)
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
     }
+
     if (!field) {
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
@@ -101,6 +102,18 @@ bool layer_set_field(layer_t * layer, const field_t * field)
         goto ERR_FIELD_NOT_FOUND;
     }
 
+    /*
+    // TODO Uncomment this once ipv4 and ipv6 will use field of type TYPE_ADDRESS
+    if (protocol_field->type != field->type) {
+        fprintf(stderr, "'%s' field has not the right type (%s instead of %s)\n",
+            field->key,
+            field_type_to_string(field->type),
+            field_type_to_string(protocol_field->type)
+        );
+        goto ERR_INVALID_FIELD_TYPE;
+    }
+    */
+
     // Check whether the probe buffer can store this field
     // NOTE: the allocation of the buffer might be tricky for headers with
     // variable len (such as IPv4 with options, etc.).
@@ -111,24 +124,21 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     }
 
     // Copy the field value into the buffer
-    // If we have a setter function, we use it, otherwise write the value directly
-    if (protocol_field->set) {
-        if (!(protocol_field->set(layer->segment, field))) {
-            fprintf(stderr, "layer_set_field: can't set field '%s' (layer %s)\n", field->key, layer->protocol->name);
-            goto ERR_PROTOCOL_FIELD_SET;
-        }
-    } else {
-        protocol_field_set(protocol_field, layer->segment, field);
+    // If we have a setter function, use it ; otherwise write it by using the generic function
+    if ((protocol_field->set && !protocol_field->set(layer->segment, field)) 
+    || (!protocol_field->set && !protocol_field_set(protocol_field, layer->segment, field))
+    ){
+        fprintf(stderr, "layer_set_field: can't set field '%s' (layer %s)\n", field->key, layer->protocol->name);
+        goto ERR_PROTOCOL_FIELD_SET;
     }
 
     // TODO update segment of mask here
-    // TODO use protocol_field_get_offset
-    // TODO use protocol_field_get_size
 
     return true;
 
 ERR_PROTOCOL_FIELD_SET:
 ERR_BUFFER_TOO_SMALL:
+//ERR_INVALID_FIELD_TYPE:
 ERR_FIELD_NOT_FOUND:
 ERR_IN_PAYLOAD:
 ERR_INVALID_FIELD:

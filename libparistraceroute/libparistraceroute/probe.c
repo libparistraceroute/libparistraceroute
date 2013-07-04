@@ -157,7 +157,7 @@ static bool probe_update_protocol(probe_t * probe)
         layer = probe_get_layer(probe, i);
         if (layer->protocol && prev_layer) {
             // Update 'protocol' field (if any)
-            layer_set_field_and_free(layer, I16("protocol", prev_layer->protocol->protocol));
+            layer_set_field_and_free(layer, I8("protocol", prev_layer->protocol->protocol));
         }
     }
     return true;
@@ -322,7 +322,9 @@ static bool probe_packet_resize(probe_t * probe, size_t size)
         if (layer->protocol) {
             // We're in a layer related to a protocol. Update "length" field (if any).
             if (!layer_set_field_and_free(layer, I16("length", size - offset))) {
-                fprintf(stderr, "Cannot update 'length' field in '%s' layer\n", layer->protocol->name);
+                if (strncmp("icmp", layer->protocol->name, 4) != 0) {
+                    fprintf(stderr, "Cannot update 'length' field in '%s' layer\n", layer->protocol->name);
+                }
             }
             offset += layer->protocol->get_header_size(segment);
         } else {
@@ -440,7 +442,6 @@ void probe_debug(const probe_t * probe) {
 
         // Dump fields
         printf("** PROBE **\n\n");
-        printf("probe delay : %f\n\n", probe_get_delay(probe));
         for (i = 0; i < num_layers; i++) {
             layer1 = probe_get_layer(probe, i);
             layer2 = probe_get_layer(probe_should_be, i);
@@ -647,7 +648,8 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
     va_list            args, args2;
     size_t             packet_size, offset;
     const char       * name;
-    layer_t          * layer, *prev_layer;
+    layer_t          * layer = NULL,
+                     * prev_layer;
     const protocol_t * protocol;
 
     // Remove the former layer structure
@@ -681,13 +683,18 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
 
         // Update 'length' field
         if (!layer_set_field_and_free(layer, I16("length", packet_size - offset))) {
-            fprintf(stderr, "Can't set length in %s header\n", layer->protocol->name);
-            goto ERR_SET_LENGTH;
+            if (strncmp(layer->protocol->name, "icmp", 4) != 0) {
+                fprintf(stderr, "Can't set 'length' in %s header\n", layer->protocol->name);
+                goto ERR_SET_LENGTH;
+            }
         }
 
         // Update 'protocol' field of the previous inserted layer (if any)
         if (prev_layer) {
-            layer_set_field_and_free(prev_layer, I16("protocol", layer->protocol->protocol));
+            if (!layer_set_field_and_free(prev_layer, I8("protocol", layer->protocol->protocol))) {
+                fprintf(stderr, "Can't set 'protocol' in %s header\n", layer->protocol->name);
+                goto ERR_SET_PROTOCOL;
+            }
         }
 
         offset += layer_get_header_size(layer);
@@ -698,6 +705,7 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
         prev_layer = layer;
     }
     va_end(args);
+    layer = NULL;
 
     // Payload : initially empty
     if (!probe_push_payload(probe, 0)) {
@@ -709,10 +717,11 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
 
 ERR_PUSH_PAYLOAD:
 ERR_PUSH_LAYER:
+ERR_SET_PROTOCOL:
 ERR_SET_LENGTH:
-ERR_PROTOCOL_SEARCH2:
-    layer_free(layer);
+    if (layer) layer_free(layer);
 ERR_LAYER_CREATE:
+ERR_PROTOCOL_SEARCH2:
     probe_layers_clear(probe);
 ERR_PACKET_RESIZE:
 ERR_PROTOCOL_SEARCH:
@@ -848,7 +857,7 @@ bool probe_set_metafield(probe_t * probe, field_t * field) {
 }
 
 // Internal use
-field_t * probe_create_metafield_ext(const probe_t * probe, const char * name, size_t depth)
+static field_t * probe_create_metafield_ext(const probe_t * probe, const char * name, size_t depth)
 {
     uint16_t src_port;
 
@@ -856,7 +865,7 @@ field_t * probe_create_metafield_ext(const probe_t * probe, const char * name, s
     if (strcmp(name, "flow_id") != 0) return NULL;
 
     // TODO We've hardcoded the flow-id in the src_port and we only support the "flow_id" metafield
-    // TODO to adapt for IPv6 support
+    // In IPv6, flow_id should be set thanks to probe_set_field 
     return probe_extract(probe, "src_port", &src_port) ?
         IMAX("flow_id", src_port - 24000) :
         NULL;
@@ -1108,17 +1117,21 @@ packet_t * probe_create_packet(probe_t * probe)
         goto ERR_EXTRACT_DST_IP;
     }
 
+    // In ICMP we do not have dst_port
+    /*
     // The destination port is a mandatory field
     if (!(probe_extract(probe, "dst_port", &probe->packet->dst_port))) {
-        fprintf(stderr, "This probe has no 'dst_port' field set\n");
-        goto ERR_EXTRACT_DST_PORT;
+        fprintf(stderr, "This probe has no 'dst_port' field set, I will use port = %d\n", probe->packet->dst_port);
     }
+    */
 
     return probe->packet;
 
+    /*
 ERR_EXTRACT_DST_PORT:
     free(probe->packet->dst_ip);
     probe->packet->dst_ip = NULL;
+    */
 ERR_EXTRACT_DST_IP:
     return NULL;
 }

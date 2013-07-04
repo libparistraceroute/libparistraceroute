@@ -132,7 +132,7 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
 
 int main(int argc, char ** argv)
 {
-    buffer_t             * payload;
+    buffer_t             * payload = NULL;
     algorithm_instance_t * instance;
     traceroute_options_t   options = traceroute_get_default_options();
     probe_t              * probe;
@@ -140,63 +140,71 @@ int main(int argc, char ** argv)
     int                    family;
     int                    ret = EXIT_FAILURE;
     const char           * ip_protocol_name;
-    //    const char           * message = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ \\]^_";
+    const char           * protocol_name;
 
     // Harcoded command line parsing here
     //char dst_ip[] = "173.194.78.104";
-   // char dst_ip[] = "8.8.8.8";
-    char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "8.8.8.8";
+    //char dst_ip[] = "1.1.1.2";
     //char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
 
     if (!address_guess_family(dst_ip, &family)) {
-        fprintf(stderr, "E: Cannot guess family of destination address (%s)", dst_ip);
+        fprintf(stderr, "Cannot guess family of destination address (%s)", dst_ip);
         goto ERR_ADDRESS_GUESS_FAMILY;
     }
 
-    switch (family) {
-        case AF_INET:
-            ip_protocol_name = "ipv4";
-            break;
-        case AF_INET6:
-            ip_protocol_name = "ipv6";
-            break;
-        default:
-            fprintf(stderr, "Internet family not supported (%d)\n", family);
-            goto ERR_FAMILY;
-    }
-
-    if (!(payload = buffer_create())) {
-        fprintf(stderr, "E: Cannot allocate payload buffer");
-        goto ERR_BUFFER_CREATE;
-    }
-
-//    buffer_set_data(payload, message, strlen(message) - 1);
-    buffer_write_bytes(payload, "\0\0", 2);
-
     // Prepare options related to the 'traceroute' algorithm
     options.dst_ip = dst_ip;
-    options.num_probes = 3;
-    //options.max_ttl = 1;
+    options.num_probes = 1;
+    //options.max_ttl = 3;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
     if (!(loop = pt_loop_create(algorithm_handler, NULL))) {
-        fprintf(stderr, "E: Cannot create libparistraceroute loop");
+        fprintf(stderr, "Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
 
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe = probe_create())) {
-        fprintf(stderr, "E: Cannot create probe skeleton");
+        fprintf(stderr, "Cannot create probe skeleton");
         goto ERR_PROBE_CREATE;
     }
 
-    probe_set_protocols(probe, ip_protocol_name, "udp", NULL);
-    probe_write_payload(probe, payload);
+    switch (family) {
+        case AF_INET:
+            ip_protocol_name = "ipv4";
+            protocol_name    = "icmpv4";
+            break;
+        case AF_INET6:
+            ip_protocol_name = "ipv6";
+            protocol_name    = "icmpv6";
+            break;
+        default:
+            fprintf(stderr, "Internet family not supported (%d)\n", family);
+            goto ERR_FAMILY;
+    }
+//    protocol_name = "udp";
+
+    if (!probe_set_protocols(probe, ip_protocol_name, protocol_name, NULL)) {
+        fprintf(stderr, "Can't set protocols %s/%s\n", ip_protocol_name, protocol_name);
+        goto ERR_PROBE_SET_PROTOCOLS;
+    }
+
+    if (strncmp("icmp", protocol_name, 4) != 0) {
+        if (!(payload = buffer_create())) {
+            fprintf(stderr, "Cannot allocate payload buffer");
+            goto ERR_BUFFER_CREATE;
+        }
+
+        buffer_write_bytes(payload, "\0\0", 2);
+        probe_write_payload(probe, payload);
+    }
+
     probe_set_fields(probe,
-        STR("dst_ip",   dst_ip),
-        I16("dst_port", 30000),
+        STR("dst_ip", dst_ip),
+        //I16("dst_port", 30000),
         NULL
     );
 
@@ -204,13 +212,13 @@ int main(int argc, char ** argv)
 
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {
-        fprintf(stderr, "E: Cannot add 'traceroute' algorithm");
+        fprintf(stderr, "Cannot add 'traceroute' algorithm");
         goto ERR_INSTANCE;
     }
 
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop, 0) < 0) {
-        fprintf(stderr, "E: Main loop interrupted");
+        fprintf(stderr, "Main loop interrupted");
         goto ERR_IN_PT_LOOP;
     }
     ret = EXIT_SUCCESS;
@@ -219,13 +227,14 @@ int main(int argc, char ** argv)
 ERR_IN_PT_LOOP:
     // instance is freed by pt_loop_free
 ERR_INSTANCE:
+    if (payload) buffer_free(payload);
+ERR_BUFFER_CREATE:
+ERR_PROBE_SET_PROTOCOLS:
+ERR_FAMILY:
     probe_free(probe);
 ERR_PROBE_CREATE:
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
-    buffer_free(payload);
-ERR_BUFFER_CREATE:
-ERR_FAMILY:
 ERR_ADDRESS_GUESS_FAMILY:
     exit(ret);
 }

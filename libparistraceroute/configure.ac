@@ -102,28 +102,28 @@ AC_PROG_LIBTOOL
 #	AC_MSG_ERROR("Pthreads not found in -lpthread"))
 
 # Check for libpcap...
-PCAPCC=""
-PCAPLD=""
-#if test "x$use_pcap" = "xyes"; then
-        if test -n "$libpcap_prefix"; then
-                test -f "$pcap_prefix/pcap.h" && PCAPCC="$PCAPCC -I$pcap_prefix"
-                test -d "$pcap_prefix/bpf" && PCAPCC="$PCAPCC -I$pcap_prefix/bpf"
-                test -f "$pcap_prefix/include/pcap.h" && PCAPCC="$PCAPCC -I$pcap_prefix/include"
-                test -f "$pcap_prefix/pcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix"
-                test -f "$pcap_prefix/libpcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix"
-                test -f "$pcap_prefix/lib/pcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix/lib"
-                test -f "$pcap_prefix/lib/libpcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix/lib"
-
-                if test -z "$PCAPCC" -o -z "$PCAPLD"; then
-                        AC_MSG_NOTICE(No valid pcap lib found at $pcap_prefix)
-                else
-                        CFLAGS="$PCAPCC $CFLAGS"
-                        LDFLAGS="$PCAPLD $LDFLAGS"
-                        AC_MSG_NOTICE([found lipcap at $pcap_prefix])
-                fi
-        fi
-        AC_CHECK_LIB([pcap], [pcap_open_live], [usable_pcap=yes])
-#fi
+#PCAPCC=""
+#PCAPLD=""
+##if test "x$use_pcap" = "xyes"; then
+#        if test -n "$libpcap_prefix"; then
+#                test -f "$pcap_prefix/pcap.h" && PCAPCC="$PCAPCC -I$pcap_prefix"
+#                test -d "$pcap_prefix/bpf" && PCAPCC="$PCAPCC -I$pcap_prefix/bpf"
+#                test -f "$pcap_prefix/include/pcap.h" && PCAPCC="$PCAPCC -I$pcap_prefix/include"
+#                test -f "$pcap_prefix/pcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix"
+#                test -f "$pcap_prefix/libpcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix"
+#                test -f "$pcap_prefix/lib/pcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix/lib"
+#                test -f "$pcap_prefix/lib/libpcap.a" && PCAPLD="$PCAPLD -L$pcap_prefix/lib"
+#
+#                if test -z "$PCAPCC" -o -z "$PCAPLD"; then
+#                        AC_MSG_NOTICE(No valid pcap lib found at $pcap_prefix)
+#                else
+#                        CFLAGS="$PCAPCC $CFLAGS"
+#                        LDFLAGS="$PCAPLD $LDFLAGS"
+#                        AC_MSG_NOTICE([found lipcap at $pcap_prefix])
+#                fi
+#        fi
+#        AC_CHECK_LIB([pcap], [pcap_open_live], [usable_pcap=yes])
+##fi
 
 #################################################################################
 #

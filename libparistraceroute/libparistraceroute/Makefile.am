@@ -102,8 +102,8 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						probe.c \
                         probe_group.c \
 						protocol.c \
-						protocols/icmp.c \
-						protocols/icmp6.c \
+						protocols/icmpv4.c \
+						protocols/icmpv6.c \
 						protocols/udp.c \
 						protocols/ipv4.c \
 						protocols/ipv4_pseudo_header.c \

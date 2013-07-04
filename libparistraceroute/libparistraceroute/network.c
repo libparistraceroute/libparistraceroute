@@ -393,28 +393,42 @@ bool network_tag_probe(network_t * network, probe_t * probe)
      * free one... Also, we need to share tags between several instances ?
      * randomized tags ? Also, we need to determine how much size we have to
      * encode information. */
+    ///////////////
+    layer_t * last_layer;
+    bool tag_in_body = false;
+    last_layer = probe_get_layer(probe, probe_get_num_layers(probe) - 2); // TODO control num layers and last_layer != NULL
+    if (last_layer->protocol && protocol_get_field(last_layer->protocol, "body")) {
+        tag_in_body = true;
+    }
+    ///////////////
 
-    if (payload_size < tag_size) {
-        fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
-        goto ERR_INVALID_PAYLOAD;
+    if (!tag_in_body) {
+        if (payload_size < tag_size) {
+            fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
+            goto ERR_INVALID_PAYLOAD;
+        }
     }
 
     tag = network_get_available_tag(network);
-    if (!(payload = buffer_create())) {
-        fprintf(stderr, "Can't create buffer\n");
-        goto ERR_BUFFER_CREATE;
-    }
-
-    // Write the probe ID in the buffer
-    if (!(buffer_write_bytes(payload, &tag, tag_size))) {
-        fprintf(stderr, "Can't set data\n");
-        goto ERR_BUFFER_WRITE_BYTES;
-    }
-
     // Write the tag at offset zero of the payload
-    if (!(probe_write_payload(probe, payload))) {
-        fprintf(stderr, "Can't write payload\n");
-        goto ERR_PROBE_WRITE_PAYLOAD;
+    if (tag_in_body) {
+        probe_set_field(probe, I32("body", htons(tag)));
+    } else {
+        if (!(payload = buffer_create())) {
+            fprintf(stderr, "Can't create buffer\n");
+            goto ERR_BUFFER_CREATE;
+        }
+
+        // Write the probe ID in the buffer
+        if (!(buffer_write_bytes(payload, &tag, tag_size))) {
+            fprintf(stderr, "Can't set data\n");
+            goto ERR_BUFFER_WRITE_BYTES;
+        }
+
+        if (!(probe_write_payload(probe, payload))) {
+            fprintf(stderr, "Can't write payload\n");
+            goto ERR_PROBE_WRITE_PAYLOAD;
+        }
     }
 
     // Fix checksum to get a well-formed packet
@@ -436,18 +450,26 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_PROBE_SET_TAG;
     }
 
-    // Update checksum (network-side endianness)
-    checksum = htons(checksum);
+    if (tag_in_body) {
+        if (!(probe_set_field(probe, I32("body", checksum)))) {
+            fprintf(stderr, "Can't set body\n");
+        } 
+    } else {
+        // Update checksum (network-side endianness)
+        checksum = htons(checksum);
 
-    // Write the old checksum in the payload
-    if (!buffer_write_bytes(payload, &checksum, tag_size)) {
-        fprintf(stderr, "Can't write buffer (2)\n");
-        goto ERR_PROBE_WRITE_PAYLOAD2;
-    }
+        // Write the old checksum in the payload
+        if (!buffer_write_bytes(payload, &checksum, tag_size)) {
+            fprintf(stderr, "Can't write buffer (2)\n");
+            goto ERR_PROBE_WRITE_PAYLOAD2;
+        }
 
-    if (!(probe_write_payload(probe, payload))) {
-        fprintf(stderr, "Can't write payload (2)\n");
-        goto ERR_BUFFER_WRITE_BYTES2;
+        if (!probe_write_payload(probe, payload)) {
+            fprintf(stderr, "Can't write payload (2)\n");
+            goto ERR_BUFFER_WRITE_BYTES2;
+        }
+
+        buffer_free(payload);
     }
 
     return true;
@@ -459,7 +481,7 @@ ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:
 ERR_PROBE_WRITE_PAYLOAD:
 ERR_BUFFER_WRITE_BYTES:
-    buffer_free(payload);
+    if (payload) buffer_free(payload);
 ERR_BUFFER_CREATE:
 ERR_INVALID_PAYLOAD:
     return false;
@@ -512,8 +534,8 @@ bool network_process_sendq(network_t * network)
     }
 
     // Update the sending time
-     //printf(" (%-5.2lfms)\n ", 1000 *(get_timestamp() -  probe_get_sending_time(probe)));
-     probe_set_sending_time(probe, get_timestamp());
+    //printf(" (%-5.2lfms)\n ", 1000 *(get_timestamp() -  probe_get_sending_time(probe)));
+    probe_set_sending_time(probe, get_timestamp());
 
     // Register this probe in the list of flying probes
     if (!(dynarray_push_element(network->probes, probe))) {

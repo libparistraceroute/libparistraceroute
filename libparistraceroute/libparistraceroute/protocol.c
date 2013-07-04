@@ -102,8 +102,8 @@ static inline void callback_protocol_field_dump(const protocol_field_t * protoco
 }
 
 void protocol_dump(const protocol_t * protocol) {
-    printf("*** %3d %s\n", protocol->protocol, protocol->name);
-    protocol_iter_fields(protocol, NULL, callback_protocol_field_dump);
+    printf("%3d %s\n", protocol->protocol, protocol->name);
+//    protocol_iter_fields(protocol, NULL, callback_protocol_field_dump);
 } 
 
 static void callback_protocols_dump(const void * node, VISIT visit, int level) {

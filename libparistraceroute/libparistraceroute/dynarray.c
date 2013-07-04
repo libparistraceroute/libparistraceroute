@@ -1,22 +1,33 @@
+#include "dynarray.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-
-#include "dynarray.h"
 
 #define DYNARRAY_SIZE_INIT  5
 #define DYNARRAY_SIZE_INC   5
 
 dynarray_t * dynarray_create()
 {
-    dynarray_t * dynarray = malloc(sizeof(dynarray_t));
-    if (dynarray) {
-        dynarray->elements = calloc(DYNARRAY_SIZE_INIT, sizeof(void *));
-        memset(dynarray->elements, 0, DYNARRAY_SIZE_INIT * sizeof(void *));
-        dynarray->size = 0;
-        dynarray->max_size = DYNARRAY_SIZE_INIT;
+    dynarray_t * dynarray;
+
+    if (!(dynarray = malloc(sizeof(dynarray_t)))) {
+        goto ERR_MALLOC;
     }
+
+    if (!(dynarray->elements = calloc(DYNARRAY_SIZE_INIT, sizeof(void *)))) {
+        goto ERR_CALLOC;
+    }
+
+    dynarray->size = 0;
+    dynarray->max_size = DYNARRAY_SIZE_INIT;
+
     return dynarray;
+
+ERR_CALLOC:
+    free(dynarray);
+ERR_MALLOC:
+    return NULL;
 }
 
 dynarray_t * dynarray_dup(const dynarray_t * dynarray, void * (*element_dup)(void *))
