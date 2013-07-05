@@ -1,16 +1,20 @@
-#Build
+# Build
 
 *.o
 *.lo
 .DS_Store
-*~
-*.swp
-*.so
 *.a
 *.la
 *.Po
 
-#Makefile
+# Editors
+
+*~
+*.swp
+*.so
+.exrc
+
+# Makefile
 
 Makefile
 Makefile.in
@@ -34,7 +38,7 @@ missing
 paris-traceroute/.deps/
 traceroute/.deps/
 
-#Binary
+# Binary
 
 libparistraceroute/test
 paris-traceroute/paris-traceroute
@@ -43,6 +47,6 @@ traceroute/traceroute
 .libs
 *.pc
 
-#Packages
+# Packages
 
 packages/
