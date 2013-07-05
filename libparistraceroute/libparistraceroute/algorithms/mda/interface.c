@@ -191,7 +191,7 @@ void mda_link_dump(const mda_interface_t * link[2], bool do_resolv)
 
 void mda_lattice_elt_dump(const lattice_elt_t * lattice_elt) //, bool do_resolv)
 {
-    size_t                  i, num_nexthops;
+    size_t                  num_nexthops;
     const mda_interface_t * curr_hop;
     const dynarray_t      * next_hops;
     char                  * hostname = NULL;

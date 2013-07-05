@@ -151,9 +151,7 @@ static double network_get_probe_timeout(const network_t * network, const probe_t
  */
 
 static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
-    time_t delay_sec;
-
-    delay_sec = (time_t) delay;
+    time_t delay_sec = (time_t) delay;
 
     timer->it_value.tv_sec     = delay_sec;
     timer->it_value.tv_nsec    = 1000000 * (delay - delay_sec);
@@ -369,15 +367,16 @@ probe_group_t * network_get_scheduled_probes(network_t * network) {
     return network->scheduled_probes;
 }
 
-
-/* TODO we need a function to return the set of fd used by the network */
-
 bool network_tag_probe(network_t * network, probe_t * probe)
 {
     uint16_t   tag, checksum;
-    buffer_t * payload;
     size_t     payload_size = probe_get_payload_size(probe);
-    size_t     tag_size = sizeof(uint16_t);
+    size_t     tag_size     = sizeof(uint16_t);
+    size_t     num_layers   = probe_get_num_layers(probe);
+
+    // For probes having a payload of size 0 and a "body" field (like icmp) 
+    layer_t  * last_layer;
+    bool       tag_in_body = false;
 
     /* The probe gets assigned a unique tag. Currently we encode it in the UDP
      * checksum, but I guess the tag will be protocol dependent. Also, since the
@@ -393,47 +392,38 @@ bool network_tag_probe(network_t * network, probe_t * probe)
      * free one... Also, we need to share tags between several instances ?
      * randomized tags ? Also, we need to determine how much size we have to
      * encode information. */
-    ///////////////
-    layer_t * last_layer;
-    bool tag_in_body = false;
-    last_layer = probe_get_layer(probe, probe_get_num_layers(probe) - 2); // TODO control num layers and last_layer != NULL
+
+    if (num_layers < 2 || !(last_layer = probe_get_layer(probe, num_layers - 2))) {
+        fprintf(stderr, "network_tag_probe: not enough layer (num_layers = %d)\n", num_layers);
+        goto ERR_GET_LAYER;
+    }
+
+    // The last layer is the payload, the previous one is the last protocol layer.
+    // If this layer has a "body" field like icmp, we have no payload and
+    // we use the body field.
     if (last_layer->protocol && protocol_get_field(last_layer->protocol, "body")) {
         tag_in_body = true;
     }
-    ///////////////
-
-    if (!tag_in_body) {
-        if (payload_size < tag_size) {
-            fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
-            goto ERR_INVALID_PAYLOAD;
-        }
-    }
 
     tag = network_get_available_tag(network);
+
     // Write the tag at offset zero of the payload
     if (tag_in_body) {
         probe_set_field(probe, I32("body", htons(tag)));
     } else {
-        if (!(payload = buffer_create())) {
-            fprintf(stderr, "Can't create buffer\n");
-            goto ERR_BUFFER_CREATE;
+        if (payload_size < tag_size) {
+            fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
+            goto ERR_INVALID_PAYLOAD;
         }
 
-        // Write the probe ID in the buffer
-        if (!(buffer_write_bytes(payload, &tag, tag_size))) {
-            fprintf(stderr, "Can't set data\n");
-            goto ERR_BUFFER_WRITE_BYTES;
-        }
-
-        if (!(probe_write_payload(probe, payload))) {
+        if (!(probe_write_payload(probe, &tag, tag_size))) {
             fprintf(stderr, "Can't write payload\n");
             goto ERR_PROBE_WRITE_PAYLOAD;
         }
     }
 
     // Fix checksum to get a well-formed packet
-    // TODO call probe_update_checksum
-    if (!(probe_update_fields(probe))) {
+    if (!(probe_update_checksum(probe))) {
         fprintf(stderr, "Can't update fields\n");
         goto ERR_PROBE_UPDATE_FIELDS;
     }
@@ -451,39 +441,32 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     }
 
     if (tag_in_body) {
+        // The endianness is managed by probe_set_field
         if (!(probe_set_field(probe, I32("body", checksum)))) {
             fprintf(stderr, "Can't set body\n");
+            goto ERR_PROBE_SET_FIELD;
         } 
     } else {
         // Update checksum (network-side endianness)
         checksum = htons(checksum);
 
-        // Write the old checksum in the payload
-        if (!buffer_write_bytes(payload, &checksum, tag_size)) {
-            fprintf(stderr, "Can't write buffer (2)\n");
-            goto ERR_PROBE_WRITE_PAYLOAD2;
-        }
-
-        if (!probe_write_payload(probe, payload)) {
+        if (!probe_write_payload(probe, &checksum, tag_size)) {
             fprintf(stderr, "Can't write payload (2)\n");
             goto ERR_BUFFER_WRITE_BYTES2;
         }
-
-        buffer_free(payload);
     }
 
     return true;
 
+ERR_PROBE_SET_FIELD:
 ERR_BUFFER_WRITE_BYTES2:
 ERR_PROBE_WRITE_PAYLOAD2:
 ERR_PROBE_SET_TAG:
 ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:
 ERR_PROBE_WRITE_PAYLOAD:
-ERR_BUFFER_WRITE_BYTES:
-    if (payload) buffer_free(payload);
-ERR_BUFFER_CREATE:
 ERR_INVALID_PAYLOAD:
+ERR_GET_LAYER:
     return false;
 }
 

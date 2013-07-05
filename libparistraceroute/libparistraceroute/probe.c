@@ -31,7 +31,7 @@
 static bool probe_finalize(probe_t * probe);
 
 /**
- * \brief Update for each layer of a probe the 'protocol' field
+ * \brief Update for each layer of a probe its 'protocol' field
  *   (if any) in order to have a coherent sequence of layers.
  * \param probe The probe we're updating
  * \return true iif successfull
@@ -40,22 +40,13 @@ static bool probe_finalize(probe_t * probe);
 static bool probe_update_protocol(probe_t * probe);
 
 /**
- * \brief Update for each layer of a probe the 'length' field
+ * \brief Update for each layer of a probe its 'length' field
  *   (if any) in order to have a coherent sequence of layers.
  * \param probe The probe we're updating
  * \return true iif successfull
  */
 
 static bool probe_update_length(probe_t * probe);
-
-/**
- * \brief Update for each layer of a probe the 'checksum' field
- *   (if any) in order to have a coherent sequence of layers.
- * \param probe The probe we're updating
- * \return true iif successfull
- */
-
-static bool probe_update_checksum(probe_t * probe);
 
 //-----------------------------------------------------------
 // Layers management
@@ -185,7 +176,7 @@ static bool probe_update_length(probe_t * probe)
     return true;
 }
 
-static bool probe_update_checksum(probe_t * probe)
+bool probe_update_checksum(probe_t * probe)
 {
     size_t     i, j, num_layers = probe_get_num_layers(probe);
     layer_t  * layer,
@@ -762,7 +753,8 @@ ERR_NO_PAYLOAD:
     return false;
 }
 
-bool probe_write_payload(probe_t *probe, buffer_t * payload) {
+/*
+bool probe_write_payload(probe_t * probe, buffer_t * payload) {
     return probe_write_payload_ext(probe, payload, 0);
 }
 
@@ -792,7 +784,37 @@ ERR_PROBE_PAYLOAD_RESIZE:
 ERR_PROBE_GET_LAYER_PAYLOAD:
     return false;
 }
+*/
 
+bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes) {
+    return probe_write_payload_ext(probe, bytes, num_bytes, 0);
+}
+
+bool probe_write_payload_ext(probe_t * probe, const void * bytes, size_t num_bytes, size_t offset)
+{
+    layer_t * payload_layer;
+
+    if (!(payload_layer = probe_get_layer_payload(probe))) {
+        goto ERR_PROBE_GET_LAYER_PAYLOAD;
+    }
+
+    if (num_bytes > probe_get_payload_size(probe)) {
+        if(!probe_payload_resize(probe, num_bytes)) {
+            goto ERR_PROBE_PAYLOAD_RESIZE;
+        }
+    }
+
+    if (!layer_write_payload_ext(payload_layer, bytes, num_bytes, offset)) {
+        goto ERR_LAYER_WRITE_PAYLOAD_EXT;
+    }
+
+    return true;
+
+ERR_LAYER_WRITE_PAYLOAD_EXT:
+ERR_PROBE_PAYLOAD_RESIZE:
+ERR_PROBE_GET_LAYER_PAYLOAD:
+    return false;
+}
 //-----------------------------------------------------------
 // Fields management
 //-----------------------------------------------------------

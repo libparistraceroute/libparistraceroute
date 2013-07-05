@@ -502,10 +502,6 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     uint8_t            ttl;
     int                ret;
 
-    //printf("REPLY =====================================================\n");
-    //lattice_dump(data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump);
-    //printf("\n");
-
     probe = ((const probe_reply_t *) event->data)->probe;
     reply = ((const probe_reply_t *) event->data)->reply;
 

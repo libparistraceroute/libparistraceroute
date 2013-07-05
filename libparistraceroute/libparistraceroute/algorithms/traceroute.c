@@ -1,31 +1,32 @@
+#include "traceroute.h"
+
 #include <errno.h>       // errno, EINVAL
 #include <stdlib.h>      // malloc
 #include <stdio.h>       // fprintf
-#include <stdbool.h>     // bool
 #include <string.h>      // memset()
 
 #include "../probe.h"
 #include "../event.h"
-#include "../pt_loop.h"
 #include "../algorithm.h"
 #include "../options.h"
-#include "traceroute.h"
+#include "../address.h"  // address_resolv
 
 // Bounded integer parameters
 static unsigned min_ttl[3]          = OPTIONS_TRACEROUTE_MIN_TTL;
 static unsigned max_ttl[3]          = OPTIONS_TRACEROUTE_MAX_TTL;
 static unsigned max_undiscovered[3] = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED;
 static unsigned num_queries[3]      = OPTIONS_TRACEROUTE_NUM_QUERIES;
+static bool     do_resolv           = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT;
 
 static struct opt_spec traceroute_opt_specs[] = {
-    // action           short long                  metavar        help    data
-    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",   HELP_f, min_ttl},
-    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",     HELP_m, max_ttl},
-    {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES", HELP_q, num_queries},
-    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_TTL",     HELP_M, max_undiscovered},
+    // action           short long                  metavar             help    data
+    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",        HELP_f, min_ttl},
+    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",          HELP_m, max_ttl},
+    {opt_store_0,       "n",  OPT_NO_LF,            OPT_NO_METAVAR,     HELP_n, &do_resolv},
+    {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES",      HELP_q, num_queries},
+    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_UNDISCOVERED", HELP_M, max_undiscovered},
     END_OPT_SPECS
 };
-
 
 uint8_t options_traceroute_get_min_ttl() {
     return min_ttl[0];
@@ -43,6 +44,10 @@ uint8_t options_traceroute_get_num_queries() {
     return num_queries[0];
 }
 
+bool options_traceroute_get_do_resolv() {
+    return do_resolv;
+}
+
 struct opt_spec * traceroute_get_opt_specs() {
     return traceroute_opt_specs;
 }
@@ -53,7 +58,8 @@ inline traceroute_options_t traceroute_get_default_options() {
         .max_ttl          = OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,
         .num_probes       = OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,
         .max_undiscovered = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT,
-        .dst_ip           = NULL
+        .dst_ip           = NULL,
+        .do_resolv        = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT,
     };
     return traceroute_options;
 };
@@ -94,6 +100,91 @@ static void traceroute_data_free(traceroute_data_t * traceroute_data) {
         free(traceroute_data);
     }
 }
+
+//-----------------------------------------------------------------
+// Traceroute default handler
+//-----------------------------------------------------------------
+
+void traceroute_handler(
+    pt_loop_t                  * loop,
+    traceroute_event_t         * traceroute_event,
+    const traceroute_options_t * traceroute_options,
+    const traceroute_data_t    * traceroute_data
+) {
+    const probe_t * probe;
+    const probe_t * reply;
+    char          * discovered_hostname = NULL;
+    static size_t   num_probes_printed = 0;
+
+    switch (traceroute_event->type) {
+        case TRACEROUTE_PROBE_REPLY:
+
+            // Retrieve the probe and its corresponding reply
+            probe = ((const probe_reply_t *) traceroute_event->data)->probe;
+            reply = ((const probe_reply_t *) traceroute_event->data)->reply;
+
+            // Print TTL (if this is the first probe related to this TTL)
+            if (num_probes_printed % traceroute_options->num_probes == 0) {
+                uint8_t ttl;
+
+                if (probe_extract(probe, "ttl", &ttl)) {
+                    printf("%2d", ttl);
+                }
+
+                // Print discovered IP
+                {
+                    char * discovered_ip;
+                    if (probe_extract(reply, "src_ip", &discovered_ip)) {
+                        if (traceroute_options->do_resolv) {
+                            address_resolv(discovered_ip, &discovered_hostname);
+                            if (discovered_hostname) printf("  %s", discovered_hostname);
+                            printf(" (%s)", discovered_ip);
+                        } else  printf("  %s", discovered_ip);
+                        free(discovered_ip);
+                    }
+                }
+            }
+
+            // Print delay
+            {
+                double send_time = probe_get_sending_time(probe),
+                       recv_time = probe_get_recv_time(reply);
+                printf("  (%-5.3lf ms)", 1000 * (recv_time - send_time));
+            }
+            num_probes_printed++;
+            break;
+
+        case TRACEROUTE_STAR:
+
+            probe = (const probe_t *) traceroute_event->data;
+
+            if (num_probes_printed % traceroute_options->num_probes == 0) {
+                uint8_t ttl;
+                if (probe_extract(probe, "ttl", &ttl)) {
+                    printf("%-2d  ", ttl);
+                }
+            }
+            printf(" *");
+            num_probes_printed++;
+            break;
+
+        case TRACEROUTE_ICMP_ERROR:
+            printf(" !");
+            num_probes_printed++;
+            break;
+
+        case TRACEROUTE_DESTINATION_REACHED:
+        case TRACEROUTE_TOO_MANY_STARS:
+        case TRACEROUTE_MAX_TTL_REACHED:
+        default:
+            break;
+    }
+
+    if (num_probes_printed % traceroute_options->num_probes == 0) {
+        printf("\n");
+    }
+}
+
 
 //-----------------------------------------------------------------
 // Traceroute algorithm
@@ -184,7 +275,7 @@ bool send_traceroute_probes(
  */
 
 // TODO remove opts parameter and define pt_loop_get_cur_options()
-int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
+int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
 {
     traceroute_data_t    * data = NULL;     // Current state of the algorithm instance
     probe_t              * probe;           // Probe
@@ -194,11 +285,6 @@ int traceroute_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t
     bool                   discover_next_hop = false;
     bool                   has_terminated = false;
 
-    //printf("min_tt = %u, max_ttl = %u, num_probes = %u, max_undiscoverd = %u\n",
-      //      options->min_ttl,
-        //    options->max_ttl,
-          //  options->num_probes,
-            //options->max_undiscovered);
     switch (event->type) {
 
         case ALGORITHM_INIT:
@@ -317,7 +403,7 @@ FAILURE:
 
 static algorithm_t traceroute = {
     .name    = "traceroute",
-    .handler = traceroute_handler,
+    .handler = traceroute_loop_handler,
     .options = (const struct opt_spec *) &traceroute_opt_specs // TODO akram pass pointer to traceroute_get_opt_specs
 };
 

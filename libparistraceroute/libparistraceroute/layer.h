@@ -99,28 +99,30 @@ void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
 bool layer_set_field(layer_t * layer, const field_t * field);
 
 /**
- * \brief Update bytes managed  
+ * \brief Update bytes managed.
  * \param layer Pointer to a layer_t structure. This layer must
  *   have layer->protocol == NULL, otherwise this layer is related
  *   to a network protocol layer.
- * \param payload The payload to write in the data, or NULL.
- * \return true iif successful
+ * \param bytes Bytes copied in the payload.
+ * \param num_bytes Number of bytes copied from bytes in the payload.
+ * \return true iif successful.
  */
 
-bool layer_write_payload(layer_t * layer, buffer_t * payload);
+bool layer_write_payload(layer_t * layer, const void * bytes, size_t num_bytes);
 
 /**
  * \brief Write the data stored in a buffer in the layer's payload.
  *   This function can only be used if no layer is nested in the
  *   layer we're altering, otherwise, nothing happens.
  * \param layer A pointer to the layer that we're filling.
- * \param payload The data to duplicate into the layer's payload.
+ * \param bytes Bytes copied in the payload.
+ * \param num_bytes Number of bytes copied from bytes in the payload.
  * \param offset The offset (starting from the beginning of the payload)
- *    added to the payload address to write the data.
- * \return true iif successfull
+ *    in bytes added to the payload address to write the data.
+ * \return true iif successfull.
  */
 
-bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned int offset);
+bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_bytes, size_t offset);
 
 /**
  * \brief Retrieve the size of the buffer stored in the layer_t structure.

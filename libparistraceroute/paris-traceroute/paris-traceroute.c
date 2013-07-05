@@ -9,6 +9,7 @@
 #include <sys/socket.h>              // gai_strerror
 #include <netdb.h>                   // gai_strerror
 
+#include "common.h"                  // ELEMENT_DUMP
 #include "optparse.h"                // opt_*()
 #include "pt_loop.h"                 // pt_loop_t
 #include "probe.h"                   // probe_t
@@ -16,7 +17,7 @@
 #include "algorithm.h"               // algorithm_instance_t
 #include "algorithms/mda.h"          // mda_*_t
 #include "algorithms/traceroute.h"   // traceroute_options_t
-#include "address.h"                 // address_to_string, address_set_host
+#include "address.h"                 // address_to_string
 #include "options.h"
 
 //---------------------------------------------------------------------------
@@ -26,12 +27,11 @@
 #define HELP_4        "Use IPv4"
 #define HELP_6        "Use IPv6"
 #define HELP_a        "Traceroute algorithm: one of  'paris-traceroute' [default],'mda'"
-#define HELP_d        "set PORT as destination port (default: 33457)"
-#define HELP_n        "Do not resolve IP addresses to their domain names"
-#define HELP_s        "set PORT as source port (default: 33456)"
+#define HELP_d        "Set PORT as destination port (default: 33457)"
+#define HELP_s        "Set PORT as source port (default: 33456)"
 #define HELP_P        "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
 #define HELP_U        "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
-#define HELP_v "print debug information when seeking probe/reply"
+#define HELP_v        "Print debug information when seeking probe/reply"
 #define TEXT          "paris-traceroute - print the IP-level routes between two Internet hosts."
 #define TEXT_OPTIONS  "Options"
 
@@ -44,7 +44,6 @@ const char * algorithm_names[] = {
 static bool is_ipv4    = false;
 static bool is_ipv6    = false;
 static bool is_udp     = false;
-static bool do_resolv  = true;
 static bool is_verbose = false;
 
 const char * protocol_names[] = {
@@ -65,7 +64,6 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,          "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
     {opt_store_1,          "v",        "--verbose",         OPT_NO_METAVAR,     HELP_v,       &is_verbose},
     {opt_store_choice,     "a",        "--algo",            "ALGORITHM",        HELP_a,       algorithm_names},
-    {opt_store_0,          "n",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,       &do_resolv},
     {opt_store_int_lim_en, "s",        "--src-port",        "PORT",             HELP_s,       src_port},
     {opt_store_int_lim_en, "d",        "--drc-port",        "PORT",             HELP_d,       dst_port},
     {opt_store_choice,     "P",        "--protocol",        "protocol",         HELP_P,       protocol_names},
@@ -77,100 +75,6 @@ struct opt_spec runnable_options[] = {
 // Main program
 //---------------------------------------------------------------------------
 
-// DUPLICATED from traceroute/traceroute.c
-// TO MOVE in algorithms/traceroute.*
-
-/**
- * \brief Handle raised traceroute_event_t events.
- * \param loop The main loop.
- * \param traceroute_event The handled event.
- * \param traceroute_options Options related to this instance of traceroute .
- * \param traceroute_data Data related to this instance of traceroute.
- */
-
-void my_traceroute_handler(
-    pt_loop_t                  * loop,
-    traceroute_event_t         * traceroute_event,
-    const traceroute_options_t * traceroute_options,
-    const traceroute_data_t    * traceroute_data
-) {
-    const probe_t * probe;
-    const probe_t * reply;
-    char          * discovered_hostname = NULL;
-    static size_t   num_probes_printed = 0;
-
-    switch (traceroute_event->type) {
-        case TRACEROUTE_PROBE_REPLY:
-            // Retrieve the probe and its corresponding reply
-            probe = ((const probe_reply_t *) traceroute_event->data)->probe;
-            reply = ((const probe_reply_t *) traceroute_event->data)->reply;
-
-            // Print TTL (if this is the first probe related to this TTL)
-            if (num_probes_printed % traceroute_options->num_probes == 0) {
-                uint8_t ttl;
-
-                if (probe_extract(probe, "ttl", &ttl)) {
-                    printf("%-2d  ", ttl);
-                }
-                // Print discovered IP
-                {
-                    char * discovered_ip;
-                    if (probe_extract(reply, "src_ip", &discovered_ip)) {
-                        //make name resolution if needed
-                        if (do_resolv) {
-                            address_resolv(discovered_ip, &discovered_hostname);
-                            if (discovered_hostname) printf("%s", discovered_hostname);
-                            printf(" (%s) ", discovered_ip);
-                        } else  printf(" %s ", discovered_ip);
-                        free(discovered_ip);
-                    }
-                }
-            }
-            // Print delay
-            {
-                double send_time = probe_get_sending_time(probe),
-                       recv_time = probe_get_recv_time(reply);
-                printf(" (%-5.2lfms) ", 1000 * (recv_time - send_time));
-            }
-            num_probes_printed++;
-            break;
-        case TRACEROUTE_STAR:
-            probe = (const probe_t *) traceroute_event->data;
-
-            if (num_probes_printed % traceroute_options->num_probes == 0) {
-                uint8_t ttl;
-            if (probe_extract(probe, "ttl", &ttl)) {
-                printf("%-2d  ", ttl);
-            }
-            }
-            printf(" *");
-            num_probes_printed++;
-            break;
-        case TRACEROUTE_ICMP_ERROR:
-            printf(" !");
-            num_probes_printed++;
-            break;
-        case TRACEROUTE_TOO_MANY_STARS:
-            //printf("Too many stars\n");
-            break;
-        case TRACEROUTE_MAX_TTL_REACHED:
-            //printf("Max ttl reached\n");
-            break;
-        case TRACEROUTE_DESTINATION_REACHED:
-            // The traceroute algorithm has terminated.
-            // We could print additional results.
-            // Interrupt the main loop.
-            //printf("Destination reached\n");
-            break;
-        default:
-            break;
-    }
-
-    if (num_probes_printed % traceroute_options->num_probes == 0) {
-        printf("\n");
-    }
-}
-
 /**
  * \brief Handle events raised by libparistraceroute
  * \param loop The main loop
@@ -179,7 +83,7 @@ void my_traceroute_handler(
  *   all the algorithms instances running in this loop.
  */
 
-void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
+void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
     traceroute_event_t         * traceroute_event;
     const traceroute_options_t * traceroute_options;
@@ -191,11 +95,10 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
     switch (event->type) {
         case ALGORITHM_TERMINATED:
             algorithm_name = event->issuer->algorithm->name;
-            mda_data = event->issuer->data;
             if (strcmp(algorithm_name, "mda") == 0) {
-                // Dump full lattice, only when MDA_NEW_LINK is not handled
+                mda_data = event->issuer->data;
                 printf("Lattice:\n");
-                lattice_dump(mda_data->lattice, mda_lattice_elt_dump); 
+                lattice_dump(mda_data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump); 
                 printf("\n");
             }
             pt_loop_terminate(loop);
@@ -204,9 +107,10 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_event = event->data;
+                traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
                 switch (mda_event->type) {
                     case MDA_NEW_LINK:
-                        mda_link_dump(mda_event->data, do_resolv);
+                        mda_link_dump(mda_event->data, traceroute_options->do_resolv);
                         break;
                     default:
                         break;
@@ -215,7 +119,10 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
                 traceroute_event   = event->data;
                 traceroute_options = event->issuer->options;
                 traceroute_data    = event->issuer->data;
-                my_traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
+
+                // Forward this event to the default traceroute handler
+                // See libparistraceroute/algorithms/traceroute.c
+                traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
             }
             break;
         default:
@@ -388,7 +295,7 @@ int main(int argc, char ** argv)
     }
 
     // Create libparistraceroute loop
-    if (!(loop = pt_loop_create(algorithm_handler, NULL))) {
+    if (!(loop = pt_loop_create(loop_handler, NULL))) {
         perror("E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
@@ -397,11 +304,12 @@ int main(int argc, char ** argv)
     network_set_timeout(loop->network, options_network_get_timeout());
     network_set_is_verbose(loop->network, is_verbose);
 
-    printf("Traceroute to %s (%s), %u hops max, %u bytes packets\n\n",
-            dst_ip,
-            dst_ip_num,
-            ptraceroute_options->max_ttl,
-            packet_size);
+    printf("Traceroute to %s (%s), %u hops max, %ld bytes packets\n\n",
+        dst_ip,
+        dst_ip_num,
+        ptraceroute_options->max_ttl,
+        packet_size
+    );
 
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {

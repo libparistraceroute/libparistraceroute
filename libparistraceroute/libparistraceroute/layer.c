@@ -145,11 +145,11 @@ ERR_INVALID_FIELD:
     return false;
 }
 
-bool layer_write_payload(layer_t * layer, buffer_t * payload) {
-    return layer_write_payload_ext(layer, payload, 0);
+bool layer_write_payload(layer_t * layer, const void * bytes, size_t num_bytes) { 
+    return layer_write_payload_ext(layer, bytes, num_bytes, 0);
 }
 
-bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned int offset)
+bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_bytes, size_t offset)
 {
     if (layer->protocol) {
         // The layer embeds a nested layer
@@ -157,13 +157,13 @@ bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned
         return false;
     }
 
-    if (offset + buffer_get_size(payload) > layer->segment_size) {
+    if (offset + num_bytes > layer->segment_size) {
         // The buffer allocated to this layer is too small
         fprintf(stderr, "Payload too small\n");
         return false;
     }
 
-    memcpy(layer->segment + offset, buffer_get_data(payload), buffer_get_size(payload));
+    memcpy(layer->segment + offset, bytes, num_bytes);
     return true;
 }
 
