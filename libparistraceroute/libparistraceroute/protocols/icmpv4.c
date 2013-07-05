@@ -14,7 +14,7 @@
 #define ICMP_FIELD_CHECKSUM         "checksum"
 #define ICMP_FIELD_BODY             "body"
 
-#define ICMP_DEFAULT_TYPE           8
+#define ICMP_DEFAULT_TYPE           ICMP_ECHO // 8
 #define ICMP_DEFAULT_CODE           0
 #define ICMP_DEFAULT_CHECKSUM       0
 #define ICMP_DEFAULT_BODY           0
@@ -85,22 +85,21 @@ size_t icmpv4_write_default_header(uint8_t * icmpv4_header) {
  * \brief Compute and write the checksum related to an ICMP header
  * \param icmpv4_header A pre-allocated ICMP header. The ICMP checksum
  *    stored in this buffer is updated by this function.
- * \param ip_psh Pass NULL 
+ * \param ipv4_psh Pass NULL 
  * \sa http://www.networksorcery.com/enp/protocol/icmp.htm#Checksum
  * \return true if everything is ok, false otherwise
  */
 
-bool icmpv4_write_checksum(uint8_t * icmpv4_header, buffer_t * ip_psh)
+bool icmpv4_write_checksum(uint8_t * icmpv4_header, buffer_t * ipv4_psh)
 {
-    struct icmphdr * icmpv4_hdr;
+    struct icmphdr * icmpv4_hdr = (struct icmphdr *) icmpv4_header;
 
-    // No pseudo header not required in ICMP
-    if (ip_psh) {
+    // No pseudo header not required in ICMPv4
+    if (ipv4_psh) {
         errno = EINVAL;
         return false;
     }
 
-    icmpv4_hdr = (struct icmphdr *) icmpv4_header;
     icmpv4_hdr->checksum = csum((uint16_t *) icmpv4_header, sizeof(struct icmphdr));
     return true;
 }

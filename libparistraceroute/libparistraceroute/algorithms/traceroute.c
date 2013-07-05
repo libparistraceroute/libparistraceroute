@@ -11,6 +11,10 @@
 #include "../options.h"
 #include "../address.h"  // address_resolv
 
+//-----------------------------------------------------------------
+// Traceroute options 
+//-----------------------------------------------------------------
+
 // Bounded integer parameters
 static unsigned min_ttl[3]          = OPTIONS_TRACEROUTE_MIN_TTL;
 static unsigned max_ttl[3]          = OPTIONS_TRACEROUTE_MAX_TTL;
@@ -225,13 +229,13 @@ static bool send_traceroute_probe(
     // a probe must never be altered, otherwise the network layer may
     // manage corrupted probes.
     if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP;
-    if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
+    if (!probe_set_field(probe, I8("ttl", ttl)))                goto ERR_PROBE_SET_FIELD;
     if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;
 
     return pt_send_probe(loop, probe);
 
 ERR_PROBE_PUSH_ELEMENT:
-ERR_PROBE_SET_FIELDS:
+ERR_PROBE_SET_FIELD:
     probe_free(probe);
 ERR_PROBE_DUP:
     fprintf(stderr, "Error in send_traceroute_probe\n");
@@ -254,7 +258,7 @@ bool send_traceroute_probes(
     size_t              num_probes,
     uint8_t             ttl
 ) {
-    size_t    i;
+    size_t i;
 
     for (i = 0; i < num_probes; ++i) {
         if (!(send_traceroute_probe(loop, traceroute_data, probe_skel, ttl))) {
