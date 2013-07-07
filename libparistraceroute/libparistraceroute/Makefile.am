@@ -32,6 +32,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						algorithms/mda.h \
 						algorithms/traceroute.h \
 						bitfield.h \
+						bits.h \
 						buffer.h \
 						common.h \
 						config.h \
@@ -83,6 +84,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						algorithms/mda/interface.c \
 						algorithms/traceroute.c \
 						bitfield.c \
+						bits.c \
 						buffer.c \
 						common.c \
 						dynarray.c \

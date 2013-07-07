@@ -172,13 +172,20 @@ layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segme
 bool layer_extract(const layer_t * layer, const char * field_name, void * value);
 
 /**
- * \brief Print the content of a layer
- * \param layer A pointer to the layer instance to print
- * \param indent The number of space characters to write
+ * \brief Print the content of a layer.
+ * \param layer A pointer to the layer instance to print.
+ * \param indent The number of space characters to write.
  *    before each printed line.
  */
 
 void layer_dump(const layer_t * layer, unsigned int indent);
+
+/**
+ * \brief Print side by side 2 layers (only the checksum, protocol, and length fields).
+ * \param layer1 The first layer.
+ * \param layer2 The second layer.
+ */
+
 void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent);
 
 #endif

@@ -62,23 +62,28 @@ int main(int argc, char ** argv)
     int                    ret = EXIT_FAILURE;
     const char           * ip_protocol_name;
     const char           * protocol_name;
+    address_t              dst_addr;
 
     // Harcoded command line parsing here
-    //char dst_ip[] = "173.194.78.104";
-    char dst_ip[] = "8.8.8.8";
+    //char dst_ip[] = "8.8.8.8";
     //char dst_ip[] = "1.1.1.2";
-    //char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
+    char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
 
     if (!address_guess_family(dst_ip, &family)) {
         fprintf(stderr, "Cannot guess family of destination address (%s)", dst_ip);
         goto ERR_ADDRESS_GUESS_FAMILY;
     }
 
+    if (address_from_string(family, dst_ip, &dst_addr) != 0) {
+        fprintf(stderr, "Cannot guess family of destination address (%s)", dst_ip);
+        goto ERR_ADDRESS_FROM_STRING;
+    }
+
     // Prepare options related to the 'traceroute' algorithm
     options.do_resolv = true;
-    options.dst_ip = dst_ip;
+    options.dst_addr = &dst_addr;
     options.num_probes = 1;
-    //options.max_ttl = 3;
+    //options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
@@ -119,7 +124,7 @@ int main(int argc, char ** argv)
     }
 
     probe_set_fields(probe,
-        STR("dst_ip", dst_ip),
+        ADDRESS("dst_ip", &dst_addr),
         //I16("dst_port", 30000),
         NULL
     );
@@ -149,6 +154,7 @@ ERR_FAMILY:
 ERR_PROBE_CREATE:
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
+ERR_ADDRESS_FROM_STRING:
 ERR_ADDRESS_GUESS_FAMILY:
     exit(ret);
 }

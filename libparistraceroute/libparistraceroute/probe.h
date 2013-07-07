@@ -31,8 +31,8 @@ typedef struct {
     packet_t   * packet;        /**< The packet we're crafting */
 //    bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     void       * caller;        /**< Algorithm instance which has created this probe */
-    double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) */
-    double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) */
+    double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) (in micro seconds) */
+    double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) (in micro seconds) */
     double       recv_time;     /**< Only set if this instance is related to a reply. Timestamp set by network layer just after sniffing the reply */
     field_t    * delay;         /**< The time to send this probe */
     size_t       left_to_send;  /**< Number of times left to use this probe instance to send packets */

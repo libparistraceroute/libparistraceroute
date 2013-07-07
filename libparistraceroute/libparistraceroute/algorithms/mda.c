@@ -19,7 +19,7 @@
 //---------------------------------------------------------------------------
 
 typedef struct {
-    char          * address;
+    address_t     * address;
     lattice_elt_t * result;
 } mda_address_t;
 
@@ -163,7 +163,7 @@ ERR_LINK:
  * \return
  */
 
-static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * data)
+static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data)
 {
     mda_interface_t * interface = lattice_elt_get_data(elt);
     /* Number of interfaces at the same TTL */
@@ -183,7 +183,7 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * data)
     num_nexthops = lattice_elt_get_num_next(elt);
 
     // ... and thus deduce how many packets we have to send
-    to_send = mda_stopping_points(MAX(num_nexthops + 1, 2), data->confidence) - interface->sent;
+    to_send = mda_stopping_points(MAX(num_nexthops + 1, 2), mda_data->confidence) - interface->sent;
 
     //printf("find next hops of %s (to_send= %u)\n", interface->address, to_send);
 
@@ -192,7 +192,7 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * data)
         return LATTICE_DONE; // Done enumerating, walking/DFS can continue
     }
 
-    if (interface->address && (strcmp(interface->address, data->dst_ip) == 0)) {
+    if (interface->address && (address_cmp(interface->address, mda_data->dst_ip) == 0)) {
         return (interface->sent == interface->received) ? LATTICE_DONE : LATTICE_CONTINUE;
     }
 
@@ -219,11 +219,11 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * data)
                  * explore hops at the same ttl : we should set one potential probe in
                  * flight for each interface ? or multiply the number of probes in
                  * flight by the number of interface (might overestimate ?)*/
-                probe = probe_dup(data->skel);
-                flow_id = ++data->last_flow_id;
+                probe = probe_dup(mda_data->skel);
+                flow_id = ++mda_data->last_flow_id;
                 mda_interface_add_flow_id(interface, flow_id, MDA_FLOW_TESTING); // TODO control returned value
-                probe_set_fields(probe, I8("ttl", interface->ttl), IMAX("flow_id", flow_id), NULL); // TODO control returned value
-                pt_send_probe(data->loop, probe); // TODO control returned value
+                probe_set_fields(probe, I8("ttl", interface->ttl), I16("flow_id", flow_id), NULL); // TODO control returned value, free fields
+                pt_send_probe(mda_data->loop, probe); // TODO control returned value
             }
         }
     } else {
@@ -243,19 +243,20 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * data)
     for (i = 0; i < num_flows_avail; i++) {
         // Get a new flow_id to send, or break/return
         // TODO manage properly break/return
-        flow_id = mda_interface_get_available_flow_id(interface, num_siblings, data);
+        flow_id = mda_interface_get_available_flow_id(interface, num_siblings, mda_data);
         if (flow_id == 0) {
-            fprintf(stderr, "Not enough flows found reaching %s", interface->address);
+            fprintf(stderr, "Not enough flows found reaching: ");
+            address_dump(interface->address);
             break;
         }
 
         // Send corresponding probe with ttl + 1
-        if (!(probe = probe_dup(data->skel))) {
+        if (!(probe = probe_dup(mda_data->skel))) {
             goto ERR_PROBE_DUP;
         }
 
-        probe_set_fields(probe, IMAX("flow_id", flow_id), I8("ttl", interface->ttl + 1), NULL);
-        pt_send_probe(data->loop, probe);
+        probe_set_fields(probe, I16("flow_id", flow_id), I8("ttl", interface->ttl + 1), NULL); // TODO control returned value, free fields
+        pt_send_probe(mda_data->loop, probe);
         interface->sent++;
     }
 
@@ -415,7 +416,7 @@ static lattice_return_t mda_search_interface(lattice_elt_t * elt, void * data)
     mda_interface_t * interface = lattice_elt_get_data(elt);
     mda_address_t   * search    = data;
 
-    if (interface->address && strcmp(interface->address, search->address) == 0) {
+    if (interface->address && address_cmp(interface->address, search->address) == 0) {
         search->result = elt;
         return LATTICE_INTERRUPT_ALL;
     }
@@ -453,8 +454,8 @@ static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pd
     */
 
     // Create local data structure
-    if (!(data = mda_data_create()))                     goto ERR_MDA_DATA_CREATE;
-    if (!(probe_extract(skel, "dst_ip", &data->dst_ip))) goto ERR_EXTRACT_DST_IP;
+    if (!(data = mda_data_create()))                    goto ERR_MDA_DATA_CREATE;
+    if (!(probe_extract(skel, "dst_ip", data->dst_ip))) goto ERR_EXTRACT_DST_IP;
 
     // Initialize algorithm's data
     data->skel = skel;
@@ -497,7 +498,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     mda_ttl_flow_t     search_ttl_flow;
     mda_address_t      search_interface;
     mda_flow_t       * mda_flow;
-    char             * addr = NULL; // src_ip
+    address_t          addr;
     uintmax_t          flow_id;
     uint8_t            ttl;
     int                ret;
@@ -524,7 +525,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
      *  destination: reply->src_ip
      */
 
-    search_interface.address = addr;
+    search_interface.address = &addr;
     search_interface.result = NULL;
     ret = lattice_walk(data->lattice, mda_search_interface, &search_interface, LATTICE_WALK_DFS);
     if (ret == LATTICE_INTERRUPT_ALL) {
@@ -533,7 +534,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
         dest_interface = lattice_elt_get_data(dest_elt);
     } else {
         dest_elt = NULL;
-        dest_interface = mda_interface_create(addr);
+        dest_interface = mda_interface_create(&addr);
         dest_interface->ttl = ttl;
     }
 
@@ -605,7 +606,6 @@ ERR_MDA_FLOW_CREATE:
 ERR_MDA_EVENT_NEW_LINK:
 ERR_LATTICE_ADD_ELEMENT:
 ERR_LATTICE_CONNECT:
-    if (addr) free(addr); // see probe_extract
 ERR_EXTRACT_SRC_IP:
 ERR_EXTRACT_FLOW_ID:
 ERR_EXTRACT_TTL:

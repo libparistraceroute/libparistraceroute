@@ -394,7 +394,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
      * encode information. */
 
     if (num_layers < 2 || !(last_layer = probe_get_layer(probe, num_layers - 2))) {
-        fprintf(stderr, "network_tag_probe: not enough layer (num_layers = %d)\n", num_layers);
+        fprintf(stderr, "network_tag_probe: not enough layer (num_layers = %ld)\n", num_layers);
         goto ERR_GET_LAYER;
     }
 
@@ -460,7 +460,6 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 
 ERR_PROBE_SET_FIELD:
 ERR_BUFFER_WRITE_BYTES2:
-ERR_PROBE_WRITE_PAYLOAD2:
 ERR_PROBE_SET_TAG:
 ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:

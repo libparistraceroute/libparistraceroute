@@ -8,6 +8,7 @@
 
 #include "../field.h"
 #include "../protocol.h"
+#include "../bits.h"
 
 // Field names
 #define IPV4_FIELD_VERSION           "version" 
@@ -32,55 +33,14 @@
 #define IPV4_DEFAULT_TTL             255 
 #define IPV4_DEFAULT_PROTOCOL        IPPROTO_IPIP
 #define IPV4_DEFAULT_CHECKSUM        0
-#define IPV4_DEFAULT_SRC_IP          0            // See ipv4_get_default_src_ip()
-#define IPV4_DEFAULT_DST_IP          0            // Must be set by the user (see network.c)
+#define IPV4_DEFAULT_SRC_IP          0 // See ipv4_get_default_src_ip()
+#define IPV4_DEFAULT_DST_IP          0 // Must be set by the user (see network.c)
 
-// The following offsets cannot be retrieved with offsetof() 
-// Offsets are always aligned with the begining of the header and expressed in bytes.
+// The following offsets cannot be retrieved with offsetof() so they are hardcoded 
 #define IPV4_OFFSET_VERSION          0
+#define IPV4_OFFSET_IN_BITS_VERSION  0 // IPV4_OFFSET_VERSION * 8 + 0
 #define IPV4_OFFSET_IHL              0
-
-/**
- * \brief Translate an IPv4 set in a string field into a binary IP
- * \param field The field containing the IPv4 to set (string format)
- * \param ip The address where we write the translated IP 
- * \return true iif successful.
- */
-
-static bool ipv4_field_to_ipv4(const field_t * field, void * ip) {
-    bool ret = false;
-
-    switch (field->type) {
-        case TYPE_STRING:
-            // TODO we could use address_ip_from_string(AF_INET, field->value.string, ip), see "address.h"
-            ret = (inet_pton(AF_INET, field->value.string, ip) == 1);
-            break;
-        case TYPE_UINT32:
-            memcpy(ip, &(field->value.int32), sizeof(uint32_t));
-            ret = true;
-            break;
-        default:
-            break;
-    }
-    return ret;
-}
-
-/**
- * \brief Create a string field from an IPv4 address 
- * \param field The field containing the IP to set (string format)
- * \param ip The address where we write the translated IP 
- * \return true iif successful.
- */
-
-static field_t * ipv4_create_ipv4_field(const char * field_name, const void * ip) {
-    char      str_ip[INET_ADDRSTRLEN];
-    field_t * field = NULL;
-
-    if (inet_ntop(AF_INET, ip, str_ip, INET_ADDRSTRLEN)) {
-        field = STR(field_name, str_ip);
-    }
-    return field;
-}
+#define IPV4_OFFSET_IN_BITS_IHL      4 // IPV4_OFFSET_IHL * 8 + 4
 
 //-----------------------------------------------------------
 // set/get callbacks (accessors to IPv4 string and int4 fields) 
@@ -98,9 +58,10 @@ static field_t * ipv4_create_ipv4_field(const char * field_name, const void * ip
  */
 
 field_t * ipv4_get_version(const uint8_t * ipv4_header) {
-    const uint8_t * byte    = ipv4_header + IPV4_OFFSET_VERSION;
-    uint8_t         version = *byte >> 4;
-    return I4(IPV4_FIELD_VERSION, version);
+    uint8_t version;
+    return bits_extract(ipv4_header, IPV4_OFFSET_IN_BITS_VERSION, 4, &version) ?
+        I4(IPV4_FIELD_VERSION, version) :
+        NULL;
 }
 
 /**
@@ -122,9 +83,10 @@ bool ipv4_set_version(uint8_t * ipv4_header, const field_t * field) {
  */
 
 field_t * ipv4_get_ihl(const uint8_t * ipv4_header) {
-    const uint8_t * byte = ipv4_header + IPV4_OFFSET_IHL; 
-    uint8_t         ihl  = *byte & 0x0f;
-    return I4(IPV4_FIELD_VERSION, ihl);
+    uint8_t ihl;
+    return bits_extract(ipv4_header, IPV4_OFFSET_IN_BITS_IHL, 4, &ihl) ?
+        I4(IPV4_FIELD_VERSION, ihl) :
+        NULL;
 }
 
 /**
@@ -137,60 +99,6 @@ bool ipv4_set_ihl(uint8_t * ipv4_header, const field_t * field) {
     uint8_t * byte = ipv4_header + IPV4_OFFSET_IHL; 
     *byte = (*byte & 0xf0) | field->value.int4;
     return true;
-}
-
-/**
- * \brief Create the a string field containing the source IP of an IPv4 header.
- * \param ipv4_header The queried IPv4 header. 
- * \return The corresponding field, NULL in case of failure.
- */
-
-field_t * ipv4_get_src_ip(const uint8_t * ipv4_header) {
-    return ipv4_create_ipv4_field(
-        IPV4_FIELD_SRC_IP,
-        ipv4_header + offsetof(struct iphdr, saddr)
-    );
-}
-
-/**
- * \brief Update the source IP of an IPv4 header.
- * \param ipv4_header Address of the IPv4 header we want to update
- * \param field The string field containing the new source (resolved) IP.
- * \return true iif successful.
- */
-
-bool ipv4_set_src_ip(uint8_t * ipv4_header, const field_t * field) {
-    return ipv4_field_to_ipv4(
-        field,
-        ipv4_header + offsetof(struct iphdr, saddr)
-    );
-}
-
-/**
- * \brief Create the a string field containing the destination IP of an IPv4 header.
- * \param ipv4_header The queried IPv4 header.
- * \return The corresponding field, NULL in case of failure.
- */
-
-field_t * ipv4_get_dst_ip(const uint8_t * ipv4_header) {
-    return ipv4_create_ipv4_field(
-        IPV4_FIELD_DST_IP,
-        ipv4_header + offsetof(struct iphdr, daddr)
-    );
-}
-
-/**
- * \brief Update the destination IP of an IPv4 header according to a field 
- * \param ipv4_header Address of the IPv4 header we want to update
- * \param field The string field containing the new destination (resolved) IP
- * \return true iif successful
- */
-
-bool ipv4_set_dst_ip(uint8_t * ipv4_header, const field_t * field) {
-    return ipv4_field_to_ipv4(
-        field,
-        ipv4_header + offsetof(struct iphdr, daddr)
-    );
 }
 
 //-----------------------------------------------------------
@@ -261,14 +169,14 @@ bool ipv4_finalize(uint8_t * ipv4_header)
  */
 
 size_t ipv4_get_header_size(const uint8_t * ipv4_header) {
-    const uint8_t * byte;
     uint8_t         ihl;
-    size_t          size = sizeof(struct iphdr);
+    size_t          size;
 
     if (ipv4_header) {
-        byte = ipv4_header + IPV4_OFFSET_IHL; 
-        ihl  = *byte & 0x0f;
-        size = ihl * 4;
+        bits_extract(ipv4_header, IPV4_OFFSET_IN_BITS_IHL, 4, &ihl);
+        size  = 4 * ihl;
+    } else {
+        size = sizeof(struct iphdr);
     }
 
     return size; 
@@ -338,16 +246,12 @@ static protocol_field_t ipv4_fields[] = {
         .offset   = offsetof(struct iphdr, check),
     }, {
         .key      = IPV4_FIELD_SRC_IP,
-        .type     = TYPE_UINT32,
+        .type     = TYPE_IPV4,
         .offset   = offsetof(struct iphdr, saddr),
-        .set      = ipv4_set_src_ip,
-        .get      = ipv4_get_src_ip,
     }, {
         .key      = IPV4_FIELD_DST_IP,
-        .type     = TYPE_UINT32,
+        .type     = TYPE_IPV4,
         .offset   = offsetof(struct iphdr, daddr),
-        .set      = ipv4_set_dst_ip,
-        .get      = ipv4_get_dst_ip,
     },
     END_PROTOCOL_FIELDS
     // options if header length > 5 (not yet implemented)
@@ -391,7 +295,9 @@ size_t ipv4_write_default_header(uint8_t * ipv4_header) {
  */
 
 bool ipv4_instance_of(uint8_t * bytes) {
-    return (bytes[0] >> 4) == 4; 
+    uint8_t version;
+    return bits_extract(bytes, IPV4_OFFSET_IN_BITS_VERSION, 4, &version)
+        && version == IPV4_DEFAULT_VERSION; 
 }
 
 static protocol_t ipv4 = {
@@ -401,7 +307,6 @@ static protocol_t ipv4 = {
     .create_pseudo_header = NULL,
     .fields               = ipv4_fields,
     .write_default_header = ipv4_write_default_header, // TODO generic
-  //.socket_type          = NULL,
     .get_header_size      = ipv4_get_header_size,
     .finalize             = ipv4_finalize,
     .instance_of          = ipv4_instance_of,

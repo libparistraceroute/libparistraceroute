@@ -62,7 +62,7 @@ inline traceroute_options_t traceroute_get_default_options() {
         .max_ttl          = OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,
         .num_probes       = OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,
         .max_undiscovered = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT,
-        .dst_ip           = NULL,
+        .dst_addr         = NULL,
         .do_resolv        = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT,
     };
     return traceroute_options;
@@ -109,6 +109,41 @@ static void traceroute_data_free(traceroute_data_t * traceroute_data) {
 // Traceroute default handler
 //-----------------------------------------------------------------
 
+static inline void ttl_dump(const probe_t * probe) {
+    uint8_t ttl;
+    if (probe_extract(probe, "ttl", &ttl)) printf("%2d ", ttl);
+}
+
+static inline void discovered_ip_dump(const probe_t * reply, bool do_resolv) {
+    address_t   discovered_addr;
+    char      * discovered_hostname;
+
+    if (probe_extract(reply, "src_ip", &discovered_addr)) {
+        printf(" ");
+        if (do_resolv) {
+            if (address_resolv(&discovered_addr, &discovered_hostname)) {
+                printf("%s", discovered_hostname);
+                free(discovered_hostname);
+            } else {
+                address_dump(&discovered_addr);
+            }
+            printf(" (");
+        }
+
+        address_dump(&discovered_addr);
+
+        if (do_resolv) {
+            printf(")");
+        }
+    }
+}
+
+static inline void delay_dump(const probe_t * probe, const probe_t * reply) {
+    double send_time = probe_get_sending_time(probe),
+           recv_time = probe_get_recv_time(reply);
+    printf("  %-5.3lfms", 1000 * (recv_time - send_time));
+}
+
 void traceroute_handler(
     pt_loop_t                  * loop,
     traceroute_event_t         * traceroute_event,
@@ -117,7 +152,6 @@ void traceroute_handler(
 ) {
     const probe_t * probe;
     const probe_t * reply;
-    char          * discovered_hostname = NULL;
     static size_t   num_probes_printed = 0;
 
     switch (traceroute_event->type) {
@@ -127,46 +161,21 @@ void traceroute_handler(
             probe = ((const probe_reply_t *) traceroute_event->data)->probe;
             reply = ((const probe_reply_t *) traceroute_event->data)->reply;
 
-            // Print TTL (if this is the first probe related to this TTL)
+            // Print TTL and discovered IP if this is the first probe related to this TTL
             if (num_probes_printed % traceroute_options->num_probes == 0) {
-                uint8_t ttl;
-
-                if (probe_extract(probe, "ttl", &ttl)) {
-                    printf("%2d", ttl);
-                }
-
-                // Print discovered IP
-                {
-                    char * discovered_ip;
-                    if (probe_extract(reply, "src_ip", &discovered_ip)) {
-                        if (traceroute_options->do_resolv) {
-                            address_resolv(discovered_ip, &discovered_hostname);
-                            if (discovered_hostname) printf("  %s", discovered_hostname);
-                            printf(" (%s)", discovered_ip);
-                        } else  printf("  %s", discovered_ip);
-                        free(discovered_ip);
-                    }
-                }
+                ttl_dump(probe);
+                discovered_ip_dump(reply, traceroute_options->do_resolv);
             }
 
             // Print delay
-            {
-                double send_time = probe_get_sending_time(probe),
-                       recv_time = probe_get_recv_time(reply);
-                printf("  (%-5.3lf ms)", 1000 * (recv_time - send_time));
-            }
+            delay_dump(probe, reply);
             num_probes_printed++;
             break;
 
         case TRACEROUTE_STAR:
-
             probe = (const probe_t *) traceroute_event->data;
-
             if (num_probes_printed % traceroute_options->num_probes == 0) {
-                uint8_t ttl;
-                if (probe_extract(probe, "ttl", &ttl)) {
-                    printf("%-2d  ", ttl);
-                }
+                ttl_dump(probe);
             }
             printf(" *");
             num_probes_printed++;
@@ -195,17 +204,17 @@ void traceroute_handler(
 //-----------------------------------------------------------------
 
 /**
- * \brief Check whether the destination is reached
- * \return true iif the destination is reached
+ * \brief Check whether the destination is reached.
+ * \param dst_addr The destination address of this traceroute instance.
+ * \return true iif the destination is reached.
  */
 
-static inline bool destination_reached(const char * dst_ip, const probe_t * reply) {
-    bool   ret = false;
-    char * discovered_ip;
+static inline bool destination_reached(const address_t * dst_addr, const probe_t * reply) {
+    bool        ret = false;
+    address_t   discovered_addr;
 
-    if (probe_extract(reply, "src_ip", &discovered_ip)) {
-        ret = !strcmp(discovered_ip, dst_ip);
-        free(discovered_ip);
+    if (probe_extract(reply, "src_ip", &discovered_addr)) {
+        ret = (address_cmp(dst_addr, &discovered_addr) == 0);
     }
     return ret;
 }
@@ -315,7 +324,7 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
             data->num_stars = 0;
             data->num_undiscovered = 0;
             ++(data->num_replies);
-            data->destination_reached |= destination_reached(options->dst_ip, reply);
+            data->destination_reached |= destination_reached(options->dst_addr, reply);
 
             // Notify the caller we've discovered an IP address
             pt_raise_event(loop, event_create(TRACEROUTE_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));

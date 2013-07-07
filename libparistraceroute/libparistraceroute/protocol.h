@@ -71,8 +71,6 @@ typedef struct {
 
     size_t (*write_default_header)(uint8_t * header);
 
-    // socket_type
-    
     /**
      * \brief Points to a callback which returns the size of a header.
      * \param A pointer to the header we want to get size. You may pass

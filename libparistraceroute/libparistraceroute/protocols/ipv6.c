@@ -94,66 +94,8 @@
 #define IPV6_DEFAULT_DOH_HDR_EXT_LEN    0
 #define IPV6_DEFAULT_DOH_OPTIONS        0
 
-#define IPV6_STRSIZE 46 // as of netinet/in.h INET6_ADDRSTRLEN
+// IPv6 fields
 
-// Accessors
-
-/**
- * \brief Update the source IP of an IPv6 header.
- * \param ipv6_header Address of the IPv6 header we want to update
- * \param field The string field containing the new source (resolved) IP.
- * \return true iif successful.
- */
-
-bool ipv6_set_src_ip(uint8_t * ipv6_header, const field_t * field){
-    struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
-    return (inet_pton(AF_INET6, (const char *) field->value.string, &ip6_hed->ip6_src) != -1);
-}
-
-/**
- * \brief Create the a string field containing the source IP of an IPv6 header.
- * \param ipv6_header The queried IPv6 header.
- * \return The corresponding field, NULL in case of failure.
- */
-
-field_t * ipv6_get_src_ip(const uint8_t * ipv6_header){
-    char res[IPV6_STRSIZE];
-    const struct ip6_hdr * ip6_hed = (const struct ip6_hdr *) ipv6_header;
-
-    memset(res, 0, IPV6_STRSIZE);
-    inet_ntop(AF_INET6, &ip6_hed->ip6_src, res, IPV6_STRSIZE);
-    return STR(IPV6_FIELD_SRC_IP, res);
-}
-
-/**
- * \brief Update the destination IP of an IPv6 header according to a field
- * \param ipv6_header Address of the IPv6 header we want to update
- * \param field The string field containing the new destination (resolved) IP
- * \return true iif successful
- */
-
-bool ipv6_set_dst_ip(uint8_t * ipv6_header, const field_t * field){
-    struct ip6_hdr * ip6_hed = (struct ip6_hdr *) ipv6_header;
-    return (inet_pton(AF_INET6, (const char *) field->value.string, &ip6_hed->ip6_dst) != -1);
-}
-
-/**
- * \brief Create the a string field containing the destination IP of an IPv6 header.
- * \param ipv6_header The queried IPv4 header.
- * \return The corresponding field, NULL in case of failure.
- */
-
-field_t * ipv6_get_dst_ip(const uint8_t * ipv6_header){
-    char res[IPV6_STRSIZE];
-    const struct ip6_hdr * ip6_hed = (const struct ip6_hdr *) ipv6_header;
-
-    memset(res, 0, IPV6_STRSIZE);
-    inet_ntop(AF_INET6, &ip6_hed->ip6_dst, res, IPV6_STRSIZE);
-    return STR(IPV6_FIELD_DST_IP, res);
-}
-
-
-/* IPv6 fields */
 static protocol_field_t ipv6_fields[] = {
 
     {
@@ -186,16 +128,12 @@ static protocol_field_t ipv6_fields[] = {
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
     }, {
         .key      = IPV6_FIELD_SRC_IP,
-        .type     = TYPE_UINT128,
+        .type     = TYPE_IPV6,
         .offset   = offsetof(struct ip6_hdr, ip6_src),
-        .set      = ipv6_set_src_ip,
-        .get      = ipv6_get_src_ip,
     }, {
        .key      = IPV6_FIELD_DST_IP,
-       .type     = TYPE_UINT128,
+       .type     = TYPE_IPV6,
        .offset   = offsetof(struct ip6_hdr, ip6_dst),
-       .set      = ipv6_set_dst_ip,
-       .get      = ipv6_get_dst_ip,
     },
     END_PROTOCOL_FIELDS
 };
@@ -315,12 +253,11 @@ bool ipv6_instance_of(uint8_t * bytes) {
 
 static protocol_t ipv6 = {
     .name                 = "ipv6",
-    .protocol             = 6,
-    .write_checksum       = NULL, // IPv6 has no checksum, it depends on upper layers
+    .protocol             = IPPROTO_IPV6,
+    .write_checksum       = NULL,
     .create_pseudo_header = NULL,
     .fields               = ipv6_fields,
     .write_default_header = ipv6_write_default_header, // TODO generic with ipv4
-//    .socket_type            = NULL, // TODO WHY?
     .get_header_size      = ipv6_get_header_size,
     .finalize             = ipv6_finalize,
     .instance_of          = ipv6_instance_of,

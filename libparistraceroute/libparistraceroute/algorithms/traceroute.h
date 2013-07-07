@@ -5,6 +5,7 @@
 #include <stdint.h>      // uint*_t
 #include <stddef.h>      // size_t
 
+#include "../address.h"  // address_t 
 #include "../pt_loop.h"  // pt_loop_t
 #include "../dynarray.h" // dynarray_t
 
@@ -65,12 +66,12 @@ bool    options_traceroute_get_do_resolv();
 //--------------------------------------------------------------------
 
 typedef struct {
-    uint8_t      min_ttl;          /**< Minimum ttl at which to send probes */
-    uint8_t      max_ttl;          /**< Maximum ttl at which to send probes */
-    size_t       num_probes;       /**< Number of probes per hop            */
-    size_t       max_undiscovered; /**< Maximum number of consecutives undiscovered hops */
-    const char * dst_ip;           /**< The target IP */
-    bool         do_resolv;        /**< Resolv each discovered IP hop */
+    uint8_t           min_ttl;          /**< Minimum ttl at which to send probes */
+    uint8_t           max_ttl;          /**< Maximum ttl at which to send probes */
+    size_t            num_probes;       /**< Number of probes per hop            */
+    size_t            max_undiscovered; /**< Maximum number of consecutives undiscovered hops */
+    const address_t * dst_addr;         /**< The target IP */
+    bool              do_resolv;        /**< Resolv each discovered IP hop */
 } traceroute_options_t;
 
 struct opt_spec * traceroute_get_opt_specs();

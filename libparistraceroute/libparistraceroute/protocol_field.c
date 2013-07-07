@@ -1,20 +1,28 @@
 #include "protocol_field.h"
-#include <arpa/inet.h>
-#include <stdio.h>
+
+#include <string.h> // memcpy
+#include <stdio.h>  // fprintf
 
 bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * buffer, const field_t * field)
 {
-    bool ret = true;
+    bool      ret = true;
+    uint8_t * segment = buffer + protocol_field->offset;
 
     switch (protocol_field->type) {
+        case TYPE_IPV4:
+            memcpy(segment, &field->value.ipv4, sizeof(ipv4_t));
+            break;
+        case TYPE_IPV6:
+            memcpy(segment, &field->value.ipv6, sizeof(ipv6_t));
+            break;
         case TYPE_UINT8:
-            *(uint8_t *)(buffer + protocol_field->offset) = field->value.int8;
+            *(uint8_t *) segment = field->value.int8;
             break;
         case TYPE_UINT16:
-            *(uint16_t *)(buffer + protocol_field->offset) = htons(field->value.int16);
+            *(uint16_t *) segment = htons(field->value.int16);
             break;
         case TYPE_UINT32:
-            *(uint32_t *)(buffer + protocol_field->offset) = htonl(field->value.int32);
+            *(uint32_t *) segment = htonl(field->value.int32);
             break;
         case TYPE_UINT4:
         case TYPE_STRING:

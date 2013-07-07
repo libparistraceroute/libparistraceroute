@@ -1066,15 +1066,28 @@ field_t * probe_create_field(const probe_t * probe, const char * name) {
 }
 
 bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, void * dst) {
-    field_t *  field;
+    field_t * field;
 
+    // TODO loop using layer_extract
     if (!(field = probe_create_field_ext(probe, name, depth))) goto ERR_CREATE_FIELD;
 
-    if (field->type == TYPE_STRING) {
-        *((char **) dst) = strdup(field->value.string); // TODO why strdup?
-    } else {
-        memcpy(dst, &field->value, field_get_size(field));
+    switch (field->type) {
+        case TYPE_STRING:
+            *((char **) dst) = strdup(field->value.string); // TODO why strdup?
+            break;
+        case TYPE_IPV4:
+            memcpy(&((address_t *) dst)->ip, &field->value, field_get_size(field));
+            ((address_t *) dst)->family = AF_INET;
+            break;
+        case TYPE_IPV6:
+            memcpy(&((address_t *) dst)->ip, &field->value, field_get_size(field));
+            ((address_t *) dst)->family = AF_INET6;
+            break;
+        default:
+            memcpy(dst, &field->value, field_get_size(field));
+            break;
     }
+
     field_free(field);
     return true;
 
@@ -1130,30 +1143,17 @@ packet_t * probe_create_packet(probe_t * probe)
 {
     // TODO
     // See packet.c: we store in packet.c the destination IP and the
-    // destination port to memorize whether they have been set or not.
     // This will be removed once the bitfield will be supported in probe.c
 
     // The destination IP is a mandatory field
-    if (!(probe_extract(probe, "dst_ip", &probe->packet->dst_ip))) {
-        fprintf(stderr, "This probe has no 'dst_ip' field set\n");
+
+    if (!(probe_extract(probe, "dst_ip", probe->packet->dst_ip))) {
+        fprintf(stderr, "probe_create_packet: This probe does not carry 'dst_ip' field!\n");
         goto ERR_EXTRACT_DST_IP;
     }
 
-    // In ICMP we do not have dst_port
-    /*
-    // The destination port is a mandatory field
-    if (!(probe_extract(probe, "dst_port", &probe->packet->dst_port))) {
-        fprintf(stderr, "This probe has no 'dst_port' field set, I will use port = %d\n", probe->packet->dst_port);
-    }
-    */
-
     return probe->packet;
 
-    /*
-ERR_EXTRACT_DST_PORT:
-    free(probe->packet->dst_ip);
-    probe->packet->dst_ip = NULL;
-    */
 ERR_EXTRACT_DST_IP:
     return NULL;
 }

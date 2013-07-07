@@ -4,6 +4,10 @@
 #include <stdbool.h>    // bool
 #include <netinet/in.h> // in_addr, in6_addr
 
+//---------------------------------------------------------------------------
+// ip*_t
+//---------------------------------------------------------------------------
+
 typedef struct in_addr  ipv4_t;
 typedef struct in6_addr ipv6_t;
 
@@ -11,11 +15,6 @@ typedef union {
     ipv4_t ipv4;
     ipv6_t ipv6;
 } ip_t;
-
-typedef struct {
-    int  family;  /**< Address family: AF_INET or AF_INET6 */
-    ip_t ip;      /**< IP address (binary) */
-} address_t;
 
 /**
  * \brief Print an IPv4 address
@@ -31,6 +30,72 @@ void ipv4_dump(const ipv4_t * ipv4);
 
 void ipv6_dump(const ipv6_t * ipv6);
 
+//---------------------------------------------------------------------------
+// address_t
+//---------------------------------------------------------------------------
+
+typedef struct {
+    int  family;  /**< Address family: AF_INET or AF_INET6 */
+    ip_t ip;      /**< IP address (binary) */
+} address_t;
+
+/**
+ * \brief Allocate a new address_t instance. Most of time you could
+ *    directly use address_from_string.
+ * \return The newly created address_t instance if successful,
+ *    NULL otherwise.
+ */
+
+address_t * address_create();
+
+/**
+ * \brief Compare two address_t instances.
+ * \param x The first address_t instance.
+ * \param y The second address_t instance.
+ * \return A value < 0 if x is lower than y,
+ *         a value > 0 if y is lower than x,
+ *         0 if x is equal to y.
+ * If the both addresses do not belong to the same family
+ * the value, the addresses are only compared on their family.
+ */
+
+int address_cmp(const address_t * x, const address_t * y);
+
+/**
+ * \brief Release an address_t instance from the memory.
+ * \param address An address instance.
+ */
+
+void address_free(address_t * address);
+
+/**
+ * \brief Initialize an address_t according to a string.
+ * \param family Address family (AF_INET or AF_INET6).
+ *    \sa address_guess_family
+ * \param hostname An IP address (string format) or a FQDN.
+ * \param address A preallocated address_t instance.
+ * \return see getaddrinfo's returned values (0 if successful).
+ */
+
+int address_from_string(int family, const char * hostname, address_t * address);
+
+/**
+ * \brief Duplicate an address.
+ * \param address The address to copy.
+ * \return The copied address if successful, NULL otherwise
+ */
+
+address_t * address_dup(const address_t * address);
+
+/**
+ * \brief Retrieve the size of the nested IP address of an
+ *    address_t instance.
+ * \param address An address instance.
+ * \param The size of the nested IP address if successful, 0 otherwise.
+ */
+
+size_t address_get_size(const address_t * address);
+
 /**
  * \brief Print an address
  * \param address The address to print
@@ -39,8 +104,9 @@ void ipv6_dump(const ipv6_t * ipv6);
 void address_dump(const address_t * address);
 
 /**
- * \brief Guess address family of an IP
- * \param str_ip IP (string format)
+ * \brief Guess address family of an IP by using the
+ *    first result of getaddrinfo (if any).
+ * \param str_ip An IP address (string format)
  * \param pfamily Address of an integer in which the address
  *   family will be written. *pfamily may be equal to AF_INET
  *   AF_INET6, etc.
@@ -48,15 +114,6 @@ void address_dump(const address_t * address);
  */
 
 bool address_guess_family(const char * str_ip, int * pfamily);
-
-/**
- * \brief Initialize an address_t according to a string.
- * \param family Address family (AF_INET or AF_INET6)
- * \param hostname An IP address (string format) or a FQDN.
- * \return see getaddrinfo's returned values 
- */
-
-int address_from_string(int family, const char * hostname, address_t * address);
 
 /**
  * \brief Initialize an ip_t instance according to a string
@@ -80,7 +137,7 @@ int address_to_string(const address_t * addr, char ** pbuffer);
 
 /**
  * \brief Converts an IP stored in a string into its corresponding hostname
- * \param str_ip A string containing either an IPv4 or either an IPv6 address
+ * \param address An address_t instance 
  * \param phostname Pass a pointer initialized to NULL.
  *    *phostname is automatically allocated if it is required.
  *    If the resolution fails, *phostname remains equal to NULL.
@@ -88,8 +145,6 @@ int address_to_string(const address_t * addr, char ** pbuffer);
  * \return true iif successfull 
  */
 
-bool address_resolv(const char * str_ip, char ** phostname);
-
-// TODO address_resolv(const address_t * address, char ** phostname)
+bool address_resolv(const address_t * address, char ** phostname);
 
 #endif 

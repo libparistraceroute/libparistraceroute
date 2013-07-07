@@ -210,9 +210,8 @@ int main(int argc, char ** argv)
         fprintf(stderr, "Can not set both ip versions\n");
         goto ERR_IP_VERSIONS_CONFLICT;
     } else {
-
         // Get address family if not defined by the user
-       if (! address_guess_family(dst_ip, &family)) goto ERR_ADDRESS_GUESS_FAMILY;
+        if (!address_guess_family(dst_ip, &family)) goto ERR_ADDRESS_GUESS_FAMILY;
     }
 
     switch (family) {
@@ -256,9 +255,9 @@ int main(int argc, char ** argv)
     // Set default values
     probe_set_fields(
         probe,
-        STR("dst_ip",   dst_ip_num),
-        I16("dst_port", dst_port[0]),
-        I16("src_port", src_port[0]),
+        ADDRESS("dst_ip",   &dst_addr),
+        I16    ("dst_port", dst_port[0]),
+        I16    ("src_port", src_port[0]),
         NULL
     );
 
@@ -291,7 +290,7 @@ int main(int argc, char ** argv)
         ptraceroute_options->max_ttl          = options_traceroute_get_max_ttl();
         ptraceroute_options->num_probes       = options_traceroute_get_num_queries();
         ptraceroute_options->max_undiscovered = options_traceroute_get_max_undiscovered();
-        ptraceroute_options->dst_ip           = dst_ip_num;
+        ptraceroute_options->dst_addr         = &dst_addr;
     }
 
     // Create libparistraceroute loop

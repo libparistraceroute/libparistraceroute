@@ -1,18 +1,21 @@
-#include <stdlib.h>     // malloc, calloc, free
-#include <string.h>   // strdup
-#include <stdio.h>    // printf
-#include <sys/socket.h> // AF_INET, AF_INET6
-
 #include "packet.h"
 
-packet_t * packet_create(void) {
+#include <stdlib.h>     // malloc, calloc, free
+#include <string.h>     // strdup
+#include <stdio.h>      // printf
+#include <sys/socket.h> // AF_INET, AF_INET6
+
+packet_t * packet_create() {
     packet_t * packet;
 
     if (!(packet = calloc(1, sizeof(packet_t)))) goto ERR_CALLOC;
-    if (!(packet->buffer = buffer_create()))     goto ERR_BUFFER;
+    if (!(packet->buffer = buffer_create()))     goto ERR_BUFFER_CREATE;
+    if (!(packet->dst_ip = address_create()))    goto ERR_ADDRESS_CREATE;
     return packet;
 
-ERR_BUFFER:
+ERR_ADDRESS_CREATE:
+    buffer_free(packet->buffer);
+ERR_BUFFER_CREATE:
     free(packet);
 ERR_CALLOC:
     return NULL;
@@ -39,13 +42,14 @@ packet_t * packet_create_from_bytes(uint8_t * bytes, size_t num_bytes) {
 
 packet_t * packet_dup(const packet_t * packet) {
     packet_t * ret = NULL;
+
     if ((ret = malloc(sizeof(packet_t)))) {
         if (!(ret->buffer = buffer_dup(packet->buffer))) goto ERR_BUFFER_DUP;
         if (packet->dst_ip) {
-            if (!(ret->dst_ip = strdup(packet->dst_ip))) goto ERR_DST_IP_DUP;
+            if (!(ret->dst_ip = address_dup(packet->dst_ip))) goto ERR_DST_IP_DUP;
         } else ret->dst_ip = NULL;
-        ret->dst_port = packet->dst_port;
     }
+
     return ret;
 
 ERR_DST_IP_DUP:
@@ -59,7 +63,7 @@ void packet_free(packet_t * packet) {
         if (packet->buffer) {
             buffer_free(packet->buffer);
         }
-        if (packet->dst_ip) free(packet->dst_ip);
+        if (packet->dst_ip) address_free(packet->dst_ip);
         free(packet);
     }
 }
@@ -99,5 +103,4 @@ void packet_set_buffer(packet_t * packet, buffer_t * buffer) {
 
 void packet_dump(const packet_t * packet) {
     buffer_dump(packet->buffer);
-    printf(" sent to (%s, %d)\n", packet->dst_ip, packet->dst_port);
 }

@@ -83,13 +83,12 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     const protocol_field_t * protocol_field;
     size_t                   protocol_field_size;
 
-    if (field->type == TYPE_GENERATOR) {
-        // TODO we should simply fetch the next generated value
+    if (!field) {
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
     }
 
-    if (!field) {
+    if (field->type == TYPE_GENERATOR) {
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
     }
@@ -102,8 +101,6 @@ bool layer_set_field(layer_t * layer, const field_t * field)
         goto ERR_FIELD_NOT_FOUND;
     }
 
-    /*
-    // TODO Uncomment this once ipv4 and ipv6 will use field of type TYPE_ADDRESS
     if (protocol_field->type != field->type) {
         fprintf(stderr, "'%s' field has not the right type (%s instead of %s)\n",
             field->key,
@@ -112,7 +109,6 @@ bool layer_set_field(layer_t * layer, const field_t * field)
         );
         goto ERR_INVALID_FIELD_TYPE;
     }
-    */
 
     // Check whether the probe buffer can store this field
     // NOTE: the allocation of the buffer might be tricky for headers with
@@ -138,7 +134,7 @@ bool layer_set_field(layer_t * layer, const field_t * field)
 
 ERR_PROTOCOL_FIELD_SET:
 ERR_BUFFER_TOO_SMALL:
-//ERR_INVALID_FIELD_TYPE:
+ERR_INVALID_FIELD_TYPE:
 ERR_FIELD_NOT_FOUND:
 ERR_IN_PAYLOAD:
 ERR_INVALID_FIELD:
