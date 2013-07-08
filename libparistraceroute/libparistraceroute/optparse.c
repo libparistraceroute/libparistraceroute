@@ -330,24 +330,10 @@ int opt_store_int_lim(char *arg, void *data)
     return 0;
 }
 
-int opt_store_int_lim_en(char *arg, void *data)
+int opt_store_int_lim_en(char * arg, void * data)
 {
-    char *end;
-    long val;
-    int *p = data;
-
-    assert(arg && data);
-    errno = 0;
-    val = strtol(arg, &end, 10);
-    if (end == arg || end[0])
-        opt_err("the value of %s must be an integer");
-    if (errno == ERANGE || val < p[1] || val > p[2]) {
-        opt_err_pfx();
-        fprintf(stderr, "the value of %s must be in the range %d to %d",
-                opt_name(), p[1], p[2]);
-        opt_err_sfx();
-    }
-    p[0] = val;
+    opt_store_int_lim(arg, data);
+    int * p = data;
     p[3] = 1;
     return 0;
 }
@@ -390,6 +376,14 @@ int opt_store_double_lim(char *arg, void *data)
     return 0;
 }
 
+int opt_store_double_lim_en(char *arg, void *data)
+{
+    opt_store_double_lim(arg, data);
+
+    double *p = data;
+    p[3] = 1;
+    return 0;
+}
 int opt_store_str(char *arg, void *data) {
     struct opt_str *s = data;
 

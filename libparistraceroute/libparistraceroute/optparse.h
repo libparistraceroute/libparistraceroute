@@ -171,6 +171,13 @@ int opt_store_double_lim(char *, void *);
  * \
  */
 
+int opt_store_double_lim_en(char *, void *);
+
+/**
+ * \brief
+ * \
+ */
+
 int opt_store_str(char *, void *);
 
 /**

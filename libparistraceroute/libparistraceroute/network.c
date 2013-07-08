@@ -470,9 +470,14 @@ bool network_send_probe(network_t * network, probe_t * probe)
     // - Best effort probes are directly pushed in our sendq.
     // - Scheduled probes are scheduled, stored in the probe group, and
     // pushed in the sendq when the probe_group notify pt_loop.
-    return probe_get_delay(probe) == DELAY_BEST_EFFORT ?
-        queue_push_element(network->sendq, probe):
-        probe_group_add(network->scheduled_probes, probe);
+    if (probe_get_delay(probe) == DELAY_BEST_EFFORT) {
+        probe_set_queueing_time(probe, get_timestamp());
+        return  queue_push_element(network->sendq, probe);
+
+    } else {
+       printf("adding probe in probe_group\n");
+       return probe_group_add(network->scheduled_probes, probe);
+    }
 }
 
 // TODO This could be replaced by watchers: FD -> action
@@ -649,6 +654,9 @@ static bool network_process_probe_node(network_t * network, tree_node_t * node, 
     if (!(tree_node_probe->tag == PROBE))                               goto ERR_TAG;
     probe = (probe_t *) (tree_node_probe->data.probe);
     //TODO packet_from_probe must manage generator
+
+    probe_set_queueing_time(probe, get_timestamp());
+//    printf("probe delay : %f ,sending time %f\n", probe_get_delay(probe), get_timestamp());
     if (!(queue_push_element(network->sendq, probe)))                   goto ERR_QUEUE_PUSH;
     /*
     probe_set_left_to_send(probe, probe_get_left_to_send(probe) - 1);
@@ -658,9 +666,9 @@ static bool network_process_probe_node(network_t * network, tree_node_t * node, 
     */
     if (--(probe->left_to_send) == 0) {
         if (!(probe_group_del(network->scheduled_probes, node->parent, i)))  goto ERR_PROBE_GROUP_DEL;
+ //       printf("probe group delay = %f\n", probe_group_get_next_delay(network->scheduled_probes));
     } else {
-        // TODO rename probe_group_update_delay
-       probe_group_update_delay(network->scheduled_probes, node, get_node_next_delay(node));
+        probe_group_update_delay(network->scheduled_probes, node, get_node_next_delay(node));
         return true;
     }
 

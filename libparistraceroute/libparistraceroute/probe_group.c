@@ -80,11 +80,14 @@ void  probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node, 
 {
     double node_delay = get_node_delay(node);
 
+    printf("node = %lx node_delay = %lf ?> delay = %lf\n", node, node_delay, delay);
     if (node_delay > delay) {
         set_node_delay(node, delay);
         if (node->parent) {
+            printf(">>> updating parent\n");
              probe_group_update_delay(probe_group, node->parent, delay);
         } else {
+            printf("==============>>> updating timer = %lf\n", delay);
             update_timer(probe_group->scheduling_timerfd, delay);
         }
     }
@@ -181,7 +184,7 @@ static bool probe_group_add_impl(probe_group_t * probe_group, tree_node_t * node
     if ((new_child = tree_node_add_child(node_caller, tree_node_probe))) {
     delay = get_node_delay(new_child);
     if (get_node_delay(node_caller) > delay)
-         probe_group_update_delay(probe_group, node_caller, delay);
+        probe_group_update_delay(probe_group, node_caller, delay);
         ret = true;
     }
 
@@ -213,13 +216,14 @@ bool probe_group_del(probe_group_t * probe_group, tree_node_t * node_caller, siz
     delay_del = get_node_delay(node_del);
     if (delay_del <= get_node_delay(node_caller)) {
         if (!(tree_node_del_ith_child(node_caller, index))) goto ERR_DEL_CHILD;
+        printf("deleting child\n");
         num_children = tree_node_get_num_children(node_caller);
         delay = DBL_MAX;
         for (i = 0; i < num_children; ++i) {
             delay = MIN(delay, get_node_delay(tree_node_get_ith_child(node_caller, i)));
         }
-        set_node_delay(node_caller, delay);
-         probe_group_update_delay(probe_group, node_caller, delay);
+        printf(">>>>>>>> probe_group_del new delay is %lf\n", delay);
+        probe_group_update_delay(probe_group, node_caller, delay);
 
         return true;
     }

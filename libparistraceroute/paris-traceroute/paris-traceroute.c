@@ -5,6 +5,8 @@
 #include <errno.h>                   // EINVAL, ENOMEM, errno
 #include <libgen.h>                  // basename
 #include <string.h>                  // strcmp
+#include <float.h>                   //DBL_MAX
+
 #include <sys/types.h>               // gai_strerror
 #include <sys/socket.h>              // gai_strerror
 #include <netdb.h>                   // gai_strerror
@@ -31,7 +33,8 @@
 #define HELP_s        "set PORT as source port (default: 33456)"
 #define HELP_P        "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
 #define HELP_U        "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
-#define HELP_v "print debug information when seeking probe/reply"
+#define HELP_v        "print debug information when seeking probe/reply"
+#define HELP_z        "Minimal time interval between probes (default 0).  If the value is more than 10, then it specifies a number in milliseconds, else it is a number of seconds (float point values allowed  too)"
 #define TEXT          "paris-traceroute - print the IP-level routes between two Internet hosts."
 #define TEXT_OPTIONS  "Options"
 
@@ -53,23 +56,25 @@ const char * protocol_names[] = {
 };
 
 // Bounded integer parameters
-//                        def     min  max         option_enabled
-static int dst_port[4] = {33457,  0,   UINT16_MAX, 0};
-static int src_port[4] = {33456,  0,   UINT16_MAX, 1};
+//                              def     min  max         option_enabled
+static int    dst_port[4]    = {33457,  0,   UINT16_MAX, 0};
+static int    src_port[4]    = {33456,  0,   UINT16_MAX, 1};
+static double send_time[4]   = {1,      1,   DBL_MAX,    0};
 
 struct opt_spec runnable_options[] = {
-    // action              sf          lf                   metavar             help          data
-    {opt_text,             OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,         OPT_NO_DATA},
-    {opt_text,             OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
-    {opt_store_1,          "4",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,       &is_ipv4},
-    {opt_store_1,          "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
-    {opt_store_1,          "v",        "--verbose",         OPT_NO_METAVAR,     HELP_v,       &is_verbose},
-    {opt_store_choice,     "a",        "--algo",            "ALGORITHM",        HELP_a,       algorithm_names},
-    {opt_store_0,          "n",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,       &do_resolv},
-    {opt_store_int_lim_en, "s",        "--src-port",        "PORT",             HELP_s,       src_port},
-    {opt_store_int_lim_en, "d",        "--drc-port",        "PORT",             HELP_d,       dst_port},
-    {opt_store_choice,     "P",        "--protocol",        "protocol",         HELP_P,       protocol_names},
-    {opt_store_1,          "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
+    // action                 sf          lf                   metavar             help          data
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,         OPT_NO_DATA},
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
+    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,       &is_ipv4},
+    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
+    {opt_store_1,             "v",        "--verbose",         OPT_NO_METAVAR,     HELP_v,       &is_verbose},
+    {opt_store_choice,        "a",        "--algo",            "ALGORITHM",        HELP_a,       algorithm_names},
+    {opt_store_0,             "n",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,       &do_resolv},
+    {opt_store_double_lim_en, "z",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_z,       send_time},
+    {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             HELP_s,       src_port},
+    {opt_store_int_lim_en,    "d",        "--drc-port",        "PORT",             HELP_d,       dst_port},
+    {opt_store_choice,        "P",        "--protocol",        "protocol",         HELP_P,       protocol_names},
+    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
     END_OPT_SPECS
 };
 
@@ -130,7 +135,8 @@ void my_traceroute_handler(
             {
                 double send_time = probe_get_sending_time(probe),
                        recv_time = probe_get_recv_time(reply);
-                printf(" (%-5.2lfms) ", 1000 * (recv_time - send_time));
+
+                printf("(delay:%-5.2lfms) ",  1000 * (recv_time - send_time));
             }
             num_probes_printed++;
             break;
@@ -195,7 +201,7 @@ void algorithm_handler(pt_loop_t * loop, event_t * event, void * user_data)
             if (strcmp(algorithm_name, "mda") == 0) {
                 // Dump full lattice, only when MDA_NEW_LINK is not handled
                 printf("Lattice:\n");
-                lattice_dump(mda_data->lattice, mda_lattice_elt_dump); 
+                lattice_dump(mda_data->lattice, mda_lattice_elt_dump);
                 printf("\n");
             }
             pt_loop_terminate(loop);
@@ -255,7 +261,6 @@ int main(int argc, char ** argv)
     pt_loop_t               * loop;
     int                       exit_code = EXIT_FAILURE;
     int                       family;
-    size_t                    packet_size;
     address_t                 dst_addr;
     options_t               * options;
     const char              * version = "version 1.0";
@@ -355,12 +360,13 @@ int main(int argc, char ** argv)
         NULL
     );
 
+    probe_set_delay(probe, DOUBLE("delay", 2));
+
     // Option -U sets port to 53 (DNS)
     if (is_udp && !dst_port[3]) {
         probe_set_fields(probe, I16("dst_port", 53), NULL);
     }
 
-    packet_size = packet_get_size(probe->packet);
     // Dedicated options (if any)
     if (strcmp(algorithm_name, "paris-traceroute") == 0) {
         traceroute_options  = traceroute_get_default_options();
@@ -401,7 +407,8 @@ int main(int argc, char ** argv)
             dst_ip,
             dst_ip_num,
             ptraceroute_options->max_ttl,
-            packet_size);
+            packet_get_size(probe->packet)
+            );
 
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {

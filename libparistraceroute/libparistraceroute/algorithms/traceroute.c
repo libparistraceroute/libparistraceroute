@@ -127,13 +127,19 @@ static bool send_traceroute_probe(
     pt_loop_t         * loop,
     traceroute_data_t * traceroute_data,
     const probe_t     * probe_skel,
-    uint8_t             ttl
+    uint8_t             ttl,
+    size_t              i
 ) {
     probe_t * probe;
-
+    double    delay;
     // a probe must never be altered, otherwise the network layer may
     // manage corrupted probes.
     if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP;
+    if (probe_get_delay(probe) != DELAY_BEST_EFFORT) {
+        delay = i * probe_get_delay(probe_skel);
+        probe_set_delay(probe, DOUBLE("delay", delay));
+        //printf("current delay: %f\n", probe_get_delay(probe));
+    }
     if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
     if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;
 
@@ -146,6 +152,32 @@ ERR_PROBE_DUP:
     fprintf(stderr, "Error in send_traceroute_probe\n");
     return false;
 }
+/*
+static bool send_traceroute_probe_scheduled(
+    pt_loop_t         * loop,
+    traceroute_data_t * traceroute_data,
+    const probe_t     * probe_skel,
+    uint8_t             ttl
+) {
+    probe_t * probe;
+
+    // a probe must never be altered, otherwise the network layer may
+    // manage corrupted probes.
+    if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP;
+    if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
+        probe_set_left_to_send(probe, num_probes);
+    if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;
+
+    return pt_send_probe(loop, probe);
+
+ERR_PROBE_PUSH_ELEMENT:
+ERR_PROBE_SET_FIELDS:
+    probe_free(probe);
+ERR_PROBE_DUP:
+    fprintf(stderr, "Error in send_traceroute_probe\n");
+    return false;
+}
+*/
 
 /**
  * \brief Send n traceroute probes toward a destination with a given TTL
@@ -159,14 +191,14 @@ ERR_PROBE_DUP:
 bool send_traceroute_probes(
     pt_loop_t         * loop,
     traceroute_data_t * traceroute_data,
-    const probe_t     * probe_skel,
+    probe_t           * probe_skel,
     size_t              num_probes,
     uint8_t             ttl
 ) {
     size_t    i;
 
     for (i = 0; i < num_probes; ++i) {
-        if (!(send_traceroute_probe(loop, traceroute_data, probe_skel, ttl))) {
+        if (!(send_traceroute_probe(loop, traceroute_data, probe_skel, ttl, i + 1))) {
             return false;
         }
     }

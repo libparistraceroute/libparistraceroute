@@ -37,7 +37,7 @@ static generator_t uniform = {
     .fields         = uniform_fields,
     .num_fields     = 1,
     .size           =  sizeof(uniform_generator_t),
-    .value          = 0,
+    .value          = 1,
 };
 
 GENERATOR_REGISTER(uniform);

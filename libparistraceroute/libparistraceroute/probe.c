@@ -378,7 +378,7 @@ probe_t * probe_dup(const probe_t * probe)
     ret->queueing_time = probe->queueing_time;
     ret->recv_time     = probe->recv_time;
     ret->caller        = probe->caller;
-    ret->delay         = probe->delay ? field_dup(probe->delay) : NULL;
+    ret->delay         = probe->delay ? field_dup(probe->delay): NULL;
     return ret;
 
     /*
@@ -428,7 +428,7 @@ void probe_dump(const probe_t * probe)
 }
 
 void probe_debug(const probe_t * probe) {
-    size_t    i, num_layers = probe_get_num_layers(probe); 
+    size_t    i, num_layers = probe_get_num_layers(probe);
     layer_t * layer1,
             * layer2;
     probe_t * probe_should_be;
@@ -964,7 +964,7 @@ double probe_next_delay(probe_t * probe)
     if (field_delay) {
         switch (field_delay->type) {
             case TYPE_DOUBLE :
-                field_delay->value.dbl += field_delay->value.dbl;
+                //field_delay->value.dbl += field_delay->value.dbl;
                 delay = field_delay->value.dbl;
                 break;
             case TYPE_GENERATOR :

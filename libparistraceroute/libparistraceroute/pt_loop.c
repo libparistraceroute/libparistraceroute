@@ -302,7 +302,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                     if (loop->network->is_verbose) fprintf(stderr, "pt_loop: Cannot fetch packet\n");
                 }
             } else if (cur_fd == network_group_timerfd) {
-                // printf("pt_loop processing scheduled probes\n");
+                 //printf("pt_loop processing scheduled probes\n");
                 network_process_scheduled_probe(loop->network);
             } else if (cur_fd == network_icmpv4_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMP);
@@ -358,7 +358,6 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 {
     // Annotate which algorithm has generated this probe
     probe_set_caller(probe, loop->cur_instance);
-    probe_set_queueing_time(probe, get_timestamp());
 
     // Tagging is achieved by network layer
     return network_send_probe(loop->network, probe);
