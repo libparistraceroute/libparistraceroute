@@ -6,15 +6,14 @@
  * \brief Header for probes
  */
 
-#include <stdbool.h>
-#include "field.h"
-#include "layer.h"
-#include "buffer.h"
-#include "bitfield.h"
-#include "dynarray.h"
-#include "packet.h"
-#include "tree.h"
-#include "generator.h"
+#include <stdbool.h>   // bool
+#include <stddef.h>    // size_t
+
+#include "field.h"     // field_t
+#include "layer.h"     // layer_t
+//#include "bitfield.h"
+#include "dynarray.h"  // dynarray_t
+#include "packet.h"    // packet_t
 
 #define DELAY_BEST_EFFORT -1 // This MUST be < 0, see network_send_probe
 /**
@@ -43,7 +42,7 @@ typedef struct {
  * \return A pointer to a probe_t structure containing the probe
  */
 
-probe_t * probe_create(void);
+probe_t * probe_create();
 
 /**
  * \brief Duplicate a probe from probe skeleton
@@ -318,41 +317,6 @@ size_t probe_get_left_to_send(probe_t * probe);
 
 void probe_set_left_to_send(probe_t * probe, size_t num_left);
 
-/******************************************************************************
- * probe_reply_t
- ******************************************************************************/
-
-typedef struct {
-    probe_t * probe;
-    probe_t * reply;
-} probe_reply_t;
-
-probe_reply_t * probe_reply_create(void);
-void probe_reply_free(probe_reply_t * probe_reply);
-void probe_reply_deep_free(probe_reply_t * probe_reply);
-
-// Accessors
-
-void probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe);
-probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
-void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
-probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
-
-/******************************************************************************
- * pt_loop_t
- ******************************************************************************/
-
-struct pt_loop_s;
-
-/**
- * \brief Callback function to handle the reply from a probe
- * \param loop Pointer to a pt_loop_s structure within which the probe is running (?)
- * \param probe Pointer to a probe_t structure containing the probe that was sent (?)
- * \param reply Pointer to an empty probe_t structure to hold the reply (?)
- */
-
-void pt_probe_reply_callback(struct pt_loop_s * loop, probe_t * probe, probe_t * reply);
-
 /**
  * \brief Update a probe_t instance according to a set of protocol names.
  * \param probe The probe we're altering
@@ -369,5 +333,25 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...);
  */
 
 packet_t * probe_create_packet(probe_t * probe);
+
+//---------------------------------------------------------------------------
+// probe_reply_t
+//---------------------------------------------------------------------------
+
+typedef struct {
+    probe_t * probe;
+    probe_t * reply;
+} probe_reply_t;
+
+probe_reply_t * probe_reply_create();
+void probe_reply_free(probe_reply_t * probe_reply);
+void probe_reply_deep_free(probe_reply_t * probe_reply);
+
+// Accessors
+
+void probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe);
+probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
+void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
+probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
 
 #endif

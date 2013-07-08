@@ -24,16 +24,17 @@
 // Command line stuff
 //---------------------------------------------------------------------------
 
-#define HELP_4        "Use IPv4"
-#define HELP_6        "Use IPv6"
-#define HELP_a        "Traceroute algorithm: one of  'paris-traceroute' [default],'mda'"
-#define HELP_d        "Set PORT as destination port (default: 33457)"
-#define HELP_s        "Set PORT as source port (default: 33456)"
-#define HELP_P        "Use raw packet of protocol prot for tracerouting: one of 'udp' [default]"
-#define HELP_U        "Use UDP to particular port for tracerouting (instead of increasing the port per each probe),default port is 53"
-#define HELP_v        "Print debug information when seeking probe/reply"
-#define TEXT          "paris-traceroute - print the IP-level routes between two Internet hosts."
-#define TEXT_OPTIONS  "Options"
+#define HELP_4        "Use IPv4."
+#define HELP_6        "Use IPv6."
+#define HELP_a        "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
+#define HELP_d        "Set PORT as destination port (default: 33457)."
+#define HELP_s        "Set PORT as source port (default: 33456)."
+#define HELP_P        "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp')."
+#define HELP_U        "Use UDP for tracerouting. The destination port is set by default to 53."
+#define HELP_I        "Use ICMPv4/ICMPv6 for tracerouting."
+#define HELP_v        "Print libparistraceroute debug information."
+#define TEXT          "paris-traceroute - print the IP-level path toward a given IP host."
+#define TEXT_OPTIONS  "Options:"
 
 const char * algorithm_names[] = {
     "paris-traceroute", // default value
@@ -44,10 +45,12 @@ const char * algorithm_names[] = {
 static bool is_ipv4    = false;
 static bool is_ipv6    = false;
 static bool is_udp     = false;
+static bool is_icmp    = false;
 static bool is_verbose = false;
 
 const char * protocol_names[] = {
     "udp",
+    "icmp",
     NULL
 };
 
@@ -63,11 +66,12 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,          "4",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,       &is_ipv4},
     {opt_store_1,          "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
     {opt_store_1,          "v",        "--verbose",         OPT_NO_METAVAR,     HELP_v,       &is_verbose},
-    {opt_store_choice,     "a",        "--algo",            "ALGORITHM",        HELP_a,       algorithm_names},
+    {opt_store_choice,     "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
     {opt_store_int_lim_en, "s",        "--src-port",        "PORT",             HELP_s,       src_port},
-    {opt_store_int_lim_en, "d",        "--drc-port",        "PORT",             HELP_d,       dst_port},
-    {opt_store_choice,     "P",        "--protocol",        "protocol",         HELP_P,       protocol_names},
+    {opt_store_int_lim_en, "d",        "--dst-port",        "PORT",             HELP_d,       dst_port},
+    {opt_store_choice,     "P",        "--protocol",        "PROTOCOL",         HELP_P,       protocol_names},
     {opt_store_1,          "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
+    {opt_store_1,          "I",        "--icmp",            OPT_NO_METAVAR,     HELP_I,       &is_icmp},
     END_OPT_SPECS
 };
 
@@ -142,11 +146,12 @@ static options_t * init_options(const char * version) {
     if (!(options = options_create(NULL))) {
         goto ERR_OPTIONS_CREATE;
     }
+
     options_add_optspecs(options, runnable_options);
-    options_add_optspecs(options, traceroute_get_opt_specs());
-    options_add_optspecs(options, mda_get_opt_specs());
-    options_add_optspecs(options, network_get_opt_specs());
-    options_add_common(options, version);
+    options_add_optspecs(options, traceroute_get_options());
+    options_add_optspecs(options, mda_get_options());
+    options_add_optspecs(options, network_get_options());
+    options_add_common  (options, version);
     return options;
 
 ERR_OPTIONS_CREATE:
@@ -158,19 +163,20 @@ int main(int argc, char ** argv)
     traceroute_options_t      traceroute_options;
     traceroute_options_t    * ptraceroute_options;
     mda_options_t             mda_options;
+    const char              * version = "version 1.0";
+    const char              * usage = "usage: %s [options] host\n";
+
     probe_t                 * probe;
     pt_loop_t               * loop;
     int                       exit_code = EXIT_FAILURE;
     int                       family;
-    size_t                    packet_size;
     address_t                 dst_addr;
     options_t               * options;
-    const char              * version = "version 1.0";
-    const char              * usage = "usage: %s [options] host\n";
     char                    * dst_ip;
     char                    * dst_ip_num;
     const char              * algorithm_name;
     const char              * ip_protocol_name;
+    const char              * protocol_name;
     void                    * algorithm_options;
 
     //prepare the commande line options
@@ -205,7 +211,7 @@ int main(int argc, char ** argv)
     if (is_ipv4 && !is_ipv6) {
         family = AF_INET;
     } else if (is_ipv6 && !is_ipv4) {
-        family =  AF_INET6;
+        family = AF_INET6;
     } else if (is_ipv4 && is_ipv6) {
         fprintf(stderr, "Can not set both ip versions\n");
         goto ERR_IP_VERSIONS_CONFLICT;
@@ -244,29 +250,44 @@ int main(int argc, char ** argv)
         goto ERR_PROBE_SKEL;
     }
 
-    probe_set_protocols(
-        probe,
-        ip_protocol_name,
-        is_udp  ? "udp" : protocol_names[0],
-        NULL
-    );
-    probe_payload_resize(probe, 2);
+    is_icmp |= (strcmp(protocol_names[0], "icmp") == 0);
+    is_udp  |= (strcmp(protocol_names[0], "udp")  == 0);
 
-    // Set default values
-    probe_set_fields(
-        probe,
-        ADDRESS("dst_ip",   &dst_addr),
-        I16    ("dst_port", dst_port[0]),
-        I16    ("src_port", src_port[0]),
-        NULL
-    );
+    // TODO akram control whether is_icmp && is_udp are not both set to true
 
-    // Option -U sets port to 53 (DNS)
+    if (is_icmp) {
+        switch (family) {
+            case AF_INET:
+                protocol_name = "icmpv4";
+                break;
+            case AF_INET6:
+                protocol_name = "icmpv6";
+                break;
+            default:
+                fprintf(stderr, "Internet family not supported (%d)\n", family);
+                goto ERR_FAMILY2;
+        }
+    }
+
+    // Prepare probe 
+    probe_set_protocols(probe, ip_protocol_name, protocol_name, NULL);
+    probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
+
+    if (!is_icmp) {
+        probe_set_fields(
+            probe,
+            I16    ("dst_port", dst_port[0]),
+            I16    ("src_port", src_port[0]),
+            NULL
+        );
+        probe_payload_resize(probe, 2);
+    }
+
+    // Option -U sets port to 53 (DNS) and dst_port not explicitely set
     if (is_udp && !dst_port[3]) {
         probe_set_fields(probe, I16("dst_port", 53), NULL);
     }
 
-    packet_size = packet_get_size(probe->packet);
     // Dedicated options (if any)
     if (strcmp(algorithm_name, "paris-traceroute") == 0) {
         traceroute_options  = traceroute_get_default_options();
@@ -286,11 +307,15 @@ int main(int argc, char ** argv)
 
     // Common options
     if (ptraceroute_options) {
+        // TODO akram: add options_traceroute_init() in algorithms/traceroute.c which
+        // initializes a traceroute_options_t * structure by using command line options.
+        // Then, remove the following options. Same for job for mda.
         ptraceroute_options->min_ttl          = options_traceroute_get_min_ttl();
         ptraceroute_options->max_ttl          = options_traceroute_get_max_ttl();
         ptraceroute_options->num_probes       = options_traceroute_get_num_queries();
         ptraceroute_options->max_undiscovered = options_traceroute_get_max_undiscovered();
         ptraceroute_options->dst_addr         = &dst_addr;
+        ptraceroute_options->do_resolv        = options_traceroute_get_do_resolv();
     }
 
     // Create libparistraceroute loop
@@ -307,7 +332,7 @@ int main(int argc, char ** argv)
         dst_ip,
         dst_ip_num,
         ptraceroute_options->max_ttl,
-        packet_size
+        packet_get_size(probe->packet)
     );
 
     // Add an algorithm instance in the main loop
@@ -328,6 +353,7 @@ ERR_PT_LOOP:
 ERR_INSTANCE:
 ERR_UNKNOWN_ALGORITHM:
     probe_free(probe);
+ERR_FAMILY2:
 ERR_PROBE_SKEL:
     // pt_loop_free() automatically removes algorithms instances,
     // probe_replies and events from the memory.

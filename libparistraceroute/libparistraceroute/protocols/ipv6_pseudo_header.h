@@ -2,15 +2,15 @@
 #define IPV6_PSEUDO_HEADER_H
 
 #include "buffer.h"      // buffer_t
-#include "field.h"       // uint128_t
+#include "address.h"     // ipv6_t
 
 /**
  * IPv6 pseudo header: http://tools.ietf.org/html/rfc2460
  */
 
 typedef struct {
-    uint128_t ip_src;    /**< Source IPv6      */
-    uint128_t ip_dst;    /**< Destination IPv6 */
+    ipv6_t    ip_src;    /**< Source IPv6      */
+    ipv6_t    ip_dst;    /**< Destination IPv6 */
     uint32_t  size;      /**< Size of IP layer contents (IP packet size - IP header size)  */ 
     uint16_t  zeros;     /**< Zeros */
     uint8_t   zero;      /**< Zeros */

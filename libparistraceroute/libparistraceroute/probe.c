@@ -1,20 +1,16 @@
-#include <stdlib.h>
+#include "probe.h"
+
+#include <stdlib.h>          // malloc, free
 #include <stdio.h>           // perror
 #include <errno.h>           // errno
 #include <stdarg.h>          // va_start, va_copy, va_arg
 #include <string.h>          // memcpy
-#include <netinet/in.h>      // IPPROTO_IPV6, IPPROTO_ICMPV6
-#include <netinet/ip_icmp.h> // ICMP_DEST_UNREACH,  ICMP_TIME_EXCEEDED
-#include <netinet/icmp6.h>   // ICMP6_DEST_UNREACH, ICMP6_TIME_EXCEEDED
-#include <limits.h>
-#include <float.h>
+#include <netinet/in.h>      // IPPROTO_IPV6
 
-#include "buffer.h"
-#include "probe.h"
-#include "protocol.h"
-#include "pt_loop.h"
-#include "common.h"
-#include "metafield.h"
+#include "buffer.h"          // buffer_t
+#include "protocol.h"        // protocol_t
+#include "common.h"          // ELEMENT_FREE
+#include "generator.h"       // generator_*
 
 //-----------------------------------------------------------
 // Probe consistency
@@ -166,7 +162,7 @@ static bool probe_update_length(probe_t * probe)
             // IPv6 stores in its header (made of 40 bytes) the payload length
             // whereas the other protocol stores the header + the payload length
             length = layer->protocol->protocol == IPPROTO_IPV6 ?
-                layer_get_segment_size(layer) - 40 :
+                layer_get_segment_size(layer) - 40 : // sizeof(struct ip6_hdr) 
                 layer_get_segment_size(layer);
 
             // Update 'length' field (if any)
@@ -187,29 +183,39 @@ bool probe_update_checksum(probe_t * probe)
     for (j = 0; j < num_layers; j++) {
         i = num_layers - j - 1;
         layer = probe_get_layer(probe, i);
-        if (layer->protocol) {
-            // Does the protocol require a pseudoheader?
+
+        // Does the protocol require a pseudoheader to compute its checksum?
+        if (layer->protocol && layer->protocol->write_checksum) {
+
+            // Compute the checksum according to the layer's buffer and
+            // the pseudo header (if any).
             if (layer->protocol->create_pseudo_header) {
                 if (i == 0) {
-                    // This layer has no previous layer.
-                    // We can't compute the corresponding pseudo-header!
+                    // This layer has no previous layer which is required to compute its checksum.
                     errno = EINVAL;
                     return false;
                 } else {
                     layer_prev = probe_get_layer(probe, i - 1);
+
+                    if (strncmp(layer_prev->protocol->name, "ipv", 3) != 0) {
+                        fprintf(stderr,
+                            "Trying to calculate %s checksum but the previous layer is not an IP layer (%s)\n",
+                            layer->protocol->name,
+                            layer_prev->protocol->name
+                        );
+                        return false;
+                    }
+
                     if (!(pseudo_header = layer->protocol->create_pseudo_header(layer_prev->segment))) {
                         return false;
                     }
                 }
             } else pseudo_header = NULL;
 
-            // Compute the checksum according to the layer's buffer and
-            // the pseudo header (if any).
-            if (layer->protocol->write_checksum) {
-                if(!layer->protocol->write_checksum(layer->segment, pseudo_header)) {
-                    fprintf(stderr, "Error while updating checksum (layer %s)", layer->protocol->name);
-                    return false;
-                }
+            // Update the checksum of this layer
+            if (!layer->protocol->write_checksum(layer->segment, pseudo_header)) {
+                fprintf(stderr, "Error while updating checksum (layer %s)", layer->protocol->name);
+                return false;
             }
 
             // Release the pseudo header (if any) from the memory
@@ -303,7 +309,7 @@ static bool probe_packet_resize(probe_t * probe, size_t size)
 
     // TODO update bitfield
 
-    // We must reset properly for each layer's buffer
+    // Update each layer's segment 
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         segment = packet_get_bytes(probe->packet) + offset;
@@ -331,7 +337,7 @@ static bool probe_packet_resize(probe_t * probe, size_t size)
 // Allocation
 //-----------------------------------------------------------
 
-probe_t * probe_create(void)
+probe_t * probe_create()
 {
     probe_t * probe;
 
@@ -427,7 +433,6 @@ void probe_debug(const probe_t * probe) {
     probe_t * probe_should_be;
 
     if ((probe_should_be = probe_dup(probe))) {
-
         // Compute expected values
         probe_update_fields(probe_should_be);
 
@@ -467,82 +472,6 @@ static const protocol_t * get_first_protocol(const packet_t * packet) {
     return protocol;
 }
 
-// TODO move into protocols/icmp4.c
-static const protocol_t * icmpv4_get_next_protocol(const layer_t * icmpv4_layer) {
-    const protocol_t * next_protocol = NULL;
-    uint8_t            icmpv4_type;
-
-    if (layer_extract(icmpv4_layer, "type", &icmpv4_type)) {
-        switch (icmpv4_type) {
-            case ICMP_DEST_UNREACH:
-            case ICMP_TIME_EXCEEDED:
-                next_protocol = protocol_search("ipv4");
-                break;
-            default:
-                break;
-        }
-    }
-    return next_protocol;
-}
-
-
-// TODO move into protocols/icmp6.c
-static const protocol_t * icmpv6_get_next_protocol(const layer_t * icmpv6_layer) {
-    const protocol_t * next_protocol = NULL;
-    uint8_t            icmpv6_type;
-
-    if (layer_extract(icmpv6_layer, "type", &icmpv6_type)) {
-        switch (icmpv6_type) {
-            case ICMP6_DST_UNREACH:
-            case ICMP6_TIME_EXCEEDED:
-                next_protocol = protocol_search("ipv6");
-                break;
-            default:
-                break;
-        }
-    }
-    return next_protocol;
-}
-
-// TODO move into protocols.c
-static const protocol_t * default_get_next_protocol(const layer_t * layer) {
-    const protocol_t * next_protocol = NULL;
-    uint8_t            next_protocol_id;
-    field_t          * field;
-
-    if ((field = layer_create_field(layer, "protocol"))) {
-        // The current layer explicitly indicates what is the
-        // protocol involved in the next layer
-        next_protocol_id = field->value.int8;
-        if (!(next_protocol = protocol_search_by_id(next_protocol_id))) {
-            fprintf(stderr, "Unknown protocol ID: %d\n", next_protocol_id);
-            protocols_dump();
-        }
-        field_free(field);
-    }
-    return next_protocol;
-}
-
-// TODO Move into protocols.c and add a callback set by default to default_get_next_protocol
-static const protocol_t * get_next_protocol(const layer_t * layer, const protocol_t * protocol) {
-    const protocol_t * next_protocol = NULL;
-
-    if (protocol) {
-        switch (protocol->protocol) {
-            case IPPROTO_ICMP:
-                next_protocol = icmpv4_get_next_protocol(layer);
-                break;
-            case IPPROTO_ICMPV6:
-                next_protocol = icmpv6_get_next_protocol(layer);
-                break;
-            default:
-                next_protocol = default_get_next_protocol(layer);
-                break;
-        }
-    }
-    return next_protocol;
-}
-
 probe_t * probe_wrap_packet(packet_t * packet)
 {
     probe_t          * probe;
@@ -567,7 +496,7 @@ probe_t * probe_wrap_packet(packet_t * packet)
     segment_size = buffer_get_size(buffer);
 
     // Push layers
-    for (protocol = get_first_protocol(packet); protocol; protocol = get_next_protocol(layer, protocol)) {
+    for (protocol = get_first_protocol(packet); protocol; protocol = protocol->get_next_protocol(layer)) {
         header_size = protocol->get_header_size(segment);
 
         if (!(layer = layer_create_from_segment(protocol, segment, segment_size))) {
@@ -584,6 +513,10 @@ probe_t * probe_wrap_packet(packet_t * packet)
             fprintf(stderr, "probe_wrap_packet: Truncated packet");
             goto ERR_TRUNCATED_PACKET;
         }
+
+        if (!protocol->get_next_protocol) {
+            break;
+        }
         continue;
 
 ERR_TRUNCATED_PACKET:
@@ -593,12 +526,10 @@ ERR_CREATE_LAYER:
         goto ERR_LAYER_DISCOVER_LAYER;
     }
 
-    // Push payload
-    if (!protocol) {
-        // Rq: Some packets (e.g ICMP type 3) do not have payload.
-        // In this case we push an empty payload
-        probe_push_payload(probe, segment_size);
-    }
+    // Rq: Some packets (e.g ICMP type 3) do not have payload.
+    // In this case we push an empty payload
+    probe_push_payload(probe, segment_size);
+
     return probe;
 
 ERR_LAYER_DISCOVER_LAYER:
@@ -752,39 +683,6 @@ ERR_PACKET_RESIZE:
 ERR_NO_PAYLOAD:
     return false;
 }
-
-/*
-bool probe_write_payload(probe_t * probe, buffer_t * payload) {
-    return probe_write_payload_ext(probe, payload, 0);
-}
-
-bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int offset)
-{
-    layer_t * payload_layer;
-    size_t    payload_size = buffer_get_size(payload);
-
-    if (!(payload_layer = probe_get_layer_payload(probe))) {
-        goto ERR_PROBE_GET_LAYER_PAYLOAD;
-    }
-
-    if (payload_size > probe_get_payload_size(probe)) {
-        if(!probe_payload_resize(probe, payload_size)) {
-            goto ERR_PROBE_PAYLOAD_RESIZE;
-        }
-    }
-
-    if (!layer_write_payload_ext(payload_layer, payload, offset)) {
-        goto ERR_LAYER_WRITE_PAYLOAD_EXT;
-    }
-
-    return true;
-
-ERR_LAYER_WRITE_PAYLOAD_EXT:
-ERR_PROBE_PAYLOAD_RESIZE:
-ERR_PROBE_GET_LAYER_PAYLOAD:
-    return false;
-}
-*/
 
 bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes) {
     return probe_write_payload_ext(probe, bytes, num_bytes, 0);
@@ -1099,11 +997,30 @@ bool probe_extract(const probe_t * probe, const char * name, void * dst) {
     return probe_extract_ext(probe, name, 0, dst);
 }
 
-/******************************************************************************
- * probe_reply_t
- ******************************************************************************/
+packet_t * probe_create_packet(probe_t * probe)
+{
+    // TODO
+    // See packet.c: we store in packet.c the destination IP and the
+    // This will be removed once the bitfield will be supported in probe.c
 
-probe_reply_t * probe_reply_create(void) {
+    // The destination IP is a mandatory field
+
+    if (!(probe_extract(probe, "dst_ip", probe->packet->dst_ip))) {
+        fprintf(stderr, "probe_create_packet: This probe does not carry 'dst_ip' field!\n");
+        goto ERR_EXTRACT_DST_IP;
+    }
+
+    return probe->packet;
+
+ERR_EXTRACT_DST_IP:
+    return NULL;
+}
+
+//---------------------------------------------------------------------------
+// probe_reply_t
+//---------------------------------------------------------------------------
+
+probe_reply_t * probe_reply_create() {
     return calloc(1, sizeof(probe_reply_t));
 }
 
@@ -1139,22 +1056,4 @@ probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply) {
     return probe_reply->reply;
 }
 
-packet_t * probe_create_packet(probe_t * probe)
-{
-    // TODO
-    // See packet.c: we store in packet.c the destination IP and the
-    // This will be removed once the bitfield will be supported in probe.c
-
-    // The destination IP is a mandatory field
-
-    if (!(probe_extract(probe, "dst_ip", probe->packet->dst_ip))) {
-        fprintf(stderr, "probe_create_packet: This probe does not carry 'dst_ip' field!\n");
-        goto ERR_EXTRACT_DST_IP;
-    }
-
-    return probe->packet;
-
-ERR_EXTRACT_DST_IP:
-    return NULL;
-}
 

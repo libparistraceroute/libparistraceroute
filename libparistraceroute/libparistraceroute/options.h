@@ -7,20 +7,47 @@
 
 #define END_OPT_SPECS { .action = NULL}
 
+//---------------------------------------------------------------------------
+// option_t
+//---------------------------------------------------------------------------
+
 typedef struct opt_spec opt_spec_t;
+typedef struct opt_spec option_t;
+
+/**
+ * \brief Rename the short form of an option_t instance
+ * \param A pointer to an option_t instance
+ * \param String containing the new short form
+ * \return true iif successful
+ */
+
+bool option_rename_sf(option_t * option, char * sf);
+
+/**
+ * \brief Rename the long form of an option_t instance
+ * \param A pointer to an option_t instance
+ * \param String containing the new long form
+ * \return true iif successful
+ */
+
+bool option_rename_lf(option_t * option, char * lf);
+
+//---------------------------------------------------------------------------
+// options_t
+//---------------------------------------------------------------------------
 
 typedef struct {
     /**
      * A callback to handle collision between two options. If set to NULL (default value)
      * the options_t instance keep option1 and ignore option2.
-     * \param option1 An opt_spec_t instance already stored in this options_t instance
-     * \param option2 An opt_spec_t instance that we attempt to insert in this options_t instance
+     * \param option1 An opt_spec_t instance already stored in this options_t instance.
+     * \param option2 An opt_spec_t instance that we attempt to insert in this options_t instance.
      * \return Must return true if the collision has been properly handled, false otherwise.
      */
 
     bool (* collision_callback)(
-        opt_spec_t       * option1,
-        const opt_spec_t * option2
+        option_t       * option1,
+        const option_t * option2
     );
 
     vector_t * optspecs;  /**< A pointer to a vector structure containing optspecs instances */
@@ -32,7 +59,7 @@ typedef struct {
  * \return A pointer to options structure
  */
 
-options_t * options_create(bool (* collision_callback)(opt_spec_t * option1, const opt_spec_t * option2));
+options_t * options_create(bool (* collision_callback)(option_t * option1, const option_t * option2));
 
 /**
  * \brief Add options to an array of options
@@ -41,7 +68,7 @@ options_t * options_create(bool (* collision_callback)(opt_spec_t * option1, con
  * \return true iif successful
  */
 
-bool options_add_optspecs(options_t * options, opt_spec_t * option);
+bool options_add_optspecs(options_t * options, const option_t * option);
 
 /**
  * \brief Add one option to an array of options
@@ -50,7 +77,7 @@ bool options_add_optspecs(options_t * options, opt_spec_t * option);
  * \return true iif successful
  */
 
-bool options_add_optspec(options_t * options, opt_spec_t * option);
+bool options_add_optspec(options_t * options, const option_t * option);
 
 /**
  * \brief Add the common options (help and version) to an array of options
@@ -68,24 +95,6 @@ bool options_add_common(options_t * options, const char * version_data);
  */
 
 size_t options_get_num_options(const options_t * options);
-
-/**
- * \brief Rename the short form of an opt_spec_t instance
- * \param A pointer to an opt_spec_t instance
- * \param String containing the new short form
- * \return true iif successful
- */
-
-bool option_rename_sf(opt_spec_t * option, char * sf);
-
-/**
- * \brief Rename the long form of an opt_spec_t instance
- * \param A pointer to an opt_spec_t instance
- * \param String containing the new long form
- * \return true iif successful
- */
-
-bool option_rename_lf(opt_spec_t * option, char * lf);
 
 /**
  * \brief Dump an options_t instance

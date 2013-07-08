@@ -1,18 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <limits.h>         // INT_MAX
-
 #include "mda.h"
-#include "options.h"      // mda_opt_specs
-#include "../algorithm.h"
+
+#include <stdio.h>         // fprintf
+#include <stdlib.h>        // malloc, free
+#include <stdbool.h>       // bool
+#include <limits.h>        // INT_MAX
+
+#include "../algorithm.h"  // algorithm_t
+#include "../common.h"     // MAX 
+#include "../options.h"    // option_t 
 #include "../pt_loop.h"    // pt_send_probe
 #include "../lattice.h"    // LATTICE_*
-#include "../common.h"     // MAX 
-
-// DEBUG
-#include "../probe.h"
+#include "../probe.h"      // probe_t
 
 //---------------------------------------------------------------------------
 // Private structures
@@ -37,7 +35,7 @@ typedef struct {
 static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH;
 
 // MDA options
-static struct opt_spec mda_opt_specs[3] = {
+static option_t mda_opt_specs[] = {
     // action           short long          metavar             help    variable
     {opt_store_int_2,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values},
     END_OPT_SPECS
@@ -47,7 +45,7 @@ static struct opt_spec mda_opt_specs[3] = {
     //{OPT_NO_ACTION}
 };
 
-struct opt_spec * mda_get_opt_specs() {
+const option_t * mda_get_options() {
     return mda_opt_specs;
 }
 

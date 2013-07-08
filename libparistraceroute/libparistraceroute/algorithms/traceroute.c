@@ -8,7 +8,6 @@
 #include "../probe.h"
 #include "../event.h"
 #include "../algorithm.h"
-#include "../options.h"
 #include "../address.h"  // address_resolv
 
 //-----------------------------------------------------------------
@@ -22,7 +21,7 @@ static unsigned max_undiscovered[3] = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED;
 static unsigned num_queries[3]      = OPTIONS_TRACEROUTE_NUM_QUERIES;
 static bool     do_resolv           = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT;
 
-static struct opt_spec traceroute_opt_specs[] = {
+static option_t traceroute_options[] = {
     // action           short long                  metavar             help    data
     {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",        HELP_f, min_ttl},
     {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",          HELP_m, max_ttl},
@@ -52,8 +51,8 @@ bool options_traceroute_get_do_resolv() {
     return do_resolv;
 }
 
-struct opt_spec * traceroute_get_opt_specs() {
-    return traceroute_opt_specs;
+const option_t * traceroute_get_options() {
+    return traceroute_options;
 }
 
 inline traceroute_options_t traceroute_get_default_options() {
@@ -417,7 +416,7 @@ FAILURE:
 static algorithm_t traceroute = {
     .name    = "traceroute",
     .handler = traceroute_loop_handler,
-    .options = (const struct opt_spec *) &traceroute_opt_specs // TODO akram pass pointer to traceroute_get_opt_specs
+    .options = (const option_t *) &traceroute_options // TODO akram pass pointer to traceroute_get_options
 };
 
 ALGORITHM_REGISTER(traceroute);

@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 
 #include "../protocol.h"
+#include "../layer.h"
 #include "ipv6_pseudo_header.h"
 
 #define ICMPV6_FIELD_TYPE        "type"
@@ -103,13 +104,11 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
         return false;
     }
 
+    
     // Allocate the buffer which will contains the pseudo header
     if (!(psh = malloc(size_psh))) {
         return false;
     }
-
-    // Fix len
-    ((ipv6_pseudo_header_t *) ipv6_psh->data)->size += htonl(40);
 
     // Put the excerpt of the IP header into the pseudo header
     memcpy(psh, buffer_get_data(ipv6_psh), size_ipv6);
@@ -124,7 +123,6 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
         printf("\n----\n");
     }
 
-
     // Put the ICMPv6 header and its content into the pseudo header
     memcpy(psh + size_ipv6, icmpv6_hdr, size_icmpv6);
 
@@ -137,6 +135,7 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
         buffer_dump(&buffer);
         printf("\n----\n");
     }
+    /*
 
     {
         printf("Put ICMPV6 in psh\n");
@@ -147,7 +146,7 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
         buffer_dump(&buffer);
         printf("\n----\n");
     }
-
+    */
 
     // Overrides the ICMPv6 checksum in psh with zeros
     memset(psh + size_ipv6 + offsetof(struct icmp6_hdr, icmp6_cksum), 0, sizeof(uint16_t));
@@ -168,6 +167,23 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
     return true;
 }
 
+const protocol_t * icmpv6_get_next_protocol(const layer_t * icmpv6_layer) {
+    const protocol_t * next_protocol = NULL;
+    uint8_t            icmpv6_type;
+
+    if (layer_extract(icmpv6_layer, "type", &icmpv6_type)) {
+        switch (icmpv6_type) {
+            case ICMP6_DST_UNREACH:
+            case ICMP6_TIME_EXCEEDED:
+                next_protocol = protocol_search("ipv6");
+                break;
+            default:
+                break;
+        }
+    }
+    return next_protocol;
+}
+
 static protocol_t icmpv6 = {
     .name                 = "icmpv6",
     .protocol             = IPPROTO_ICMPV6,
@@ -176,6 +192,7 @@ static protocol_t icmpv6 = {
     .fields               = icmpv6_fields,
     .write_default_header = icmpv6_write_default_header, // TODO generic memcpy + header size
     .get_header_size      = icmpv6_get_header_size,
+    .get_next_protocol    = icmpv6_get_next_protocol,
 };
 
 PROTOCOL_REGISTER(icmpv6);

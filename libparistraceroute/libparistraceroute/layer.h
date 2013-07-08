@@ -33,7 +33,7 @@
  *    - in this case, the segment covers the whole payload
  */
 
-typedef struct {
+typedef struct layer_s {
     const protocol_t * protocol;     /**< Points to the protocol implemented in this layer. Set to NULL if this layer is the payload */
     uint8_t          * segment;      /**< Points to the begining of the segment (header + data) of this layer in the packet */
     uint8_t          * mask;         /**< TODO (not yet implemented)
@@ -48,7 +48,7 @@ typedef struct {
  * \return Newly created layer
  */
 
-layer_t * layer_create(void);
+layer_t * layer_create();
 
 /**
  * \brief Duplicate a layer

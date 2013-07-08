@@ -83,7 +83,7 @@ int main(int argc, char ** argv)
     options.do_resolv = true;
     options.dst_addr = &dst_addr;
     options.num_probes = 1;
-    //options.max_ttl = 1;
+//    options.max_ttl = 1;
     printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
@@ -128,8 +128,6 @@ int main(int argc, char ** argv)
         //I16("dst_port", 30000),
         NULL
     );
-
-    probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {

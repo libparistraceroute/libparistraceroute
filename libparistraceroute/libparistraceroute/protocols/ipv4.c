@@ -193,6 +193,9 @@ size_t ipv4_get_header_size(const uint8_t * ipv4_header) {
 
 bool ipv4_write_checksum(uint8_t * ipv4_header, buffer_t * psh) {
 	struct iphdr * iph = (struct iphdr *) ipv4_header;
+
+    // The IPv4 checksum must be set to 0 before its calculation
+    iph->check = 0;
     iph->check = csum((const uint16_t *) iph, sizeof(struct iphdr));
     return true;
 }
@@ -310,6 +313,7 @@ static protocol_t ipv4 = {
     .get_header_size      = ipv4_get_header_size,
     .finalize             = ipv4_finalize,
     .instance_of          = ipv4_instance_of,
+    .get_next_protocol    = protocol_get_next_protocol,
 };
 
 PROTOCOL_REGISTER(ipv4);

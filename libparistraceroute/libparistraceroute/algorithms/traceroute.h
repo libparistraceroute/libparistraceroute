@@ -8,6 +8,7 @@
 #include "../address.h"  // address_t 
 #include "../pt_loop.h"  // pt_loop_t
 #include "../dynarray.h" // dynarray_t
+#include "../options.h"  // option_t 
 
 #define OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT            1
 #define OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT            30
@@ -74,9 +75,9 @@ typedef struct {
     bool              do_resolv;        /**< Resolv each discovered IP hop */
 } traceroute_options_t;
 
-struct opt_spec * traceroute_get_opt_specs();
+const option_t * traceroute_get_options();
 
-traceroute_options_t traceroute_get_default_options(void);
+traceroute_options_t traceroute_get_default_options();
 
 //--------------------------------------------------------------------
 // Custom-events raised by traceroute algorithm

@@ -7,7 +7,7 @@
 #include "layer.h"
 #include "common.h"
 
-layer_t * layer_create(void) {
+layer_t * layer_create() {
     layer_t * layer = calloc(1, sizeof(layer_t));
     if (!layer) goto ERR_CALLOC;
     layer->mask = NULL;

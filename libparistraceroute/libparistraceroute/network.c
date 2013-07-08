@@ -12,30 +12,33 @@
 #include "common.h"
 #include "packet.h"
 #include "queue.h"
-#include "options.h"
-#include "probe.h"       // probe_extract
+#include "options.h"     // option_t
+#include "probe.h"       // probe_extract_ext, probe_set_field_ext
 #include "algorithm.h"   // pt_algorithm_throw
 
 // TODO static variable as timeout. Control extra_delay and timeout values consistency
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
 
+//---------------------------------------------------------------------------
 // Network options
+//---------------------------------------------------------------------------
+
 static double timeout[3] = OPTIONS_NETWORK_WAIT;
 
-static struct opt_spec network_opt_specs[] = {
+static option_t network_options[] = {
     // action              short long          metavar         help    variable
-    {opt_store_double_lim, "w",  "--wait",     "waittime",     HELP_w, timeout},
-     END_OPT_SPECS
+    {opt_store_double_lim, "w",  "--wait",     "TIMEOUT",      HELP_w, timeout},
+    END_OPT_SPECS
 };
 
 /**
  * \brief return the commandline options related to network
- * \return a pointer to an opt_spec structure
+ * \return A pointer to an opt_spec structure
  */
 
-struct opt_spec * network_get_opt_specs() {
-    return network_opt_specs;
+const option_t * network_get_options() {
+    return network_options;
 }
 
 double options_network_get_timeout() {
@@ -45,6 +48,11 @@ double options_network_get_timeout() {
 void network_set_is_verbose(network_t * network, bool verbose) {
      network->is_verbose = verbose;
 }
+
+//---------------------------------------------------------------------------
+// Private functions 
+//---------------------------------------------------------------------------
+
 /**
  * \brief Extract the probe ID (tag) from a probe
  * \param probe The queried probe
@@ -106,7 +114,12 @@ static uint16_t network_get_available_tag(network_t * network) {
     return ++network->last_tag;
 }
 
-void network_flying_probes_dump(network_t * network) {
+/**
+ * \brief Debug function. Dump tags of every flying probes
+ * \param network The queried network layer
+ */
+
+static void network_flying_probes_dump(network_t * network) {
     size_t     i, num_flying_probes = dynarray_get_size(network->probes);
     uint16_t   tag_probe;
     probe_t  * probe;
@@ -158,6 +171,13 @@ static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
     timer->it_interval.tv_sec  = 0;
     timer->it_interval.tv_nsec = 0;
 }
+
+/**
+ * \brief Update a timer in order to expire at a given moment .
+ * \param timerfd The file descriptor related to the timer.
+ * \param delay The delay (in micro seconds).
+ * \return true iif successful.
+ */
 
 bool update_timer(int timerfd, double delay) {
     struct itimerspec    delay_timer;
@@ -266,8 +286,11 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     return probe;
 }
 
+//---------------------------------------------------------------------------
+// Public functions 
+//---------------------------------------------------------------------------
 
-network_t * network_create(void)
+network_t * network_create()
 {
     network_t * network;
 
@@ -409,7 +432,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 
     // Write the tag at offset zero of the payload
     if (tag_in_body) {
-        probe_set_field(probe, I32("body", htons(tag)));
+        probe_set_field(probe, I16("body", htons(tag)));
     } else {
         if (payload_size < tag_size) {
             fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
@@ -417,7 +440,6 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         }
 
         if (!(probe_write_payload(probe, &tag, tag_size))) {
-            fprintf(stderr, "Can't write payload\n");
             goto ERR_PROBE_WRITE_PAYLOAD;
         }
     }
@@ -442,7 +464,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 
     if (tag_in_body) {
         // The endianness is managed by probe_set_field
-        if (!(probe_set_field(probe, I32("body", checksum)))) {
+        if (!(probe_set_field(probe, I16("body", checksum)))) {
             fprintf(stderr, "Can't set body\n");
             goto ERR_PROBE_SET_FIELD;
         } 

@@ -6,6 +6,7 @@
 
 #include "common.h"         // ELEMENT_COMPARE
 #include "protocol_field.h" // protocol_field_t
+#include "layer.h"          // layer_t, layer_extract
 
 // Protocols are registered in the following trees.
 // We require two trees since a protocol may be retrieved
@@ -123,3 +124,26 @@ static void callback_protocols_dump(const void * node, VISIT visit, int level) {
 void protocols_dump() {
     twalk(protocols_root, callback_protocols_dump);
 }
+
+const protocol_t * protocol_get_next_protocol(const layer_t * layer) {
+    const protocol_t * next_protocol = NULL;
+    uint8_t            next_protocol_id;
+    field_t          * field;
+
+    if (!layer_extract(layer, "protocol", &next_protocol_id)) {
+        // This protocol does not have "protocol" field so we stop to dissect
+        // the packet. If the library should continue to dissect the packet
+        // the current protocol must implement a get_next_protocol callback.
+        return NULL;
+    }
+
+    if (!(next_protocol = protocol_search_by_id(next_protocol_id))) {
+        fprintf(stderr, "Protocol not supported (protocol_id = %d)\n", next_protocol_id);
+        protocols_dump();
+        return NULL;
+    }
+
+    return next_protocol;
+}
+
+

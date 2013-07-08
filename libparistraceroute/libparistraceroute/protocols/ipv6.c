@@ -115,17 +115,18 @@ static protocol_field_t ipv6_fields[] = {
         .type     = TYPE_UINT16,
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_plen),
     }, {
+        // This is an alias of "protocol"
         .key      = IPV6_FIELD_NEXT_HEADER,
+        .type     = TYPE_UINT8,
+        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
+    }, {
+        .key      = IPV6_FIELD_PROTOCOL,
         .type     = TYPE_UINT8,
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
     }, {
         .key      = IPV6_FIELD_HOPLIMIT,
         .type     = TYPE_UINT8,
         .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_hlim),
-    }, {
-        .key      = IPV6_FIELD_PROTOCOL,
-        .type     = TYPE_UINT8,
-        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
     }, {
         .key      = IPV6_FIELD_SRC_IP,
         .type     = TYPE_IPV6,
@@ -261,6 +262,7 @@ static protocol_t ipv6 = {
     .get_header_size      = ipv6_get_header_size,
     .finalize             = ipv6_finalize,
     .instance_of          = ipv6_instance_of,
+    .get_next_protocol    = protocol_get_next_protocol,
 };
 
 PROTOCOL_REGISTER(ipv6);

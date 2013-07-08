@@ -1,11 +1,11 @@
 #include "probe_group.h"
 
-#include <float.h> // DBL_MAX
-#include <stdio.h>
+#include <stdio.h>   // printf
+#include <stdlib.h>  // malloc, free
+#include <float.h>   // DBL_MAX
 
-#include "network.h"
-#include "probe.h"
-#include "common.h" // MIN
+#include "network.h" // update_timer
+#include "common.h"  // MIN
 
 tree_node_probe_t * get_node_data(const tree_node_t * node) {
     return (tree_node_probe_t *) tree_node_get_data(node);
