@@ -1,3 +1,5 @@
+#include "socketpool.h"
+
 #include <stdlib.h>             // malloc
 #include <stdio.h>              // perror
 #include <unistd.h>             // close
@@ -7,9 +9,7 @@
 #include <arpa/inet.h>          // inet_pton
 #include <string.h>             // memset
 
-#include "socketpool.h"
-#include "address.h"
-
+#include "address.h"            // address_guess_family
 
 /*
 If we send UDP packet, we could get a return error channel.
@@ -21,7 +21,6 @@ TCP: see scamper
 // http://stackoverflow.com/questions/8835322/api-using-sockaddr-storage
 union sockaddr_union {
 	struct sockaddr      sa;
-//	struct sockaddr_ll   sll;
 	struct sockaddr_in   sin;
 	struct sockaddr_in6  sin6;
 };
@@ -38,25 +37,15 @@ typedef union sockaddr_union sockaddr_u;
 
 static bool create_raw_socket(int family, int * psockfd) {
 	int       sockfd;
-	//int       optval = 1; // ???
-    //socklen_t optlen = sizeof(optval);
 
     if ((sockfd = socket(family, SOCK_RAW, IPPROTO_RAW)) == -1) {
         perror("Cannot create a raw socket (are you root?)");
         goto ERR_SOCKET;
     }
 
-    /*
-	if (setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &optval, optlen) < 0){
-		perror("Cannot set socket options");
-        goto ERR_SETSOCKOPT;
-	}
-    */
-
 	*psockfd = sockfd;
     return true;
 
-//ERR_SETSOCKOPT:
 ERR_SOCKET:
     return false;
 }
@@ -92,45 +81,43 @@ void socketpool_free(socketpool_t * socketpool) {
 bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * packet)
 {
 	sockaddr_u              sock;
-    int                     family;
     int                     sockfd;
     socklen_t               socklen;
     const struct sockaddr * dst_addr;
     
-    if (!(address_guess_family(packet->dst_ip, &family))) {
-        return false;
-    }
     memset(&sock, 0, sizeof(sockaddr_u));
 
     // Prepare socket 
-    switch (family) {
+    // We don't care about the dst_port set in the packet
+    switch (packet->dst_ip->family) {
         case AF_INET:
             sock.sin.sin_family = AF_INET;
-            sock.sin.sin_port   = htons(packet->dst_port);
-            inet_pton(AF_INET, packet->dst_ip, &sock.sin.sin_addr);
+            sock.sin.sin_addr   = packet->dst_ip->ip.ipv4;
             sockfd = socketpool->ipv4_sockfd;
             socklen = sizeof(struct sockaddr_in);
             dst_addr = (struct sockaddr *) &sock.sin;
             break;
         case AF_INET6:
             sock.sin6.sin6_family = AF_INET6;
-            // TODO mmmh we need to set port to 0... why?
-            sock.sin6.sin6_port   = 0; // htons(packet->dst_port);
-            inet_pton(AF_INET6, packet->dst_ip, &sock.sin6.sin6_addr);
+            memcpy(&sock.sin6.sin6_addr, &packet->dst_ip->ip.ipv6, sizeof(ipv6_t));
             sockfd = socketpool->ipv6_sockfd;
             socklen = sizeof(struct sockaddr_in6);
             dst_addr = (struct sockaddr *) &sock.sin6;
             break;
         default:
             fprintf(stderr, "socketpool_send_packet: Address family not supported");
-            return false; 
+            goto ERR_INVALID_FAMILY;
     }
 
     // Send the packet
     if (sendto(sockfd, packet_get_bytes(packet), packet_get_size(packet), 0, dst_addr, socklen) == -1) {
         perror("send_data: Sending error in queue");
-        return false; 
+        goto ERR_SEND_TO;
     }
 
     return true;
+
+ERR_SEND_TO:
+ERR_INVALID_FAMILY:
+    return false;
 }

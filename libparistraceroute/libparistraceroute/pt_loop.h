@@ -124,9 +124,6 @@ event_t ** pt_loop_get_user_events(pt_loop_t * loop);
 
 size_t pt_loop_get_num_user_events(pt_loop_t * loop);
 
-//void pt_probe_reply_callback(struct pt_loop_s *loop, probe_t *probe, probe_t *reply);
-//void pt_probe_send(struct pt_loop_s *loop, probe_t *probe);
-
 /**
  * \brief Send a probe packet across a network
  * \param network Pointer to the network to use

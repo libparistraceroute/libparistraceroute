@@ -5,12 +5,14 @@
 #include <arpa/inet.h>        // ntohs, htonl
 #include <netinet/ip6.h>      // ip6_hdr
 
+#include <stdio.h>
+#include "buffer.h"
+
 buffer_t * ipv6_pseudo_header_create(const uint8_t * ipv6_segment)
 {
     buffer_t             * psh;
     const struct ip6_hdr * iph = (const struct ip6_hdr *) ipv6_segment;
     ipv6_pseudo_header_t * data;
-    int16_t                payload_length;
 
     if (!(psh = buffer_create())) {
         goto ERR_BUFFER_CREATE;
@@ -21,10 +23,12 @@ buffer_t * ipv6_pseudo_header_create(const uint8_t * ipv6_segment)
     }
 
     data = (ipv6_pseudo_header_t *) buffer_get_data(psh);
-    memcpy((uint8_t *) data + offsetof(ipv6_pseudo_header_t, ip_src), &iph->ip6_src, sizeof(struct in6_addr));
-    memcpy((uint8_t *) data + offsetof(ipv6_pseudo_header_t, ip_dst), &iph->ip6_dst, sizeof(struct in6_addr));
-    payload_length = ntohs(iph->ip6_ctlun.ip6_un1.ip6_un1_plen);
-    data->size = htonl(payload_length - sizeof(struct ip6_hdr));
+    memcpy((uint8_t *) data + offsetof(ipv6_pseudo_header_t, ip_src), &iph->ip6_src, sizeof(ipv6_t));
+    memcpy((uint8_t *) data + offsetof(ipv6_pseudo_header_t, ip_dst), &iph->ip6_dst, sizeof(ipv6_t));
+
+    // IPv6 stores a uint16 but our pseudo header uses an uint32 ...
+    // So to take care of endianness we cannot directly copy the value.
+    data->size = htonl(ntohs(iph->ip6_ctlun.ip6_un1.ip6_un1_plen));
     data->zeros = 0;
     data->zero  = 0;
     data->protocol = iph->ip6_ctlun.ip6_un1.ip6_un1_nxt;

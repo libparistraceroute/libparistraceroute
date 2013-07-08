@@ -8,7 +8,7 @@
 //struct timespec ts;
 //clock_gettime(CLOCK_MONOTONIC, &ts);
 
-double get_timestamp(void)
+double get_timestamp()
 {
     struct timeval tim;
     

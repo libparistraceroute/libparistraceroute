@@ -35,7 +35,7 @@ unsigned options_mda_get_bound();
 unsigned options_mda_get_max_branch();
 unsigned options_mda_get_is_set();
 
-struct opt_spec * mda_get_opt_specs();
+const option_t * mda_get_options();
 
 /**
  * \brief Retrieve the default options of mda.

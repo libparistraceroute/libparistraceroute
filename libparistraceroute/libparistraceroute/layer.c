@@ -7,7 +7,7 @@
 #include "layer.h"
 #include "common.h"
 
-layer_t * layer_create(void) {
+layer_t * layer_create() {
     layer_t * layer = calloc(1, sizeof(layer_t));
     if (!layer) goto ERR_CALLOC;
     layer->mask = NULL;
@@ -83,12 +83,12 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     const protocol_field_t * protocol_field;
     size_t                   protocol_field_size;
 
-    if (field->type == TYPE_GENERATOR) {
-        // TODO we should simply fetch the next generated value
+    if (!field) {
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
     }
-    if (!field) {
+
+    if (field->type == TYPE_GENERATOR) {
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
     }
@@ -101,6 +101,15 @@ bool layer_set_field(layer_t * layer, const field_t * field)
         goto ERR_FIELD_NOT_FOUND;
     }
 
+    if (protocol_field->type != field->type) {
+        fprintf(stderr, "'%s' field has not the right type (%s instead of %s)\n",
+            field->key,
+            field_type_to_string(field->type),
+            field_type_to_string(protocol_field->type)
+        );
+        goto ERR_INVALID_FIELD_TYPE;
+    }
+
     // Check whether the probe buffer can store this field
     // NOTE: the allocation of the buffer might be tricky for headers with
     // variable len (such as IPv4 with options, etc.).
@@ -111,35 +120,32 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     }
 
     // Copy the field value into the buffer
-    // If we have a setter function, we use it, otherwise write the value directly
-    if (protocol_field->set) {
-        if (!(protocol_field->set(layer->segment, field))) {
-            fprintf(stderr, "layer_set_field: can't set field '%s' (layer %s)\n", field->key, layer->protocol->name);
-            goto ERR_PROTOCOL_FIELD_SET;
-        }
-    } else {
-        protocol_field_set(protocol_field, layer->segment, field);
+    // If we have a setter function, use it ; otherwise write it by using the generic function
+    if ((protocol_field->set && !protocol_field->set(layer->segment, field)) 
+    || (!protocol_field->set && !protocol_field_set(protocol_field, layer->segment, field))
+    ){
+        fprintf(stderr, "layer_set_field: can't set field '%s' (layer %s)\n", field->key, layer->protocol->name);
+        goto ERR_PROTOCOL_FIELD_SET;
     }
 
     // TODO update segment of mask here
-    // TODO use protocol_field_get_offset
-    // TODO use protocol_field_get_size
 
     return true;
 
 ERR_PROTOCOL_FIELD_SET:
 ERR_BUFFER_TOO_SMALL:
+ERR_INVALID_FIELD_TYPE:
 ERR_FIELD_NOT_FOUND:
 ERR_IN_PAYLOAD:
 ERR_INVALID_FIELD:
     return false;
 }
 
-bool layer_write_payload(layer_t * layer, buffer_t * payload) {
-    return layer_write_payload_ext(layer, payload, 0);
+bool layer_write_payload(layer_t * layer, const void * bytes, size_t num_bytes) { 
+    return layer_write_payload_ext(layer, bytes, num_bytes, 0);
 }
 
-bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned int offset)
+bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_bytes, size_t offset)
 {
     if (layer->protocol) {
         // The layer embeds a nested layer
@@ -147,13 +153,13 @@ bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned
         return false;
     }
 
-    if (offset + buffer_get_size(payload) > layer->segment_size) {
+    if (offset + num_bytes > layer->segment_size) {
         // The buffer allocated to this layer is too small
         fprintf(stderr, "Payload too small\n");
         return false;
     }
 
-    memcpy(layer->segment + offset, buffer_get_data(payload), buffer_get_size(payload));
+    memcpy(layer->segment + offset, bytes, num_bytes);
     return true;
 }
 

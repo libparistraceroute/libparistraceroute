@@ -6,9 +6,11 @@
  * \brief A field is a part of a header network protocol.
  */
 
-#include <stddef.h> // size_t
-#include <stdint.h>
+#include <stddef.h>  // size_t
+#include <stdint.h>  // uint*_t
 #include <stdbool.h> // bool
+
+#include "address.h" // address_t, ipv4_t, ipv6_t
 
 struct generator_s;
 // TODO allow to define bit level fields (for instance for flags)
@@ -25,17 +27,28 @@ typedef union{
  */
 
 typedef enum {
-    TYPE_UINT4,             /**< 4 bit integer  */
-    TYPE_UINT8,             /**< 8 bit integer  */
-    TYPE_UINT16,            /**< 16 bit integer */
-    TYPE_UINT32,            /**< 32 bit integer */
-    TYPE_UINT64,            /**< 64 bit integer */
-    TYPE_UINT128,           /**< 128 bit integer*/
-    TYPE_UINTMAX,           /**< max integer    */
-    TYPE_DOUBLE,            /**< double         */
-    TYPE_STRING,            /**< string         */
-    TYPE_GENERATOR          /**< generator      */
+    TYPE_IPV4,              /**< IPv4 address    */
+    TYPE_IPV6,              /**< IPv6 address    */
+    TYPE_UINT4,             /**< 4 bit integer   */
+    TYPE_UINT8,             /**< 8 bit integer   */
+    TYPE_UINT16,            /**< 16 bit integer  */
+    TYPE_UINT32,            /**< 32 bit integer  */
+    TYPE_UINT64,            /**< 64 bit integer  */
+    TYPE_UINT128,           /**< 128 bit integer */
+    TYPE_UINTMAX,           /**< max integer     */
+    TYPE_DOUBLE,            /**< double          */
+    TYPE_STRING,            /**< string          */
+    TYPE_GENERATOR          /**< generator       */
 } fieldtype_t;
+
+/**
+ * \brief Convert a field type in the corresponding human
+ *    readable string. 
+ * \param type A field type.
+ * \return The corresponding string.
+ */
+
+const char * field_type_to_string(fieldtype_t type);
 
 /**
  * \union value_t
@@ -44,6 +57,8 @@ typedef enum {
 
 typedef union {
     void                * value;     /**< Pointer to raw data                */
+    ipv4_t                ipv4;      /**< Value of data as a IPv4 address    */
+    ipv6_t                ipv6;      /**< Value of data as a IPv6 address    */
     uint8_t               int4:4;    /**< Value of data as a   4 bit integer */
     uint8_t               int8;      /**< Value of data as a   8 bit integer */
     uint16_t              int16;     /**< Value of data as a  16 bit integer */
@@ -66,6 +81,33 @@ typedef struct {
     value_t       value; /**< Union of all field data            */
     fieldtype_t   type;  /**< Type of data stored in the field   */
 } field_t;
+
+/**
+ * \brief Create a field structure to hold a generic address. 
+ * \param key The name which identify the field to create.
+ * \param address Address to store in the field.
+ * \return Structure containing the newly created field.
+ */
+
+field_t * field_create_address(const char * key, const address_t * address);
+
+/**
+ * \brief Create a field structure to hold an IPv4 address. 
+ * \param key The name which identify the field to create.
+ * \param address Address to store in the field.
+ * \return Structure containing the newly created field.
+ */
+
+field_t * field_create_ipv4(const char * key, ipv4_t ipv4);
+
+/**
+ * \brief Create a field structure to hold an IPv6 address. 
+ * \param key The name which identify the field to create.
+ * \param address Address to store in the field.
+ * \return Structure containing the newly created field.
+ */
+
+field_t * field_create_ipv6(const char * key, ipv6_t ipv6);
 
 /**
  * \brief Create a field structure to hold an 4 bit integer value
@@ -191,7 +233,34 @@ void field_free(field_t * field);
 
 field_t * field_dup(const field_t * field);
 
-/*
+/**
+ * \brief Macro shorthand for field_create_ipv4
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define IPV4(x, y)  field_create_ipv4(x, (ipv4_t) y)
+
+/**
+ * \brief Macro shorthand for field_create_ipv6
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define IPV6(x, y)  field_create_ipv6(x, (ipv6_t) y)
+
+/**
+ * \brief Macro shorthand for field_create_address
+ * \param x Pointer to a char * key to identify the field
+ * \param y Value to store in the field
+ * \return Structure containing the newly created field
+ */
+
+#define ADDRESS(x, y)  field_create_address(x, y)
+
+/**
  * \brief Macro shorthand for field_create_uint4
  * \param x Pointer to a char * key to identify the field
  * \param y Value to store in the field
@@ -317,8 +386,6 @@ bool field_match(const field_t * field1, const field_t * field2);
 const char * field_get_key(field_t * field);
 
 bool field_set_value(field_t * field, void * value);
-
-
 
 /**
  * \brief Print the content of a field

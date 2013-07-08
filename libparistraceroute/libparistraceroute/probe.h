@@ -6,15 +6,14 @@
  * \brief Header for probes
  */
 
-#include <stdbool.h>
-#include "field.h"
-#include "layer.h"
-#include "buffer.h"
-#include "bitfield.h"
-#include "dynarray.h"
-#include "packet.h"
-#include "tree.h"
-#include "generator.h"
+#include <stdbool.h>   // bool
+#include <stddef.h>    // size_t
+
+#include "field.h"     // field_t
+#include "layer.h"     // layer_t
+//#include "bitfield.h"
+#include "dynarray.h"  // dynarray_t
+#include "packet.h"    // packet_t
 
 #define DELAY_BEST_EFFORT -1 // This MUST be < 0, see network_send_probe
 /**
@@ -31,8 +30,8 @@ typedef struct {
     packet_t   * packet;        /**< The packet we're crafting */
 //    bitfield_t * bitfield;      /**< Bitfield to keep track of modified fields (bits set to 1) vs. default ones (bits set to 0) */
     void       * caller;        /**< Algorithm instance which has created this probe */
-    double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) */
-    double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) */
+    double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) (in micro seconds) */
+    double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) (in micro seconds) */
     double       recv_time;     /**< Only set if this instance is related to a reply. Timestamp set by network layer just after sniffing the reply */
     field_t    * delay;         /**< The time to send this probe */
     size_t       left_to_send;  /**< Number of times left to use this probe instance to send packets */
@@ -43,7 +42,7 @@ typedef struct {
  * \return A pointer to a probe_t structure containing the probe
  */
 
-probe_t * probe_create(void);
+probe_t * probe_create();
 
 /**
  * \brief Duplicate a probe from probe skeleton
@@ -105,6 +104,15 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field);
  */
 
 bool probe_set_field(probe_t * probe, const field_t * field);
+
+/**
+ * \brief Update for each layer of a probe its 'checksum' field
+ *   (if any) in order to have a packet well-formed. 
+ * \param probe The probe we're updating
+ * \return true iif successfull
+ */
+
+bool probe_update_checksum(probe_t * probe);
 
 /**
  * \brief Update 'length', 'checksum' and 'protocol' fields for each
@@ -211,22 +219,25 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size);
 /**
  * \brief Write data in the probe's payload. The packet_t instance
  *   is automatically resized if required.
- * \param payload Data copied in the probe's payload
+ * \param bytes Bytes copied in the probe's payload/
+ * \param num_bytes Number of bytes copied from bytes in the payload. 
  * \return true iif successfull
  */
 
-bool probe_write_payload(probe_t * probe, buffer_t * payload);
+bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes);
 
 /**
  * \brief Write data in the probe's payload at a given offset. The
  *    packet_t instance is automatically resized if required.
  * \param probe The update payload
- * \param payload Data copied in the probe's payload
- * \param offset The offset added to the probe's payload address
- * \return true iif successfull
+ * \param bytes Bytes copied in the probe's payload.
+ * \param num_bytes Number of bytes copied from bytes in the payload. 
+ * \param offset The offset (starting from the beginning of the payload)
+ *    in bytes added to the payload address to write the data.
+ * \return true iif successfull.
  */
 
-bool probe_write_payload_ext(probe_t * probe, buffer_t * payload, unsigned int offset);
+bool probe_write_payload_ext(probe_t * probe, const void * bytes, size_t num_bytes, size_t offset);
 
 /**
  * \brief Get the size of the payload from a probe
@@ -306,41 +317,6 @@ size_t probe_get_left_to_send(probe_t * probe);
 
 void probe_set_left_to_send(probe_t * probe, size_t num_left);
 
-/******************************************************************************
- * probe_reply_t
- ******************************************************************************/
-
-typedef struct {
-    probe_t * probe;
-    probe_t * reply;
-} probe_reply_t;
-
-probe_reply_t * probe_reply_create(void);
-void probe_reply_free(probe_reply_t * probe_reply);
-void probe_reply_deep_free(probe_reply_t * probe_reply);
-
-// Accessors
-
-void probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe);
-probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
-void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
-probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
-
-/******************************************************************************
- * pt_loop_t
- ******************************************************************************/
-
-struct pt_loop_s;
-
-/**
- * \brief Callback function to handle the reply from a probe
- * \param loop Pointer to a pt_loop_s structure within which the probe is running (?)
- * \param probe Pointer to a probe_t structure containing the probe that was sent (?)
- * \param reply Pointer to an empty probe_t structure to hold the reply (?)
- */
-
-void pt_probe_reply_callback(struct pt_loop_s * loop, probe_t * probe, probe_t * reply);
-
 /**
  * \brief Update a probe_t instance according to a set of protocol names.
  * \param probe The probe we're altering
@@ -357,5 +333,25 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...);
  */
 
 packet_t * probe_create_packet(probe_t * probe);
+
+//---------------------------------------------------------------------------
+// probe_reply_t
+//---------------------------------------------------------------------------
+
+typedef struct {
+    probe_t * probe;
+    probe_t * reply;
+} probe_reply_t;
+
+probe_reply_t * probe_reply_create();
+void probe_reply_free(probe_reply_t * probe_reply);
+void probe_reply_deep_free(probe_reply_t * probe_reply);
+
+// Accessors
+
+void probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe);
+probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
+void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
+probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
 
 #endif

@@ -13,12 +13,14 @@
 
 #define END_PROTOCOL_FIELDS { .key = NULL }
 
+struct layer_s;
+
 /**
  * \struct protocol_t
  * \brief Structure describing a protocol
  */
 
-typedef struct {
+typedef struct protocol_s {
     const char * name; /**< Name of the protocol */
     
     /**
@@ -71,8 +73,6 @@ typedef struct {
 
     size_t (*write_default_header)(uint8_t * header);
 
-    // socket_type
-    
     /**
      * \brief Points to a callback which returns the size of a header.
      * \param A pointer to the header we want to get size. You may pass
@@ -93,9 +93,20 @@ typedef struct {
 
     /**
      * \brief Pointer to a function that detects the version of the protocol
+     * \param packet The evaluated packet.
+     * \return true iif the packet if using this protocol.
      */
 
     bool (*instance_of)(uint8_t * packet);
+
+    /**
+     * \brief Retrieve the protocol of a nested layer using its "protocol" field.
+     * \sa protocol_get_next_protocol
+     * \param layer The nesting layer
+     * \return The corresponding protocol if any and if supported, NULL otherwise.
+     */
+
+    const struct protocol_s * (*get_next_protocol)(const struct layer_s * layer);
 
 } protocol_t;
 
@@ -165,6 +176,15 @@ void protocol_dump(const protocol_t * protocol);
  */
 
 void protocols_dump();
+
+/**
+ * \brief Retrieve the protocol of a nested layer using its "protocol" field.
+ * \param layer The nesting layer
+ * \return The corresponding protocol if any and if supported, NULL otherwise.
+ */
+
+const protocol_t * protocol_get_next_protocol(const struct layer_s * layer);
+
 
 #define PROTOCOL_REGISTER(MOD)    \
 static void __init_ ## MOD (void) __attribute__ ((constructor));    \

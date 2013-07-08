@@ -36,7 +36,7 @@ typedef struct {
  * \return A vector_t structure representing an empty vector
  */
 
-vector_t * vector_create(size_t size,void (* callback_free)(void *), void (* callback_dump)(void *));
+vector_t * vector_create(size_t size, void (* callback_free)(void *), void (* callback_dump)(void *));
 
 /** 
   * \biref Dump a vector instance

@@ -5,9 +5,8 @@
 #include <string.h>         // strdup
 
 #include "../../common.h"   // ELEMENT_FREE 
-#include "../../address.h"  // address_resolv
 
-mda_interface_t * mda_interface_create(const char * str_ip)
+mda_interface_t * mda_interface_create(const address_t * address)
 {
     mda_interface_t * mda_interface;
 
@@ -15,8 +14,8 @@ mda_interface_t * mda_interface_create(const char * str_ip)
         goto ERR_INTERFACE;
     }
 
-    if (str_ip) {
-        if(!(mda_interface->address = strdup(str_ip))) {
+    if (address) {
+        if(!(mda_interface->address = address_dup(address))) {
             goto ERR_ADDRESS;
         }
     }
@@ -29,7 +28,7 @@ mda_interface_t * mda_interface_create(const char * str_ip)
     return mda_interface;
 
 ERR_FLOWS:
-    if (mda_interface->address) free(mda_interface->address);
+    if (mda_interface->address) address_free(mda_interface->address);
 ERR_ADDRESS:
     free(mda_interface);
 ERR_INTERFACE:
@@ -40,7 +39,7 @@ void mda_interface_free(mda_interface_t * interface)
 {
     if (interface) {
         dynarray_free(interface->flows, (ELEMENT_FREE) mda_flow_free);
-        if (interface->address) free(interface->address);
+        if (interface->address) address_free(interface->address);
         free(interface);
     }
 }
@@ -138,10 +137,15 @@ static void flow_dump(const mda_interface_t * interface)
  * \param hostname The FQDN related to this hop.
  */
 
+// TODO improve the 3 following functions
 static void mda_hop_dump(const mda_interface_t * hop, char * hostname)
 {
-    printf("%s", hop->address ? hop->address : "None");
-    if (hostname) printf(" (%s)", hostname);
+    if (hop->address) {
+        address_dump(hop->address);
+    } else printf("None");
+    if (hostname) {
+        printf(" (%s)", hostname);
+    }
 }
 
 static inline void mda_hop_dump_without_resolv(const lattice_elt_t * elt) {
@@ -153,12 +157,9 @@ static inline void mda_hop_dump_with_resolv(const lattice_elt_t * elt) {
     const mda_interface_t * hop = lattice_elt_get_data(elt);
     char                  * hostname;
 
-    if (address_resolv(hop->address, &hostname)) {
-        mda_hop_dump(hop, hostname);
-    } else {
-        mda_hop_dump(hop, hop->address);
-    }
-    free(hostname);
+    address_resolv(hop->address, &hostname);
+    mda_hop_dump(hop, hostname);
+    if (hostname) free(hostname);
 }
 
 void mda_link_dump(const mda_interface_t * link[2], bool do_resolv)
@@ -172,7 +173,7 @@ void mda_link_dump(const mda_interface_t * link[2], bool do_resolv)
     if (do_resolv && link[0]->address) {
         address_resolv(link[0]->address, &hostname);
     }
-    mda_hop_dump(link[0], hostname ? hostname : link[0]->address);
+    mda_hop_dump(link[0], hostname);
     if (hostname) free(hostname);
 
     // Print target of the link (if any)
@@ -191,15 +192,15 @@ void mda_link_dump(const mda_interface_t * link[2], bool do_resolv)
 
 void mda_lattice_elt_dump(const lattice_elt_t * lattice_elt) //, bool do_resolv)
 {
-    size_t                  i, num_nexthops;
-    const mda_interface_t * curr_hop;
+    size_t                  num_nexthops;
+//    const mda_interface_t * curr_hop;
     const dynarray_t      * next_hops;
     char                  * hostname = NULL;
 
     if (!lattice_elt) goto ERROR;
 
     // Current hop
-    curr_hop = lattice_elt_get_data(lattice_elt);
+//    curr_hop = lattice_elt_get_data(lattice_elt);
     mda_hop_dump_without_resolv(lattice_elt);
     
     // Get next hops

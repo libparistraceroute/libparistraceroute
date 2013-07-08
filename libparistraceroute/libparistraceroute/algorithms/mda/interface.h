@@ -7,6 +7,7 @@
 #include "data.h"           // mda_data_t
 #include "flow.h"           // mda_flow_state_t
 #include "../../dynarray.h" // dynarray_t
+#include "../../address.h"  // address_t
 
 typedef enum {
     MDA_LB_TYPE_UNKNOWN,             /**< IP hop state not yet classified  */
@@ -19,7 +20,7 @@ typedef enum {
 } mda_lb_type_t;
 
 typedef struct {
-    char         * address;          /**< Interface attached to this hop   */
+    address_t    * address;          /**< Interface attached to this hop   */
     size_t         sent,             /**< Number of probes to discover its next hops */
                    received,         
                    timeout,
@@ -33,12 +34,12 @@ typedef struct {
 /**
  * \brief Allocate a new mda_interface_t instance, which corresponds to
  *    an IP hop discovered by mda.
- * \param str_ip A string containing the IP hop related to this IP hop.
+ * \param addr The address of the discovered IP hop.
  * \return A pointer to the newly created mda_interface_t instance,
  *    NULL otherwise.
  */
 
-mda_interface_t * mda_interface_create(const char * str_ip);
+mda_interface_t * mda_interface_create(const address_t * address);
 
 /**
  * \brief Release a mda_interface_t instance from the memory.

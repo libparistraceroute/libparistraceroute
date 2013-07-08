@@ -12,30 +12,33 @@
 #include "common.h"
 #include "packet.h"
 #include "queue.h"
-#include "options.h"
-#include "probe.h"       // probe_extract
+#include "options.h"     // option_t
+#include "probe.h"       // probe_extract_ext, probe_set_field_ext
 #include "algorithm.h"   // pt_algorithm_throw
 
 // TODO static variable as timeout. Control extra_delay and timeout values consistency
 #define EXTRA_DELAY 0.01 // this extra delay provokes a probe timeout event if a probe will expires in less than EXTRA_DELAY seconds. Must be less than network->timeout.
 
 
+//---------------------------------------------------------------------------
 // Network options
+//---------------------------------------------------------------------------
+
 static double timeout[3] = OPTIONS_NETWORK_WAIT;
 
-static struct opt_spec network_opt_specs[] = {
+static option_t network_options[] = {
     // action              short long          metavar         help    variable
-    {opt_store_double_lim, "w",  "--wait",     "waittime",     HELP_w, timeout},
-     END_OPT_SPECS
+    {opt_store_double_lim, "w",  "--wait",     "TIMEOUT",      HELP_w, timeout},
+    END_OPT_SPECS
 };
 
 /**
  * \brief return the commandline options related to network
- * \return a pointer to an opt_spec structure
+ * \return A pointer to an opt_spec structure
  */
 
-struct opt_spec * network_get_opt_specs() {
-    return network_opt_specs;
+const option_t * network_get_options() {
+    return network_options;
 }
 
 double options_network_get_timeout() {
@@ -45,6 +48,11 @@ double options_network_get_timeout() {
 void network_set_is_verbose(network_t * network, bool verbose) {
      network->is_verbose = verbose;
 }
+
+//---------------------------------------------------------------------------
+// Private functions 
+//---------------------------------------------------------------------------
+
 /**
  * \brief Extract the probe ID (tag) from a probe
  * \param probe The queried probe
@@ -106,7 +114,12 @@ static uint16_t network_get_available_tag(network_t * network) {
     return ++network->last_tag;
 }
 
-void network_flying_probes_dump(network_t * network) {
+/**
+ * \brief Debug function. Dump tags of every flying probes
+ * \param network The queried network layer
+ */
+
+static void network_flying_probes_dump(network_t * network) {
     size_t     i, num_flying_probes = dynarray_get_size(network->probes);
     uint16_t   tag_probe;
     probe_t  * probe;
@@ -151,15 +164,20 @@ static double network_get_probe_timeout(const network_t * network, const probe_t
  */
 
 static void itimerspec_set_delay(struct itimerspec * timer, double delay) {
-    time_t delay_sec;
-
-    delay_sec = (time_t) delay;
+    time_t delay_sec = (time_t) delay;
 
     timer->it_value.tv_sec     = delay_sec;
     timer->it_value.tv_nsec    = 1000000 * (delay - delay_sec);
     timer->it_interval.tv_sec  = 0;
     timer->it_interval.tv_nsec = 0;
 }
+
+/**
+ * \brief Update a timer in order to expire at a given moment .
+ * \param timerfd The file descriptor related to the timer.
+ * \param delay The delay (in micro seconds).
+ * \return true iif successful.
+ */
 
 bool update_timer(int timerfd, double delay) {
     struct itimerspec    delay_timer;
@@ -268,8 +286,11 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     return probe;
 }
 
+//---------------------------------------------------------------------------
+// Public functions 
+//---------------------------------------------------------------------------
 
-network_t * network_create(void)
+network_t * network_create()
 {
     network_t * network;
 
@@ -369,15 +390,16 @@ probe_group_t * network_get_scheduled_probes(network_t * network) {
     return network->scheduled_probes;
 }
 
-
-/* TODO we need a function to return the set of fd used by the network */
-
 bool network_tag_probe(network_t * network, probe_t * probe)
 {
     uint16_t   tag, checksum;
-    buffer_t * payload;
     size_t     payload_size = probe_get_payload_size(probe);
-    size_t     tag_size = sizeof(uint16_t);
+    size_t     tag_size     = sizeof(uint16_t);
+    size_t     num_layers   = probe_get_num_layers(probe);
+
+    // For probes having a payload of size 0 and a "body" field (like icmp) 
+    layer_t  * last_layer;
+    bool       tag_in_body = false;
 
     /* The probe gets assigned a unique tag. Currently we encode it in the UDP
      * checksum, but I guess the tag will be protocol dependent. Also, since the
@@ -394,32 +416,36 @@ bool network_tag_probe(network_t * network, probe_t * probe)
      * randomized tags ? Also, we need to determine how much size we have to
      * encode information. */
 
-    if (payload_size < tag_size) {
-        fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
-        goto ERR_INVALID_PAYLOAD;
+    if (num_layers < 2 || !(last_layer = probe_get_layer(probe, num_layers - 2))) {
+        fprintf(stderr, "network_tag_probe: not enough layer (num_layers = %ld)\n", num_layers);
+        goto ERR_GET_LAYER;
+    }
+
+    // The last layer is the payload, the previous one is the last protocol layer.
+    // If this layer has a "body" field like icmp, we have no payload and
+    // we use the body field.
+    if (last_layer->protocol && protocol_get_field(last_layer->protocol, "body")) {
+        tag_in_body = true;
     }
 
     tag = network_get_available_tag(network);
-    if (!(payload = buffer_create())) {
-        fprintf(stderr, "Can't create buffer\n");
-        goto ERR_BUFFER_CREATE;
-    }
-
-    // Write the probe ID in the buffer
-    if (!(buffer_write_bytes(payload, &tag, tag_size))) {
-        fprintf(stderr, "Can't set data\n");
-        goto ERR_BUFFER_WRITE_BYTES;
-    }
 
     // Write the tag at offset zero of the payload
-    if (!(probe_write_payload(probe, payload))) {
-        fprintf(stderr, "Can't write payload\n");
-        goto ERR_PROBE_WRITE_PAYLOAD;
+    if (tag_in_body) {
+        probe_set_field(probe, I16("body", htons(tag)));
+    } else {
+        if (payload_size < tag_size) {
+            fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
+            goto ERR_INVALID_PAYLOAD;
+        }
+
+        if (!(probe_write_payload(probe, &tag, tag_size))) {
+            goto ERR_PROBE_WRITE_PAYLOAD;
+        }
     }
 
     // Fix checksum to get a well-formed packet
-    // TODO call probe_update_checksum
-    if (!(probe_update_fields(probe))) {
+    if (!(probe_update_checksum(probe))) {
         fprintf(stderr, "Can't update fields\n");
         goto ERR_PROBE_UPDATE_FIELDS;
     }
@@ -436,32 +462,32 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_PROBE_SET_TAG;
     }
 
-    // Update checksum (network-side endianness)
-    checksum = htons(checksum);
+    if (tag_in_body) {
+        // The endianness is managed by probe_set_field
+        if (!(probe_set_field(probe, I16("body", checksum)))) {
+            fprintf(stderr, "Can't set body\n");
+            goto ERR_PROBE_SET_FIELD;
+        } 
+    } else {
+        // Update checksum (network-side endianness)
+        checksum = htons(checksum);
 
-    // Write the old checksum in the payload
-    if (!buffer_write_bytes(payload, &checksum, tag_size)) {
-        fprintf(stderr, "Can't write buffer (2)\n");
-        goto ERR_PROBE_WRITE_PAYLOAD2;
-    }
-
-    if (!(probe_write_payload(probe, payload))) {
-        fprintf(stderr, "Can't write payload (2)\n");
-        goto ERR_BUFFER_WRITE_BYTES2;
+        if (!probe_write_payload(probe, &checksum, tag_size)) {
+            fprintf(stderr, "Can't write payload (2)\n");
+            goto ERR_BUFFER_WRITE_BYTES2;
+        }
     }
 
     return true;
 
+ERR_PROBE_SET_FIELD:
 ERR_BUFFER_WRITE_BYTES2:
-ERR_PROBE_WRITE_PAYLOAD2:
 ERR_PROBE_SET_TAG:
 ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:
 ERR_PROBE_WRITE_PAYLOAD:
-ERR_BUFFER_WRITE_BYTES:
-    buffer_free(payload);
-ERR_BUFFER_CREATE:
 ERR_INVALID_PAYLOAD:
+ERR_GET_LAYER:
     return false;
 }
 
@@ -517,8 +543,8 @@ bool network_process_sendq(network_t * network)
     }
 
     // Update the sending time
-     //printf(" (%-5.2lfms)\n ", 1000 *(get_timestamp() -  probe_get_sending_time(probe)));
-     probe_set_sending_time(probe, get_timestamp());
+    //printf(" (%-5.2lfms)\n ", 1000 *(get_timestamp() -  probe_get_sending_time(probe)));
+    probe_set_sending_time(probe, get_timestamp());
 
     // Register this probe in the list of flying probes
     if (!(dynarray_push_element(network->probes, probe))) {

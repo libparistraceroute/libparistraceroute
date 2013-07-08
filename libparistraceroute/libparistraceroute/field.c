@@ -13,7 +13,7 @@ field_t * field_create(fieldtype_t type, const char * key, const void * value) {
     if (!(field->key = strdup(key)))        goto ERR_STRDUP;
     field->type = type;
 
-    switch(type) {
+    switch (type) {
         case TYPE_STRING:
             if (!(field->value.string = strdup((const char *) value))) goto ERR_DUP_VALUE;
             break;
@@ -36,6 +36,52 @@ ERR_MALLOC:
     return NULL;
 }
 
+void field_free(field_t * field)
+{
+    if (field) {
+        if (field->key) free(field->key);
+
+        switch (field->type) {
+            case TYPE_STRING:
+                free(field->value.string);
+                break;
+            case TYPE_GENERATOR:
+                generator_free(field->value.generator);
+                break;
+            default:
+                break;
+        }
+
+        free(field);
+    }
+}
+
+field_t * field_create_address(const char * key, const address_t * address) {
+    field_t * field = NULL;
+
+    switch (address->family) {
+        case AF_INET:
+            field = field_create(TYPE_IPV4, key, &address->ip.ipv4);
+            break;
+        case AF_INET6:
+            field =  field_create(TYPE_IPV6, key, &address->ip.ipv6);
+            break;
+        default:
+            fprintf(stderr, "field_create_address: Invalid family address (family = %d)", address->family);
+            break;
+    }
+
+    return field;
+}
+
+field_t * field_create_ipv4(const char * key, ipv4_t ipv4) {
+    return field_create(TYPE_IPV4, key, &ipv4);
+}
+
+field_t * field_create_ipv6(const char * key, ipv6_t ipv6) {
+    return field_create(TYPE_IPV6, key, &ipv6);
+}
+
 field_t * field_create_uint4(const char * key, uint8_t value) {
     return field_create(TYPE_UINT4, key, &value);
 }
@@ -56,8 +102,7 @@ field_t * field_create_uint64(const char * key, uint64_t value) {
     return field_create(TYPE_UINT64, key, &value);
 }
 
-field_t * field_create_double(const char * key, double value)
-{
+field_t * field_create_double(const char * key, double value) {
     return field_create(TYPE_DOUBLE, key, &value);
 }
 
@@ -73,26 +118,20 @@ field_t * field_create_string(const char * key, const char * value) {
     return field_create(TYPE_STRING, key, value);
 }
 
-field_t * field_create_generator(const char * key, struct generator_s * value)
-{
+field_t * field_create_generator(const char * key, struct generator_s * value) {
     return field_create(TYPE_GENERATOR, key, value);
 }
 
 field_t * field_dup(const field_t * field) {
     const char * key_dup;
-    void * data;
 
     if (!(key_dup = strdup(field->key))) goto ERR_STRDUP;
-    switch (field->type) {
-        case TYPE_STRING:
-        case TYPE_GENERATOR:
-            data = field->value.value;
-            break;
-        default:
-            data = &(field->value);
-            break;
-    }
-    return field_create(field->type, key_dup, data);
+
+    // Note: if the field stores a pointer (TYPE_STRING, TYPE_GENERATOR),
+    // we only copies this pointer. Thus the both fields points to the
+    // same object.
+
+    return field_create(field->type, key_dup, &field->value);
 
 ERR_STRDUP:
     return NULL;
@@ -101,6 +140,10 @@ ERR_STRDUP:
 field_t * field_create_from_network(fieldtype_t type, const char * key, void * value)
 {
     switch (type) {
+        case TYPE_IPV4:
+            return field_create_ipv4(key, *(ipv4_t *) value);
+        case TYPE_IPV6:
+            return field_create_ipv6(key, *(ipv6_t *) value);
         case TYPE_UINT4:
             return field_create_uint4(key, *(uint8_t *) value);
         case TYPE_UINT8:
@@ -133,16 +176,6 @@ bool field_set_value(field_t * field, void * value)
     return ret;
 }
 
-void field_free(field_t * field)
-{
-    if (field) {
-        if (field->key) free(field->key);
-        if (field->type == TYPE_STRING) free(field->value.string);
-        if (field->type == TYPE_GENERATOR) generator_free(field->value.generator);
-        free(field);
-    }
-}
-
 // Accessors
 
 size_t field_get_size(const field_t * field) {
@@ -151,6 +184,10 @@ size_t field_get_size(const field_t * field) {
 
 size_t field_get_type_size(fieldtype_t type) {
     switch (type) {
+        case TYPE_IPV4:
+            return sizeof(ipv4_t);
+        case TYPE_IPV6:
+            return sizeof(ipv6_t);
         case TYPE_UINT4:
             return sizeof(uint8_t);
         case TYPE_UINT8:
@@ -188,29 +225,56 @@ bool field_match(const field_t * field1, const field_t * field2) {
     return field1 && field2 && field1->type == field2->type && strcmp(field1->key, field2->key) == 0;
 }
 
+const char * field_type_to_string(fieldtype_t type) {
+    switch (type) {
+        case TYPE_IPV4:      return "ipv4"; 
+        case TYPE_IPV6:      return "ipv6"; 
+        case TYPE_UINT4:     return "uint4";
+        case TYPE_UINT8:     return "uint8";
+        case TYPE_UINT16:    return "uint16";
+        case TYPE_UINT32:    return "uint32";
+        case TYPE_UINT64:    return "uint64";
+        case TYPE_UINT128:   return "uint128";
+        case TYPE_UINTMAX:   return "uintmax";
+        case TYPE_DOUBLE:    return "double";
+        case TYPE_STRING:    return "string";
+        case TYPE_GENERATOR: return "generator";
+        default:             break;
+    }
+    return "???";
+}
+
 void field_dump(const field_t * field)
 {
     if (field) {
-
         switch (field->type) {
+            case TYPE_IPV4:
+                ipv4_dump(&field->value.ipv4);
+                printf("\t(0x%08x)",  ntohl(*((const uint32_t *) &field->value.ipv4)));
+                break;
+            case TYPE_IPV6:
+                ipv6_dump(&field->value.ipv6);
+                printf("\t(0x%08x %08x %08x %08x)",
+                    ntohl(((const uint32_t *) &field->value.ipv6)[0]),
+                    ntohl(((const uint32_t *) &field->value.ipv6)[1]),
+                    ntohl(((const uint32_t *) &field->value.ipv6)[2]),
+                    ntohl(((const uint32_t *) &field->value.ipv6)[3])
+                );
+                break;
             case TYPE_UINT4:
-                printf("%-10hhu (0x%1x)", field->value.int4, field->value.int4);
+                printf("%-10hhu\t(0x%1x)", field->value.int4, field->value.int4);
                 break;
             case TYPE_UINT8:
-                printf("%-10hhu (0x%02x)", field->value.int8, field->value.int8);
+                printf("%-10hhu\t(0x%02x)", field->value.int8, field->value.int8);
                 break;
             case TYPE_UINT16:
-                printf("%-10hu (0x%04x)", field->value.int16, field->value.int16);
+                printf("%-10hu\t(0x%04x)", field->value.int16, field->value.int16);
                 break;
             case TYPE_UINT32:
-                printf("%-10u (0x%08x)", field->value.int32, field->value.int32);
+                printf("%-10u\t(0x%08x)", field->value.int32, field->value.int32);
                 break;
             case TYPE_UINT64:
                 printf("%lu", field->value.int64);
-                break;
-            case TYPE_UINT128:
-                perror("Not yet implemented");
-                //printf("%llu", field->value.int128); //TODO does printf work this way for 128 bit ints?
                 break;
             case TYPE_DOUBLE:
                 printf("%lf", field->value.dbl);
@@ -224,7 +288,9 @@ void field_dump(const field_t * field)
             case TYPE_GENERATOR :
                 generator_dump(field->value.generator);
                 break;
+            case TYPE_UINT128:
             default:
+                fprintf(stderr, "field_dump: type not supported (%d) (%s)", field->type, field_type_to_string(field->type));
                 break;
         }
     }

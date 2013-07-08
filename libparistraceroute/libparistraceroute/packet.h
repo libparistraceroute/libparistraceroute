@@ -6,7 +6,8 @@
  * \brief Header for network packets
  */
 
-#include "buffer.h"
+#include "buffer.h"    // buffer_t
+#include "address.h"   // address_t
 
 /**
  * \struct packet_t
@@ -14,12 +15,12 @@
  */
 
 typedef struct packet_s {
-    buffer_t * buffer; /**< Buffer to hold the packet data */
-    // TODO Redundant information : We use this temporary hack 
-    // while we are not sure that the dst_ip and dst_port
-    // have been explicitly set in the buffer (see probe) */
-    char     * dst_ip;   /**< Destination IP (string format) */
-    uint16_t   dst_port; /**< Destination port */
+    buffer_t  * buffer;   /**< Buffer to hold the packet data */
+
+    // The following fields are those used by the socket pool
+    // to send the packet.
+
+    address_t * dst_ip;   /**< Destination address (mandatory) */
 } packet_t;
 
 /**
@@ -27,7 +28,7 @@ typedef struct packet_s {
  * \return The newly allocated packet_t instance, NULL in case of failure 
  */
 
-packet_t * packet_create(void);
+packet_t * packet_create();
 
 /**
  * \brief Create a new packet
@@ -98,8 +99,8 @@ void packet_dump(const packet_t * packet);
  * \brief Guess the IP version of a packet stored in a buffer
  *   according to the 4 first bits.
  * \param buffer The buffer storing an (IP) packet
- * \return 4 for IPv4, 6 for IPv6, another value if the
- *   buffer is not well-formed.
+ * \return AF_INET for IPv4, AF_INET6 for IPv6, another value
+ *   if the buffer is not well-formed.
  */
 
 int packet_guess_address_family(const packet_t * packet);

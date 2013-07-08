@@ -33,7 +33,7 @@
  *    - in this case, the segment covers the whole payload
  */
 
-typedef struct {
+typedef struct layer_s {
     const protocol_t * protocol;     /**< Points to the protocol implemented in this layer. Set to NULL if this layer is the payload */
     uint8_t          * segment;      /**< Points to the begining of the segment (header + data) of this layer in the packet */
     uint8_t          * mask;         /**< TODO (not yet implemented)
@@ -48,7 +48,7 @@ typedef struct {
  * \return Newly created layer
  */
 
-layer_t * layer_create(void);
+layer_t * layer_create();
 
 /**
  * \brief Duplicate a layer
@@ -99,28 +99,30 @@ void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
 bool layer_set_field(layer_t * layer, const field_t * field);
 
 /**
- * \brief Update bytes managed  
+ * \brief Update bytes managed.
  * \param layer Pointer to a layer_t structure. This layer must
  *   have layer->protocol == NULL, otherwise this layer is related
  *   to a network protocol layer.
- * \param payload The payload to write in the data, or NULL.
- * \return true iif successful
+ * \param bytes Bytes copied in the payload.
+ * \param num_bytes Number of bytes copied from bytes in the payload.
+ * \return true iif successful.
  */
 
-bool layer_write_payload(layer_t * layer, buffer_t * payload);
+bool layer_write_payload(layer_t * layer, const void * bytes, size_t num_bytes);
 
 /**
  * \brief Write the data stored in a buffer in the layer's payload.
  *   This function can only be used if no layer is nested in the
  *   layer we're altering, otherwise, nothing happens.
  * \param layer A pointer to the layer that we're filling.
- * \param payload The data to duplicate into the layer's payload.
+ * \param bytes Bytes copied in the payload.
+ * \param num_bytes Number of bytes copied from bytes in the payload.
  * \param offset The offset (starting from the beginning of the payload)
- *    added to the payload address to write the data.
- * \return true iif successfull
+ *    in bytes added to the payload address to write the data.
+ * \return true iif successfull.
  */
 
-bool layer_write_payload_ext(layer_t * layer, const buffer_t * payload, unsigned int offset);
+bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_bytes, size_t offset);
 
 /**
  * \brief Retrieve the size of the buffer stored in the layer_t structure.
@@ -170,13 +172,20 @@ layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segme
 bool layer_extract(const layer_t * layer, const char * field_name, void * value);
 
 /**
- * \brief Print the content of a layer
- * \param layer A pointer to the layer instance to print
- * \param indent The number of space characters to write
+ * \brief Print the content of a layer.
+ * \param layer A pointer to the layer instance to print.
+ * \param indent The number of space characters to write.
  *    before each printed line.
  */
 
 void layer_dump(const layer_t * layer, unsigned int indent);
+
+/**
+ * \brief Print side by side 2 layers (only the checksum, protocol, and length fields).
+ * \param layer1 The first layer.
+ * \param layer2 The second layer.
+ */
+
 void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent);
 
 #endif

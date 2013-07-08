@@ -21,7 +21,7 @@
 #include "socketpool.h"  // socketpool_t
 #include "sniffer.h"     // sniffer_t
 #include "dynarray.h"    // dynarray_t
-#include "optparse.h"    // opt_spec
+#include "options.h"     // option_t
 #include "probe_group.h" // probe_group_t
 
 // If no matching reply has been sniffed in the next 3 sec, we
@@ -32,9 +32,6 @@
 #define NETWORK_DEFAULT_TIMEOUT 3
 #define OPTIONS_NETWORK_WAIT {NETWORK_DEFAULT_TIMEOUT, 0, INT_MAX}
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
-
-double options_network_get_timeout();
-
 
 /**
  * \struct network_t
@@ -120,18 +117,26 @@ typedef struct network_s {
 } network_t;
 
 /**
+ * \brief Retrieve the timeout defined in the network layer for
+ *    probe timeout management.
+ * \return The value set in the network layer (in seconds)
+ */
+
+double options_network_get_timeout();
+
+/**
  * \brief Get the commandline options related to the layer network
  * \returna pointer to a tructure containing the options
  */
 
-struct opt_spec * network_get_opt_specs();
+const option_t * network_get_options();
 
 /**
  * \brief Create a new network structure
  * \return The newly created network layer.
  */
 
-network_t * network_create(void);
+network_t * network_create();
 
 /**
  * \brief Delete a network structure
@@ -293,6 +298,7 @@ bool network_update_scheduled_timer(network_t * network, double delay);
  * return true iif successful
  */
 
+// TODO move this outside network
 bool update_timer(int timerfd, double delay);
 
 /**
@@ -312,12 +318,5 @@ int network_get_icmpv4_sockfd(network_t * network);
  */
 
 int network_get_icmpv6_sockfd(network_t * network);
-
-/**
- * \brief Debug function. Dump tags of every flying probes
- * \param network The queried network layer
- */
-
-void network_flying_probes_dump(network_t * network);
 
 #endif
