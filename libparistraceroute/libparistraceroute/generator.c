@@ -1,14 +1,12 @@
 #include "generator.h"
 
 #include <string.h>         // strcmp(), memcpy ...
-#include <search.h>         // tfind(), ...
-#include <stdio.h>
+#include <search.h>         // tfind(), tdestroy() ...
+#include <stdio.h>          // fprintf()
 
 #include "common.h"         // ELEMENT_COMPARE
 
-// static ?
-void * generators_root;
-
+static void * generators_root; /**< Tree of generator_t, ordered by name */
 
 static int generator_compare(
     const generator_t * generator1,
@@ -159,3 +157,10 @@ void generator_register(generator_t * generator)
     // Insert the generator in the tree if the keys does not exist yet
     tsearch(generator, &generators_root, (ELEMENT_COMPARE) generator_compare);
 }
+
+static void nothing_to_free() {}
+
+void generator_clear() {
+    tdestroy(generators_root, nothing_to_free);
+}
+

@@ -731,7 +731,7 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field)
     size_t    i, num_layers = probe_get_num_layers(probe);
     layer_t * layer;
 
-    for(i = depth; i < num_layers; i++) {
+    for (i = depth; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         if (layer_set_field(layer, field)) {
             ret = true;
@@ -743,6 +743,25 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field)
 
 bool probe_set_field(probe_t * probe, const field_t * field) {
     return probe_set_field_ext(probe, 0, field);
+}
+
+bool probe_write_field_ext(probe_t * probe, size_t depth, const char * name, void * bytes, size_t num_bytes) {
+    bool      ret = false;
+    size_t    i, num_layers = probe_get_num_layers(probe);
+    layer_t * layer;
+
+    for (i = depth; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        if (layer_write_field(layer, name, bytes, num_bytes)) {
+            ret = true;
+            break;
+        }
+    }
+    return ret;
+}
+
+bool probe_write_field(probe_t * probe, const char * name, void * bytes, size_t num_bytes) {
+    return probe_write_field_ext(probe, 0, name, bytes, num_bytes);
 }
 
 bool probe_set_metafield_ext(probe_t * probe, size_t depth, field_t * field)

@@ -105,6 +105,10 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field);
 
 bool probe_set_field(probe_t * probe, const field_t * field);
 
+
+bool probe_write_field_ext(probe_t * probe, size_t depth, const char * name, void * bytes, size_t num_bytes);
+bool probe_write_field(probe_t * probe, const char * name, void * bytes, size_t num_bytes);
+
 /**
  * \brief Update for each layer of a probe its 'checksum' field
  *   (if any) in order to have a packet well-formed. 

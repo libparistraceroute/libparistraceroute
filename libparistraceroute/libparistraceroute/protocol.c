@@ -1,12 +1,12 @@
 #include "protocol.h"
 
 #include <string.h>         // strcmp(), ...
-#include <search.h>         // tfind(), preorder...
+#include <search.h>         // tfind(), tdestroy(), twalk(), preorder...
 #include <stdio.h>          // perror()
 
 #include "common.h"         // ELEMENT_COMPARE
 #include "protocol_field.h" // protocol_field_t
-#include "layer.h"          // layer_t, layer_extract
+#include "layer.h"          // layer_t, layer_extract()
 
 // Protocols are registered in the following trees.
 // We require two trees since a protocol may be retrieved
@@ -14,8 +14,6 @@
 
 static void * protocols_root;     /**< Tree ordered by name */
 static void * protocols_id_root;  /**< Tree ordered by id   */
-
-// TODO tdestroy(protocols_root, NULL) when leaving
 
 static int protocol_compare(
     const protocol_t * protocol1,
@@ -30,6 +28,8 @@ static int protocol_id_compare(
 ) {
     return protocol1->protocol - protocol2->protocol;
 }
+
+static void nothing_to_free() {}
 
 const protocol_t * protocol_search(const char * name)
 {
@@ -57,6 +57,10 @@ void protocol_register(protocol_t * protocol)
     // Insert the protocol in the tree if the keys does not exist yet
     tsearch(protocol, &protocols_root,    (ELEMENT_COMPARE) protocol_compare);
     tsearch(protocol, &protocols_id_root, (ELEMENT_COMPARE) protocol_id_compare);
+}
+
+void protocol_clear() {
+    tdestroy(protocols_root, nothing_to_free);
 }
 
 const protocol_field_t * protocol_get_field(const protocol_t * protocol, const char * name)

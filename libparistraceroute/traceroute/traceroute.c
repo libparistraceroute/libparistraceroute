@@ -80,7 +80,7 @@ int main(int argc, char ** argv)
     }
 
     // Prepare options related to the 'traceroute' algorithm
-    options.do_resolv = true;
+    options.do_resolv = false;
     options.dst_addr = &dst_addr;
     options.num_probes = 1;
 //    options.max_ttl = 1;
@@ -112,7 +112,7 @@ int main(int argc, char ** argv)
             fprintf(stderr, "Internet family not supported (%d)\n", family);
             goto ERR_FAMILY;
     }
-    protocol_name = "udp";
+//    protocol_name = "udp";
 
     if (!probe_set_protocols(probe, ip_protocol_name, protocol_name, NULL)) {
         fprintf(stderr, "Can't set protocols %s/%s\n", ip_protocol_name, protocol_name);
@@ -121,6 +121,8 @@ int main(int argc, char ** argv)
 
     if (strncmp("icmp", protocol_name, 4) != 0) {
         probe_write_payload(probe, "\0\0", 2);
+    } else {
+        probe_set_field(probe, I32("body", 1));
     }
 
     probe_set_fields(probe,

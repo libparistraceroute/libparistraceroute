@@ -98,6 +98,10 @@ void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
 
 bool layer_set_field(layer_t * layer, const field_t * field);
 
+const protocol_field_t * layer_get_protocol_field(const layer_t * layer, const char * key);
+uint8_t * layer_get_field_segment(const layer_t * layer, const char * key);
+bool layer_write_field(layer_t * layer, const char * key, const void * bytes, size_t num_bytes);
+
 /**
  * \brief Update bytes managed.
  * \param layer Pointer to a layer_t structure. This layer must

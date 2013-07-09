@@ -94,16 +94,12 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
                        size_psh    = size_ipv6 + size_icmpv6;
     uint8_t          * psh;
 
-
-    printf("==============> icmpv6_write_checksum\n");
-
     // ICMPv6 checksum computation requires the IPv6 pseudoheader
     // http://en.wikipedia.org/wiki/ICMPv6#Message_checksum
     if (!ipv6_psh) {
         errno = EINVAL;
         return false;
     }
-
     
     // Allocate the buffer which will contains the pseudo header
     if (!(psh = malloc(size_psh))) {
@@ -113,56 +109,13 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
     // Put the excerpt of the IP header into the pseudo header
     memcpy(psh, buffer_get_data(ipv6_psh), size_ipv6);
 
-    {
-        printf("Put IPV6 in psh\n");
-        buffer_t buffer = {
-            .data = psh,
-            .size = size_psh
-        };
-        buffer_dump(&buffer);
-        printf("\n----\n");
-    }
-
     // Put the ICMPv6 header and its content into the pseudo header
     memcpy(psh + size_ipv6, icmpv6_hdr, size_icmpv6);
-
-    {
-        printf("icmp header\n");
-        buffer_t buffer = {
-            .data = icmpv6_hdr,
-            .size = size_icmpv6 
-        };
-        buffer_dump(&buffer);
-        printf("\n----\n");
-    }
-    /*
-
-    {
-        printf("Put ICMPV6 in psh\n");
-        buffer_t buffer = {
-            .data = psh,
-            .size = size_psh
-        };
-        buffer_dump(&buffer);
-        printf("\n----\n");
-    }
-    */
 
     // Overrides the ICMPv6 checksum in psh with zeros
     memset(psh + size_ipv6 + offsetof(struct icmp6_hdr, icmp6_cksum), 0, sizeof(uint16_t));
 
-    {
-        printf("Reset cksum in psh\n");
-        buffer_t buffer = {
-            .data = psh,
-            .size = size_psh
-        };
-        buffer_dump(&buffer);
-        printf("\n----\n");
-    }
-
-    icmpv6_hdr->icmp6_cksum = csum((uint16_t *) icmpv6_header, size_psh);
-    printf("Resulting cksum = %x\n", icmpv6_hdr->icmp6_cksum);
+    icmpv6_hdr->icmp6_cksum = csum((uint16_t *) psh, size_psh);
     free(psh);
     return true;
 }

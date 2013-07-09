@@ -432,7 +432,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 
     // Write the tag at offset zero of the payload
     if (tag_in_body) {
-        probe_set_field(probe, I16("body", htons(tag)));
+        probe_write_field(probe, "body", &tag, sizeof(tag));
     } else {
         if (payload_size < tag_size) {
             fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
@@ -464,10 +464,12 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 
     if (tag_in_body) {
         // The endianness is managed by probe_set_field
-        if (!(probe_set_field(probe, I16("body", checksum)))) {
+        checksum = htons(checksum);
+        if (!(probe_write_field(probe, "body", &checksum, sizeof(checksum)))) {
             fprintf(stderr, "Can't set body\n");
             goto ERR_PROBE_SET_FIELD;
-        } 
+        }
+
     } else {
         // Update checksum (network-side endianness)
         checksum = htons(checksum);

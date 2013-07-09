@@ -59,64 +59,82 @@ inline void layer_set_mask(layer_t * layer, uint8_t * mask) {
     layer->mask = mask;
 }
 
-field_t * layer_create_field(const layer_t * layer, const char * name)
+field_t * layer_create_field(const layer_t * layer, const char * key)
 {
     const protocol_field_t * protocol_field;
-    if (layer && layer->protocol) {
-        if ((protocol_field = protocol_get_field(layer->protocol, name))) {
-            if (protocol_field->get) {
-                return protocol_field->get(layer->segment);
-            } else {
-                return field_create_from_network(
-                    protocol_field->type,
-                    name,
-                    layer->segment + protocol_field->offset
-                );
-            }
-        }
+    field_t                * field;
+
+    if (!(protocol_field = layer_get_protocol_field(layer, key))) {
+        goto ERR_LAYER_GET_PROTOCOL_FIELD;
     }
+
+    if (protocol_field->get) {
+        field = protocol_field->get(layer->segment);
+    } else {
+        field = field_create_from_network(
+            protocol_field->type,
+            key,
+            layer->segment + protocol_field->offset
+        );
+    }
+
+    return field;
+
+ERR_LAYER_GET_PROTOCOL_FIELD:
+    return NULL;
+}
+
+const protocol_field_t * layer_get_protocol_field(const layer_t * layer, const char * key) {
+    const protocol_field_t * protocol_field;
+
+    if (!layer->protocol) {
+        goto ERR_IN_PAYLOAD;
+    }
+
+    if (!(protocol_field = protocol_get_field(layer->protocol, key))) {
+        goto ERR_FIELD_NOT_FOUND;
+    }
+
+    return protocol_field;
+ERR_FIELD_NOT_FOUND:
+ERR_IN_PAYLOAD:
+    return NULL;
+}
+
+uint8_t * layer_get_field_segment(const layer_t * layer, const char * key) {
+    const protocol_field_t * protocol_field;
+
+    if (!(protocol_field = layer_get_protocol_field(layer, key))) {
+        goto ERR_LAYER_GET_PROTOCOL_FIELD;
+    }
+
+    return layer->segment + protocol_field->offset;
+
+ERR_LAYER_GET_PROTOCOL_FIELD:
     return NULL;
 }
 
 bool layer_set_field(layer_t * layer, const field_t * field)
 {
     const protocol_field_t * protocol_field;
-    size_t                   protocol_field_size;
 
-    if (!field) {
+    if (!field || field->type == TYPE_GENERATOR) {
         fprintf(stderr, "layer_set_field: invalid field\n");
         goto ERR_INVALID_FIELD;
     }
 
-    if (field->type == TYPE_GENERATOR) {
-        fprintf(stderr, "layer_set_field: invalid field\n");
-        goto ERR_INVALID_FIELD;
-    }
-
-    if (!layer->protocol) {
-        goto ERR_IN_PAYLOAD;
-    }
-
-    if (!(protocol_field = protocol_get_field(layer->protocol, field->key))) {
-        goto ERR_FIELD_NOT_FOUND;
+    if (!(protocol_field = layer_get_protocol_field(layer, field->key))) {
+        goto ERR_LAYER_GET_PROTOCOL_FIELD;
     }
 
     if (protocol_field->type != field->type) {
-        fprintf(stderr, "'%s' field has not the right type (%s instead of %s)\n",
+        fprintf(stderr, "layer_set_field: '%s' field has not the right type (%s instead of %s) (layer %s)\n",
             field->key,
             field_type_to_string(field->type),
-            field_type_to_string(protocol_field->type)
+            field_type_to_string(protocol_field->type),
+            layer->protocol->name
         );
         goto ERR_INVALID_FIELD_TYPE;
-    }
-
-    // Check whether the probe buffer can store this field
-    // NOTE: the allocation of the buffer might be tricky for headers with
-    // variable len (such as IPv4 with options, etc.).
-    protocol_field_size = field_get_type_size(protocol_field->type);
-    if (protocol_field->offset + protocol_field_size > layer->header_size) {
-        fprintf(stderr, "layer_set_field: buffer too small\n");
-        goto ERR_BUFFER_TOO_SMALL;
     }
 
     // Copy the field value into the buffer
@@ -133,11 +151,34 @@ bool layer_set_field(layer_t * layer, const field_t * field)
     return true;
 
 ERR_PROTOCOL_FIELD_SET:
-ERR_BUFFER_TOO_SMALL:
 ERR_INVALID_FIELD_TYPE:
-ERR_FIELD_NOT_FOUND:
-ERR_IN_PAYLOAD:
+ERR_LAYER_GET_PROTOCOL_FIELD:
 ERR_INVALID_FIELD:
+    return false;
+}
+
+bool layer_write_field(layer_t * layer, const char * key, const void * bytes, size_t num_bytes) {
+    const protocol_field_t * protocol_field;
+    uint8_t * segment;
+    size_t    segment_size;
+
+    if (!(protocol_field = layer_get_protocol_field(layer, key))) {
+        goto ERR_LAYER_GET_PROTOCOL_FIELD;
+    }
+
+    segment_size = protocol_field_get_size(protocol_field);
+    if (num_bytes > segment_size) {
+        goto ERR_SEGMENT_TOO_SMALL;
+    }
+
+    segment = layer->segment + protocol_field->offset;
+    memcpy(segment, bytes, num_bytes);
+    if (segment_size - num_bytes) memset(segment + num_bytes, 0, segment_size - num_bytes);
+
+    return true;
+
+ERR_SEGMENT_TOO_SMALL:
+ERR_LAYER_GET_PROTOCOL_FIELD:
     return false;
 }
 
@@ -154,7 +195,7 @@ bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_byt
     }
 
     if (offset + num_bytes > layer->segment_size) {
-        // The buffer allocated to this layer is too small
+        // The segment assigned to this layer is too small
         fprintf(stderr, "Payload too small\n");
         return false;
     }
@@ -186,10 +227,10 @@ bool layer_extract(const layer_t * layer, const char * field_name, void * value)
     const protocol_field_t * protocol_field;
     field_t                * field;
 
-    if (!(layer && layer->protocol)) goto ERR_PARAM;
+    if (!(layer && layer->protocol)) goto ERR_INVALID_LAYER;
     if (!(protocol_field = protocol_get_field(layer->protocol, field_name))) goto ERR_PROTOCOL_GET_FIELD;
 
-    // TODO this is crappy
+    // TODO this is crappy, use layer_get_field_segment
     if (!(field = field_create_from_network(
             protocol_field->type,
             protocol_field->key,
@@ -203,7 +244,7 @@ bool layer_extract(const layer_t * layer, const char * field_name, void * value)
 
 ERR_PROTOCOL_GET_FIELD:
 ERR_FIELD_CREATE:
-ERR_PARAM:
+ERR_INVALID_LAYER:
     return false;
 }
 
@@ -246,7 +287,6 @@ void layer_dump(const layer_t * layer, unsigned int indent)
         }
     }
 }
-
 
 void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent) {
     protocol_field_t * protocol_field;
