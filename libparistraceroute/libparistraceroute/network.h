@@ -132,6 +132,14 @@ double options_network_get_timeout();
 const option_t * network_get_options();
 
 /**
+ * \brief Init the options related to network.
+ * \param network The network instance.
+ * \param verbose boolean variable to set network verbose or not.
+ */
+
+void options_network_init(network_t * network, bool verbose);
+
+/**
  * \brief Create a new network structure
  * \return The newly created network layer.
  */

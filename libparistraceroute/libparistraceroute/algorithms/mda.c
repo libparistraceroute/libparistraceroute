@@ -6,8 +6,8 @@
 #include <limits.h>        // INT_MAX
 
 #include "../algorithm.h"  // algorithm_t
-#include "../common.h"     // MAX 
-#include "../options.h"    // option_t 
+#include "../common.h"     // MAX
+#include "../options.h"    // option_t
 #include "../pt_loop.h"    // pt_send_probe
 #include "../lattice.h"    // LATTICE_*
 #include "../probe.h"      // probe_t
@@ -59,6 +59,12 @@ unsigned options_mda_get_max_branch() {
 
 unsigned options_mda_get_is_set() {
     return mda_values[6];
+}
+
+void options_mda_init(mda_options_t * mda_options)
+{
+    mda_options->bound      = options_mda_get_bound();
+    mda_options->max_branch = options_mda_get_max_branch();
 }
 
 inline mda_options_t mda_get_default_options() {
@@ -636,7 +642,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
         source_interface = lattice_elt_get_data(source_elt);
         source_interface->timeout++;
 
-        // Mark the flow as timeout 
+        // Mark the flow as timeout
         search_ttl_flow.ttl = ttl - 1;
         search_ttl_flow.flow_id = flow_id;
         search_ttl_flow.result = NULL;
@@ -684,7 +690,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
         lattice_walk(data->lattice, mda_timeout_flow, &search_ttl_flow, LATTICE_WALK_DFS);
     }
 
-    return; 
+    return;
 
 ERROR:
 ERR_EXTRACT_FLOW_ID:

@@ -45,6 +45,13 @@ const option_t * mda_get_options();
 mda_options_t mda_get_default_options();
 
 /**
+ * \brief Iinitialize the mda options structure.
+ * \param mda_options The corresponding mda_options_t structure.
+ */
+
+void options_mda_init(mda_options_t * mda_options);
+
+/**
  * \brief Default mda handler.
  * \param loop The main loop.
  * \param event The event handled by mda.
