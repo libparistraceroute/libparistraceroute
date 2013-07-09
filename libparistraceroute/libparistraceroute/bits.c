@@ -1,5 +1,6 @@
 #include "bits.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 //---------------------------------------------------------------------------
 // Bit-level operations on a single byte
@@ -38,10 +39,10 @@ static uint8_t make_lsb_mask(size_t num_bits) {
 static uint8_t byte_make_mask_impl(size_t offset_in_bits, size_t num_bits) {
     uint8_t mask;
     size_t  j;
-    
+
     mask = 0;
     for (j = 0; j < 8 && j < num_bits; ++j) {
-        mask |= 1 << (7 - j - offset_in_bits); 
+        mask |= 1 << (7 - j - offset_in_bits);
     }
     return mask;
 }
@@ -78,7 +79,7 @@ static uint8_t byte_extract(uint8_t byte, size_t offset_in_bits, size_t num_bits
     ret = byte & byte_make_mask(offset_in_bits, num_bits);
 
     if (offset < 0) {
-        ret <<= -offset; 
+        ret <<= -offset;
     } else if (offset > 0) {
         ret >>= offset;
     }
@@ -87,11 +88,11 @@ static uint8_t byte_extract(uint8_t byte, size_t offset_in_bits, size_t num_bits
 }
 
 void byte_dump(uint8_t byte) {
-    bits_dump(&byte, 1); 
+    bits_dump(&byte, 1);
 }
 
 //---------------------------------------------------------------------------
-// Bit-level operations on one or more bytes 
+// Bit-level operations on one or more bytes
 //---------------------------------------------------------------------------
 
 uint8_t * bits_extract(
@@ -112,7 +113,7 @@ uint8_t * bits_extract(
 
     // Allocate the destination buffer
     if (!dest) {
-        if (!(dest = calloc(1, size))) goto ERR_CALLOC; 
+        if (!(dest = calloc(1, size))) goto ERR_CALLOC;
     }
 
     // Grab the n first bits from the first relevant byte (i)
@@ -125,7 +126,7 @@ uint8_t * bits_extract(
     // into dest.
     for (j = 0; j < num_bytes; ++j, ++idest, ++i) {
         if (is_aligned) {
-            dest[idest] = bytes[i]; 
+            dest[idest] = bytes[i];
         } else {
             // Fetch the 'idest'-th byte of 'dest'
             // - its 'offset' most significant bits are in bytes[i-1]
@@ -156,8 +157,8 @@ void bits_dump(const uint8_t * bytes, size_t num_bytes) {
 
 /*
 // Example:
-// x = 00111010 11111010 11000000 00000000 
-// y = 00011101 01111101 01100000 
+// x = 00111010 11111010 11000000 00000000
+// y = 00011101 01111101 01100000
 
 void bits_test() {
     uint32_t x = htonl(0x3afac000);

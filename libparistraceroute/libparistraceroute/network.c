@@ -49,8 +49,14 @@ void network_set_is_verbose(network_t * network, bool verbose) {
      network->is_verbose = verbose;
 }
 
+void options_network_init(network_t * network, bool verbose)
+{
+    network_set_is_verbose(network, verbose);
+    network_set_timeout(network, options_network_get_timeout());
+}
+
 //---------------------------------------------------------------------------
-// Private functions 
+// Private functions
 //---------------------------------------------------------------------------
 
 /**
@@ -241,7 +247,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     // Fetch the tag from the reply. Its the 3rd checksum field.
     if (!(reply_extract_tag(reply, &tag_reply))) {
         // This is not an IP/ICMP/IP/* reply :(
-        fprintf(stderr, "Can't retrieve tag from reply\n");
+        if (network->is_verbose) fprintf(stderr, "Can't retrieve tag from reply\n");
         return NULL;
     }
 
@@ -287,7 +293,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
 }
 
 //---------------------------------------------------------------------------
-// Public functions 
+// Public functions
 //---------------------------------------------------------------------------
 
 network_t * network_create()
@@ -397,7 +403,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
     size_t     tag_size     = sizeof(uint16_t);
     size_t     num_layers   = probe_get_num_layers(probe);
 
-    // For probes having a payload of size 0 and a "body" field (like icmp) 
+    // For probes having a payload of size 0 and a "body" field (like icmp)
     layer_t  * last_layer;
     bool       tag_in_body = false;
 
@@ -467,7 +473,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         if (!(probe_set_field(probe, I16("body", checksum)))) {
             fprintf(stderr, "Can't set body\n");
             goto ERR_PROBE_SET_FIELD;
-        } 
+        }
     } else {
         // Update checksum (network-side endianness)
         checksum = htons(checksum);
