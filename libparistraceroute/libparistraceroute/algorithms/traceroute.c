@@ -152,7 +152,7 @@ static inline void discovered_ip_dump(const probe_t * reply, bool do_resolv) {
 static inline void delay_dump(const probe_t * probe, const probe_t * reply) {
     double send_time = probe_get_sending_time(probe),
            recv_time = probe_get_recv_time(reply);
-    printf("  %-5.3lfms, send time = %lf ", 1000 * (recv_time - send_time), send_time);
+    printf("  %-5.3lfms  ", 1000 * (recv_time - send_time));
 }
 
 void traceroute_handler(
@@ -180,6 +180,7 @@ void traceroute_handler(
 
             // Print delay
             delay_dump(probe, reply);
+            fflush(stdout);
             num_probes_printed++;
             break;
 
@@ -253,7 +254,6 @@ static bool send_traceroute_probe(
     if (probe_get_delay(probe) != DELAY_BEST_EFFORT) {
         delay = i * probe_get_delay(probe_skel);
         probe_set_delay(probe, DOUBLE("delay", delay));
-        //printf("current delay: %f\n", probe_get_delay(probe));
     }
     if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
     if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;

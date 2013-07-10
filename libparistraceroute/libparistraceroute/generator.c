@@ -137,7 +137,7 @@ double generator_get_value(const generator_t * generator) {
 }
 
 double generator_next_value(generator_t * generator) {
-    generator->value = generator->get_next_value(generator);
+    generator->value += generator->get_next_value(generator);
     return generator->value;
 }
 
