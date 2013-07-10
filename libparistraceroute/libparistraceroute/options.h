@@ -32,6 +32,14 @@ bool option_rename_sf(option_t * option, char * sf);
 
 bool option_rename_lf(option_t * option, char * lf);
 
+/**
+ * \brief Duplicate  an option_t instance.
+ * \param option A pointer to the option_t instance to duplicate.
+ * \return A pointer to the duplicated option instance.
+ */
+
+option_t * option_dup(const option_t * option);
+
 //---------------------------------------------------------------------------
 // options_t
 //---------------------------------------------------------------------------

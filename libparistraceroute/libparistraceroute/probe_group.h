@@ -23,9 +23,11 @@ typedef struct {
     tree_node_data_t data;  /**< Data stored in the node. */
 } tree_node_probe_t;
 
+
 typedef struct {
-    tree_probe_t * tree_probes;         /**< Point to the tree of probes (if any), NULL otherwise. */
-    int            scheduling_timerfd;  /**< timerfd which expires when a scheduled probe must be sent. */
+    tree_probe_t * tree_probes;          /**< Point to the tree of probes (if any), NULL otherwise. */
+    int            scheduling_timerfd;   /**< A timerfd which expires when a scheduled probe must be sent. */
+    double         last_delay;           /**< The time reference to schedule the probes to send. It is set when the first node is added. */
 } probe_group_t;
 
 tree_node_probe_t * get_node_data(const tree_node_t * node);
@@ -55,16 +57,9 @@ void probe_group_free(probe_group_t * probe_group);
 tree_node_t * probe_group_get_root(probe_group_t * probe_group);
 
 /**
- * \brief Retrieve the delay of the next scheduled probe(s) .
- * \return The delay of the next probes.
- */
-
-double probe_group_get_next_delay(const probe_group_t * probe_group);
-
-/**
  * \brief Add a probe in the probe_group.
  * \param probe_group A probe_group_t instance.
- * \param probe A probe instance that we add in the probe group. 
+ * \param probe A probe instance that we add in the probe group.
  * \return true iif successful.
  */
 
@@ -82,7 +77,7 @@ bool probe_group_del(probe_group_t * probe_group, tree_node_t * node_caller, siz
  * \brief Iterate on scheduled probes of probe_group_t structure.
  * \param node Node to explore.
  * \param callback Function called for each probe that be send.
- * \param param_callback This pointer is passed to the callback. 
+ * \param param_callback This pointer is passed to the callback.
  */
 
 void probe_group_iter_next_scheduled_probes(
@@ -121,6 +116,9 @@ double get_node_next_delay(const tree_node_t * node);
  * \param delay The delay value.
  */
 
-void probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node, double delay);
+void probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node);
 
+double probe_group_get_last_delay(probe_group_t * probe_group);
+
+void probe_group_set_last_delay(probe_group_t * probe_group, double new_last_delay);
 #endif

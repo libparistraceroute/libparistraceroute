@@ -113,6 +113,7 @@ int main(int argc, char ** argv)
             goto ERR_FAMILY;
     }
 //    protocol_name = "udp";
+    printf("protocol_name =%s\n", protocol_name);
 
     if (!probe_set_protocols(probe, ip_protocol_name, protocol_name, NULL)) {
         fprintf(stderr, "Can't set protocols %s/%s\n", ip_protocol_name, protocol_name);
