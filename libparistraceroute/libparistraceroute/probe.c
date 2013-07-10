@@ -231,7 +231,15 @@ layer_t * probe_get_layer(const probe_t * probe, size_t i) {
 }
 
 static layer_t * probe_get_layer_payload(const probe_t * probe) {
-    layer_t * payload_layer = probe_get_layer(probe, probe_get_num_layers(probe) - 1);
+    size_t num_layers;
+
+    if (num_layers == 0) {
+        fprintf(stderr, "probe_get_layer_payload: No layer in this probe!\n");
+        probe_dump(probe);
+        return NULL;
+    }
+
+    layer_t * payload_layer = probe_get_layer(probe, num_layers - 1);
     return payload_layer->protocol ? NULL : payload_layer;
 }
 
