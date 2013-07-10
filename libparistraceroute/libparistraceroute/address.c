@@ -59,6 +59,7 @@ int ip_from_string(int family, const char * hostname, ip_t * ip)
             addr_len = sizeof(ipv6_t);
             break;
         default:
+            fprintf(stderr, "ip_from_string: Invalid family\n");
             ret = EINVAL;
             goto ERROR_FAMILY;
     }
