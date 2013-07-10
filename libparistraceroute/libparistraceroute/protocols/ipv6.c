@@ -1,98 +1,40 @@
 #include <stddef.h>       // offsetof()
 #include <string.h>       // memcpy(), memset()
 #include <unistd.h>       // close()
-#include <arpa/inet.h>    // inet_pton()
-#include <netinet/ip6.h>
+#include <netinet/in.h>   // IPPROTO_UDP
+#include <netinet/ip6.h>  // ip6_hdr
 #include <stdio.h>        // perror
-#include <sys/types.h>
-#include <netdb.h>
-#include <sys/socket.h>
+#include <bits/endian.h>
 
 #include "../field.h"
 #include "../protocol.h"
 
 // TODO rfc6564/rfc6437/rfc5095 ?
 
-/* Field names */
+// Field names
 #define IPV6_FIELD_VERSION           "version"
-#define IPV6_FIELD_TCL               "tcl"
-//#define IPV6_FIELD_FLOWLABEL         "flowlabel"
+#define IPV6_FIELD_TRAFFIC_CLASS     "traffic_class"
+#define IPV6_FIELD_FLOWLABEL         "flow_label"
+#define IPV6_FIELD_PAYLOADLENGTH     "payload_length" // TODO
 #define IPV6_FIELD_NEXT_HEADER       "next_header"
 #define IPV6_FIELD_SRC_IP            "src_ip"
 #define IPV6_FIELD_DST_IP            "dst_ip"
 
-// Watch out for this one, it is needed since probe.c uses it. All Protocols need it.
-// In IPv6 it is mapped to NEXT_HEADER TODO find out whether that is OK
+// Fields to be IPv4 compliant (these are simply aliases)
 #define IPV6_FIELD_PROTOCOL          "protocol"
-// XXX compat for now, need lenght field. Ugly Hack
-#define IPV6_FIELD_PAYLOADLENGTH     "length"
-//#define IPV6_FIELD_PAYLOADLENGTH     "payload_length"
-// XX compat for now, ttl vs hoplimit
-//#define IPV6_FIELD_HOPLIMIT          "hoplimit"
-#define IPV6_FIELD_HOPLIMIT          "ttl"
-// Hacking ... Split field in two 16 bit
-// Version + TCL + 4 bits of flow that we ignore
-#define IPV6_FIELD_FLOWLABEL_LOWER         "flow_id"
-// Version + TCL + 4 bits
-#define IPV6_FIELD_FLOWLABEL_UPPER         "flow_upper"
 
-// Extension Headers
-#define IPV6_FIELD_HBH_NEXT_HEADER   "hbh_next_header"
-#define IPV6_FIELD_HBH_HDR_EXT_LEN   "hbh_hdr_ext_len"
-#define IPV6_FIELD_HBH_OPTIONS       "hbh_options"
+#define IPV6_FIELD_LENGTH            "length" // TODO define payload_length which returns ip6.plen and length with return ip6.plen + 40 and the appropriates cbs
+#define IPV6_FIELD_HOPLIMIT          "ttl" // TODO define also hlim ?
 
-#define IPV6_FIELD_RH_NEXT_HEADER        "rh_next_header"
-#define IPV6_FIELD_RH_HDR_EXT_LEN        "rh_hdr_ext_len"
-#define IPV6_FIELD_RH_ROUTING_TYPE       "rh_routing_type"
-#define IPV6_FIELD_RH_SEGMENTS_LEFT      "rh_segments_left"
-#define IPV6_FIELD_RH_TYPE_SPECIFIC_DATA "rh_type_specific_data"
-
-#define IPV6_FIELD_FH_NEXT_HEADER        "fh_next_header"
-#define IPV6_FIELD_FH_RESERVED           "fh_reserved"
-#define IPV6_FIELD_FH_FRAGMENT_OFFSET    "fh_fragment_offset"
-#define IPV6_FIELD_FH_RES                "fh_res"
-#define IPV6_FIELD_FH_M_FLAG             "fh_m_flag"
-#define IPV6_FIELD_FH_IDENTIFICATION     "fh_identification"
-
-#define IPV6_FIELD_DOH_NEXT_HEADER    "doh_next_header"
-#define IPV6_FIELD_DOH_HDR_EXT_LEN    "doh_hdr_ext_len"
-#define IPV6_FIELD_DOH_OPTIONS        "doh_options"
-
-
-// TODO find defaults
-/* Default field values */
+// Default field values
 #define IPV6_DEFAULT_VERSION         6
-#define IPV6_DEFAULT_TCL             0 // XXX useful default?
-#define IPV6_DEFAULT_FLOWLABEL_LOWER 0
-#define IPV6_DEFAULT_FLOWLABEL_UPPER 0
-
-#define IPV6_DEFAULT_PAYLOADLENGTH   0
-#define IPV6_DEFAULT_NEXT_HEADER     17 // IPv6
+#define IPV6_DEFAULT_TRAFFIC_CLASS   0
+#define IPV6_DEFAULT_FLOW_LABEL      0
+#define IPV6_DEFAULT_PAYLOAD_LENGTH  0
+#define IPV6_DEFAULT_NEXT_HEADER     IPPROTO_UDP
 #define IPV6_DEFAULT_HOPLIMIT        64
 #define IPV6_DEFAULT_SRC_IP          0
 #define IPV6_DEFAULT_DST_IP          0
-
-/* Extension Headers */
-#define IPV6_DEFAULT_HBH_NEXT_HEADER   59 // NO next header
-#define IPV6_DEFAULT_HBH_HDR_EXT_LEN   0 // XXX TBD
-#define IPV6_DEFAULT_HBH_OPTIONS       0
-
-#define IPV6_DEFAULT_RH_NEXT_HEADER        59 // NO next header
-#define IPV6_DEFAULT_RH_HDR_EXT_LEN        0 // XXX TBD
-#define IPV6_DEFAULT_RH_ROUTING_TYPE       0
-#define IPV6_DEFAULT_RH_SEGMENTS_LEFT      0
-#define IPV6_DEFAULT_RH_TYPE_SPECIFIC_DATA 0
-
-#define IPV6_DEFAULT_FH_NEXT_HEADER     59 // NO next header
-#define IPV6_DEFAULT_FH_RESERVED        0
-#define IPV6_DEFAULT_FH_FRAGMENT_OFFSET 0
-#define IPV6_DEFAULT_FH_RES             0
-#define IPV6_DEFAULT_FH_M_FLAG          0
-#define IPV6_DEFAULT_FH_IDENTIFICATION  0
-
-#define IPV6_DEFAULT_DOH_NEXT_HEADER    59 // NO next header
-#define IPV6_DEFAULT_DOH_HDR_EXT_LEN    0
-#define IPV6_DEFAULT_DOH_OPTIONS        0
 
 // IPv6 fields
 
@@ -103,34 +45,34 @@ static protocol_field_t ipv6_fields[] = {
 //        .type     = TYPE_UINT4,
 //        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un2_vfc), // ip6_un1_flow contains 4 bits version, 8 bits tcl, 20 bits flow-ID
 //    }, {
-//        .key      = IPV6_FIELD_TCL,
+//        .key      = IPV6_FIELD_TRAFFIC_CLASS,
 //        .type     = TYPE_UINT8,
 //        .offset   = offsetof(struct ip6_hdr, ip6_un1_flow,) // Same as above 8 bits
 //    }, {
-        .key      = IPV6_FIELD_FLOWLABEL_LOWER,
-        .type     = TYPE_UINT16,
-        .offset   = (offsetof(struct ip6_hdr,  ip6_ctlun.ip6_un1.ip6_un1_flow) +2), // Same as above 20 bits /reduce it to 16 for testing.
+        .key     = IPV6_FIELD_FLOWLABEL,
+        .type    = TYPE_UINT16,
+        .offset  = (offsetof(struct ip6_hdr,  ip6_ctlun.ip6_un1.ip6_un1_flow) +2), // Same as above 20 bits /reduce it to 16 for testing.
     }, {
-        .key      = IPV6_FIELD_PAYLOADLENGTH,
-        .type     = TYPE_UINT16,
-        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_plen),
+        .key     = IPV6_FIELD_LENGTH,
+        .type    = TYPE_UINT16,
+        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_plen),
     }, {
         // This is an alias of "protocol"
-        .key      = IPV6_FIELD_NEXT_HEADER,
-        .type     = TYPE_UINT8,
-        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
+        .key     = IPV6_FIELD_NEXT_HEADER,
+        .type    = TYPE_UINT8,
+        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
     }, {
-        .key      = IPV6_FIELD_PROTOCOL,
-        .type     = TYPE_UINT8,
-        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
+        .key     = IPV6_FIELD_PROTOCOL,
+        .type    = TYPE_UINT8,
+        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
     }, {
-        .key      = IPV6_FIELD_HOPLIMIT,
-        .type     = TYPE_UINT8,
-        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_hlim),
+        .key     = IPV6_FIELD_HOPLIMIT,
+        .type    = TYPE_UINT8,
+        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_hlim),
     }, {
-        .key      = IPV6_FIELD_SRC_IP,
-        .type     = TYPE_IPV6,
-        .offset   = offsetof(struct ip6_hdr, ip6_src),
+        .key     = IPV6_FIELD_SRC_IP,
+        .type    = TYPE_IPV6,
+        .offset  = offsetof(struct ip6_hdr, ip6_src),
     }, {
        .key      = IPV6_FIELD_DST_IP,
        .type     = TYPE_IPV6,
@@ -139,19 +81,14 @@ static protocol_field_t ipv6_fields[] = {
     END_PROTOCOL_FIELDS
 };
 
-
-/* Default IPv6 values */
-static struct ip6_hdr ipv6_default = {
-// TODO make this work :) flowID mingle
-//    .version        = IPV6_DEFAULT_VERSION,
-//    .tcl            = IPV6_DEFAULT_TCL,
-//    .flowlabel        = IPV6_DEFAULT_FLOWLABEL,
-    .ip6_ctlun.ip6_un1.ip6_un1_flow = 0x00000006, // Version = 6, TCL = 0, FLOW = 0 // Beware of Byteorder
-    .ip6_ctlun.ip6_un1.ip6_un1_plen = IPV6_DEFAULT_PAYLOADLENGTH,
-    .ip6_ctlun.ip6_un1.ip6_un1_nxt  = IPV6_DEFAULT_NEXT_HEADER,
-    .ip6_ctlun.ip6_un1.ip6_un1_hlim = IPV6_DEFAULT_HOPLIMIT,
-    .ip6_src                        = IPV6_DEFAULT_SRC_IP,
-    .ip6_dst                        = IPV6_DEFAULT_DST_IP,
+// Default IPv6 values 
+static const struct ip6_hdr ipv6_default = {
+    .ip6_flow = 0x00000060, // TODO this is crappy 
+    .ip6_plen = IPV6_DEFAULT_PAYLOAD_LENGTH,
+    .ip6_nxt  = IPV6_DEFAULT_NEXT_HEADER,
+    .ip6_hlim = IPV6_DEFAULT_HOPLIMIT,
+    .ip6_src  = IPV6_DEFAULT_SRC_IP,
+    .ip6_dst  = IPV6_DEFAULT_DST_IP,
 };
 
 
@@ -200,8 +137,6 @@ bool ipv6_finalize(uint8_t * ipv6_header) {
     bool             do_update_src_ip = true,
                      ret = true;
 
-    iph->ip6_ctlun.ip6_un2_vfc = (uint8_t) 0x60;
-
     // If at least one byte of the src_ip is not null, we suppose
     // that the src_ip has been set...
     for (i = 0; i < 8 && !do_update_src_ip; i++) {
@@ -235,10 +170,30 @@ size_t ipv6_get_header_size(const uint8_t * ipv6_header) {
  *    store the IPv6 header or NULL.
  * \return The size of the default header.
  */
-
+#include "../buffer.h"
+#include <stdio.h>
 size_t ipv6_write_default_header(uint8_t * ipv6_header) {
     size_t size = sizeof(struct ip6_hdr);
-    if (ipv6_header) memcpy(ipv6_header, &ipv6_default, size);
+
+    uint32_t ipv6_vfc = ntohl(
+        (IPV6_DEFAULT_VERSION       << 28) |
+        (IPV6_DEFAULT_TRAFFIC_CLASS << 20) |
+        IPV6_DEFAULT_FLOW_LABEL
+    );
+
+    {
+        buffer_t buffer = {
+            .data = (uint8_t *) &ipv6_vfc,
+            .size = 4 
+        };
+        buffer_dump(&buffer);
+    }
+
+
+    if (ipv6_header) {
+        memcpy(ipv6_header, &ipv6_default, size);
+        memcpy(ipv6_header, &ipv6_vfc, 4);
+    }
     return size;
 }
 

@@ -262,15 +262,9 @@ int main(int argc, char ** argv)
     //is_udp  |= (strcmp(protocol_name, "udp")  == 0);
 
     // checking if there is any conflicts between options passed in the commandline
-    if (!check_options(
-                is_icmp,
-                is_udp,
-                is_ipv4,
-                is_ipv6,
-                dst_port[3],
-                src_port[3],
-                protocol_name,
-                algorithm_name)) goto ERR_CHECK_OPTIONS;
+    if (!check_options(is_icmp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
+        goto ERR_CHECK_OPTIONS;
+    }
 
     // If not any ip version is set, call address_guess_family.
     // If only one is set to true, set family to AF_INET or AF_INET6

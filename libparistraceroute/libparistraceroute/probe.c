@@ -231,16 +231,16 @@ layer_t * probe_get_layer(const probe_t * probe, size_t i) {
 }
 
 static layer_t * probe_get_layer_payload(const probe_t * probe) {
-    size_t num_layers;
+    size_t    num_layers = probe_get_num_layers(probe);
+    layer_t * last_layer;
 
     if (num_layers == 0) {
         fprintf(stderr, "probe_get_layer_payload: No layer in this probe!\n");
-        probe_dump(probe);
         return NULL;
     }
 
-    layer_t * payload_layer = probe_get_layer(probe, num_layers - 1);
-    return payload_layer->protocol ? NULL : payload_layer;
+    last_layer = probe_get_layer(probe, num_layers - 1);
+    return last_layer && last_layer->protocol ? NULL : last_layer;
 }
 
 static bool probe_push_layer(probe_t * probe, layer_t * layer) {
@@ -281,10 +281,13 @@ static bool probe_push_payload(probe_t * probe, size_t payload_size) {
     }
 
     // Resize the payload if required
-    if (!probe_payload_resize(probe, payload_size)) {
-        fprintf(stderr, "Can't resize payload\n");
-        goto ERR_PAYLOAD_RESIZE;
+    if (payload_size > 0) {
+        if (!probe_payload_resize(probe, payload_size)) {
+            fprintf(stderr, "Can't resize payload\n");
+            goto ERR_PAYLOAD_RESIZE;
+        }
     }
+
     return true;
 
 ERR_PAYLOAD_RESIZE:
@@ -604,6 +607,7 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
     prev_layer = NULL;
     for (name = name1; name; name = va_arg(args, char *)) {
         // Associate protocol to the layer
+        printf("Adding layer %s at offset %lx (@ = %lx)\n", name, offset, packet_get_bytes(probe->packet) + offset);
         if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH2;
         protocol->write_default_header(packet_get_bytes(probe->packet) + offset);
 
