@@ -245,6 +245,8 @@ bool address_resolv(const address_t * address, char ** phostname)
     return true;
 
 ERR_GETHOSTBYADDR:
+    // This is to avoid to get errno set to 22 (EINVAL) if the DNS lookup fails.
+    errno = 0;
 ERR_STRDUP:
 ERR_INVALID_PARAMETER:
     return false;
