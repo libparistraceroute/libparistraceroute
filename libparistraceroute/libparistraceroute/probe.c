@@ -925,7 +925,7 @@ double probe_next_delay(probe_t * probe)
     if (field_delay) {
         switch (field_delay->type) {
             case TYPE_DOUBLE :
-                //field_delay->value.dbl += field_delay->value.dbl;
+                field_delay->value.dbl += field_delay->value.dbl;
                 delay = field_delay->value.dbl;
                 break;
             case TYPE_GENERATOR :

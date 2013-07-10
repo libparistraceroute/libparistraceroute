@@ -73,7 +73,7 @@ struct opt_spec runnable_options[] = {
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
     {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             HELP_s,       src_port},
     {opt_store_int_lim_en,    "d",        "--dst-port",        "PORT",             HELP_d,       dst_port},
-    {opt_store_double_lim_en, "z",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_z,       send_time},
+    {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             HELP_z,       send_time},
     {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         HELP_P,       protocol_names},
     {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
     {opt_store_1,             "I",        "--icmp",            OPT_NO_METAVAR,     HELP_I,       &is_icmp},
@@ -328,6 +328,14 @@ int main(int argc, char ** argv)
     // Prepare probe
     probe_set_protocols(probe, ip_protocol_name, protocol_name, NULL);
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
+
+    if (send_time[3]) {
+        if(send_time[0] <= 10) {
+            probe_set_delay(probe, DOUBLE("delay", send_time[0]));
+        } else {
+            probe_set_delay(probe, DOUBLE("delay", 0.0001 * send_time[0]));
+        }
+    }
 
     if (!is_icmp) {
         probe_set_fields(

@@ -88,8 +88,8 @@ void  probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node)
         }
     } else {
         if (probe_group_get_next_delay(probe_group) < DBL_MAX) {
-            if (tree_node_get_num_children(probe_group_get_root(probe_group)) == 0) probe_group_set_last_delay(probe_group, 0);
-            printf("==============>>> updating timer next delay = %lf last delay = %lf\n", probe_group_get_next_delay(probe_group), probe_group_get_last_delay(probe_group));
+        if (probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group) < 0) probe_group_set_last_delay(probe_group, 0);
+        //    printf("==============>>> updating timer next delay = %lf last delay = %lf\n", probe_group_get_next_delay(probe_group), probe_group_get_last_delay(probe_group));
             update_timer(probe_group->scheduling_timerfd, probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group));
             probe_group_set_last_delay(probe_group, probe_group_get_next_delay(probe_group));
         } else update_timer(probe_group->scheduling_timerfd, 0);
