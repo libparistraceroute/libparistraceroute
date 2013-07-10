@@ -508,7 +508,6 @@ bool network_send_probe(network_t * network, probe_t * probe)
         return  queue_push_element(network->sendq, probe);
 
     } else {
-       printf("adding probe in probe_group\n");
        return probe_group_add(network->scheduled_probes, probe);
     }
 }
@@ -701,7 +700,8 @@ static bool network_process_probe_node(network_t * network, tree_node_t * node, 
         if (!(probe_group_del(network->scheduled_probes, node->parent, i)))  goto ERR_PROBE_GROUP_DEL;
  //       printf("probe group delay = %f\n", probe_group_get_next_delay(network->scheduled_probes));
     } else {
-        probe_group_update_delay(network->scheduled_probes, node, get_node_next_delay(node));
+        get_node_next_delay(node);
+        probe_group_update_delay(network->scheduled_probes, node);
         return true;
     }
 

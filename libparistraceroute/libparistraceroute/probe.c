@@ -162,7 +162,7 @@ static bool probe_update_length(probe_t * probe)
             // IPv6 stores in its header (made of 40 bytes) the payload length
             // whereas the other protocol stores the header + the payload length
             length = layer->protocol->protocol == IPPROTO_IPV6 ?
-                layer_get_segment_size(layer) - 40 : // sizeof(struct ip6_hdr) 
+                layer_get_segment_size(layer) - 40 : // sizeof(struct ip6_hdr)
                 layer_get_segment_size(layer);
 
             // Update 'length' field (if any)
@@ -318,7 +318,7 @@ static bool probe_packet_resize(probe_t * probe, size_t size)
 
     // TODO update bitfield
 
-    // Update each layer's segment 
+    // Update each layer's segment
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         segment = packet_get_bytes(probe->packet) + offset;
@@ -813,7 +813,7 @@ static field_t * probe_create_metafield_ext(const probe_t * probe, const char * 
     if (strcmp(name, "flow_id") != 0) return NULL;
 
     // TODO We've hardcoded the flow-id in the src_port and we only support the "flow_id" metafield
-    // In IPv6, flow_id should be set thanks to probe_set_field 
+    // In IPv6, flow_id should be set thanks to probe_set_field
     return probe_extract(probe, "src_port", &src_port) ?
         IMAX("flow_id", src_port - 24000) :
         NULL;

@@ -261,7 +261,6 @@ int main(int argc, char ** argv)
     is_icmp |= (strcmp(protocol_name, "icmp") == 0);
     //is_udp  |= (strcmp(protocol_name, "udp")  == 0);
 
-
     // checking if there is any conflicts between options passed in the commandline
     if (!check_options(
                 is_icmp,

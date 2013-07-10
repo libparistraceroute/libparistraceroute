@@ -152,7 +152,7 @@ static inline void discovered_ip_dump(const probe_t * reply, bool do_resolv) {
 static inline void delay_dump(const probe_t * probe, const probe_t * reply) {
     double send_time = probe_get_sending_time(probe),
            recv_time = probe_get_recv_time(reply);
-    printf("  %-5.3lfms", 1000 * (recv_time - send_time));
+    printf("  %-5.3lfms, send time = %lf ", 1000 * (recv_time - send_time), send_time);
 }
 
 void traceroute_handler(

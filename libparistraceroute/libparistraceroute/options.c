@@ -25,7 +25,7 @@ static bool option_is_same(const option_t * option1, const option_t * option2) {
 
 /**
  * \brief Print an opt_spect_t instance.
- * \param option The opt_spect_t instance we want to print.
+ * \param option The opt_spect_t instance  to print.
  */
 
 static void option_dump(const option_t * option) {
@@ -33,7 +33,16 @@ static void option_dump(const option_t * option) {
 }
 
 /**
- * \brief Check whether an option_t instance collides with one containe in an
+ * \brief Free an opt_spect_t instance.
+ * \param option The opt_spect_t instance to free.
+ */
+
+static void option_free(option_t * option) {
+    free(option);
+}
+
+/**
+ * \brief Check whether an option_t instance collides with one contained in an
  *    options_t instance.
  * \param options An options_t instance carrying a set of options.
  * \param option An opt_spect_t instance we compare with the ones stored in options.
@@ -65,6 +74,23 @@ bool option_rename_lf(option_t * option, char * lf) {
     return (option->lf = strdup(lf)) != NULL;
 }
 
+option_t * option_dup(const option_t * option)
+{
+    option_t * option_dup;
+
+    if (!(option_dup = malloc(sizeof(option_t)))) goto ERR_MALLOC;
+    option_dup->action  = option->action  ? option->action          : NULL;
+    option_dup->sf      = option->sf      ? strdup(option->sf)      : NULL;
+    option_dup->lf      = option->lf      ? strdup(option->lf)      : NULL;
+    option_dup->metavar = option->metavar ? strdup(option->metavar) : NULL;
+    option_dup->help    = option->help    ? strdup(option->help)    : NULL;
+    option_dup->data    = option->data    ? option->data            : NULL;
+
+    return option_dup;
+ERR_MALLOC:
+    return NULL;
+}
+
 //---------------------------------------------------------------------------
 // options_t
 //---------------------------------------------------------------------------
@@ -79,7 +105,7 @@ options_t * options_create(bool (* collision_callback)(option_t * option1, const
 
     if (!(options->optspecs = vector_create(
         sizeof(option_t),
-        NULL, // TODO akram: pass (ELEMENT_FREE) option_free
+        (ELEMENT_FREE) option_free,
         (ELEMENT_DUMP) option_dump
     ))) {
         goto ERR_VECTOR_CREATE;
@@ -117,8 +143,7 @@ bool options_add_optspec(options_t * options, const option_t * option)
 
     if (!colliding_option) {
         // No collision, add this option
-        // TODO akram : option_dup(option)
-        ret = vector_push_element(options->optspecs, (void *) option);
+        ret = vector_push_element(options->optspecs, (void *) option_dup(option));
     } else if (options->collision_callback) {
         // Collision detected, call collision_callback
         ret = options->collision_callback(colliding_option, option);
