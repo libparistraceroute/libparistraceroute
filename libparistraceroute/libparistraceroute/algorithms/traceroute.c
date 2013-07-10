@@ -345,6 +345,7 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
         case ALGORITHM_INIT:
             // Check options
             if (!options || options->min_ttl > options->max_ttl) {
+                fprintf(stderr, "Invalid traceroute options\n");
                 errno = EINVAL;
                 goto FAILURE;
             }

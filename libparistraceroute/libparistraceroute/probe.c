@@ -2,7 +2,7 @@
 
 #include <stdlib.h>          // malloc, free
 #include <stdio.h>           // perror
-#include <errno.h>           // errno
+#include <errno.h>           // errno, EINVAL
 #include <stdarg.h>          // va_start, va_copy, va_arg
 #include <string.h>          // memcpy
 #include <netinet/in.h>      // IPPROTO_IPV6
@@ -192,6 +192,7 @@ bool probe_update_checksum(probe_t * probe)
             if (layer->protocol->create_pseudo_header) {
                 if (i == 0) {
                     // This layer has no previous layer which is required to compute its checksum.
+                    fprintf(stderr, "No previous layer which is required to compute '%s' checksum", layer->protocol->name);
                     errno = EINVAL;
                     return false;
                 } else {

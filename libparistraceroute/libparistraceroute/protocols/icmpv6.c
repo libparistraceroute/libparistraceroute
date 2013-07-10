@@ -84,8 +84,6 @@ size_t icmpv6_write_default_header(uint8_t * icmpv6_header) {
  * \return true iif successful. 
  */
 
-#include <stdio.h> //////////
-
 bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
 {
     struct icmp6_hdr * icmpv6_hdr = (struct icmp6_hdr *) icmpv6_header;
