@@ -607,7 +607,6 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
     prev_layer = NULL;
     for (name = name1; name; name = va_arg(args, char *)) {
         // Associate protocol to the layer
-        printf("Adding layer %s at offset %lx (@ = %lx)\n", name, offset, packet_get_bytes(probe->packet) + offset);
         if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH2;
         protocol->write_default_header(packet_get_bytes(probe->packet) + offset);
 
