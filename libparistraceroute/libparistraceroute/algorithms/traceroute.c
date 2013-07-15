@@ -190,6 +190,7 @@ void traceroute_handler(
                 ttl_dump(probe);
             }
             printf(" *");
+            fflush(stdout);
             num_probes_printed++;
             break;
 

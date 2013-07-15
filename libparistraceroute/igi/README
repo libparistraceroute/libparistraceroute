@@ -1,0 +1,133 @@
+			IGI/PTR v2.1
+
+IGI/PTR is an end-to-end available bandwidth measurement tool, it implements two algorith: IGI (Initial Gap Increasing) and PTR (Packet Transmission Rate). For more details, see http://www.cs.cmu.edu/~hnn/igi.
+
+WHAT'S NEW
+==========
+This version improves IGI/PTR's performance on high-loaded paths (say 80% of utilization). Compared with the previous version, this version can obtain more accurate estimation. See ChangeLog in the source tar-ball for detailed changes.
+
+BUILD
+=====
+On Linux, "make" should just work.
+(Unlike the previous version, I only have time to test it on linux. It should be trivial to make it compile on SUN and FreeBSD if it doesn't yet. See the Makefile for detailes.)
+
+RUN
+===
+IGI/PTR needs to run on the two end points of a path, with ptr-client on client side (sending probing packets), and ptr-server on server side (recording probing packets' arriving timestamps). 
+
+NOTE: the probing direction is ptr-client -> ptr-server, 
+
+On server:
+
+	ptr-server [-vdh]
+
+	-v 	verbose mode
+	-d 	debug mode (will print more message than verbose mode)
+	-h 	Usage message.
+
+On client:
+
+	ptr-client [-n probe_num] [-s packet_size] [-p dst_port]
+	           [-k repeat_num] [-f trace_file] [-vdh] dst_address
+
+	-n      set the number of probing packets in each train [60]
+	-s      set the length of the probing packets in byte [500B]
+	-p      indicate the dst machine's listening port [10241]
+	        This is optional, it can itself search for the port
+	        that the igi_server is using.
+	-k      the number of train probed for each source gap [3]
+	-f      dump packet-level trace into trace_file
+	-v      verbose mode.
+	-d      debug mode.
+	-h      print this message.
+dst_address     can be either an IP address or a hostname
+
+
+OUTPUT
+======
+Here is an output example in verbose mode. The [* *] is the explaination for 
+the output.
+
+*. client side output (verbose mode):
+
+	unix> ./ptr-client -v 128.2.191.38
+	src addr: 128.2.222.152
+	dst addr: 128.2.191.38
+	we get str: READY
+	probing_port = 10242
+		[* basic probing setup information			*]
+	 
+	probe_num = 60 packet_size = 500 delay_num = 0
+		[* statistics for single probing phase, "delay_num" is  *]
+		[* the loop count used to generate the source gap	*] 
+	from dst: data_size = 720 total_count = 60
+		[* some info for the feedback from dst, "data_size" is 	*]
+		[* the size of data got from dst, "total_count" is 	*]
+		[* number of probing packet the dst receives 		*]
+	gaps (us):     4    45 |     4    45
+		[* src_gap(us) and dst_gap(us) for this probing. 	*]
+	 
+	probe_num = 60 packet_size = 500 delay_num = 0
+	from dst: data_size = 720 total_count = 60
+	gaps (us):    10    88 |     5    43
+	 
+	probe_num = 60 packet_size = 500 delay_num = 0
+	from dst: data_size = 720 total_count = 60
+	gaps (us):    15   131 |     5    43
+	------------------------------------------------------
+	 
+	......
+	(here we remove the outputs for 4 more source gap samples )
+	......
+	 
+	probe_num = 60 packet_size = 500 delay_num = 42
+	from dst: data_size = 720 total_count = 60
+	gaps (us):    61    57 |    61    57
+	 
+	probe_num = 60 packet_size = 500 delay_num = 42
+	from dst: data_size = 720 total_count = 60
+	gaps (us):   122   114 |    60    57
+	 
+	probe_num = 60 packet_size = 500 delay_num = 42
+	from dst: data_size = 720 total_count = 60
+	gaps (us):   182   171 |    60    57
+	------------------------------------------------------
+	smaller dst_gap, considered to be equal
+	 
+	PTR:  93.295 Mpbs (suggested)
+	IGI:  94.392 Mpbs
+		[* the final measurement 				*]
+	Probing uses 0.401 seconds, 18 trains, ending at a gap value of 128 us.
+		[* statistics for the whole probing procedure		*]
+
+*. server side output (verbose mode):
+
+	unix> ./ptr-server -v
+	server port = 10241 
+		[* probing server listening here 			*]
+	get new connection 
+	src_ip_str = 128.2.198.120 
+	dst_ip_str = 128.2.191.38 
+	waiting for START msg
+	probe_num = 60 
+	create a new filter item
+	listening port = 10242 
+		[* this UDP port number that client is going to send	*]
+		[* probing packet to 					*]
+	come into get_packets 
+	start sending back data
+	start sending back data
+	start sending back data
+		[* except the ip addresses and port numbers, the other 	*]
+		[* information is not important unless you want to know *]
+		[* how the source code works 				*]
+
+KNOW PROBLEMS
+=============
+*. When _all_ packets in a packet train get lost, ptr-client will stuck.
+
+CONTACT
+=======
+Please send any bugs to hnn@cs.cmu.edu.
+
+[Wed May  3 13:04:16 EDT 2006]

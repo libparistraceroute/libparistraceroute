@@ -1,0 +1,36 @@
+Thu May 25 12:05:59 EDT 2006
+
+	*. release version 2.1
+
+	*. add in sanity-check for "-n"
+	   (thank Hans Blom of University of Amsterdam for the beg report)
+
+Mon Jan  26 20:52:19 EST 2006
+
+	*. release version 2.0
+
+	*. change the gap_comp() function
+	   (this is one of the two key changes that improve the measurement 
+	   accuracy)
+
+	*. add the "-k" option to allow multiple sample for each source gap
+	   (this is the other key change that can improves the measurement 
+	   accuracy)
+
+	*. fast_probing() is changed to accommodate the above two factors 
+
+	*. remove the "-m" option
+	   (it causes too much confusion)
+
+ 	*. remove sanity checking for source gap values
+	   (it doesn't has much impact on measurement accuracy)
+
+	*. output format is changed
+	   (remove the output of path capacity and path load---the value of 
+	   this tool really shouldn't be judged based on the path-capacity 
+	   measurement; we also explicitly suggest to use PTR values)
+
+	*. change source file name from igi_* to ptr-*
+	   (these names, together with the original README, mislead people 
+	   to think that IGI is better; actually PTR works better than IGI, 
+	   because it is less subject to traffic burstiness)

@@ -61,7 +61,7 @@ const char * protocol_names[] = {
 //                              def     min  max         option_enabled
 static int    dst_port[4]    = {33457,  0,   UINT16_MAX, 0};
 static int    src_port[4]    = {33456,  0,   UINT16_MAX, 0};
-static double send_time[4]   = {1,      1,   DBL_MAX,    0};
+static double send_time[4]   = {0,      1,   DBL_MAX,    0};
 
 struct opt_spec runnable_options[] = {
     // action                 sf          lf                   metavar             help          data
