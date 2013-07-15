@@ -16,6 +16,7 @@
 #define IPV6_FIELD_TRAFFIC_CLASS     "traffic_class"
 #define IPV6_FIELD_FLOWLABEL         "flow_label"
 #define IPV6_FIELD_PAYLOADLENGTH     "payload_length" // TODO
+#define IPV6_FIELD_HOPLIMIT          "hop_limit"
 #define IPV6_FIELD_NEXT_HEADER       "next_header"
 #define IPV6_FIELD_SRC_IP            "src_ip"
 #define IPV6_FIELD_DST_IP            "dst_ip"
@@ -24,7 +25,7 @@
 #define IPV6_FIELD_PROTOCOL          "protocol"
 
 #define IPV6_FIELD_LENGTH            "length" // TODO define payload_length which returns ip6.plen and length with return ip6.plen + 40 and the appropriates cbs
-#define IPV6_FIELD_HOPLIMIT          "ttl" // TODO define also hlim ?
+#define IPV6_FIELD_TTL               "ttl"
 
 // Default field values
 #define IPV6_DEFAULT_VERSION         6
@@ -43,7 +44,7 @@ static protocol_field_t ipv6_fields[] = {
     {
 //        .key      = IPV6_FIELD_VERSION,
 //        .type     = TYPE_UINT4,
-//        .offset   = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un2_vfc), // ip6_un1_flow contains 4 bits version, 8 bits tcl, 20 bits flow-ID
+//        .offset   = offsetof(struct ip6_hdr, ip6_flow), // ip6_un1_flow contains 4 bits version, 8 bits tcl, 20 bits flow-ID
 //    }, {
 //        .key      = IPV6_FIELD_TRAFFIC_CLASS,
 //        .type     = TYPE_UINT8,
@@ -51,24 +52,29 @@ static protocol_field_t ipv6_fields[] = {
 //    }, {
         .key     = IPV6_FIELD_FLOWLABEL,
         .type    = TYPE_UINT16,
-        .offset  = (offsetof(struct ip6_hdr,  ip6_ctlun.ip6_un1.ip6_un1_flow) +2), // Same as above 20 bits /reduce it to 16 for testing.
+        .offset  = (offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_flow) + 2), // May contain 20 bits / reduced to 16 bits for testing.
     }, {
         .key     = IPV6_FIELD_LENGTH,
         .type    = TYPE_UINT16,
-        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_plen),
+        .offset  = offsetof(struct ip6_hdr, ip6_plen),
     }, {
-        // This is an alias of "protocol"
+        // "next_header" is an alias of "protocol"
         .key     = IPV6_FIELD_NEXT_HEADER,
         .type    = TYPE_UINT8,
-        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
+        .offset  = offsetof(struct ip6_hdr, ip6_nxt),
     }, {
         .key     = IPV6_FIELD_PROTOCOL,
         .type    = TYPE_UINT8,
-        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_nxt),
+        .offset  = offsetof(struct ip6_hdr, ip6_nxt),
     }, {
         .key     = IPV6_FIELD_HOPLIMIT,
         .type    = TYPE_UINT8,
-        .offset  = offsetof(struct ip6_hdr, ip6_ctlun.ip6_un1.ip6_un1_hlim),
+        .offset  = offsetof(struct ip6_hdr, ip6_hlim),
+    }, {
+        // "ttl" is an alias of "hop_limit"
+        .key     = IPV6_FIELD_TTL,
+        .type    = TYPE_UINT8,
+        .offset  = offsetof(struct ip6_hdr, ip6_hlim),
     }, {
         .key     = IPV6_FIELD_SRC_IP,
         .type    = TYPE_IPV6,
@@ -83,14 +89,13 @@ static protocol_field_t ipv6_fields[] = {
 
 // Default IPv6 values 
 static const struct ip6_hdr ipv6_default = {
-    .ip6_flow = 0x00000060, // TODO this is crappy 
+    .ip6_flow = 0, // This will be directly set in ipv6_write_default_header
     .ip6_plen = IPV6_DEFAULT_PAYLOAD_LENGTH,
     .ip6_nxt  = IPV6_DEFAULT_NEXT_HEADER,
     .ip6_hlim = IPV6_DEFAULT_HOPLIMIT,
     .ip6_src  = IPV6_DEFAULT_SRC_IP,
     .ip6_dst  = IPV6_DEFAULT_DST_IP,
 };
-
 
 bool ipv6_get_default_src_ip(struct in6_addr dst_ipv6, struct in6_addr * psrc_ipv6) {
     struct sockaddr_in6 addr, name;
@@ -165,34 +170,56 @@ size_t ipv6_get_header_size(const uint8_t * ipv6_header) {
 }
 
 /**
+ * \brief Prepare an IPv6 "flow" (ie {version, traffic class, flow label} tuple).
+ * \param version The IP version. Only the 4 less significant bits are considered.
+ *    Version should be equal 0x6.
+ * \param traffic_class The IPv6 traffic class.
+ * \param flow_label The IPv6 flow label (host-side endianness). Only the 20 less
+ *    significant bits are considered.
+ * \return The corresponding flow (network-side endianness).
+ */
+
+static uint32_t ipv6_make_flow(uint8_t version, uint8_t traffic_class, uint32_t flow_label) {
+    // Remove exceeding bits (useless for version which will be shifted
+    // and for traffic_class which already has the right "size").
+    flow_label &= 0xfffff;
+
+    return htonl(
+        (version       << 28) |
+        (traffic_class << 20) |
+        (flow_label)  
+    );
+}
+
+/**
  * \brief Write the default IPv6 header
  * \param iv6_header The address of an allocated buffer that will
  *    store the IPv6 header or NULL.
  * \return The size of the default header.
  */
-#include "../buffer.h"
-#include <stdio.h>
+
 size_t ipv6_write_default_header(uint8_t * ipv6_header) {
-    size_t size = sizeof(struct ip6_hdr);
-
-    uint32_t ipv6_vfc = ntohl(
-        (IPV6_DEFAULT_VERSION       << 28) |
-        (IPV6_DEFAULT_TRAFFIC_CLASS << 20) |
-        IPV6_DEFAULT_FLOW_LABEL
-    );
-
-    {
-        buffer_t buffer = {
-            .data = (uint8_t *) &ipv6_vfc,
-            .size = 4 
-        };
-        buffer_dump(&buffer);
-    }
-
+    size_t   size = sizeof(struct ip6_hdr);
+    uint32_t ipv6_flow;
 
     if (ipv6_header) {
+        // Write the default IPv6 header.
+        // The tuple "flow" = {version, traffic class, flow label} will be overwritten.
         memcpy(ipv6_header, &ipv6_default, size);
-        memcpy(ipv6_header, &ipv6_vfc, 4);
+
+        // Prepare the default tuple {version, traffic class, flow label}.
+        ipv6_flow = ipv6_make_flow(
+            IPV6_DEFAULT_VERSION,
+            IPV6_DEFAULT_TRAFFIC_CLASS,
+            IPV6_DEFAULT_FLOW_LABEL
+        );
+
+        // Write this tuple in the header.
+        memcpy(
+            &((struct ip6_hdr *) ipv6_header)->ip6_flow,
+            &ipv6_flow,
+            sizeof(uint32_t)
+        );
     }
     return size;
 }
