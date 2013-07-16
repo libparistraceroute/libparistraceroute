@@ -28,13 +28,13 @@
 #define HELP_4        "Use IPv4."
 #define HELP_6        "Use IPv6."
 #define HELP_a        "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
-#define HELP_d        "Set PORT as destination port (default: 33457)."
+#define HELP_p        "Set PORT as destination port (default: 33457)."
 #define HELP_s        "Set PORT as source port (default: 33456)."
 #define HELP_P        "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
 #define HELP_U        "Use UDP for tracerouting. The destination port is set by default to 53."
 #define HELP_z        "Minimal time interval between probes (default 0).  If the value is more than 10, then it specifies a number in milliseconds, else it is a number of seconds (float point values allowed  too)"
 #define HELP_I        "Use ICMPv4/ICMPv6 for tracerouting."
-#define HELP_v        "Print libparistraceroute debug information."
+#define HELP_d        "Print libparistraceroute debug information."
 #define TEXT          "paris-traceroute - print the IP-level path toward a given IP host."
 #define TEXT_OPTIONS  "Options:"
 
@@ -44,11 +44,11 @@ const char * algorithm_names[] = {
     NULL
 };
 
-static bool is_ipv4    = false;
-static bool is_ipv6    = false;
-static bool is_udp     = false;
-static bool is_icmp    = false;
-static bool is_verbose = false;
+static bool is_ipv4  = false;
+static bool is_ipv6  = false;
+static bool is_udp   = false;
+static bool is_icmp  = false;
+static bool is_debug = false;
 
 const char * protocol_names[] = {
     "udp", // default value
@@ -68,10 +68,10 @@ struct opt_spec runnable_options[] = {
     {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
     {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,       &is_ipv4},
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
-    {opt_store_1,             "v",        "--verbose",         OPT_NO_METAVAR,     HELP_v,       &is_verbose},
+    {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     HELP_d,       &is_debug},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
     {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             HELP_s,       src_port},
-    {opt_store_int_lim_en,    "d",        "--dst-port",        "PORT",             HELP_d,       dst_port},
+    {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             HELP_p,       dst_port},
     {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             HELP_z,       send_time},
     {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         HELP_P,       protocol_names},
     {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
@@ -376,7 +376,6 @@ int main(int argc, char ** argv)
         fprintf(stderr, "E: Unknown algorithm");
         goto ERR_UNKNOWN_ALGORITHM;
     }
-    probe_dump(probe);
 
     // Algorithm options (common options)
     if (ptraceroute_options) {
@@ -390,11 +389,11 @@ int main(int argc, char ** argv)
     }
 
     // Set network options (network and verbose)
-    options_network_init(loop->network, is_verbose);
+    options_network_init(loop->network, is_debug);
 
-    printf("Traceroute to %s (", dst_ip);
+    printf("traceroute to %s (", dst_ip);
     address_dump(&dst_addr);
-    printf("), %u hops max, %ld bytes packets\n\n",
+    printf("), %u hops max, %ld bytes packets\n",
         ptraceroute_options->max_ttl,
         packet_get_size(probe->packet)
     );
