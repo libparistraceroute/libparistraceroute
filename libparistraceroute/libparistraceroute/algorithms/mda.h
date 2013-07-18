@@ -14,6 +14,9 @@
 //                                   def1 min1 max1 def2 min2 max2      mda_enabled
 #define OPTIONS_MDA_BOUND_MAXBRANCH {95,  0,   100, 5,   1,   INT_MAX , 0}
 
+#define MAX_POSSIBLE_NUM_NEXTHOPS 64
+#define MAX_POSSIBLE_NUM_PROBES_TO_SEND 1024
+
 typedef struct {
     traceroute_options_t traceroute_options;
     unsigned             bound;

@@ -79,6 +79,103 @@ inline mda_options_t mda_get_default_options() {
 }
 
 //---------------------------------------------------------------------------
+// MDA stopping point calculations -- new version being worked on by Timur
+//---------------------------------------------------------------------------
+
+// the stopping points, in terms of number of probes sent, as a
+// function of the number of nexthop interfaces (or "nexthops") seen
+// by the MDA
+
+/* For example, if three nexthops have been seen by the MDA and
+ * mda_stopping_point_vector[3] == 15, this means that the MDA should
+ * stop after it has sent 15 probes, unless it has discovered a fourth
+ * nexthop interface with those probes.
+ *
+ * This corresponds to the values ${n_k}$ described in the Infocom
+ * 2009 paper "Failure Control in Multipath Route Tracing". In the
+ * example above, $n_3 = 15$.
+ *
+ * The stopping points are calculated on the basis of a failure
+ * probability bound, and so we calculate them on the fly rather than
+ * providing a precomputed table. For efficiency, we calculate the
+ * values the first time that they are required and cache the result
+ * in this statically-scoped vector for the duration of the program
+ * execution. We only recalculate them if the failure probability
+ * bound changes.
+ */ 
+static int mda_stopping_point_vector[MAX_POSSIBLE_NUM_NEXTHOPS + 1];
+
+static long double mda_failure_probability_bound = 0.95;
+
+static long double mda_state_space[MAX_POSSIBLE_NUM_PROBES_TO_SEND + 1][MAX_POSSIBLE_NUM_NEXTHOPS + 1];
+
+
+// recalculate the stopping points for the MDA
+void recalculate_mda_stopping_points(long double new_mda_failure_probability_bound) {
+  auto int true_num_nexthops;
+  auto int num_nexthops_seen;
+  auto int num_probes_sent;
+  auto long double prob_same_num_nexthops;
+  auto long double prob_one_more_nexthop;
+
+  /* In the ideal case, there is certainty of seeing one nexthop
+   * interface in response to the first probe, so we initialize
+   * mda_state_space[1][1] to 1.0. We rely upon automatic
+   * initialization to set mda_state_space[i][0] to 0 for all values
+   * of i.
+   */
+  mda_state_space[1][1] = 1.0;
+
+  // We start from the assumption that there are two nexthops.
+  for( true_num_nexthops = 2; true_num_nexthops <= MAX_POSSIBLE_NUM_NEXTHOPS; true_num_nexthops++ ) {
+
+    // We look at numbers of nexthops seen that are less than the assumed number of nexthops.
+    for( num_nexthops_seen = 1; num_nexthops_seen < true_num_nexthops; num_nexthops_seen++ ) {
+      prob_same_num_nexthops = (long double) num_nexthops_seen / (long double) true_num_nexthops;
+      prob_one_more_nexthop = 1.0 - prob_same_num_nexthops;
+
+      // Need to figure out how to stop here based upon previously calculated stopping points.
+
+      for( num_probes_sent = 2; num_probes_sent <= MAX_POSSIBLE_NUM_PROBES_TO_SEND; num_probes_sent++ ) {
+
+      }
+    }
+  }
+}
+
+
+// the name of this function is just slightly different (dropping the
+// last S) from the legacy function that it replaces
+static int mda_stopping_point(unsigned int num_nexthops_seen, long double new_mda_failure_probability_bound)
+{
+  // error checking
+  if (num_nexthops_seen > MAX_POSSIBLE_NUM_NEXTHOPS) goto ERR_TOO_MANY_NEXTHOPS;
+  
+
+
+  return mda_stopping_point_vector[num_nexthops_seen];
+  
+ ERR_TOO_MANY_NEXTHOPS:
+  fprintf(stderr, "mda_stopping_point: unexpectedly large number of nexthop interfaces (%d, whereas maximum foreseen is %d)\n", num_nexthops_seen, MAX_POSSIBLE_NUM_NEXTHOPS);
+  return 0;
+}
+
+
+// print the stopping points, as shown in the vector, without error
+// checking
+void print_mda_stopping_points_noerrcheck()
+{
+  auto int num_nexthops_seen;
+
+  for( num_nexthops_seen = 1; num_nexthops_seen <= MAX_POSSIBLE_NUM_NEXTHOPS; num_nexthops_seen++ ) {
+    printf("n(%d) = %d\n", num_nexthops_seen, mda_stopping_point_vector[num_nexthops_seen]);
+  }
+}
+
+
+
+
+//---------------------------------------------------------------------------
 // Precomputed number of probes
 //---------------------------------------------------------------------------
 
