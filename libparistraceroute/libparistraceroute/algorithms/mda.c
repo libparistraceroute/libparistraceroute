@@ -126,21 +126,49 @@ void recalculate_mda_stopping_points(long double new_mda_failure_probability_bou
    */
   mda_state_space[1][1] = 1.0;
 
-  // We start from the assumption that there are two nexthops.
+  /* We start from the assumption that there are two nexthops. */
   for( true_num_nexthops = 2; true_num_nexthops <= MAX_POSSIBLE_NUM_NEXTHOPS; true_num_nexthops++ ) {
 
-    // We look at numbers of nexthops seen that are less than the assumed number of nexthops.
-    for( num_nexthops_seen = 1; num_nexthops_seen < true_num_nexthops; num_nexthops_seen++ ) {
+    /* We calculate state space probabilities for the cases where
+     * stopping points have already been determined 
+     */ 
+    for( num_nexthops_seen = 1; num_nexthops_seen < true_num_nexthops - 1; num_nexthops_seen++ ) {
       prob_same_num_nexthops = (long double) num_nexthops_seen / (long double) true_num_nexthops;
       prob_one_more_nexthop = 1.0 - prob_same_num_nexthops;
 
-      // Need to figure out how to stop here based upon previously calculated stopping points.
-
-      for( num_probes_sent = 2; num_probes_sent <= MAX_POSSIBLE_NUM_PROBES_TO_SEND; num_probes_sent++ ) {
-
+      for( num_probes_sent = num_nexthops_seen ; num_probes_sent <= mda_stopping_point_vector[num_nexthops_seen]; num_probes_sent++ ) {
+	mda_state_space[num_probes_sent][num_nexthops_seen] = 
+	  mda_state_space[num_probes_sent - 1][num_nexthops_seen] * prob_one_more_nexthop +
+	  mda_state_space[num_probes_sent][num_nexthops_seen - 1] * prob_same_num_nexthops;
       }
+      
     }
-  }
+    /* At this point, num_nexthops_seen == true_num_nexthops - 1. This
+     * is a case in which a stopping point has not yet been
+     * determined. We calculate the state space probabilities for this
+     * case and we use the occasion to calculate the new stopping
+     * point.
+     */
+      for( num_probes_sent = num_nexthops_seen ; num_probes_sent <= MAX_POSSIBLE_NUM_PROBES_TO_SEND; num_probes_sent++ ) {
+	mda_state_space[num_probes_sent][num_nexthops_seen] = 
+	  mda_state_space[num_probes_sent - 1][num_nexthops_seen] * prob_one_more_nexthop +
+	  mda_state_space[num_probes_sent][num_nexthops_seen - 1] * prob_same_num_nexthops;
+	if(mda_state_space[num_probes_sent][num_nexthops_seen] <= new_mda_failure_probability_bound) {
+	  mda_stopping_point_vector[num_nexthops_seen] = num_probes_sent;
+	  break;
+	}
+      }
+      /* At this point, if the break condition has not been triggered,
+       * num_probes_sent == MAX_POSSIBLE_NUM_PROBES_TO_SEND + 1, which
+       * is an error.
+       */
+      if(num_probes_sent == MAX_POSSIBLE_NUM_PROBES_TO_SEND + 1) goto ERR_STOPPING_POINT_TOO_HIGH;
+   }
+
+ ERR_STOPPING_POINT_TOO_HIGH:
+  fprintf(stderr, "recalculate_mda_stopping_points: not able to calculate a stopping point");
+  // TODO: provide values that relate to the problem
+  return;
 }
 
 
