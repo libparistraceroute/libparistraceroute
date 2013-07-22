@@ -1,12 +1,13 @@
-#include "metafield.h"
-#include "common.h"
+#include "config.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <search.h>
 
-/* static ? */
-void *metafields_root;
+#include "metafield.h"
+#include "common.h"
+
+static void * metafields_root;
 
 static int metafield_compare(
     const metafield_t * metafield1,

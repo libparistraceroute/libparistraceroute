@@ -1,9 +1,11 @@
-#include "lattice.h"
+#include "config.h"
 
 #include <stdlib.h>  // malloc, free...
 #include <stddef.h>  // size_t
 #include <stdbool.h> // bool
 #include <stdio.h>   // fprintf
+
+#include "lattice.h"
 
 //---------------------------------------------------------------------------
 // lattice_elt_t 
@@ -86,7 +88,7 @@ void lattice_set_cmp(lattice_t * lattice, int (*cmp)(const void * x, const void 
 
 static lattice_return_t lattice_walk_dfs_rec(
     lattice_elt_t * elt, 
-    int          (* visitor)(lattice_elt_t *, void *), 
+    lattice_return_t (* visitor)(lattice_elt_t *, void *),
     void          * data
 ) {
     lattice_elt_t    * elt_iter;
@@ -122,7 +124,7 @@ static lattice_return_t lattice_walk_dfs_rec(
 
 static lattice_return_t lattice_walk_dfs(
     lattice_t * lattice,         
-    int      (* visitor)(lattice_elt_t *, void *),
+    lattice_return_t (* visitor)(lattice_elt_t *, void *),
     void      * data
 ) {
     lattice_elt_t *  root;

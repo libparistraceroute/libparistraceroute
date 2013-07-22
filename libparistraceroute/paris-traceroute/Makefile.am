@@ -11,11 +11,11 @@ AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = paris-traceroute
 
 # list of sources for the paris-traceroute binary
-paris_traceroute_SOURCES =    \
-                        paris-traceroute.c
+paris_traceroute_SOURCES = \
+       paris-traceroute.c
 
-paris_traceroute_CFLAGS = -D_GNU_SOURCE
-paris_traceroute_LDADD = -lparistraceroute-1.0
-paris_traceroute_LDFLAGS = -L../libparistraceroute
-paris_traceroute_DEPENDENCIES =
+paris_traceroute_CFLAGS = \
+       -I$(srcdir)/../libparistraceroute/
 
+paris_traceroute_LDADD = \
+       ../libparistraceroute/libparistraceroute-@LIBRARY_VERSION@.la

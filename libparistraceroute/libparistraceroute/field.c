@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,7 +12,7 @@ field_t * field_create(fieldtype_t type, const char * key, const void * value) {
     field_t * field;
 
     if (!(field = malloc(sizeof(field_t)))) goto ERR_MALLOC;
-    if (!(field->key = strdup(key)))        goto ERR_STRDUP;
+    field->key = key;
     field->type = type;
 
     switch (type) {
@@ -29,8 +31,6 @@ field_t * field_create(fieldtype_t type, const char * key, const void * value) {
     return field;
 
 ERR_DUP_VALUE:
-    free(field->key);
-ERR_STRDUP:
     free(field);
 ERR_MALLOC:
     return NULL;
@@ -39,8 +39,6 @@ ERR_MALLOC:
 void field_free(field_t * field)
 {
     if (field) {
-        if (field->key) free(field->key);
-
         switch (field->type) {
             case TYPE_STRING:
                 free(field->value.string);

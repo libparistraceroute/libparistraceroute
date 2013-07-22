@@ -89,12 +89,12 @@ bool options_add_optspec(options_t * options, const option_t * option);
 
 /**
  * \brief Add the common options (help and version) to an array of options
- * \param A pointer to an options_t structure containing the array of options to fill
- * \param A string containing the data to put in the version message
+ * \param options A pointer to an options_t structure containing the array of options to fill
+ * \param version A string containing the data to put in the version message
  * \return true iif successful
  */
 
-bool options_add_common(options_t * options, const char * version_data);
+bool options_add_common(options_t * options, char * version);
 
 /**
  * \brief Get the number of otpons contained in an options_t instance

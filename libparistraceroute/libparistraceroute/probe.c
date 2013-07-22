@@ -1,4 +1,4 @@
-#include "probe.h"
+#include "config.h"
 
 #include <stdlib.h>          // malloc, free
 #include <stdio.h>           // perror
@@ -7,6 +7,7 @@
 #include <string.h>          // memcpy
 #include <netinet/in.h>      // IPPROTO_IPV6
 
+#include "probe.h"
 #include "buffer.h"          // buffer_t
 #include "protocol.h"        // protocol_t
 #include "common.h"          // ELEMENT_FREE

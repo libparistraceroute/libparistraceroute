@@ -1,9 +1,12 @@
-#include "generator.h"
+#include "config.h"
 
-#include <string.h>         // strcmp(), memcpy ...
 #include <search.h>         // tfind(), tdestroy() ...
+#include <stdbool.h>        // bool
 #include <stdio.h>          // fprintf()
+#include <stdlib.h>         // malloc(), free() ...
+#include <string.h>         // strcmp(), memcpy ...
 
+#include "generator.h"
 #include "common.h"         // ELEMENT_COMPARE
 
 static void * generators_root; /**< Tree of generator_t, ordered by name */
@@ -30,7 +33,7 @@ static field_t * generator_get_field(const generator_t * generator, const char *
 
 generator_t * generator_create_by_name(const char * name)
 {
-    size_t              size, i , num_fields;
+    size_t              size, i, num_fields;
     generator_t       * generator;
     const generator_t * search;
 
@@ -45,11 +48,13 @@ generator_t * generator_create_by_name(const char * name)
     num_fields = generator->num_fields;
     if (!(generator->fields = malloc(num_fields * sizeof(field_t *)))) goto ERR_MALLOC;
     for (i = 0; i < num_fields; ++i) {
-        if (!(generator->fields[i] = field_dup((const field_t *)(search->fields + i)))) goto ERR_DUP;
+        if (!(generator->fields[i] = field_dup((const field_t *)(search->fields + i)))) {
+            goto ERR_FIELD_DUP;
+        }
     }
     return generator;
 
-ERR_DUP:
+ERR_FIELD_DUP:
     free(generator->fields);
 ERR_MALLOC:
     generator_free(generator);
@@ -158,9 +163,9 @@ void generator_register(generator_t * generator)
     tsearch(generator, &generators_root, (ELEMENT_COMPARE) generator_compare);
 }
 
-static void nothing_to_free() {}
+static void nothing_to_free(void * nodep __attribute__((__unused__))) {}
 
 void generator_clear() {
-    tdestroy(generators_root, nothing_to_free);
+    tdestroy(generators_root, &nothing_to_free);
 }
 

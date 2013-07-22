@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdlib.h>                  // malloc...
 #include <stdio.h>                   // perror, printf
 #include <stdbool.h>                 // bool
@@ -84,7 +86,7 @@ struct opt_spec runnable_options[] = {
  * \return A pointer to the corresponding options_t instance if successfull, NULL otherwise
  */
 
-static options_t * init_options(const char * version) {
+static options_t * init_options(char * version) {
     options_t * options;
 
     // Building the command line options
@@ -264,7 +266,7 @@ const char * get_protocol_name(int family, bool use_icmp, bool use_udp) {
 int main(int argc, char ** argv)
 {
     int                       exit_code = EXIT_FAILURE;
-    const char              * version = "version 1.0";
+    char                    * version = strdup("version 1.0");
     const char              * usage = "usage: %s [options] host\n";
     void                    * algorithm_options;
     traceroute_options_t      traceroute_options;
@@ -428,6 +430,7 @@ ERR_ADDRESS_GUESS_FAMILY:
 ERR_CHECK_OPTIONS:
 ERR_OPT_PARSE:
 ERR_INIT_OPTIONS:
+    free(version);
     exit(exit_code);
 }
 

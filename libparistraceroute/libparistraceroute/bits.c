@@ -1,6 +1,9 @@
-#include "bits.h"
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
+
+#include "bits.h"
 
 //---------------------------------------------------------------------------
 // Bit-level operations on a single byte

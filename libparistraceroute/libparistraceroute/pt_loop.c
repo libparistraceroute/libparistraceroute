@@ -1,4 +1,4 @@
-#include "pt_loop.h"
+#include "config.h"
 
 #include <stdbool.h>       // bool
 #include <stdio.h>         // perror
@@ -10,6 +10,8 @@
 #include <sys/signalfd.h>  // eventfd
 #include <signal.h>        // SIGINT, SIGQUIT
 #include <netinet/in.h>    // IPPROTO_ICMP, IPPROTO_ICMPV6
+
+#include "pt_loop.h"
 
 #include "algorithm.h"
 

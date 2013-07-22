@@ -1,9 +1,11 @@
-#include "dynarray.h"
+#include "config.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+
+#include "dynarray.h"
 
 #define DYNARRAY_SIZE_INIT  5
 #define DYNARRAY_SIZE_INC   5

@@ -1,4 +1,5 @@
 #include <stdlib.h>           // malloc()
+#include <string.h>           // strdup()
 
 #include "field.h"
 #include "../generator.h"     // generator_t
@@ -34,9 +35,9 @@ void uniform_generator_free(uniform_generator_t * uniform_generator) {
 static generator_t uniform = {
     .name           = "uniform",
     .get_next_value = uniform_generator_get_next_value,
-    .fields         = uniform_fields,
+    .fields         = (field_t **) &uniform_fields,
     .num_fields     = 1,
-    .size           =  sizeof(uniform_generator_t),
+    .size           = sizeof(uniform_generator_t),
     .value          = 1,
 };
 

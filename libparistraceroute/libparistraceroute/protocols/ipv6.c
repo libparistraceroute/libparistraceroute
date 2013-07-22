@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stddef.h>       // offsetof()
 #include <string.h>       // memcpy(), memset()
 #include <unistd.h>       // close()
@@ -34,8 +36,8 @@
 #define IPV6_DEFAULT_PAYLOAD_LENGTH  0
 #define IPV6_DEFAULT_NEXT_HEADER     IPPROTO_UDP
 #define IPV6_DEFAULT_HOPLIMIT        64
-#define IPV6_DEFAULT_SRC_IP          0
-#define IPV6_DEFAULT_DST_IP          0
+#define IPV6_DEFAULT_SRC_IP          0, 0, 0, 0
+#define IPV6_DEFAULT_DST_IP          0, 0, 0, 0
 
 // IPv6 fields
 
@@ -93,8 +95,8 @@ static const struct ip6_hdr ipv6_default = {
     .ip6_plen = IPV6_DEFAULT_PAYLOAD_LENGTH,
     .ip6_nxt  = IPV6_DEFAULT_NEXT_HEADER,
     .ip6_hlim = IPV6_DEFAULT_HOPLIMIT,
-    .ip6_src  = IPV6_DEFAULT_SRC_IP,
-    .ip6_dst  = IPV6_DEFAULT_DST_IP,
+    .ip6_src.s6_addr32  = { IPV6_DEFAULT_SRC_IP },
+    .ip6_dst.s6_addr32  = { IPV6_DEFAULT_DST_IP },
 };
 
 bool ipv6_get_default_src_ip(struct in6_addr dst_ipv6, struct in6_addr * psrc_ipv6) {

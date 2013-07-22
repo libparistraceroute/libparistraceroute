@@ -1,4 +1,4 @@
-#include "address.h"
+#include "config.h"
 
 #include <stdio.h>      // perror
 #include <stdlib.h>     // malloc
@@ -9,20 +9,19 @@
 #include <netinet/in.h> // INET_ADDRSTRLEN, INET6_ADDRSTRLEN
 #include <arpa/inet.h>  // inet_pton
 
-#define AI_IDN        0x0040
+#include "address.h"
 
-// CPPFLAGS += -D_GNU_SOURCE
+#define AI_IDN        0x0040
 
 static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
     if (inet_ntop(family, ip, buffer, buffer_len)) {
-        printf(buffer);
+        printf("%s", buffer);
     } else {
         printf("???");
     }
 }
 
-int ip_from_string(int family, const char * hostname, ip_t * ip)
-{
+int ip_from_string(int family, const char * hostname, ip_t * ip) {
     struct addrinfo   hints,
                     * ai,
                     * res = NULL;
@@ -98,7 +97,7 @@ bool address_guess_family(const char * str_ip, int * pfamily) {
     hints.ai_flags    = AI_PASSIVE;
 
     if ((err = getaddrinfo(str_ip, NULL, &hints, &result)) != 0) {
-        fprintf(stderr, gai_strerror(err));
+        fprintf(stderr, "%s", gai_strerror(err));
         goto ERR_GETADDRINFO;
     }
 

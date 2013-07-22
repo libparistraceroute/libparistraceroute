@@ -1,5 +1,8 @@
-#include "event.h"
+#include "config.h"
+
 #include <stdlib.h> // malloc
+
+#include "event.h"
 
 event_t * event_create(
     event_type_t type,

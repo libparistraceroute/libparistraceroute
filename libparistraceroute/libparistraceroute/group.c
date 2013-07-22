@@ -1,11 +1,11 @@
+#include "config.h"
+
 #include <stdlib.h>      // malloc ...
 #include <sys/timerfd.h> // timerfd_create, timerfd_settime
 #include <stdio.h>       //fprintf
 
-
 #include "group.h"
 #include "common.h"
-
 
 group_t * group_create(double (*callback)(void *)) {
     group_t * group;

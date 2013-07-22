@@ -24,6 +24,8 @@ AC_CONFIG_SRCDIR([traceroute/traceroute.c])
 # automake initialization (mandatory) (no check for automake version)
 AM_INIT_AUTOMAKE
 
+AC_GNU_SOURCE
+
 # Use the C compiler for the following checks
 AC_LANG([C])
 

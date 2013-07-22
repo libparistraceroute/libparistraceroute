@@ -1,9 +1,11 @@
-#include "packet.h"
+#include "config.h"
 
 #include <stdlib.h>     // malloc, calloc, free
 #include <string.h>     // strdup
 #include <stdio.h>      // printf
 #include <sys/socket.h> // AF_INET, AF_INET6
+
+#include "packet.h"
 
 packet_t * packet_create() {
     packet_t * packet;

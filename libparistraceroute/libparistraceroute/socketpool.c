@@ -1,4 +1,4 @@
-#include "socketpool.h"
+#include "config.h"
 
 #include <stdlib.h>             // malloc
 #include <stdio.h>              // perror
@@ -8,6 +8,8 @@
 #include <netdb.h>              // getaddrinfo
 #include <arpa/inet.h>          // inet_pton
 #include <string.h>             // memset
+
+#include "socketpool.h"
 
 #include "address.h"            // address_guess_family
 

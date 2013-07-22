@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
@@ -5,6 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include "optparse.h"
 
 #define EMPTY(s) (!(s) || !*(s))
@@ -512,7 +515,7 @@ int opt_store_choice_abbr(char *arg, void *data)
             stderr, "ambiguous choice '%s' for option %s\n%*s(%s",
             arg,
             opt_name(),
-            (char *) strlen(globals.prog) + 2,
+            (int) strlen(globals.prog) + 2,
             "",
             choices[i]
         );
@@ -621,7 +624,7 @@ int opt_parse(const char *usage, struct opt_spec *opts, char **argv)
                         stderr, "%s: ambiguous option %s\n%*s(%s",
                         globals.prog,
                         a,
-                        strlen(globals.prog) + 2,
+                        (int) strlen(globals.prog) + 2,
                         "",
                         o->lf
                     );

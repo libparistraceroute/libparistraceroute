@@ -1,8 +1,10 @@
-#include "protocol.h"
+#include "config.h"
 
 #include <string.h>         // strcmp(), ...
 #include <search.h>         // tfind(), tdestroy(), twalk(), preorder...
 #include <stdio.h>          // perror()
+
+#include "protocol.h"
 
 #include "common.h"         // ELEMENT_COMPARE
 #include "protocol_field.h" // protocol_field_t

@@ -1,7 +1,9 @@
-#include "protocol_field.h"
+#include "config.h"
 
 #include <string.h> // memcpy
 #include <stdio.h>  // fprintf
+
+#include "protocol_field.h"
 
 bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * buffer, const field_t * field)
 {

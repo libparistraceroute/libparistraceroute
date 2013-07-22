@@ -1,8 +1,10 @@
-#include "probe_group.h"
+#include "config.h"
 
 #include <stdio.h>   // printf
 #include <stdlib.h>  // malloc, free
 #include <float.h>   // DBL_MAX
+
+#include "probe_group.h"
 
 #include "network.h" // update_timer
 #include "common.h"  // MIN
@@ -178,7 +180,6 @@ void probe_group_free(probe_group_t * probe_group) {
 static bool probe_group_add_impl(probe_group_t * probe_group, tree_node_t * node_caller, tree_node_tag_t tag, void * data)
 {
     bool                ret = false;
-    double              delay;
     tree_node_t       * new_child;
     tree_node_probe_t * tree_node_probe;
 

@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdlib.h>      // malloc ...
 #include <string.h>      // memset
 #include <stdio.h>       // fprintf

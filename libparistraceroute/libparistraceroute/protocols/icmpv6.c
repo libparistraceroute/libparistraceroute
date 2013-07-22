@@ -51,7 +51,7 @@ static struct icmp6_hdr icmpv6_default = {
     .icmp6_type   = ICMPV6_DEFAULT_TYPE,
     .icmp6_code   = ICMPV6_DEFAULT_CODE,
     .icmp6_cksum  = ICMPV6_DEFAULT_CHECKSUM,
-    .icmp6_dataun = ICMPV6_DEFAULT_BODY // XXX union type
+    .icmp6_data32 = { ICMPV6_DEFAULT_BODY }
 };
 
 /**

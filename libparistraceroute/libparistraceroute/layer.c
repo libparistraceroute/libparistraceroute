@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -261,7 +263,7 @@ void layer_dump(const layer_t * layer, unsigned int indent)
         print_indent(indent);
         printf("PAYLOAD:\n");
         print_indent(indent);
-        printf(sep);
+        printf("%s", sep);
         print_indent(indent);
         printf("%-15s %lu\n", "size", size);
         print_indent(indent);
@@ -274,7 +276,7 @@ void layer_dump(const layer_t * layer, unsigned int indent)
         print_indent(indent);
         printf("LAYER: %s\n", layer->protocol->name);
         print_indent(indent);
-        printf(sep);
+        printf("%s", sep);
 
         // Dump each field
         for(protocol_field = layer->protocol->fields; protocol_field->key; protocol_field++) {
@@ -300,7 +302,7 @@ void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int in
         print_indent(indent);
         printf("LAYER: %s\n", layer1->protocol->name);
         print_indent(indent);
-        printf(sep);
+        printf("%s", sep);
 
         // Dump each (relevant) field
         for(protocol_field = layer1->protocol->fields; protocol_field->key; protocol_field++) {

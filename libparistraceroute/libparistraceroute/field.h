@@ -77,9 +77,13 @@ typedef union {
  */
 
 typedef struct {
-    char        * key;   /**< Pointer to a unique identifier key */
-    value_t       value; /**< Union of all field data            */
-    fieldtype_t   type;  /**< Type of data stored in the field   */
+    const char  * key;   /**< Pointer to a unique identifier key; the
+                          * referenced memory is not freed when the
+                          * field is freed */
+    value_t       value; /**< Union of all field data; the referenced
+                          * memory is freed if it's a string or
+                          * generator, when the field is freed */
+    fieldtype_t   type;  /**< Type of data stored in the field */
 } field_t;
 
 /**

@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdlib.h>      // malloc
 #include <stdio.h>       // perror
 #include <string.h>      // memcpy, memset
@@ -33,13 +35,6 @@
 #  define IPV6_RECVPKTINFO IPV6_PKTINFO
 #endif
 
-
-// From /usr/include/netinet/in.h
-struct in6_pktinfo
-{
-    struct in6_addr ipi6_addr;  /* src/dst IPv6 address */
-    unsigned int ipi6_ifindex;  /* send/recv interface index */
-};
 
 /**
  * \brief Initialize an ICMPv4 raw socket in a sniffer_t instance

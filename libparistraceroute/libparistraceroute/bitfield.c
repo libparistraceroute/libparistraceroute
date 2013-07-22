@@ -1,9 +1,10 @@
-#include "bitfield.h"
+#include "config.h"
 
 #include <errno.h>  // errno
 #include <stdlib.h> // malloc, calloc, free
 #include <string.h> // memcpy
 
+#include "bitfield.h"
 #include "common.h" // MIN()
 
 //--------------------------------------------------------------------------

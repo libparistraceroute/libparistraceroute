@@ -1,6 +1,8 @@
-#include "list.h"
+#include "config.h"
 
 #include <stdlib.h> // malloc, free
+
+#include "list.h"
 
 list_cell_t * list_cell_create(void * element)
 {

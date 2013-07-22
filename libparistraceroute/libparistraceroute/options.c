@@ -1,9 +1,11 @@
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#include "common.h"  // ELEMENT_DUMP
 #include "options.h"
+#include "common.h"  // ELEMENT_DUMP
 
 /**
  * \brief Compare two opt_spect_t instances.
@@ -163,14 +165,14 @@ bool options_add_optspec(options_t * options, const option_t * option)
     return true;
 }
 
-bool options_add_common(options_t * options, const char * version_data)
+bool options_add_common(options_t * options, char * version)
 {
     bool ret = false;
 
-    if (options && version_data) {
+    if (options && version) {
         option_t common_options[] = {
             {opt_help,       "h", "--help"   , OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
-            {opt_version,    "V", "--version", OPT_NO_METAVAR, OPT_NO_HELP, version_data},
+            {opt_version,    "V", "--version", OPT_NO_METAVAR, OPT_NO_HELP, version},
             {OPT_NO_ACTION},
             END_OPT_SPECS
         };

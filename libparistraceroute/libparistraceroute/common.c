@@ -1,6 +1,9 @@
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
+
 #include "common.h"
 
 // Note: for measuring intervals !
