@@ -6,8 +6,8 @@
 #include <netinet/ip.h>   // iphdr
 #include <netinet/in.h>   // IPPROTO_IPIP, INET_ADDRSTRLEN
 
-#include "../field.h"
-#include "../protocol.h"
+#include "../field.h"     // field_t
+#include "../protocol.h"  // csum
 #include "../bits.h"
 
 // Field names

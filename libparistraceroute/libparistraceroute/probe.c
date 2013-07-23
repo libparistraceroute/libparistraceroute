@@ -602,7 +602,7 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
             protocols_dump();
             goto ERR_PROTOCOL_SEARCH;
         }
-        packet_size += protocol->get_header_size(NULL); // TODO call write_default_header(NULL) to get the number of required bytes
+        packet_size += protocol->write_default_header(NULL);
     }
     va_end(args2);
     if (!(packet_resize(probe->packet, packet_size))) goto ERR_PACKET_RESIZE;
@@ -621,13 +621,8 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
         }
         // TODO layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);
 
-        // Update 'length' field
-        if (!layer_set_field_and_free(layer, I16("length", packet_size - offset))) {
-            if (strncmp(layer->protocol->name, "icmp", 4) != 0) {
-                fprintf(stderr, "Can't set 'length' in %s header\n", layer->protocol->name);
-                goto ERR_SET_LENGTH;
-            }
-        }
+        // Update 'length' field (if any). It concerns IPv* and UDP, but not TCP or ICMPv*
+        layer_set_field_and_free(layer, I16("length", packet_size - offset));
 
         // Update 'protocol' field of the previous inserted layer (if any)
         if (prev_layer) {

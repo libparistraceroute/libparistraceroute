@@ -41,6 +41,16 @@
 #define TEXT          "paris-traceroute - print the IP-level path toward a given IP host."
 #define TEXT_OPTIONS  "Options:"
 
+// Default values (based on modern traceroute for linux)
+
+#define UDP_DEFAULT_SRC_PORT  33457
+#define UDP_DEFAULT_DST_PORT  33456
+#define UDP_DST_PORT_USING_U  53
+
+#define TCP_DEFAULT_SRC_PORT  16449 
+#define TCP_DEFAULT_DST_PORT  16963
+#define TCP_DST_PORT_USING_T  80
+
 const char * algorithm_names[] = {
     "paris-traceroute", // default value
     "mda",
@@ -293,6 +303,7 @@ int main(int argc, char ** argv)
     char                    * dst_ip;
     const char              * algorithm_name;
     const char              * protocol_name;
+    bool                      use_icmp, use_udp, use_tcp;
 
     // Prepare the commande line options
     if (!(options = init_options(version))) {
@@ -316,12 +327,9 @@ int main(int argc, char ** argv)
         goto ERR_CHECK_OPTIONS;
     }
 
-    is_icmp |= (strcmp(protocol_name, "icmp") == 0);
-    is_tcp  |= (strcmp(protocol_name, "tcp")  == 0);
-    if (!is_icmp && !is_tcp) {
-        // -P is evaluated iif -I and -U have not been set 
-        is_udp |= (strcmp(protocol_name, "udp")  == 0);
-    }
+    use_icmp = is_icmp || strcmp(protocol_name, "icmp") == 0;
+    use_tcp  = is_tcp  || strcmp(protocol_name, "tcp")  == 0;
+    use_udp  = is_udp  || strcmp(protocol_name, "udp")  == 0;
 
     // If not any ip version is set, call address_guess_family.
     // If only one is set to true, set family to AF_INET or AF_INET6
@@ -349,12 +357,11 @@ int main(int argc, char ** argv)
     // Prepare the probe skeleton
     probe_set_protocols(
         probe,
-        get_ip_protocol_name(family),                       // "ipv4"   | "ipv6"
-        get_protocol_name(family, is_icmp, is_tcp, is_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
+        get_ip_protocol_name(family),                          // "ipv4"   | "ipv6"
+        get_protocol_name(family, use_icmp, use_tcp, use_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
         NULL
     );
 
-    probe_dump(probe);
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
 
     if (send_time[3]) {
@@ -366,31 +373,43 @@ int main(int argc, char ** argv)
     }
 
     // ICMPv* do not support ports nor payload.
-    if (!is_icmp) {
+    if (!use_icmp) {
+        uint16_t sport, dport;
+
+        // Option -U sets port to 53 (DNS) if dst_port is not explicitely set
+        if (use_udp) {
+            sport = src_port[3] ? src_port[0] : UDP_DEFAULT_SRC_PORT;
+            dport = dst_port[3] ? dst_port[0] : (is_udp ? UDP_DST_PORT_USING_U : UDP_DEFAULT_DST_PORT);
+        }
+
+        // Option -T sets port to 80 (http) if dst_port is not explicitely set
+        if (use_tcp) {
+            sport = src_port[3] ? src_port[0] : TCP_DEFAULT_SRC_PORT;
+            dport = dst_port[3] ? dst_port[0] : (is_tcp ? TCP_DST_PORT_USING_T : TCP_DEFAULT_DST_PORT);
+        }
+
+        // Update ports
         probe_set_fields(
             probe,
-            I16("dst_port", dst_port[0]),
-            I16("src_port", src_port[0]),
+            I16("src_port", sport),
+            I16("dst_port", dport),
             NULL
         );
-        probe_payload_resize(probe, 2);
-    }
 
-    // Option -U sets port to 53 (DNS) and dst_port not explicitely set
-    if (is_udp && !dst_port[3]) {
-        probe_set_fields(probe, I16("dst_port", 53), NULL);
+        // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
+        probe_payload_resize(probe, 2);
     }
 
     // Algorithm options (dedicated options)
     if (strcmp(algorithm_name, "paris-traceroute") == 0) {
-        traceroute_options     = traceroute_get_default_options();
-        ptraceroute_options    = &traceroute_options;
-        algorithm_options      = &traceroute_options;
-        algorithm_name         = "traceroute";
+        traceroute_options  = traceroute_get_default_options();
+        ptraceroute_options = &traceroute_options;
+        algorithm_options   = &traceroute_options;
+        algorithm_name      = "traceroute";
     } else if ((strcmp(algorithm_name, "mda") == 0) || options_mda_get_is_set()) {
-        mda_options            = mda_get_default_options();
-        ptraceroute_options    = &mda_options.traceroute_options;
-        algorithm_options      = &mda_options;
+        mda_options         = mda_get_default_options();
+        ptraceroute_options = &mda_options.traceroute_options;
+        algorithm_options   = &mda_options;
         options_mda_init(&mda_options);
     } else {
         fprintf(stderr, "E: Unknown algorithm");
@@ -417,6 +436,8 @@ int main(int argc, char ** argv)
         ptraceroute_options->max_ttl,
         packet_get_size(probe->packet)
     );
+
+    probe_dump(probe);
 
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {
