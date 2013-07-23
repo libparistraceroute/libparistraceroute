@@ -10,8 +10,8 @@
 #include "ipv4_pseudo_header.h"
 #include "ipv6_pseudo_header.h"
 
-#define TCP_DEFAULT_SRC_PORT    2828
-#define TCP_DEFAULT_DST_PORT    2828
+#define TCP_DEFAULT_SRC_PORT    2222 
+#define TCP_DEFAULT_DST_PORT    3333
 #define TCP_DEFAULT_WINDOW_SIZE 2  // in [2, 65535]
 //#define TCP_DEFAULT_DATA_OFFSET 20 // at least 5 words e.g. 20 bytes 
 
@@ -59,7 +59,6 @@
 #   define CHECKSUM    check
 #   define URGENT_PTR  urg_ptr 
 #endif
-
 
 /**
  * TCP fields
@@ -139,10 +138,7 @@ static protocol_field_t tcp_fields[] = {
  */
 
 static struct tcphdr tcp_default = {
-    .SRC_PORT    = TCP_DEFAULT_SRC_PORT,
-    .DST_PORT    = TCP_DEFAULT_DST_PORT,
-    .DATA_OFFSET = 0xff,
-    .WINDOW_SIZE = 0xffff,
+    .WINDOW_SIZE = 0xeeee,
 };
 
 /**
@@ -152,7 +148,7 @@ static struct tcphdr tcp_default = {
  */
 
 size_t tcp_get_header_size(const uint8_t * tcp_header) {
-    return sizeof(struct tcphdr);
+    return sizeof(struct tcphdr); // ntohs(((struct tcphdr *) tcp_header)->DATA_OFFSET) * 4
 }
 
 /**
@@ -167,7 +163,13 @@ size_t tcp_write_default_header(uint8_t * tcp_header) {
 
     if (tcp_header) {
         memset(tcp_header, 0, size);
+        /*
         memcpy(tcp_header, &tcp_default, size);
+        ((struct tcphdr *) tcp_header)->DATA_OFFSET = htons(5 << 4);
+        printf("setting src_port to %x (%d)\n", htons(TCP_DEFAULT_SRC_PORT), TCP_DEFAULT_SRC_PORT);
+        ((struct tcphdr *) tcp_header)->SRC_PORT    = htons(TCP_DEFAULT_SRC_PORT);
+        ((struct tcphdr *) tcp_header)->DST_PORT    = htons(TCP_DEFAULT_DST_PORT);
+        */
     }
 
     return size;

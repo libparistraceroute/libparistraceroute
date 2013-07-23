@@ -65,8 +65,6 @@ static protocol_field_t udp_fields[] = {
  */
 
 static struct udphdr udp_default = {
-    .SRC_PORT = UDP_DEFAULT_SRC_PORT,
-    .DST_PORT = UDP_DEFAULT_DST_PORT,
     .LENGTH   = 0,
     .CHECKSUM = 0
 };
@@ -90,7 +88,11 @@ size_t udp_get_header_size(const uint8_t * udp_header) {
 
 size_t udp_write_default_header(uint8_t * udp_header) {
     size_t size = sizeof(struct udphdr);
-    if (udp_header) memcpy(udp_header, &udp_default, size);
+    if (udp_header) {
+        memcpy(udp_header, &udp_default, size);
+        ((struct udphdr *) udp_header)->SRC_PORT = htons(UDP_DEFAULT_SRC_PORT);
+        ((struct udphdr *) udp_header)->DST_PORT = htons(UDP_DEFAULT_DST_PORT);
+    }
     return size;
 }
 
