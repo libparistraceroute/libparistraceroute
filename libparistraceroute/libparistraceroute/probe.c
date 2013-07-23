@@ -597,7 +597,11 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
     packet_size = 0;
     va_copy(args2, args);
     for (name = name1; name; name = va_arg(args2, char *)) {
-        if (!(protocol = protocol_search(name))) goto ERR_PROTOCOL_SEARCH;
+        if (!(protocol = protocol_search(name))) {
+            fprintf(stderr, "Cannot found %s protocol, known protocols are:", name);
+            protocols_dump();
+            goto ERR_PROTOCOL_SEARCH;
+        }
         packet_size += protocol->get_header_size(NULL); // TODO call write_default_header(NULL) to get the number of required bytes
     }
     va_end(args2);
@@ -612,6 +616,7 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
         protocol->write_default_header(packet_get_bytes(probe->packet) + offset);
 
         if (!(layer = layer_create_from_segment(protocol, packet_get_bytes(probe->packet) + offset, packet_size - offset))) {
+            fprintf(stderr, "Can't create segment for %s header\n", layer->protocol->name);
             goto ERR_LAYER_CREATE;
         }
         // TODO layer_set_mask(layer, bitfield_get_mask(probe->bitfield) + offset);

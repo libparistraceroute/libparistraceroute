@@ -106,11 +106,12 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						protocol.c \
 						protocols/icmpv4.c \
 						protocols/icmpv6.c \
-						protocols/udp.c \
 						protocols/ipv4.c \
 						protocols/ipv4_pseudo_header.c \
 						protocols/ipv6.c \
 						protocols/ipv6_pseudo_header.c \
+						protocols/tcp.c \
+						protocols/udp.c \
 						protocol_field.c \
 						pt_loop.c \
 						queue.c \

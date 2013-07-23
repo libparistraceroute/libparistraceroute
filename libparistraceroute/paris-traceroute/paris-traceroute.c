@@ -30,13 +30,14 @@
 #define HELP_4        "Use IPv4."
 #define HELP_6        "Use IPv6."
 #define HELP_a        "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
+#define HELP_d        "Print libparistraceroute debug information."
 #define HELP_p        "Set PORT as destination port (default: 33457)."
 #define HELP_s        "Set PORT as source port (default: 33456)."
+#define HELP_I        "Use ICMPv4/ICMPv6 for tracerouting."
 #define HELP_P        "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
+#define HELP_T        "Use TCP for tracerouting."
 #define HELP_U        "Use UDP for tracerouting. The destination port is set by default to 53."
 #define HELP_z        "Minimal time interval between probes (default 0).  If the value is more than 10, then it specifies a number in milliseconds, else it is a number of seconds (float point values allowed  too)"
-#define HELP_I        "Use ICMPv4/ICMPv6 for tracerouting."
-#define HELP_d        "Print libparistraceroute debug information."
 #define TEXT          "paris-traceroute - print the IP-level path toward a given IP host."
 #define TEXT_OPTIONS  "Options:"
 
@@ -48,6 +49,7 @@ const char * algorithm_names[] = {
 
 static bool is_ipv4  = false;
 static bool is_ipv6  = false;
+static bool is_tcp   = false;
 static bool is_udp   = false;
 static bool is_icmp  = false;
 static bool is_debug = false;
@@ -55,6 +57,7 @@ static bool is_debug = false;
 const char * protocol_names[] = {
     "udp", // default value
     "icmp",
+    "tcp",
     NULL
 };
 
@@ -70,14 +73,15 @@ struct opt_spec runnable_options[] = {
     {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
     {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,       &is_ipv4},
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
-    {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     HELP_d,       &is_debug},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
-    {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             HELP_s,       src_port},
+    {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     HELP_d,       &is_debug},
     {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             HELP_p,       dst_port},
+    {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             HELP_s,       src_port},
     {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             HELP_z,       send_time},
-    {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         HELP_P,       protocol_names},
-    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
     {opt_store_1,             "I",        "--icmp",            OPT_NO_METAVAR,     HELP_I,       &is_icmp},
+    {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         HELP_P,       protocol_names},
+    {opt_store_1,             "T",        "--tcp",             OPT_NO_METAVAR,     HELP_T,       &is_tcp},
+    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
     END_OPT_SPECS
 };
 
@@ -121,10 +125,16 @@ static bool check_ip_version(bool is_ipv4, bool is_ipv6)
     return true;
 }
 
-static bool check_protocol(bool is_icmp, bool is_udp, const  char * protocol_name)
+static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * protocol_name)
 {
-    if (is_icmp && is_udp) {// TODO ((strcmp(protocol_name, "udp") == 0) || is_udp)) {
-        fprintf(stderr, "E: Cannot use simultaneously icmp and udp tracerouting\n");
+    unsigned check = 0;
+
+    if (is_icmp) check += 1;
+    if (is_udp)  check += 1;
+    if (is_tcp)  check += 1;
+
+    if (check > 1) {
+        fprintf(stderr, "E: Cannot use simultaneously icmp tcp and udp tracerouting\n");
         return false;
     }
 
@@ -154,6 +164,7 @@ static bool check_algorithm(const char * algorithm_name)
 
 static bool check_options(
     bool         is_icmp,
+    bool         is_tcp,
     bool         is_udp,
     bool         is_ipv4,
     bool         is_ipv6,
@@ -163,7 +174,7 @@ static bool check_options(
     const char * algorithm_name
 ) {
     return check_ip_version(is_ipv4, is_ipv6)
-        && check_protocol(is_icmp, is_udp, protocol_name)
+        && check_protocol(is_icmp, is_tcp, is_udp, protocol_name)
         && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
         && check_algorithm(algorithm_name);
 }
@@ -241,7 +252,7 @@ const char * get_ip_protocol_name(int family) {
     return NULL;
 }
 
-const char * get_protocol_name(int family, bool use_icmp, bool use_udp) {
+const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
     if (use_icmp) {
         switch (family) {
             case AF_INET:
@@ -252,6 +263,8 @@ const char * get_protocol_name(int family, bool use_icmp, bool use_udp) {
                 fprintf(stderr, "Internet family not supported (%d)\n", family);
                 break;
         }
+    } else if (use_tcp) {
+        return "tcp";
     } else if (use_udp) {
         return "udp";
     }
@@ -299,12 +312,16 @@ int main(int argc, char ** argv)
     protocol_name  = protocol_names[0];
 
     // Checking if there is any conflicts between options passed in the commandline
-    if (!check_options(is_icmp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
+    if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
         goto ERR_CHECK_OPTIONS;
     }
 
     is_icmp |= (strcmp(protocol_name, "icmp") == 0);
-    is_udp  |= ((strcmp(protocol_name, "udp") == 0) && !is_icmp); // if -P is unused, we must not change the protocol
+    is_tcp  |= (strcmp(protocol_name, "tcp")  == 0);
+    if (!is_icmp && !is_tcp) {
+        // -P is evaluated iif -I and -U have not been set 
+        is_udp |= (strcmp(protocol_name, "udp")  == 0);
+    }
 
     // If not any ip version is set, call address_guess_family.
     // If only one is set to true, set family to AF_INET or AF_INET6
@@ -332,11 +349,12 @@ int main(int argc, char ** argv)
     // Prepare the probe skeleton
     probe_set_protocols(
         probe,
-        get_ip_protocol_name(family),               // "ipv4"   | "ipv6"
-        get_protocol_name(family, is_icmp, is_udp), // "icmpv4" | "icmpv6" | "udp"
+        get_ip_protocol_name(family),                       // "ipv4"   | "ipv6"
+        get_protocol_name(family, is_icmp, is_tcp, is_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
         NULL
     );
 
+    probe_dump(probe);
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
 
     if (send_time[3]) {
