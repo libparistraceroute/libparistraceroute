@@ -311,12 +311,14 @@ network_t * network_create()
         goto ERR_TIMERFD;
     }
 
+#ifdef USE_SCHEDULING
     if ((network->scheduled_timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
         goto ERR_GROUP_TIMERFD;
     }
     if (!(network->scheduled_probes = probe_group_create(network->scheduled_timerfd))) {
         goto ERR_GROUP;
     }
+#endif
     if (!(network->sniffer = sniffer_create(network->recvq, network_sniffer_callback))) {
         goto ERR_SNIFFER;
     }
@@ -331,10 +333,12 @@ network_t * network_create()
 ERR_PROBES:
     sniffer_free(network->sniffer);
 ERR_SNIFFER:
+#ifdef USE_SCHEDULING
     probe_group_free(network->scheduled_probes);
 ERR_GROUP :
     close(network->scheduled_timerfd);
 ERR_GROUP_TIMERFD :
+#endif
     close(network->timerfd);
 ERR_TIMERFD:
     queue_free(network->recvq, (ELEMENT_FREE) packet_free);
@@ -357,7 +361,9 @@ void network_free(network_t * network)
         queue_free(network->sendq, (ELEMENT_FREE) probe_free);
         queue_free(network->recvq, (ELEMENT_FREE) probe_free);
         socketpool_free(network->socketpool);
+#ifdef USE_SCHEDULING
         probe_group_free(network->scheduled_probes);
+#endif
         free(network);
     }
 }
@@ -378,18 +384,23 @@ inline int network_get_recvq_fd(network_t * network) {
     return queue_get_fd(network->recvq);
 }
 
+#ifdef USE_IPV4
 inline int network_get_icmpv4_sockfd(network_t * network) {
     return sniffer_get_icmpv4_sockfd(network->sniffer);
 }
+#endif
 
+#ifdef USE_IPV6
 inline int network_get_icmpv6_sockfd(network_t * network) {
     return sniffer_get_icmpv6_sockfd(network->sniffer);
 }
+#endif
 
 inline int network_get_timerfd(network_t * network) {
     return network->timerfd;
 }
 
+#ifdef USE_SCHEDULING
 inline int network_get_group_timerfd(network_t * network) {
     return network->scheduled_timerfd;
 }
@@ -397,6 +408,7 @@ inline int network_get_group_timerfd(network_t * network) {
 probe_group_t * network_get_scheduled_probes(network_t * network) {
     return network->scheduled_probes;
 }
+#endif
 
 bool network_tag_probe(network_t * network, probe_t * probe)
 {
@@ -505,13 +517,16 @@ bool network_send_probe(network_t * network, probe_t * probe)
     // - Best effort probes are directly pushed in our sendq.
     // - Scheduled probes are scheduled, stored in the probe group, and
     // pushed in the sendq when the probe_group notify pt_loop.
+#ifdef USE_SCHEDULING
     if (probe_get_delay(probe) == DELAY_BEST_EFFORT) {
+#endif
         probe_set_queueing_time(probe, get_timestamp());
-        return  queue_push_element(network->sendq, probe);
-
+        return queue_push_element(network->sendq, probe);
+#ifdef USE_SCHEDULING
     } else {
        return probe_group_add(network->scheduled_probes, probe);
     }
+#endif
 }
 
 // TODO This could be replaced by watchers: FD -> action
@@ -674,11 +689,7 @@ bool network_drop_expired_flying_probe(network_t * network)
 // Scheduling
 //------------------------------------------------------------------------------------
 
-/*
-double network_get_next_scheduled_probe_delay(const network_t * network) {
-    return probe_group_get_next_delay(network->scheduled_probes);
-}
-*/
+#ifdef USE_SCHEDULING
 
 static bool network_process_probe_node(network_t * network, tree_node_t * node, size_t i)
 {
@@ -726,42 +737,8 @@ void network_process_scheduled_probe(network_t * network) {
     }
 }
 
-//
-//bool network_update_next_scheduled_delay(network_t * network)
-//{
-//    /*
-//           double            next_delay;
-//       struct itimerspec delay;
-//
-//       if (!network) goto ERR_NETWORK;
-//       printf("network %lx timerfd : %u\n", network, network->scheduled_timerfd);
-//       next_delay = network_get_next_scheduled_probe_delay(network);
-//
-//    // Prepare the itimerspec structure
-//    itimerspec_set_delay(&delay, next_delay);
-//
-//    // Update the delay timer
-//    return timerfd_settime(network->scheduled_timerfd, 0, &delay, NULL) != -1;
-//
-//ERR_NETWORK:
-//return false;
-//
-//    */
-//    bool ret = false;
-//
-//    if (!network) goto ERR_NETWORK;
-//
-//    double delay = network_get_next_scheduled_probe_delay(network);
-//    printf("delay %f\n", delay);
-//    ret = update_timer(network->scheduled_timerfd, delay);
-//    return ret;
-//
-//ERR_NETWORK:
-//    return ret;
-//
-//
-//}
-
 bool network_update_scheduled_timer(network_t * network, double delay) {
     return update_timer(network->scheduled_timerfd, delay);
 }
+
+#endif // USE_SCHEDULING

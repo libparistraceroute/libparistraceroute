@@ -1,3 +1,5 @@
+#include "use.h"
+
 #ifndef SNIFFER_H
 #define SNIFFER_H
 
@@ -22,8 +24,12 @@
  */
 
 typedef struct {
+#ifdef USE_IPV4
     int     icmpv4_sockfd;  /**< Raw socket for sniffing ICMPv4 packets */
+#endif
+#ifdef USE_IPV6
     int     icmpv6_sockfd;  /**< Raw socket for sniffing ICMPv6 packets */
+#endif
     void  * recv_param;     /**< This pointer is passed whenever recv_callback is called */
     bool (* recv_callback)(packet_t * packet, void * recv_param); /**< Callback for received packets */
 } sniffer_t;
@@ -43,6 +49,7 @@ sniffer_t * sniffer_create(void * recv_param, bool (*recv_callback)(packet_t *, 
 
 void sniffer_free(sniffer_t * sniffer);
 
+#ifdef USE_IPV4
 /**
  * \brief Return the file descriptor related to the ICMPv4 raw socket
  *    managed by the sniffer.
@@ -51,7 +58,9 @@ void sniffer_free(sniffer_t * sniffer);
  */
 
 int sniffer_get_icmpv4_sockfd(sniffer_t * sniffer);
+#endif
 
+#ifdef USE_IPV6
 /**
  * \brief Return the file descriptor related to the ICMPv6 raw socket
  *    managed by the sniffer.
@@ -60,6 +69,7 @@ int sniffer_get_icmpv4_sockfd(sniffer_t * sniffer);
  */
 
 int sniffer_get_icmpv6_sockfd(sniffer_t * sniffer);
+#endif
 
 /**
  * \brief Fetch a packet from the listening socket. The sniffer then

@@ -1,3 +1,6 @@
+#include "use.h"
+#ifdef USE_IPV4
+
 #include "ipv4_pseudo_header.h"
 
 #include <netinet/ip.h>       // ip_hdr
@@ -37,4 +40,6 @@ ERR_BUFFER_WRITE_BYTES:
 ERR_BUFFER_CREATE:
     return NULL;
 }
+
+#endif // USE_IPV4
 

@@ -60,6 +60,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						sniffer.h \
 						socketpool.h \
                         tree.h \
+                        use.h \
                         vector.h
 
 # where to install the headers on the system

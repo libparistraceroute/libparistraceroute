@@ -1,3 +1,4 @@
+#include "use.h"
 #include "config.h"
 
 #include <stdbool.h>       // bool
@@ -151,8 +152,12 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     if (!(loop->network = network_create()))                           goto ERR_NETWORK_CREATE;
     if (!register_efd(loop, network_get_sendq_fd(loop->network)))      goto ERR_EVENTFD_SENDQ;
     if (!register_efd(loop, network_get_recvq_fd(loop->network)))      goto ERR_EVENTFD_RECVQ;
+#ifdef USE_IPV4
     if (!register_efd(loop, network_get_icmpv4_sockfd(loop->network))) goto ERR_EVENTFD_SNIFFER_ICMPV4;
+#endif
+#ifdef USE_IPV6
     if (!register_efd(loop, network_get_icmpv6_sockfd(loop->network))) goto ERR_EVENTFD_SNIFFER_ICMPV6;
+#endif
     if (!register_efd(loop, network_get_timerfd(loop->network)))       goto ERR_EVENTFD_TIMEOUT;
     if (!register_efd(loop, network_get_group_timerfd(loop->network))) goto ERR_EVENTFD_GROUP;
 
@@ -262,8 +267,12 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
     int network_sendq_fd      = network_get_sendq_fd(loop->network);
     int network_recvq_fd      = network_get_recvq_fd(loop->network);
+#ifdef USE_IPV4
     int network_icmpv4_sockfd = network_get_icmpv4_sockfd(loop->network);
+#endif
+#ifdef USE_IPV6
     int network_icmpv6_sockfd = network_get_icmpv6_sockfd(loop->network);
+#endif
     int network_timerfd       = network_get_timerfd(loop->network);
     int network_group_timerfd = network_get_group_timerfd(loop->network);
     ssize_t s;
@@ -306,10 +315,14 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
             } else if (cur_fd == network_group_timerfd) {
                  //printf("pt_loop processing scheduled probes\n");
                 network_process_scheduled_probe(loop->network);
+#ifdef USE_IPV4
             } else if (cur_fd == network_icmpv4_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMP);
+#endif
+#ifdef USE_IPV6
             } else if (cur_fd == network_icmpv6_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMPV6);
+#endif
             } else if (cur_fd == loop->eventfd_algorithm) {
 
                 // There is one common queue shared by every instancied algorithms.

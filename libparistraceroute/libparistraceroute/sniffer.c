@@ -1,3 +1,4 @@
+#include "use.h"
 #include "config.h"
 
 #include <stdlib.h>      // malloc
@@ -9,7 +10,10 @@
 #include <sys/types.h>   // socket, bind
 #include <arpa/inet.h>
 #include <netinet/in.h>  // IPPROTO_ICMP, IPPROTO_ICMPV6
-#include <netinet/ip6.h> // ip6_hdr
+
+#ifdef USE_IPV6
+#  include <netinet/ip6.h> // ip6_hdr
+#endif
 
 #include "sniffer.h"
 
@@ -173,16 +177,24 @@ void sniffer_free(sniffer_t * sniffer)
     }
 }
 
+#ifdef USE_IPV4
 int sniffer_get_icmpv4_sockfd(sniffer_t *sniffer) {
     return sniffer->icmpv4_sockfd;
 }
+#endif
 
+#ifdef USE_IPV6
 int sniffer_get_icmpv6_sockfd(sniffer_t *sniffer) {
     return sniffer->icmpv6_sockfd;
 }
 
 /**
- *
+ * \brief Rebuild the missing parts of an IPv6 header.
+ * \param ip6_header The IPv6 header we want to complete. 
+ * \param msghdr
+ * \param from
+ * \param num_bytes The size in bytes of the IPv6 header
+ * \return true iif successful
  */
 
 static bool rebuild_ipv6_header(
@@ -304,6 +316,8 @@ ERR_RECVMSG:
     return 0;
 }
 
+#endif // USE_IPV6
+
 void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
 {
     uint8_t    recv_bytes[BUFLEN];
@@ -311,12 +325,16 @@ void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
     packet_t * packet;
 
     switch (protocol_id) {
+#ifdef USE_IPV4
         case IPPROTO_ICMP:
             num_bytes = recv(sniffer->icmpv4_sockfd, recv_bytes, BUFLEN, 0);
             break;
+#endif
+#ifdef USE_IPV6
         case IPPROTO_ICMPV6:
             num_bytes = recv_icmpv6(sniffer->icmpv6_sockfd, recv_bytes, BUFLEN, 0);
             break;
+#endif
     }
 
 	if (num_bytes >= 4) {

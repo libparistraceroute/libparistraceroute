@@ -1,3 +1,9 @@
+#include "../use.h"       // USE_BITS
+
+#ifdef USE_IPV4
+
+#include "config.h"
+
 #include <stdbool.h>      // bool
 #include <unistd.h>       // close()
 #include <stddef.h>       // offsetof()
@@ -37,11 +43,14 @@
 #define IPV4_DEFAULT_DST_IP          0 // Must be set by the user (see network.c)
 
 // The following offsets cannot be retrieved with offsetof() so they are hardcoded 
-#define IPV4_OFFSET_VERSION          0
-#define IPV4_OFFSET_IN_BITS_VERSION  0 // IPV4_OFFSET_VERSION * 8 + 0
-#define IPV4_OFFSET_IHL              0
-#define IPV4_OFFSET_IN_BITS_IHL      4 // IPV4_OFFSET_IHL * 8 + 4
+#ifdef USE_BITS
+#    define IPV4_OFFSET_VERSION          0
+#    define IPV4_OFFSET_IN_BITS_VERSION  0 // IPV4_OFFSET_VERSION * 8 + 0
+#    define IPV4_OFFSET_IHL              0
+#    define IPV4_OFFSET_IN_BITS_IHL      4 // IPV4_OFFSET_IHL * 8 + 4
+#endif
 
+#ifdef USE_BITS
 //-----------------------------------------------------------
 // set/get callbacks (accessors to IPv4 string and int4 fields) 
 //-----------------------------------------------------------
@@ -58,10 +67,10 @@
  */
 
 field_t * ipv4_get_version(const uint8_t * ipv4_header) {
-    uint8_t version;
-    return bits_extract(ipv4_header, IPV4_OFFSET_IN_BITS_VERSION, 4, &version) ?
-        I4(IPV4_FIELD_VERSION, version) :
-        NULL;
+    return I4(
+        IPV4_FIELD_VERSION, 
+        byte_extract(ipv4_header[IPV4_OFFSET_VERSION], IPV4_OFFSET_IN_BITS_VERSION, 4, 4)
+    );
 }
 
 /**
@@ -71,9 +80,16 @@ field_t * ipv4_get_version(const uint8_t * ipv4_header) {
  */
 
 bool ipv4_set_version(uint8_t * ipv4_header, const field_t * field) {
+    /*
     uint8_t * byte = ipv4_header + IPV4_OFFSET_VERSION; 
     *byte = (*byte & 0x0f) | (field->value.int4 << 4);
     return true;
+    */
+    return byte_write_bits(
+        ipv4_header + IPV4_OFFSET_VERSION,
+        IPV4_OFFSET_IN_BITS_VERSION,
+        field->value.int4, 4, 4
+    );
 }
 
 /**
@@ -83,10 +99,10 @@ bool ipv4_set_version(uint8_t * ipv4_header, const field_t * field) {
  */
 
 field_t * ipv4_get_ihl(const uint8_t * ipv4_header) {
-    uint8_t ihl;
-    return bits_extract(ipv4_header, IPV4_OFFSET_IN_BITS_IHL, 4, &ihl) ?
-        I4(IPV4_FIELD_VERSION, ihl) :
-        NULL;
+    return I4(
+        IPV4_FIELD_IHL,
+        byte_extract(ipv4_header[IPV4_OFFSET_IHL], IPV4_OFFSET_IN_BITS_IHL, 4, 4)
+    );
 }
 
 /**
@@ -96,10 +112,18 @@ field_t * ipv4_get_ihl(const uint8_t * ipv4_header) {
  */
 
 bool ipv4_set_ihl(uint8_t * ipv4_header, const field_t * field) {
+    /*
     uint8_t * byte = ipv4_header + IPV4_OFFSET_IHL; 
     *byte = (*byte & 0xf0) | field->value.int4;
     return true;
+    */
+    return byte_write_bits(
+        ipv4_header + IPV4_OFFSET_IHL,
+        IPV4_OFFSET_IN_BITS_IHL,
+        field->value.int4, 4, 4
+    );
 }
+#endif
 
 //-----------------------------------------------------------
 // finalize callback
@@ -206,55 +230,59 @@ bool ipv4_write_checksum(uint8_t * ipv4_header, buffer_t * psh) {
 
 static protocol_field_t ipv4_fields[] = {
     {
-        .key      = IPV4_FIELD_VERSION,
-        .type     = TYPE_UINT4,
-        .offset   = IPV4_OFFSET_VERSION,
-// TODO .offset_bits = 0
-        .set      = ipv4_set_version,
-        .get      = ipv4_get_version
+#ifdef USE_BITS
+        .key          = IPV4_FIELD_VERSION,
+        .type         = TYPE_UINT4,
+        .offset       = IPV4_OFFSET_VERSION,
+        .offset_bits  = IPV4_OFFSET_IN_BITS_VERSION,
+        .size_in_bits = 4,
+        .set          = ipv4_set_version,
+        .get          = ipv4_get_version
     }, {
-        .key      = IPV4_FIELD_IHL,
-        .type     = TYPE_UINT4,
-        .offset   = IPV4_OFFSET_IHL,
-// TODO .offset_bits = 4
-        .set      = ipv4_set_ihl,
-        .get      = ipv4_get_ihl
+        .key          = IPV4_FIELD_IHL,
+        .type         = TYPE_UINT4,
+        .offset       = IPV4_OFFSET_IHL,
+        .offset_bits  = IPV4_OFFSET_IN_BITS_IHL,
+        .size_in_bits = 4,
+        .set          = ipv4_set_ihl,
+        .get          = ipv4_get_ihl
     }, {
-        .key      = IPV4_FIELD_TOS,
-        .type     = TYPE_UINT8,
-        .offset   = offsetof(struct iphdr, tos),
+#endif // USE_BITS
+        .key          = IPV4_FIELD_TOS,
+        .type         = TYPE_UINT8,
+        .offset       = offsetof(struct iphdr, tos),
     }, {
-        .key      = IPV4_FIELD_LENGTH,
-        .type     = TYPE_UINT16,
-        .offset   = offsetof(struct iphdr, tot_len),
+        .key          = IPV4_FIELD_LENGTH,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct iphdr, tot_len),
     }, {
-        .key      = IPV4_FIELD_IDENTIFICATION,
-        .type     = TYPE_UINT16,
-        .offset   = offsetof(struct iphdr, id),
+        .key          = IPV4_FIELD_IDENTIFICATION,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct iphdr, id),
     }, {
-        .key      = IPV4_FIELD_FRAGOFF,
-        .type     = TYPE_UINT16,
-        .offset   = offsetof(struct iphdr, frag_off),
+        .key          = IPV4_FIELD_FRAGOFF,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct iphdr, frag_off),
     }, {
-        .key      = IPV4_FIELD_TTL,
-        .type     = TYPE_UINT8,
-        .offset   = offsetof(struct iphdr, ttl),
+        .key          = IPV4_FIELD_TTL,
+        .type         = TYPE_UINT8,
+        .offset       = offsetof(struct iphdr, ttl),
     }, {
-        .key      = IPV4_FIELD_PROTOCOL,
-        .type     = TYPE_UINT8,
-        .offset   = offsetof(struct iphdr, protocol),
+        .key          = IPV4_FIELD_PROTOCOL,
+        .type         = TYPE_UINT8,
+        .offset       = offsetof(struct iphdr, protocol),
     }, {
-        .key      = IPV4_FIELD_CHECKSUM,
-        .type     = TYPE_UINT16,
-        .offset   = offsetof(struct iphdr, check),
+        .key          = IPV4_FIELD_CHECKSUM,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct iphdr, check),
     }, {
-        .key      = IPV4_FIELD_SRC_IP,
-        .type     = TYPE_IPV4,
-        .offset   = offsetof(struct iphdr, saddr),
+        .key          = IPV4_FIELD_SRC_IP,
+        .type         = TYPE_IPV4,
+        .offset       = offsetof(struct iphdr, saddr),
     }, {
-        .key      = IPV4_FIELD_DST_IP,
-        .type     = TYPE_IPV4,
-        .offset   = offsetof(struct iphdr, daddr),
+        .key          = IPV4_FIELD_DST_IP,
+        .type         = TYPE_IPV4,
+        .offset       = offsetof(struct iphdr, daddr),
     },
     END_PROTOCOL_FIELDS
     // options if header length > 5 (not yet implemented)
@@ -317,3 +345,6 @@ static protocol_t ipv4 = {
 };
 
 PROTOCOL_REGISTER(ipv4);
+
+#endif // USE_IPV4
+

@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "use.h"    // USE_BITS
 #include "field.h"
 
 /**
@@ -17,18 +18,20 @@
  */
 
 typedef struct {
-    const char  *   key;                                           /** Pointer to an identifying key */
-    fieldtype_t     type;                                          /** Enum to set the type of data stored in the field */
-    size_t          offset;                                        /** Offset from start of header data */
-    // TODO add offset_bits (only used for non aligned fields such as int4). Set to offset * 8 most of time.
+    const char  * key;          /**< Pointer to an identifying key */
+    fieldtype_t   type;         /**< Enum to set the type of data stored in the field */
+    size_t        offset;       /**< Offset from start of header data */
+#ifdef USE_BITS
+    size_t        offset_bits;  /**< Additional offset in bits for non-aligned field (set to 0 otherwise) */
+    size_t        size_in_bits; /**< Size in bits (only useful for non-aligned fields and fields not having a size equal to 8 * n bits */
+#endif
 
-    // These callbacks are required of the value carried by a field does not
-    // exaclty match with the corresponding value in the header. For example
-    // if an IPv4 address is exposed as a char * value, these callbacks
-    // perform the translation char * <-> uint32_t.
+    // The following callbacks allows to perform specific treatment when we translate
+    // field content in packet content and vice versa. Most of time there are set
+    // to NULL and we call default functions which manage endianness and so on. 
 
-    field_t     * (*get)(const uint8_t * header);                  /** Allocate a field_t instance corresponding to this field */
-    bool          (*set)(uint8_t * header, const field_t * field); /** Update a header according to a field. Return true iif successful */
+    field_t     * (*get)(const uint8_t * header);                  /**< Allocate a field_t instance corresponding to this field */
+    bool          (*set)(uint8_t * header, const field_t * field); /**< Update a header according to a field. Return true iif successful */
 } protocol_field_t;
 
 /**

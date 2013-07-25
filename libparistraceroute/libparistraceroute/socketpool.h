@@ -1,11 +1,17 @@
+#include "use.h"
+
 #ifndef SOCKETPOOL_H
 #define SOCKETPOOl_H
 
 #include "packet.h"
 
 typedef struct {
+#ifdef USE_IPV4
     int ipv4_sockfd; /**< File descriptor of the IPv4 raw socket */
+#endif
+#ifdef USE_IPV6
     int ipv6_sockfd; /**< File descriptor of the IPv6 raw socket */
+#endif
 } socketpool_t;
 
 /**

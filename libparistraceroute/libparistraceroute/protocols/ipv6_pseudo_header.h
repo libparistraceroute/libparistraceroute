@@ -1,3 +1,6 @@
+#include "use.h"
+
+#ifdef USE_IPV6
 #ifndef IPV6_PSEUDO_HEADER_H
 #define IPV6_PSEUDO_HEADER_H
 
@@ -26,5 +29,5 @@ typedef struct {
 
 buffer_t * ipv6_pseudo_header_create(const uint8_t * ipv6_segment);
 
-#endif
-
+#endif // IPV6_PSEUDO_HEADER_H
+#endif // USE_IPV6

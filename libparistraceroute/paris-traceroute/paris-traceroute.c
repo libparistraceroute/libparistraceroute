@@ -437,7 +437,7 @@ int main(int argc, char ** argv)
         packet_get_size(probe->packet)
     );
 
-    probe_dump(probe);
+    if (is_debug) probe_dump(probe);
 
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {

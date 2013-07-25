@@ -1,3 +1,7 @@
+#include "../use.h"       // USE_BITS
+
+#ifdef USE_IPV6
+
 #include "config.h"
 
 #include <stddef.h>       // offsetof()
@@ -250,3 +254,6 @@ static protocol_t ipv6 = {
 };
 
 PROTOCOL_REGISTER(ipv6);
+
+#endif // USE_IPV6
+

@@ -63,7 +63,6 @@ void options_traceroute_init(traceroute_options_t * traceroute_options, address_
     traceroute_options->max_undiscovered = options_traceroute_get_max_undiscovered();
     traceroute_options->dst_addr         = address;
     traceroute_options->do_resolv        = options_traceroute_get_do_resolv();
-
 }
 
 inline traceroute_options_t traceroute_get_default_options() {
@@ -77,7 +76,6 @@ inline traceroute_options_t traceroute_get_default_options() {
     };
     return traceroute_options;
 };
-
 
 //-----------------------------------------------------------------
 // Traceroute algorithm's data

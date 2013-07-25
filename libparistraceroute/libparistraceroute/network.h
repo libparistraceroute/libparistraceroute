@@ -1,3 +1,5 @@
+#include "use.h"
+
 #ifndef NETWORK_H
 #define NETWORK_H
 
@@ -111,8 +113,10 @@ typedef struct network_s {
     int             timerfd;           /**< Used for probe timeouts. Linux specific. Activated when a probe timeout occurs */
     uint16_t        last_tag;          /**< Last probe ID used */
     double          timeout;           /**< The timeout value used by this network (in seconds) */
+#ifdef USE_SCHEDULING
     int             scheduled_timerfd; /**< Used for probe delays. Activated when a probe delay occurs */
     probe_group_t * scheduled_probes;  /**< Scheduled probes */
+#endif
     bool            is_verbose;        /**< Print debug messages*/
 } network_t;
 
@@ -275,6 +279,8 @@ bool network_drop_expired_flying_probe(network_t * network);
 
 bool network_send_probe(network_t * network, probe_t * probe);
 
+#ifdef USE_SCHEDULING
+
 /**
  * \brief handle the scheduled probes when network->scheduled_timerfd is activated
  * \param network The network layer.
@@ -299,6 +305,8 @@ double network_get_next_scheduled_probe_delay(const network_t * network);
 
 bool network_update_scheduled_timer(network_t * network, double delay);
 
+#endif // USE_SCHEDULING
+
 /**
  * \brief Refresh timerfd to a new  delay value
  * \param timerfd the timer file descriptor to update
@@ -309,6 +317,7 @@ bool network_update_scheduled_timer(network_t * network, double delay);
 // TODO move this outside network
 bool update_timer(int timerfd, double delay);
 
+#ifdef USE_IPV4
 /**
  * \brief Retrieve the socket file descriptor related to the ICMPv4
  *    raw socket managed by network->sniffer.
@@ -317,7 +326,9 @@ bool update_timer(int timerfd, double delay);
  */
 
 int network_get_icmpv4_sockfd(network_t * network);
+#endif
 
+#ifdef USE_IPV6
 /**
  * \brief Retrieve the socket file descriptor related to the ICMPv6
  *    raw socket managed by network->sniffer.
@@ -326,5 +337,6 @@ int network_get_icmpv4_sockfd(network_t * network);
  */
 
 int network_get_icmpv6_sockfd(network_t * network);
+#endif
 
 #endif

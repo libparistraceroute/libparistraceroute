@@ -1,3 +1,6 @@
+#include "use.h"
+#ifdef USE_IPV4
+
 #ifndef IPV4_PSEUDO_HEADER_H
 #define IPV4_PSEUDO_HEADER_H
 
@@ -25,4 +28,5 @@ typedef struct {
 buffer_t * ipv4_pseudo_header_create(const uint8_t * ipv4_segment);
 
 #endif
+#endif // USE_IPV4
 

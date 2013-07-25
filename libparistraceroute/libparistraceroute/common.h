@@ -32,7 +32,7 @@
  * \return The min of x and y
  */
 
-#define MIN(x, y) (x < y) ? x : y
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 /**
  * \brief Macro returning the maximal value of two elements
@@ -41,7 +41,7 @@
  * \return The max of x and y
  */
 
-#define MAX(x, y) (x > y) ? x : y
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 /**
  * \return The current timestamp (in seconds)

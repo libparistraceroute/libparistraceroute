@@ -1,3 +1,5 @@
+#include "use.h"
+
 #ifndef BITS_H
 #define BITS_H
 
@@ -18,6 +20,44 @@
  */
 
 uint8_t byte_make_mask(size_t offset_in_bits, size_t num_bits);
+
+/**
+ * \brief Extract 'num_bits' bits from a uint8_t starting from its
+ *    'offset_in_bits'-th bit and but the result in an output byte
+ *    with the an offset of 'offset_in_bits_out' bits.
+ * \param byte The queried byte.
+ * \param offset_in_bits The first extracted bit of 'byte'.
+ * \param num_bits The number of extracted bits.
+ * \param offset_in_bits_out The starting bit where we write in the
+ *    returned value.
+ * \return The corresponding value.
+ */
+
+uint8_t byte_extract(uint8_t byte, size_t offset_in_bits, size_t num_bits, size_t offset_in_bits_out);
+
+/**
+ * \brief Write a sequence of bits in an output byte according
+ *    to a given input byte.
+ * \param byte_out The address of the output byte.
+ * \param offset_in_bits_out The offset of the first bit we
+ *    write in byte_out.
+ * \param byte_in The byte we read to update byte_out.
+ * \param offset_in_bits_out The offset of the first bit we
+ *    read in byte_in.
+ * \param size_in_bits The number of bits copied from
+ *    byte_in to byte_out. This value must satisfy:
+ *      - 0 <= size_in_bits <= 8
+ *      - offset_in_bits_out + size_in_bits <= 8
+ * \return true iif successful
+ */
+
+bool byte_write_bits(
+    uint8_t * byte_out,
+    size_t    offset_in_bits_out,
+    uint8_t   byte_in,
+    size_t    offset_in_bits_in,
+    size_t    size_in_bits
+);
 
 /**
  * \brief Write a byte in the standard output (binary format).
@@ -57,6 +97,28 @@ uint8_t * bits_extract(
     size_t          offset_in_bits,
     size_t          num_bits,
     uint8_t       * dest
+);
+
+/**
+ * \brief Write a sequence of bits according to a given sequence
+ *    of input bits.
+ * \param out The address of the output sequence of bits 
+ * \param offset_in_bits_out The offset of the first bit we
+ *    write in out.
+ * \param in The sequence of bits we read to update out.
+ * \param offset_in_bits_out The offset of the first bit we
+ *    read in the input bits.
+ * \param size_in_bits The number of bits copied from
+ *    in to out.
+ * \return true iif successful
+ */
+
+bool bits_write(
+    uint8_t       * out,
+    const size_t    offset_in_bits_out,
+    const uint8_t * in,
+    const size_t    offset_in_bits_in,
+    size_t          length_in_bits
 );
 
 /**

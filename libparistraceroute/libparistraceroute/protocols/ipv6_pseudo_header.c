@@ -1,3 +1,6 @@
+#include "use.h"
+#ifdef USE_IPV6
+
 #include "ipv6_pseudo_header.h"
 
 #include <string.h>           // memcpy
@@ -41,3 +44,4 @@ ERR_BUFFER_CREATE:
     return NULL;
 }
 
+#endif // USE_IPV6
