@@ -1,3 +1,5 @@
+#include "use.h"
+
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -7,8 +9,14 @@
 #include <netinet/in.h>       // IPPROTO_UDP = 17
 
 #include "../protocol.h"      // csum
-#include "ipv4_pseudo_header.h"
-#include "ipv6_pseudo_header.h"
+
+#ifdef USE_IPV4
+#    include "ipv4_pseudo_header.h"
+#endif
+
+#ifdef USE_IPV6
+#    include "ipv6_pseudo_header.h"
+#endif
 
 #define UDP_DEFAULT_SRC_PORT 2828
 #define UDP_DEFAULT_DST_PORT 2828
@@ -23,15 +31,15 @@
 
 // BSD/Linux abstraction
 #ifdef __FAVOR_BSD
-#   define SRC_PORT uh_sport
-#   define DST_PORT uh_dport
-#   define LENGTH   uh_ulen
-#   define CHECKSUM uh_sum
+#    define SRC_PORT uh_sport
+#    define DST_PORT uh_dport
+#    define LENGTH   uh_ulen
+#    define CHECKSUM uh_sum
 #else
-#   define SRC_PORT source 
-#   define DST_PORT dest 
-#   define LENGTH   len
-#   define CHECKSUM check 
+#    define SRC_PORT source 
+#    define DST_PORT dest 
+#    define LENGTH   len
+#    define CHECKSUM check 
 #endif
 
 /**
@@ -150,10 +158,14 @@ buffer_t * udp_create_pseudo_header(const uint8_t * ip_segment)
     // TODO we should use instanceof
     switch (ip_segment[0] >> 4) {
         case 4:
+#ifdef USE_IPV4
             buffer = ipv4_pseudo_header_create(ip_segment);
+#endif
             break;
         case 6:
+#ifdef USE_IPV6
             buffer = ipv6_pseudo_header_create(ip_segment);
+#endif
             break;
         default:
             break;

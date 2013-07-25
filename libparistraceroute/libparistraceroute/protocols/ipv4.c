@@ -14,7 +14,7 @@
 
 #include "../field.h"     // field_t
 #include "../protocol.h"  // csum
-#include "../bits.h"
+#include "../bits.h"      // byte_* // TODO to remove
 
 // Field names
 #define IPV4_FIELD_VERSION           "version" 
@@ -67,9 +67,11 @@
  */
 
 field_t * ipv4_get_version(const uint8_t * ipv4_header) {
-    return I4(
+    return BITS(
         IPV4_FIELD_VERSION, 
-        byte_extract(ipv4_header[IPV4_OFFSET_VERSION], IPV4_OFFSET_IN_BITS_VERSION, 4, 4)
+        ipv4_header + IPV4_OFFSET_VERSION,
+        IPV4_OFFSET_IN_BITS_VERSION,
+        4
     );
 }
 
@@ -80,15 +82,10 @@ field_t * ipv4_get_version(const uint8_t * ipv4_header) {
  */
 
 bool ipv4_set_version(uint8_t * ipv4_header, const field_t * field) {
-    /*
-    uint8_t * byte = ipv4_header + IPV4_OFFSET_VERSION; 
-    *byte = (*byte & 0x0f) | (field->value.int4 << 4);
-    return true;
-    */
     return byte_write_bits(
         ipv4_header + IPV4_OFFSET_VERSION,
         IPV4_OFFSET_IN_BITS_VERSION,
-        field->value.int4, 4, 4
+        field->value.bits, 4, 4
     );
 }
 
@@ -99,9 +96,11 @@ bool ipv4_set_version(uint8_t * ipv4_header, const field_t * field) {
  */
 
 field_t * ipv4_get_ihl(const uint8_t * ipv4_header) {
-    return I4(
+    return BITS(
         IPV4_FIELD_IHL,
-        byte_extract(ipv4_header[IPV4_OFFSET_IHL], IPV4_OFFSET_IN_BITS_IHL, 4, 4)
+        ipv4_header + IPV4_OFFSET_IHL,
+        IPV4_OFFSET_IN_BITS_IHL,
+        4
     );
 }
 
@@ -112,15 +111,10 @@ field_t * ipv4_get_ihl(const uint8_t * ipv4_header) {
  */
 
 bool ipv4_set_ihl(uint8_t * ipv4_header, const field_t * field) {
-    /*
-    uint8_t * byte = ipv4_header + IPV4_OFFSET_IHL; 
-    *byte = (*byte & 0xf0) | field->value.int4;
-    return true;
-    */
     return byte_write_bits(
         ipv4_header + IPV4_OFFSET_IHL,
         IPV4_OFFSET_IN_BITS_IHL,
-        field->value.int4, 4, 4
+        field->value.bits, 4, 4
     );
 }
 #endif
@@ -232,7 +226,7 @@ static protocol_field_t ipv4_fields[] = {
     {
 #ifdef USE_BITS
         .key          = IPV4_FIELD_VERSION,
-        .type         = TYPE_UINT4,
+        .type         = TYPE_BITS,
         .offset       = IPV4_OFFSET_VERSION,
         .offset_bits  = IPV4_OFFSET_IN_BITS_VERSION,
         .size_in_bits = 4,
@@ -240,7 +234,7 @@ static protocol_field_t ipv4_fields[] = {
         .get          = ipv4_get_version
     }, {
         .key          = IPV4_FIELD_IHL,
-        .type         = TYPE_UINT4,
+        .type         = TYPE_BITS,
         .offset       = IPV4_OFFSET_IHL,
         .offset_bits  = IPV4_OFFSET_IN_BITS_IHL,
         .size_in_bits = 4,

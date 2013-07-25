@@ -6,13 +6,14 @@
 #include <arpa/inet.h>
 
 #include "field.h"
+#include "bits.h"
 #include "generator.h"
 
 field_t * field_create(fieldtype_t type, const char * key, const void * value) {
     field_t * field;
 
     if (!(field = malloc(sizeof(field_t)))) goto ERR_MALLOC;
-    field->key = key;
+    field->key  = key;
     field->type = type;
 
     switch (type) {
@@ -80,9 +81,27 @@ field_t * field_create_ipv6(const char * key, ipv6_t ipv6) {
     return field_create(TYPE_IPV6, key, &ipv6);
 }
 
-field_t * field_create_uint4(const char * key, uint8_t value) {
-    return field_create(TYPE_UINT4, key, &value);
+#ifdef USE_BITS
+// TODO factorize with field_create
+field_t * field_create_bits(const char * key, void * value, size_t offset_in_bits_in, size_t size_in_bits) {
+    field_t * field;
+    size_t    offset_in_bits_out;
+
+    if (!(field = malloc(sizeof(field_t)))) goto ERR_MALLOC;
+    field->key  = key;
+    field->type = TYPE_BITS;
+    memset(&field->value.bits, 0, sizeof(field->value.bits));
+
+    offset_in_bits_out = 8 * sizeof(field->value.bits) - size_in_bits;
+    if (!bits_write(&field->value.bits, offset_in_bits_out, value, offset_in_bits_in, size_in_bits)) goto ERR_BITS_WRITE_BITS;
+
+    return field;
+
+ERR_BITS_WRITE_BITS:
+ERR_MALLOC:
+    return NULL;
 }
+#endif
 
 field_t * field_create_uint8(const char * key, uint8_t value) {
     return field_create(TYPE_UINT8, key, &value);
@@ -142,22 +161,23 @@ field_t * field_create_from_network(fieldtype_t type, const char * key, void * v
             return field_create_ipv4(key, *(ipv4_t *) value);
         case TYPE_IPV6:
             return field_create_ipv6(key, *(ipv6_t *) value);
-        case TYPE_UINT4:
-            return field_create_uint4(key, *(uint8_t *) value);
         case TYPE_UINT8:
             return field_create_uint8(key, *(uint8_t *) value);
         case TYPE_UINT16:
             return field_create_uint16(key, ntohs(*(uint16_t *) value));
         case TYPE_UINT32:
             return field_create_uint32(key, ntohl(*(uint32_t *) value));
-        case TYPE_UINT64:
-        case TYPE_UINT128:
-        case TYPE_UINTMAX:
-            perror("field_create_from_network: Not yet implemented");
-            return NULL;
         case TYPE_STRING:
             return field_create_string(key, (const char *) value);
+        case TYPE_UINTMAX:
+        case TYPE_UINT128:
+        case TYPE_BITS:
         default:
+            fprintf(
+                stderr,
+                "field_create_from_network: type not supported (%s)\n",
+                field_type_to_string(type)
+            );
             break;
     }
     return NULL;
@@ -186,7 +206,7 @@ size_t field_get_type_size(fieldtype_t type) {
             return sizeof(ipv4_t);
         case TYPE_IPV6:
             return sizeof(ipv6_t);
-        case TYPE_UINT4:
+        case TYPE_BITS:
             return sizeof(uint8_t);
         case TYPE_UINT8:
             return sizeof(uint8_t);
@@ -227,7 +247,7 @@ const char * field_type_to_string(fieldtype_t type) {
     switch (type) {
         case TYPE_IPV4:      return "ipv4"; 
         case TYPE_IPV6:      return "ipv6"; 
-        case TYPE_UINT4:     return "uint4";
+        case TYPE_BITS:      return "bits";
         case TYPE_UINT8:     return "uint8";
         case TYPE_UINT16:    return "uint16";
         case TYPE_UINT32:    return "uint32";
@@ -259,8 +279,8 @@ void field_dump(const field_t * field)
                     ntohl(((const uint32_t *) &field->value.ipv6)[3])
                 );
                 break;
-            case TYPE_UINT4:
-                printf("%-10hhu\t(0x%1x)", field->value.int4, field->value.int4);
+            case TYPE_BITS:
+                printf("%-10hhu\t(0x%1x)", field->value.bits, field->value.bits);
                 break;
             case TYPE_UINT8:
                 printf("%-10hhu\t(0x%02x)", field->value.int8, field->value.int8);

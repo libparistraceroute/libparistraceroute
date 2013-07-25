@@ -1,3 +1,5 @@
+#include "use.h"
+
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
@@ -8,27 +10,40 @@
 // ip*_t
 //---------------------------------------------------------------------------
 
+#ifdef USE_IPV4
 typedef struct in_addr  ipv4_t;
+#endif
+
+#ifdef USE_IPV6
 typedef struct in6_addr ipv6_t;
+#endif
 
 typedef union {
+#ifdef USE_IPV4
     ipv4_t ipv4;
+#endif
+#ifdef USE_IPV6
     ipv6_t ipv6;
+#endif
 } ip_t;
 
+#ifdef USE_IPV4
 /**
  * \brief Print an IPv4 address
  * \param ipv4 The address to print
  */
 
 void ipv4_dump(const ipv4_t * ipv4);
+#endif
 
+#ifdef USE_IPV6
 /**
  * \brief Print an IPv6 address
  * \param ipv6 The address to print
  */
 
 void ipv6_dump(const ipv6_t * ipv6);
+#endif
 
 //---------------------------------------------------------------------------
 // address_t

@@ -13,8 +13,6 @@
 #include "address.h" // address_t, ipv4_t, ipv6_t
 
 struct generator_s;
-// TODO allow to define bit level fields (for instance for flags)
-// it could be use to manage properly i4 fields
 
 typedef union{
 	uint32_t	d32[4];
@@ -27,18 +25,24 @@ typedef union{
  */
 
 typedef enum {
-    TYPE_IPV4,              /**< IPv4 address    */
-    TYPE_IPV6,              /**< IPv6 address    */
-    TYPE_UINT4,             /**< 4 bit integer   */
-    TYPE_UINT8,             /**< 8 bit integer   */
-    TYPE_UINT16,            /**< 16 bit integer  */
-    TYPE_UINT32,            /**< 32 bit integer  */
-    TYPE_UINT64,            /**< 64 bit integer  */
-    TYPE_UINT128,           /**< 128 bit integer */
-    TYPE_UINTMAX,           /**< max integer     */
-    TYPE_DOUBLE,            /**< double          */
-    TYPE_STRING,            /**< string          */
-    TYPE_GENERATOR          /**< generator       */
+#ifdef USE_IPV4
+    TYPE_IPV4,              /**< IPv4 address      */
+#endif
+#ifdef USE_IPV6
+    TYPE_IPV6,              /**< IPv6 address      */
+#endif
+#ifdef USE_BITS
+    TYPE_BITS,              /**< n < 8 bits integer */
+#endif
+    TYPE_UINT8,             /**< 8 bits integer     */
+    TYPE_UINT16,            /**< 16 bits integer    */
+    TYPE_UINT32,            /**< 32 bits integer    */
+    TYPE_UINT64,            /**< 64 bits integer    */
+    TYPE_UINT128,           /**< 128 bits integer   */
+    TYPE_UINTMAX,           /**< max integer        */
+    TYPE_DOUBLE,            /**< double             */
+    TYPE_STRING,            /**< string             */
+    TYPE_GENERATOR          /**< generator          */
 } fieldtype_t;
 
 /**
@@ -57,9 +61,16 @@ const char * field_type_to_string(fieldtype_t type);
 
 typedef union {
     void                * value;     /**< Pointer to raw data                */
+#ifdef USE_IPV4
     ipv4_t                ipv4;      /**< Value of data as a IPv4 address    */
+#endif
+#ifdef USE_IPV6
     ipv6_t                ipv6;      /**< Value of data as a IPv6 address    */
-    uint8_t               int4:4;    /**< Value of data as a   4 bit integer */
+#endif
+#ifdef USE_BITS
+    // TODO test with uint128_t to handle bigger bit-level fields
+    uint8_t               bits;      /**< Value of data as a n<8 bit integer */
+#endif
     uint8_t               int8;      /**< Value of data as a   8 bit integer */
     uint16_t              int16;     /**< Value of data as a  16 bit integer */
     uint32_t              int32;     /**< Value of data as a  32 bit integer */
@@ -95,6 +106,7 @@ typedef struct {
 
 field_t * field_create_address(const char * key, const address_t * address);
 
+#ifdef USE_IPV4
 /**
  * \brief Create a field structure to hold an IPv4 address. 
  * \param key The name which identify the field to create.
@@ -103,7 +115,9 @@ field_t * field_create_address(const char * key, const address_t * address);
  */
 
 field_t * field_create_ipv4(const char * key, ipv4_t ipv4);
+#endif
 
+#ifdef USE_IPV6
 /**
  * \brief Create a field structure to hold an IPv6 address. 
  * \param key The name which identify the field to create.
@@ -112,15 +126,19 @@ field_t * field_create_ipv4(const char * key, ipv4_t ipv4);
  */
 
 field_t * field_create_ipv6(const char * key, ipv6_t ipv6);
+#endif
 
+#ifdef USE_BITS
 /**
- * \brief Create a field structure to hold an 4 bit integer value
- * \param key The name which identify the field to create
- * \param value Value to store in the field
- * \return Structure containing the newly created field
+ * \brief Create a field structure to hold an n<8 bit integer value.
+ * \param key The name which identify the field to create.
+ * \param value Value to store in the field.
+ * \param size_in_bits
+ * \return Structure containing the newly created field.
  */
 
-field_t * field_create_uint4(const char * key, uint8_t value);
+field_t * field_create_bits(const char * key, void * value, size_t offset_in_bits, size_t size_in_bits);
+#endif
 
 /**
  * \brief Create a field structure to hold an 8 bit integer value
@@ -237,6 +255,7 @@ void field_free(field_t * field);
 
 field_t * field_dup(const field_t * field);
 
+#ifdef USE_IPV4
 /**
  * \brief Macro shorthand for field_create_ipv4
  * \param x Pointer to a char * key to identify the field
@@ -244,8 +263,10 @@ field_t * field_dup(const field_t * field);
  * \return Structure containing the newly created field
  */
 
-#define IPV4(x, y)  field_create_ipv4(x, (ipv4_t) y)
+#    define IPV4(x, y)  field_create_ipv4(x, (ipv4_t) y)
+#endif
 
+#ifdef USE_IPV6
 /**
  * \brief Macro shorthand for field_create_ipv6
  * \param x Pointer to a char * key to identify the field
@@ -253,7 +274,8 @@ field_t * field_dup(const field_t * field);
  * \return Structure containing the newly created field
  */
 
-#define IPV6(x, y)  field_create_ipv6(x, (ipv6_t) y)
+#    define IPV6(x, y)  field_create_ipv6(x, (ipv6_t) y)
+#endif
 
 /**
  * \brief Macro shorthand for field_create_address
@@ -264,14 +286,9 @@ field_t * field_dup(const field_t * field);
 
 #define ADDRESS(x, y)  field_create_address(x, y)
 
-/**
- * \brief Macro shorthand for field_create_uint4
- * \param x Pointer to a char * key to identify the field
- * \param y Value to store in the field
- * \return Structure containing the newly created field
- */
-
-#define I4(x, y)  field_create_uint4(x, (uint8_t) y)
+#ifdef USE_BITS
+#    define BITS(x, y, o, s)  field_create_bits(x, (const void *) y, o, s)
+#endif
 
 /**
  * \brief Macro shorthand for field_create_uint8
@@ -345,20 +362,22 @@ field_t * field_dup(const field_t * field);
 
 #define STR(x, y) field_create_string(x, y)
 
-
 /**
  * \brief Macro shorthand for field_create_generator
  * \param x Pointer to a char * key to identify the field
  * \param y Pointer to the generator to store in the field
  * \return Structure containing the newly created field
  */
+
 #define GENERATOR(x, y) field_create_generator(x, y)
 
 /**
  * \brief Return the size (in bytes) related to a field type
  * \param type A field type
- * \return 0 if type is equal to TYPE_UINT4 or TYPE_STRING,
- *  the size related to the field type otherwise.
+ * \return
+ *    1               if type == TYPE_UINT4
+ *    sizeof(void * ) if type == TYPE_STRING or TYPE_GENERATOR
+ *    the size of the field value in bytes otherwise 
  */
 
 size_t field_get_type_size(fieldtype_t type);
@@ -366,8 +385,7 @@ size_t field_get_type_size(fieldtype_t type);
 /**
  * \brief Return the size (in bytes) related to a field
  * \param field A field instance
- * \return 0 if the field type is equal to TYPE_UINT4 or TYPE_STRING
- *         The size of the value that can be stored in this field
+ * \return See field_get_type_size 
  */
 
 size_t field_get_size(const field_t * field);

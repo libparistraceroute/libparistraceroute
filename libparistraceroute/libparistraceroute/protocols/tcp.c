@@ -1,3 +1,5 @@
+#include "use.h"
+
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -10,8 +12,13 @@
 #include "../protocol.h"      // csum
 #include "../bits.h"
 
-#include "ipv4_pseudo_header.h"
-#include "ipv6_pseudo_header.h"
+#ifdef USE_IPV4
+#    include "ipv4_pseudo_header.h"
+#endif
+
+#ifdef USE_IPV6
+#    include "ipv6_pseudo_header.h"
+#endif
 
 // Default values
 #define TCP_DEFAULT_SRC_PORT           2222 
@@ -59,41 +66,40 @@
 
 // BSD/Linux abstraction
 #ifdef __FAVOR_BSD
-#   define SRC_PORT    th_sport
-#   define DST_PORT    th_dport
-#   define SEQ_NUM     th_seq
-#   define ACK_NUM     th_ack
-#   define DATA_OFFSET th_off
-#   define WINDOW_SIZE th_win
-#   define CHECKSUM    th_sum
-#   define URGENT_PTR  th_urp
+#    define SRC_PORT    th_sport
+#    define DST_PORT    th_dport
+#    define SEQ_NUM     th_seq
+#    define ACK_NUM     th_ack
+#    define DATA_OFFSET th_off
+#    define WINDOW_SIZE th_win
+#    define CHECKSUM    th_sum
+#    define URGENT_PTR  th_urp
 #else
-#   define SRC_PORT    source
-#   define DST_PORT    dest
-#   define SEQ_NUM     seq
-#   define ACK_NUM     ack_seq
-#   define DATA_OFFSET doff
-#   define WINDOW_SIZE window
-#   define CHECKSUM    check
-#   define URGENT_PTR  urg_ptr 
+#    define SRC_PORT    source
+#    define DST_PORT    dest
+#    define SEQ_NUM     seq
+#    define ACK_NUM     ack_seq
+#    define DATA_OFFSET doff
+#    define WINDOW_SIZE window
+#    define CHECKSUM    check
+#    define URGENT_PTR  urg_ptr 
 #endif
 
 field_t * tcp_get_data_offset(const uint8_t * tcp_header) {
-    uint8_t data_offset;
-    return bits_extract(
+    return BITS(
+        TCP_FIELD_DATA_OFFSET, 
         tcp_header + TCP_OFFSET_DATA_OFFSET,
         TCP_OFFSET_IN_BITS_DATA_OFFSET,
-        4,
-        &data_offset
-    ) ?
-        I4(TCP_FIELD_DATA_OFFSET, data_offset) :
-        NULL;
+        4
+    );
 }
 
 bool tcp_set_data_offset(uint8_t * tcp_header, const field_t * field) {
-    uint8_t * byte = tcp_header + TCP_OFFSET_DATA_OFFSET; 
-    *byte = (*byte & 0x0f) | (field->value.int4 << 4);
-    return true;
+    return byte_write_bits(
+        tcp_header + TCP_OFFSET_DATA_OFFSET,
+        TCP_OFFSET_IN_BITS_DATA_OFFSET,
+        field->value.bits, 4, 4
+    );
 }
 
 /**
@@ -102,76 +108,77 @@ bool tcp_set_data_offset(uint8_t * tcp_header, const field_t * field) {
 
 static protocol_field_t tcp_fields[] = {
     {
-        .key         = TCP_FIELD_SRC_PORT,
-        .type        = TYPE_UINT16,
-        .offset      = offsetof(struct tcphdr, SRC_PORT),
+        .key          = TCP_FIELD_SRC_PORT,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct tcphdr, SRC_PORT),
     }, {
-        .key         = TCP_FIELD_DST_PORT,
-        .type        = TYPE_UINT16,
-        .offset      = offsetof(struct tcphdr, DST_PORT),
+        .key          = TCP_FIELD_DST_PORT,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct tcphdr, DST_PORT),
     }, {
-        .key         = TCP_FIELD_SEQ_NUM,
-        .type        = TYPE_UINT32,
-        .offset      = offsetof(struct tcphdr, SEQ_NUM),
+        .key          = TCP_FIELD_SEQ_NUM,
+        .type         = TYPE_UINT32,
+        .offset       = offsetof(struct tcphdr, SEQ_NUM),
     }, {
-        .key         = TCP_FIELD_ACK_NUM,
-        .type        = TYPE_UINT32,
-        .offset      = offsetof(struct tcphdr, ACK_NUM),
+        .key          = TCP_FIELD_ACK_NUM,
+        .type         = TYPE_UINT32,
+        .offset       = offsetof(struct tcphdr, ACK_NUM),
     }, {
-        .key         = TCP_FIELD_DATA_OFFSET,
-        .type        = TYPE_UINT4,
-        .offset      = TCP_OFFSET_DATA_OFFSET,
-// TODO .offset_bits = TCP_OFFSET_IN_BITS_DATA_OFFSET,
-        .set         = tcp_set_data_offset,
-        .get         = tcp_get_data_offset,
+        .key          = TCP_FIELD_DATA_OFFSET,
+        .type         = TYPE_BITS,
+        .size_in_bits  = 4,
+        .offset       = TCP_OFFSET_DATA_OFFSET,
+        .offset_bits  = TCP_OFFSET_IN_BITS_DATA_OFFSET,
+        .set          = tcp_set_data_offset,
+        .get          = tcp_get_data_offset,
 /*
     }, {
-        .key         = TCP_FIELD_RESERVED,
+        .key          = TCP_FIELD_RESERVED,
         // 3 bits
-        .offset      = offsetof(struct tcphdr, res1),
+        .offset       = offsetof(struct tcphdr, res1),
     }, {
-        .key         = TCP_FIELD_URG,
+        .key          = TCP_FIELD_URG,
         // 1 bits
-        .offset      = TCP_OFFSET_MASK,
-        .offset_bits = TCP_OFFSET_IN_BITS_URG,
+        .offset       = TCP_OFFSET_MASK,
+        .offset_bits  = TCP_OFFSET_IN_BITS_URG,
     }, {
-        .key         = TCP_FIELD_ACK,
+        .key          = TCP_FIELD_ACK,
         // 1 bits
-        .offset      = TCP_OFFSET_MASK, 
-        .offset_bits = TCP_OFFSET_IN_BITS_ACK,
+        .offset       = TCP_OFFSET_MASK, 
+        .offset_bits  = TCP_OFFSET_IN_BITS_ACK,
     }, {
-        .key         = TCP_FIELD_PSH,
+        .key          = TCP_FIELD_PSH,
         // 1 bits
-        .offset      = TCP_OFFSET_MASK,
-        .offset_bits = TCP_OFFSET_IN_BITS_PSH,
+        .offset       = TCP_OFFSET_MASK,
+        .offset_bits  = TCP_OFFSET_IN_BITS_PSH,
     }, {
-        .key         = TCP_FIELD_RST,
+        .key          = TCP_FIELD_RST,
         // 1 bits
-        .offset      = TCP_OFFSET_MASK, 
-        .offset_bits = TCP_OFFSET_IN_BITS_RST,
+        .offset       = TCP_OFFSET_MASK, 
+        .offset_bits  = TCP_OFFSET_IN_BITS_RST,
     }, {
-        .key         = TCP_FIELD_SYN,
+        .key          = TCP_FIELD_SYN,
         // 1 bits
-        .offset      = TCP_OFFSET_MASK,
-        .offset_bits = TCP_OFFSET_IN_BITS_SYN,
+        .offset       = TCP_OFFSET_MASK,
+        .offset_bits  = TCP_OFFSET_IN_BITS_SYN,
     }, {
-        .key         = TCP_FIELD_FIN,
+        .key          = TCP_FIELD_FIN,
         // 1 bits
-        .offset      = TCP_OFFSET_MASK, 
-        .offset_bits = TCP_OFFSET_IN_BITS_FIN,
+        .offset       = TCP_OFFSET_MASK, 
+        .offset_bits  = TCP_OFFSET_IN_BITS_FIN,
 */
     }, {
-        .key         = TCP_FIELD_WINDOW_SIZE,
-        .type        = TYPE_UINT16,
-        .offset      = offsetof(struct tcphdr, WINDOW_SIZE),
+        .key          = TCP_FIELD_WINDOW_SIZE,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct tcphdr, WINDOW_SIZE),
     }, {
-        .key         = TCP_FIELD_CHECKSUM,
-        .type        = TYPE_UINT16,
-        .offset      = offsetof(struct tcphdr, CHECKSUM),
+        .key          = TCP_FIELD_CHECKSUM,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct tcphdr, CHECKSUM),
     }, {
-        .key         = TCP_FIELD_URGENT_PTR,
-        .type        = TYPE_UINT16,
-        .offset      = offsetof(struct tcphdr, URGENT_PTR),
+        .key          = TCP_FIELD_URGENT_PTR,
+        .type         = TYPE_UINT16,
+        .offset       = offsetof(struct tcphdr, URGENT_PTR),
     },
     // options if data offset > 5
     END_PROTOCOL_FIELDS
@@ -199,7 +206,7 @@ size_t tcp_get_header_size(const uint8_t * tcp_header) {
         goto ERR_GET_DATA_OFFSET;
     }
 
-    size_in_words = field->value.int4;
+    size_in_words = field->value.bits;
     field_free(field);
     return 4 * size_in_words;
 

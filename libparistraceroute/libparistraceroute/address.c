@@ -1,3 +1,4 @@
+#include "use.h"
 #include "config.h"
 
 #include <stdio.h>      // perror
@@ -49,14 +50,18 @@ int ip_from_string(int family, const char * hostname, ip_t * ip) {
 
     // Extract from sockaddr the address where is stored the IP
     switch (family) {
+#ifdef USE_IPV4
         case AF_INET:
             addr = &(((struct sockaddr_in  *) ai->ai_addr)->sin_addr);
             addr_len = sizeof(ipv4_t);
             break;
+#endif
+#ifdef USE_IPV6
         case AF_INET6:
             addr = &(((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr);
             addr_len = sizeof(ipv6_t);
             break;
+#endif
         default:
             fprintf(stderr, "ip_from_string: Invalid family\n");
             ret = EINVAL;
@@ -71,15 +76,19 @@ ERROR_GETADDRINFO:
     return ret;
 }
 
+#ifdef USE_IPV4
 void ipv4_dump(const ipv4_t * ipv4) {
     char buffer[INET_ADDRSTRLEN];
     ip_dump(AF_INET, ipv4, buffer, INET_ADDRSTRLEN);
 }
+#endif
 
+#ifdef USE_IPV6
 void ipv6_dump(const ipv6_t * ipv6) {
     char buffer[INET6_ADDRSTRLEN];
     ip_dump(AF_INET6, ipv6, buffer, INET6_ADDRSTRLEN);
 }
+#endif
 
 void address_dump(const address_t * address) {
     char buffer[INET6_ADDRSTRLEN];
@@ -175,6 +184,7 @@ int address_to_string(const address_t * address, char ** pbuffer)
     size_t                buffer_size;
 
     switch (address->family) {
+#ifdef USE_IPV4
         case AF_INET:
             sa = (struct sockaddr *) &sa4;
             memset(sa, 0, sizeof(struct sockaddr_in));
@@ -183,6 +193,8 @@ int address_to_string(const address_t * address, char ** pbuffer)
             sa4.sin_addr   = address->ip.ipv4;
             buffer_size    = INET_ADDRSTRLEN;
             break;
+#endif
+#ifdef USE_IPV6
         case AF_INET6:
             sa = (struct sockaddr *) &sa6;
             memset(sa, 0, sizeof(struct sockaddr_in6));
@@ -191,6 +203,7 @@ int address_to_string(const address_t * address, char ** pbuffer)
             memcpy(&sa6.sin6_addr, &address->ip.ipv6, sizeof(ipv6_t));
             buffer_size     = INET6_ADDRSTRLEN;
             break;
+#endif
         default:
             *pbuffer = NULL;
             fprintf(stderr, "address_to_string: Family not supported (family = %d)\n", address->family);
