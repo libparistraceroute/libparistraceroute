@@ -18,12 +18,12 @@
  */
 
 typedef struct {
-    const char  * key;          /**< Pointer to an identifying key */
-    fieldtype_t   type;         /**< Enum to set the type of data stored in the field */
-    size_t        offset;       /**< Offset from start of header data */
+    const char  * key;            /**< Pointer to an identifying key */
+    fieldtype_t   type;           /**< Enum to set the type of data stored in the field */
+    size_t        offset;         /**< Offset from start of header data */
 #ifdef USE_BITS
-    size_t        offset_bits;  /**< Additional offset in bits for non-aligned field (set to 0 otherwise) */
-    size_t        size_in_bits; /**< Size in bits (only useful for non-aligned fields and fields not having a size equal to 8 * n bits */
+    size_t        offset_in_bits; /**< Additional offset in bits for non-aligned fields (set to 0 otherwise) */
+    size_t        size_in_bits;   /**< Size in bits (only useful for non-aligned fields and fields not having a size equal to 8 * n bits */
 #endif
 
     // The following callbacks allows to perform specific treatment when we translate

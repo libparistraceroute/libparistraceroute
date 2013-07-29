@@ -1,3 +1,4 @@
+#include "use.h"
 #include "config.h"
 
 #include <stdlib.h>
@@ -8,6 +9,9 @@
 
 #include "layer.h"
 #include "common.h"
+#ifdef USE_BITS
+#    include "bits.h"
+#endif
 
 layer_t * layer_create() {
     layer_t * layer = calloc(1, sizeof(layer_t));
@@ -61,8 +65,7 @@ inline void layer_set_mask(layer_t * layer, uint8_t * mask) {
     layer->mask = mask;
 }
 
-field_t * layer_create_field(const layer_t * layer, const char * key)
-{
+field_t * layer_create_field(const layer_t * layer, const char * key) {
     const protocol_field_t * protocol_field;
     field_t                * field;
 
@@ -122,8 +125,7 @@ ERR_LAYER_GET_PROTOCOL_FIELD:
     return NULL;
 }
 
-bool layer_set_field(layer_t * layer, const field_t * field)
-{
+bool layer_set_field(layer_t * layer, const field_t * field) {
     const protocol_field_t * protocol_field;
 
     if (!field || field->type == TYPE_GENERATOR) {
@@ -194,8 +196,7 @@ bool layer_write_payload(layer_t * layer, const void * bytes, size_t num_bytes) 
     return layer_write_payload_ext(layer, bytes, num_bytes, 0);
 }
 
-bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_bytes, size_t offset)
-{
+bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_bytes, size_t offset) {
     if (layer->protocol) {
         // The layer embeds a nested layer
         fprintf(stderr, "Calling layer_write_payload_ext not for a payload\n");
@@ -233,8 +234,8 @@ ERR_CREATE_LAYER:
 
 bool layer_extract(const layer_t * layer, const char * key, void * value) {
     const protocol_field_t * protocol_field;
-    //field_t                * field;
-    uint8_t * segment;
+    uint8_t                * segment;
+    bool                     ret = true;
 
     if (!(layer && layer->protocol)) goto ERR_INVALID_LAYER;
     if (!(protocol_field = protocol_get_field(layer->protocol, key))) goto ERR_PROTOCOL_GET_FIELD;
@@ -242,24 +243,23 @@ bool layer_extract(const layer_t * layer, const char * key, void * value) {
     if (!(segment = layer_get_field_segment(layer, key))) goto ERR_LAYER_GET_FIELD_SEGMENT;
 
     switch (protocol_field->type) {
+#ifdef USE_BITS
         case TYPE_BITS:
-            printf("TYPE_BITS!!\n");
+            ret = (bits_extract(
+                segment,
+                8 * protocol_field->offset + protocol_field->offset_in_bits,
+                protocol_field->size_in_bits,
+                value
+            ) != NULL);
             break;
+#endif
 #ifdef USE_IPV4
         case TYPE_IPV4:
-            /*
-            memcpy(&((address_t *) value)->ip.ipv4, segment, field_get_type_size(protocol_field->type));
-            ((address_t *) value)->family = AF_INET;
-            */
             memcpy(value, segment, field_get_type_size(protocol_field->type));
             break;
 #endif
 #ifdef USE_IPV6
         case TYPE_IPV6:
-            /*
-            memcpy(&((address_t *) value)->ip.ipv6, segment, field_get_type_size(protocol_field->type));
-            ((address_t *) value)->family = AF_INET6;
-            */
             memcpy(value, segment, field_get_type_size(protocol_field->type));
             break;
 #endif
@@ -281,17 +281,15 @@ bool layer_extract(const layer_t * layer, const char * key, void * value) {
             break;
     }
 
-    return true;
+    return ret;
 
-//ERR_FIELD_CREATE:
 ERR_LAYER_GET_FIELD_SEGMENT:
 ERR_PROTOCOL_GET_FIELD:
 ERR_INVALID_LAYER:
     return false;
 }
 
-void layer_dump(const layer_t * layer, unsigned int indent)
-{
+void layer_dump(const layer_t * layer, unsigned int indent) {
     size_t             i, size;
     protocol_field_t * protocol_field;
     field_t          * field;

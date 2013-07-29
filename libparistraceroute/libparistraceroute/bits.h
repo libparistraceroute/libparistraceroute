@@ -92,6 +92,7 @@ void byte_dump(uint8_t byte);
  * This example is detailed in bits.c (see function bits_test).
  */
 
+// TODO change parameter order (first output parameters, then input parameters)
 uint8_t * bits_extract(
     const uint8_t * bytes,
     size_t          offset_in_bits,

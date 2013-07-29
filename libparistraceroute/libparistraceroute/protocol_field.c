@@ -36,12 +36,11 @@ bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * segme
             break;
 #ifdef USE_BITS
         case TYPE_BITS:
-            printf("protocol_field_set: Writting bit level field %s\n", protocol_field->key);
             ret = bits_write(
                 segment_field,
-                protocol_field->offset_bits,
+                protocol_field->offset_in_bits,
                 &field->value.bits,
-                sizeof(field->value.bits) - protocol_field->offset_bits,
+                8 * sizeof(field->value.bits) - protocol_field->size_in_bits,
                 protocol_field->size_in_bits
             ); 
             break;

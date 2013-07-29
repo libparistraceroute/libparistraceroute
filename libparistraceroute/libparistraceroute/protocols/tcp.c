@@ -85,52 +85,33 @@
 #    define URGENT_PTR  urg_ptr 
 #endif
 
-field_t * tcp_get_data_offset(const uint8_t * tcp_header) {
-    return BITS(
-        TCP_FIELD_DATA_OFFSET, 
-        tcp_header + TCP_OFFSET_DATA_OFFSET,
-        TCP_OFFSET_IN_BITS_DATA_OFFSET,
-        4
-    );
-}
-
-bool tcp_set_data_offset(uint8_t * tcp_header, const field_t * field) {
-    return byte_write_bits(
-        tcp_header + TCP_OFFSET_DATA_OFFSET,
-        TCP_OFFSET_IN_BITS_DATA_OFFSET,
-        field->value.bits, 4, 4
-    );
-}
-
 /**
  * TCP fields
  */
 
 static protocol_field_t tcp_fields[] = {
     {
-        .key          = TCP_FIELD_SRC_PORT,
-        .type         = TYPE_UINT16,
-        .offset       = offsetof(struct tcphdr, SRC_PORT),
+        .key             = TCP_FIELD_SRC_PORT,
+        .type            = TYPE_UINT16,
+        .offset          = offsetof(struct tcphdr, SRC_PORT),
     }, {
-        .key          = TCP_FIELD_DST_PORT,
-        .type         = TYPE_UINT16,
-        .offset       = offsetof(struct tcphdr, DST_PORT),
+        .key             = TCP_FIELD_DST_PORT,
+        .type            = TYPE_UINT16,
+        .offset          = offsetof(struct tcphdr, DST_PORT),
     }, {
-        .key          = TCP_FIELD_SEQ_NUM,
-        .type         = TYPE_UINT32,
-        .offset       = offsetof(struct tcphdr, SEQ_NUM),
+        .key             = TCP_FIELD_SEQ_NUM,
+        .type            = TYPE_UINT32,
+        .offset          = offsetof(struct tcphdr, SEQ_NUM),
     }, {
-        .key          = TCP_FIELD_ACK_NUM,
-        .type         = TYPE_UINT32,
-        .offset       = offsetof(struct tcphdr, ACK_NUM),
+        .key             = TCP_FIELD_ACK_NUM,
+        .type            = TYPE_UINT32,
+        .offset          = offsetof(struct tcphdr, ACK_NUM),
     }, {
-        .key          = TCP_FIELD_DATA_OFFSET,
-        .type         = TYPE_BITS,
-        .size_in_bits  = 4,
-        .offset       = TCP_OFFSET_DATA_OFFSET,
-        .offset_bits  = TCP_OFFSET_IN_BITS_DATA_OFFSET,
-        .set          = tcp_set_data_offset,
-        .get          = tcp_get_data_offset,
+        .key             = TCP_FIELD_DATA_OFFSET,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 4,
+        .offset          = TCP_OFFSET_DATA_OFFSET,
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_DATA_OFFSET,
 /*
     }, {
         .key          = TCP_FIELD_RESERVED,
@@ -199,18 +180,14 @@ static struct tcphdr tcp_default = {
  */
 
 size_t tcp_get_header_size(const uint8_t * tcp_header) {
-    field_t * field;
     size_t    size_in_words;
 
-    if (!(field = tcp_get_data_offset(tcp_header))) {
-        goto ERR_GET_DATA_OFFSET;
+    if (!layer_extract(tcp_header, TCP_FIELD_DATA_OFFSET , &size_in_words)) {
+        goto ERR_LAYER_EXTRACT;
     }
-
-    size_in_words = field->value.bits;
-    field_free(field);
     return 4 * size_in_words;
 
-ERR_GET_DATA_OFFSET:
+ERR_LAYER_EXTRACT:
     return 0;
 }
 
