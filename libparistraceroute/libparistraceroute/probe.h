@@ -1,3 +1,5 @@
+#include "use.h"
+
 #ifndef PROBE_H
 #define PROBE_H
 
@@ -33,7 +35,9 @@ typedef struct {
     double       sending_time;  /**< Timestamp set by network layer just after sending the packet (0 if not set) (in micro seconds) */
     double       queueing_time; /**< Timestamp set by pt_loop just before sending the packet (0 if not set) (in micro seconds) */
     double       recv_time;     /**< Only set if this instance is related to a reply. Timestamp set by network layer just after sniffing the reply */
+#ifdef USE_SCHEDULING
     field_t    * delay;         /**< The time to send this probe */
+#endif
     size_t       left_to_send;  /**< Number of times left to use this probe instance to send packets */
 } probe_t;
 

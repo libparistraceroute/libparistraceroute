@@ -1,44 +1,48 @@
-#include "use.h"
+#include "use.h"              // USE_*
 #include "config.h"
 
-#include <string.h> // memcpy
-#include <stdio.h>  // fprintf
+#include <string.h>           // memcpy
+#include <stdio.h>            // fprintf
 
 #include "protocol_field.h"
+#ifdef USE_BITS
+#    include "bits.h"         // bits_write
+#endif
 
-bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * buffer, const field_t * field)
+bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * segment, const field_t * field)
 {
     bool      ret = true;
-    uint8_t * segment = buffer + protocol_field->offset;
+    uint8_t * segment_field = segment + protocol_field->offset;
 
     switch (protocol_field->type) {
 #ifdef USE_IPV4
         case TYPE_IPV4:
-            memcpy(segment, &field->value.ipv4, sizeof(ipv4_t));
+            memcpy(segment_field, &field->value.ipv4, sizeof(ipv4_t));
             break;
 #endif
 #ifdef USE_IPV6
         case TYPE_IPV6:
-            memcpy(segment, &field->value.ipv6, sizeof(ipv6_t));
+            memcpy(segment_field, &field->value.ipv6, sizeof(ipv6_t));
             break;
 #endif
         case TYPE_UINT8:
-            *(uint8_t *) segment = field->value.int8;
+            *(uint8_t *) segment_field = field->value.int8;
             break;
         case TYPE_UINT16:
-            *(uint16_t *) segment = htons(field->value.int16);
+            *(uint16_t *) segment_field = htons(field->value.int16);
             break;
         case TYPE_UINT32:
-            *(uint32_t *) segment = htonl(field->value.int32);
+            *(uint32_t *) segment_field = htonl(field->value.int32);
             break;
 #ifdef USE_BITS
         case TYPE_BITS:
             printf("protocol_field_set: Writting bit level field %s\n", protocol_field->key);
             ret = bits_write(
-                segment,
+                segment_field,
                 protocol_field->offset_bits,
-                field->value.bits,
-                sizeof(field->value.bits) - protocol_field->offset_bits
+                &field->value.bits,
+                sizeof(field->value.bits) - protocol_field->offset_bits,
+                protocol_field->size_in_bits
             ); 
             break;
 #endif

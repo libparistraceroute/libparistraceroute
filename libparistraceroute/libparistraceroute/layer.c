@@ -71,17 +71,23 @@ field_t * layer_create_field(const layer_t * layer, const char * key)
     }
 
     if (protocol_field->get) {
-        field = protocol_field->get(layer->segment);
-    } else {
-        field = field_create_from_network(
-            protocol_field->type,
-            key,
-            layer->segment + protocol_field->offset
-        );
+        // There is a dedicated callback implemented in the protocol module
+        return protocol_field->get(layer->segment);
+    }
+
+    if (!(field = field_create(protocol_field->type, key, NULL))) {
+        goto ERR_FIELD_CREATE;
+    }
+
+    if (!layer_extract(layer, key, &field->value)) {
+        goto ERR_LAYER_EXTRACT;
     }
 
     return field;
 
+ERR_LAYER_EXTRACT:
+    field_free(field);
+ERR_FIELD_CREATE:
 ERR_LAYER_GET_PROTOCOL_FIELD:
     return NULL;
 }
@@ -225,27 +231,61 @@ ERR_CREATE_LAYER:
     return NULL;
 }
 
-bool layer_extract(const layer_t * layer, const char * field_name, void * value) {
+bool layer_extract(const layer_t * layer, const char * key, void * value) {
     const protocol_field_t * protocol_field;
-    field_t                * field;
+    //field_t                * field;
+    uint8_t * segment;
 
     if (!(layer && layer->protocol)) goto ERR_INVALID_LAYER;
-    if (!(protocol_field = protocol_get_field(layer->protocol, field_name))) goto ERR_PROTOCOL_GET_FIELD;
+    if (!(protocol_field = protocol_get_field(layer->protocol, key))) goto ERR_PROTOCOL_GET_FIELD;
 
-    // TODO this is crappy, use layer_get_field_segment
-    if (!(field = field_create_from_network(
-            protocol_field->type,
-            protocol_field->key,
-            layer->segment + protocol_field->offset
-        )
-    )) goto ERR_FIELD_CREATE;
+    if (!(segment = layer_get_field_segment(layer, key))) goto ERR_LAYER_GET_FIELD_SEGMENT;
 
-    memcpy(value, &field->value, field_get_size(field));
-    field_free(field);
+    switch (protocol_field->type) {
+        case TYPE_BITS:
+            printf("TYPE_BITS!!\n");
+            break;
+#ifdef USE_IPV4
+        case TYPE_IPV4:
+            /*
+            memcpy(&((address_t *) value)->ip.ipv4, segment, field_get_type_size(protocol_field->type));
+            ((address_t *) value)->family = AF_INET;
+            */
+            memcpy(value, segment, field_get_type_size(protocol_field->type));
+            break;
+#endif
+#ifdef USE_IPV6
+        case TYPE_IPV6:
+            /*
+            memcpy(&((address_t *) value)->ip.ipv6, segment, field_get_type_size(protocol_field->type));
+            ((address_t *) value)->family = AF_INET6;
+            */
+            memcpy(value, segment, field_get_type_size(protocol_field->type));
+            break;
+#endif
+        case TYPE_UINT8:
+            memcpy(value, segment, field_get_type_size(protocol_field->type));
+            break;
+        case TYPE_UINT16:
+            *(uint16_t *) value = ntohs(*(uint16_t *) segment);
+            break;
+        case TYPE_UINT32:
+            *(uint32_t *) value = ntohl(*(uint32_t *) segment);
+            break;
+        default:
+            fprintf(
+                stderr,
+                "layer_extract: type not supported (%s)\n",
+                field_type_to_string(protocol_field->type)
+            );
+            break;
+    }
+
     return true;
 
+//ERR_FIELD_CREATE:
+ERR_LAYER_GET_FIELD_SEGMENT:
 ERR_PROTOCOL_GET_FIELD:
-ERR_FIELD_CREATE:
 ERR_INVALID_LAYER:
     return false;
 }

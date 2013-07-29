@@ -391,7 +391,9 @@ probe_t * probe_dup(const probe_t * probe)
     ret->queueing_time = probe->queueing_time;
     ret->recv_time     = probe->recv_time;
     ret->caller        = probe->caller;
+#ifdef USE_SCHEDULING
     ret->delay         = probe->delay ? field_dup(probe->delay): NULL;
+#endif
     return ret;
 
     /*
@@ -654,7 +656,6 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
 ERR_PUSH_PAYLOAD:
 ERR_PUSH_LAYER:
 ERR_SET_PROTOCOL:
-ERR_SET_LENGTH:
     if (layer) layer_free(layer);
 ERR_LAYER_CREATE:
 ERR_PROTOCOL_SEARCH2:
@@ -882,6 +883,7 @@ double probe_get_recv_time(const probe_t * probe) {
     return probe->recv_time;
 }
 
+#ifdef USE_SCHEDULING
 bool probe_set_delay(probe_t * probe, field_t * delay)
 {
     field_t * field;
@@ -889,9 +891,9 @@ bool probe_set_delay(probe_t * probe, field_t * delay)
     if (!(field = field_dup(delay))) goto ERR_DUP;
     probe->delay = field;
     return true;
+
 ERR_DUP:
     return false;
-
 }
 
 double probe_get_delay(const probe_t * probe)
@@ -941,6 +943,8 @@ double probe_next_delay(probe_t * probe)
     }
     return delay;
 }
+
+#endif
 
 size_t probe_get_left_to_send(probe_t * probe) {
     return probe->left_to_send;
@@ -996,33 +1000,37 @@ field_t * probe_create_field(const probe_t * probe, const char * name) {
     return probe_create_field_ext(probe, name, 0);
 }
 
-bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, void * dst) {
-    field_t * field;
+bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, void * value) {
+    size_t                   i, num_layers = probe_get_num_layers(probe);
+    const layer_t          * layer;
+    const protocol_field_t * protocol_field;
 
-    // TODO loop using layer_extract
-    if (!(field = probe_create_field_ext(probe, name, depth))) goto ERR_CREATE_FIELD;
+    // We go through the layers until we get the required field
+    for(i = depth; i < num_layers; i++) {
+        layer = probe_get_layer(probe, i);
+        if (!(protocol_field = layer_get_protocol_field(layer, name))) continue;
 
-    switch (field->type) {
-        case TYPE_STRING:
-            *((char **) dst) = strdup(field->value.string); // TODO why strdup?
-            break;
-        case TYPE_IPV4:
-            memcpy(&((address_t *) dst)->ip, &field->value, field_get_size(field));
-            ((address_t *) dst)->family = AF_INET;
-            break;
-        case TYPE_IPV6:
-            memcpy(&((address_t *) dst)->ip, &field->value, field_get_size(field));
-            ((address_t *) dst)->family = AF_INET6;
-            break;
-        default:
-            memcpy(dst, &field->value, field_get_size(field));
-            break;
+        // Hack to convert ipv*_t extracted into address_t value.
+        switch (protocol_field->type) {
+            case TYPE_IPV4:
+                memset(value, 0, sizeof(address_t));
+                ((address_t *) value)->family = AF_INET;
+                value = &((address_t *) value)->ip.ipv4;
+                break;
+            case TYPE_IPV6:
+                memset(value, 0, sizeof(address_t));
+                ((address_t *) value)->family = AF_INET6;
+                value = &((address_t *) value)->ip.ipv6;
+                break;
+            default: break;
+        }
+
+        if ((layer = probe_get_layer(probe, i))
+        &&   layer_extract(layer, name, value)) {
+            return true; 
+        }
     }
 
-    field_free(field);
-    return true;
-
-ERR_CREATE_FIELD:
     return false;
 }
 
@@ -1030,11 +1038,10 @@ bool probe_extract(const probe_t * probe, const char * name, void * dst) {
     return probe_extract_ext(probe, name, 0, dst);
 }
 
-packet_t * probe_create_packet(probe_t * probe)
-{
+packet_t * probe_create_packet(probe_t * probe) {
     // TODO
-    // See packet.c: we store in packet.c the destination IP and the
-    // This will be removed once the bitfield will be supported in probe.c
+    // See packet.c: we store in packet.c the destination IP.
+    // This will be removed once the bitfield will be supported in probe.c.
 
     // The destination IP is a mandatory field
 

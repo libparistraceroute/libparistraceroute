@@ -26,13 +26,13 @@ typedef union{
 
 typedef enum {
 #ifdef USE_IPV4
-    TYPE_IPV4,              /**< IPv4 address      */
+    TYPE_IPV4,              /**< ipv4_t structure */
 #endif
 #ifdef USE_IPV6
-    TYPE_IPV6,              /**< IPv6 address      */
+    TYPE_IPV6,              /**< ipv6_t structure */
 #endif
 #ifdef USE_BITS
-    TYPE_BITS,              /**< n < 8 bits integer */
+    TYPE_BITS,              /**< n < 8 bits integer (right aligned) */
 #endif
     TYPE_UINT8,             /**< 8 bits integer     */
     TYPE_UINT16,            /**< 16 bits integer    */
@@ -137,7 +137,7 @@ field_t * field_create_ipv6(const char * key, ipv6_t ipv6);
  * \return Structure containing the newly created field.
  */
 
-field_t * field_create_bits(const char * key, void * value, size_t offset_in_bits, size_t size_in_bits);
+field_t * field_create_bits(const char * key, const void * value, size_t offset_in_bits, size_t size_in_bits);
 #endif
 
 /**
@@ -224,21 +224,12 @@ field_t * field_create_generator(const char * key, struct generator_s * value);
 /**
  * \brief Create a field structure to hold an address
  * \param key The name which identify the field to create
- * \param value Address to copy in the field
+ * \param value Address to copy in the field. You may pass NULL to
+ *    let the value field uninitialized.
  * \return Structure containing the newly created field
  */
 
 field_t * field_create(fieldtype_t type, const char * key, const void * value);
-
-/**
- * \brief Create a field according to a field type and a buffer passed as parameters/
- * \param type The field type
- * \param key The name which identify the field to create
- * \param value Address of the value to store in the field
- * \return Structure containing the newly created field
- */
-
-field_t * field_create_from_network(fieldtype_t type, const char * key, void * value);
 
 /**
  * \brief Delete a field structure
@@ -287,7 +278,7 @@ field_t * field_dup(const field_t * field);
 #define ADDRESS(x, y)  field_create_address(x, y)
 
 #ifdef USE_BITS
-#    define BITS(x, y, o, s)  field_create_bits(x, (const void *) y, o, s)
+#    define BITS(x, y, o, s)  field_create_bits(x, (const void *) (y), o, s)
 #endif
 
 /**

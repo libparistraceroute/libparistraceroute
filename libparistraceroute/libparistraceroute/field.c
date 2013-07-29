@@ -1,3 +1,4 @@
+#include "use.h"
 #include "config.h"
 
 #include <stdlib.h>
@@ -6,8 +7,11 @@
 #include <arpa/inet.h>
 
 #include "field.h"
-#include "bits.h"
 #include "generator.h"
+
+#ifdef USE_BITS
+#    include "bits.h"
+#endif
 
 field_t * field_create(fieldtype_t type, const char * key, const void * value) {
     field_t * field;
@@ -16,17 +20,19 @@ field_t * field_create(fieldtype_t type, const char * key, const void * value) {
     field->key  = key;
     field->type = type;
 
-    switch (type) {
-        case TYPE_STRING:
-            if (!(field->value.string = strdup((const char *) value))) goto ERR_DUP_VALUE;
-            break;
-        case TYPE_GENERATOR:
-            if (!(field->value.generator = generator_dup((const generator_t *) value))) goto ERR_DUP_VALUE;
-            break;
-        default:
-            // Copy size bytes in value in the union.
-            memcpy(&field->value, value, field_get_type_size(type));
-            break;
+    if (value) {
+        switch (type) {
+            case TYPE_STRING:
+                if (!(field->value.string = strdup((const char *) value))) goto ERR_DUP_VALUE;
+                break;
+            case TYPE_GENERATOR:
+                if (!(field->value.generator = generator_dup((const generator_t *) value))) goto ERR_DUP_VALUE;
+                break;
+            default:
+                // Copy size bytes in value in the union.
+                memcpy(&field->value, value, field_get_type_size(type));
+                break;
+        }
     }
 
     return field;
@@ -83,7 +89,7 @@ field_t * field_create_ipv6(const char * key, ipv6_t ipv6) {
 
 #ifdef USE_BITS
 // TODO factorize with field_create
-field_t * field_create_bits(const char * key, void * value, size_t offset_in_bits_in, size_t size_in_bits) {
+field_t * field_create_bits(const char * key, const void * value, size_t offset_in_bits_in, size_t size_in_bits) {
     field_t * field;
     size_t    offset_in_bits_out;
 
@@ -154,35 +160,6 @@ ERR_STRDUP:
     return NULL;
 }
 
-field_t * field_create_from_network(fieldtype_t type, const char * key, void * value)
-{
-    switch (type) {
-        case TYPE_IPV4:
-            return field_create_ipv4(key, *(ipv4_t *) value);
-        case TYPE_IPV6:
-            return field_create_ipv6(key, *(ipv6_t *) value);
-        case TYPE_UINT8:
-            return field_create_uint8(key, *(uint8_t *) value);
-        case TYPE_UINT16:
-            return field_create_uint16(key, ntohs(*(uint16_t *) value));
-        case TYPE_UINT32:
-            return field_create_uint32(key, ntohl(*(uint32_t *) value));
-        case TYPE_STRING:
-            return field_create_string(key, (const char *) value);
-        case TYPE_UINTMAX:
-        case TYPE_UINT128:
-        case TYPE_BITS:
-        default:
-            fprintf(
-                stderr,
-                "field_create_from_network: type not supported (%s)\n",
-                field_type_to_string(type)
-            );
-            break;
-    }
-    return NULL;
-}
-
 bool field_set_value(field_t * field, void * value)
 {
     bool ret = false;
@@ -245,8 +222,12 @@ bool field_match(const field_t * field1, const field_t * field2) {
 
 const char * field_type_to_string(fieldtype_t type) {
     switch (type) {
+#ifdef USE_IPV4
         case TYPE_IPV4:      return "ipv4"; 
+#endif
+#ifdef USE_IPV6
         case TYPE_IPV6:      return "ipv6"; 
+#endif
         case TYPE_BITS:      return "bits";
         case TYPE_UINT8:     return "uint8";
         case TYPE_UINT16:    return "uint16";
@@ -264,21 +245,29 @@ const char * field_type_to_string(fieldtype_t type) {
 
 void field_dump(const field_t * field)
 {
+    const uint32_t * ip;
+
     if (field) {
         switch (field->type) {
+#ifdef USE_IPV4
             case TYPE_IPV4:
                 ipv4_dump(&field->value.ipv4);
-                printf("\t(0x%08x)",  ntohl(*((const uint32_t *) &field->value.ipv4)));
+                ip = (const uint32_t *) &field->value.ipv4;
+                printf("\t(0x%08x)", ntohl(*ip));
                 break;
+#endif
+#ifdef USE_IPV6
             case TYPE_IPV6:
                 ipv6_dump(&field->value.ipv6);
+                ip = (const uint32_t *) &field->value.ipv6;
                 printf("\t(0x%08x %08x %08x %08x)",
-                    ntohl(((const uint32_t *) &field->value.ipv6)[0]),
-                    ntohl(((const uint32_t *) &field->value.ipv6)[1]),
-                    ntohl(((const uint32_t *) &field->value.ipv6)[2]),
-                    ntohl(((const uint32_t *) &field->value.ipv6)[3])
+                    ntohl(ip[0]),
+                    ntohl(ip[1]),
+                    ntohl(ip[2]),
+                    ntohl(ip[3])
                 );
                 break;
+#endif
             case TYPE_BITS:
                 printf("%-10hhu\t(0x%1x)", field->value.bits, field->value.bits);
                 break;

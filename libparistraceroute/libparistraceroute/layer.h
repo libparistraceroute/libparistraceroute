@@ -168,12 +168,12 @@ layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segme
 /**
  * \brief Extract a value from a field involved in a layer.
  * \param layer The queried layer instance.
- * \param field_name The name of a field involved in this layer.
+ * \param key The name of a field involved in this layer.
  * \param value A preallocated buffer which will contain the corresponding value.
  * \return true if successful, false otherwise.
  */
 
-bool layer_extract(const layer_t * layer, const char * field_name, void * value);
+bool layer_extract(const layer_t * layer, const char * key, void * value);
 
 /**
  * \brief Print the content of a layer.
