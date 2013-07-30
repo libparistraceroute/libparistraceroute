@@ -8,7 +8,7 @@
 #include <netinet/tcp.h>      // tcphdr
 #include <netinet/in.h>       // IPPROTO_TCP == 6
 
-#include "../field.h"         // field_t
+#include "../layer.h"         // layer_extract
 #include "../protocol.h"      // csum
 #include "../bits.h"
 
@@ -30,6 +30,7 @@
 // - 12th byte
 #define TCP_OFFSET_DATA_OFFSET         12
 #define TCP_OFFSET_IN_BITS_DATA_OFFSET 0
+#define TCP_OFFSET_IN_BITS_RESERVED    4
 #define TCP_OFFSET_IN_BITS_NS          7
 
 // - 13th byte
@@ -106,60 +107,82 @@ static protocol_field_t tcp_fields[] = {
         .key             = TCP_FIELD_ACK_NUM,
         .type            = TYPE_UINT32,
         .offset          = offsetof(struct tcphdr, ACK_NUM),
+#ifdef USE_BITS
+    // 12th byte (TCP_OFFSET_DATA_OFFSET)
     }, {
         .key             = TCP_FIELD_DATA_OFFSET,
         .type            = TYPE_BITS,
         .size_in_bits    = 4,
         .offset          = TCP_OFFSET_DATA_OFFSET,
         .offset_in_bits  = TCP_OFFSET_IN_BITS_DATA_OFFSET,
-/*
     }, {
-        .key          = TCP_FIELD_RESERVED,
-        // 3 bits
-        .offset       = offsetof(struct tcphdr, res1),
+        .key             = TCP_FIELD_RESERVED,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 3,
+        .offset          = TCP_OFFSET_DATA_OFFSET,
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_RESERVED, 
     }, {
-        .key          = TCP_FIELD_URG,
-        // 1 bits
-        .offset       = TCP_OFFSET_MASK,
-        .offset_bits  = TCP_OFFSET_IN_BITS_URG,
+        .key             = TCP_FIELD_NS,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_DATA_OFFSET,
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_NS, 
+    // 13th byte (TCP_OFFSET_MASK)
     }, {
-        .key          = TCP_FIELD_ACK,
-        // 1 bits
-        .offset       = TCP_OFFSET_MASK, 
-        .offset_bits  = TCP_OFFSET_IN_BITS_ACK,
+        .key             = TCP_FIELD_CWR,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_MASK,
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_CWR, 
     }, {
-        .key          = TCP_FIELD_PSH,
-        // 1 bits
-        .offset       = TCP_OFFSET_MASK,
-        .offset_bits  = TCP_OFFSET_IN_BITS_PSH,
+        .key             = TCP_FIELD_URG,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_MASK,
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_URG,
     }, {
-        .key          = TCP_FIELD_RST,
-        // 1 bits
-        .offset       = TCP_OFFSET_MASK, 
-        .offset_bits  = TCP_OFFSET_IN_BITS_RST,
+        .key             = TCP_FIELD_ACK,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_MASK, 
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_ACK,
     }, {
-        .key          = TCP_FIELD_SYN,
-        // 1 bits
-        .offset       = TCP_OFFSET_MASK,
-        .offset_bits  = TCP_OFFSET_IN_BITS_SYN,
+        .key             = TCP_FIELD_PSH,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_MASK,
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_PSH,
     }, {
-        .key          = TCP_FIELD_FIN,
-        // 1 bits
-        .offset       = TCP_OFFSET_MASK, 
-        .offset_bits  = TCP_OFFSET_IN_BITS_FIN,
-*/
+        .key             = TCP_FIELD_RST,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_MASK, 
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_RST,
     }, {
-        .key          = TCP_FIELD_WINDOW_SIZE,
-        .type         = TYPE_UINT16,
-        .offset       = offsetof(struct tcphdr, WINDOW_SIZE),
+        .key             = TCP_FIELD_SYN,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_MASK,
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_SYN,
     }, {
-        .key          = TCP_FIELD_CHECKSUM,
-        .type         = TYPE_UINT16,
-        .offset       = offsetof(struct tcphdr, CHECKSUM),
+        .key             = TCP_FIELD_FIN,
+        .type            = TYPE_BITS,
+        .size_in_bits    = 1,
+        .offset          = TCP_OFFSET_MASK, 
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_FIN,
+#endif
     }, {
-        .key          = TCP_FIELD_URGENT_PTR,
-        .type         = TYPE_UINT16,
-        .offset       = offsetof(struct tcphdr, URGENT_PTR),
+        .key             = TCP_FIELD_WINDOW_SIZE,
+        .type            = TYPE_UINT16,
+        .offset          = offsetof(struct tcphdr, WINDOW_SIZE),
+    }, {
+        .key             = TCP_FIELD_CHECKSUM,
+        .type            = TYPE_UINT16,
+        .offset          = offsetof(struct tcphdr, CHECKSUM),
+    }, {
+        .key             = TCP_FIELD_URGENT_PTR,
+        .type            = TYPE_UINT16,
+        .offset          = offsetof(struct tcphdr, URGENT_PTR),
     },
     // options if data offset > 5
     END_PROTOCOL_FIELDS
@@ -179,16 +202,32 @@ static struct tcphdr tcp_default = {
  * \return The size of an TCP header
  */
 
+#include <stdio.h>
+#include "buffer.h"
+
 size_t tcp_get_header_size(const uint8_t * tcp_header) {
-    size_t    size_in_words;
+#ifdef USE_BITS
+    size_t size_in_words;
+
+    buffer_t buffer = {
+        .data = tcp_header,
+        .size = 20
+    };
+
+    printf("tcp_get_header_size: size := %d\n", (tcp_header[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2);
 
     if (!layer_extract(tcp_header, TCP_FIELD_DATA_OFFSET , &size_in_words)) {
         goto ERR_LAYER_EXTRACT;
     }
-    return 4 * size_in_words;
+    printf("size_in_words = %d\n", size_in_words);
+
+    return size_in_words << 2;
 
 ERR_LAYER_EXTRACT:
     return 0;
+#else
+    return (tcp_header[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2;
+#endif
 }
 
 /**
@@ -200,7 +239,8 @@ ERR_LAYER_EXTRACT:
 
 size_t tcp_write_default_header(uint8_t * tcp_header) {
     struct tcphdr * tcp_hdr = (struct tcphdr *) tcp_header;
-    size_t          size    = 4 * TCP_DEFAULT_DATA_OFFSET; 
+    size_t          size    = TCP_DEFAULT_DATA_OFFSET << 2;
+    printf("tcp_write_default_header: size = %d\n", size);
     
     if (tcp_header) {
         memset(tcp_header, 0, size);

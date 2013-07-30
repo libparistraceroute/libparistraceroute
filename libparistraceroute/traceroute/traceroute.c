@@ -113,6 +113,7 @@ int main(int argc, char ** argv)
             goto ERR_FAMILY;
     }
 //    protocol_name = "udp";
+    protocol_name = "tcp";
     printf("protocol_name =%s\n", protocol_name);
 
     if (!probe_set_protocols(probe, ip_protocol_name, protocol_name, NULL)) {
@@ -128,7 +129,7 @@ int main(int argc, char ** argv)
 
     probe_set_fields(probe,
         ADDRESS("dst_ip", &dst_addr),
-        //I16("dst_port", 30000),
+        I16("dst_port", 3000),
         NULL
     );
 

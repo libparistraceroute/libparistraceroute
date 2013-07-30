@@ -232,17 +232,10 @@ ERR_CREATE_LAYER:
     return NULL;
 }
 
-bool layer_extract(const layer_t * layer, const char * key, void * value) {
-    const protocol_field_t * protocol_field;
-    uint8_t                * segment;
-    bool                     ret = true;
+bool segment_extract(const uint8_t * segment, fieldtype_t type, void * value) {
+    bool ret = true;
 
-    if (!(layer && layer->protocol)) goto ERR_INVALID_LAYER;
-    if (!(protocol_field = protocol_get_field(layer->protocol, key))) goto ERR_PROTOCOL_GET_FIELD;
-
-    if (!(segment = layer_get_field_segment(layer, key))) goto ERR_LAYER_GET_FIELD_SEGMENT;
-
-    switch (protocol_field->type) {
+    switch (type) {
 #ifdef USE_BITS
         case TYPE_BITS:
             ret = (bits_extract(
@@ -275,14 +268,32 @@ bool layer_extract(const layer_t * layer, const char * key, void * value) {
         default:
             fprintf(
                 stderr,
-                "layer_extract: type not supported (%s)\n",
+                "segment_extract: type not supported (%s)\n",
                 field_type_to_string(protocol_field->type)
             );
             break;
     }
 
     return ret;
+}
 
+bool layer_extract(const layer_t * layer, const char * key, void * value) {
+    const protocol_field_t * protocol_field;
+    const uint8_t          * segment;
+
+    if (!(layer && layer->protocol)) {
+        goto ERR_INVALID_LAYER;
+    }
+
+    if (!(protocol_field = protocol_get_field(layer->protocol, key))) {
+        goto ERR_PROTOCOL_GET_FIELD;
+    }
+
+    if (!(segment = layer_get_field_segment(layer, key))) {
+        goto ERR_LAYER_GET_FIELD_SEGMENT;
+    }
+
+    return segment_extract(segment, protocol_field->type, value);
 ERR_LAYER_GET_FIELD_SEGMENT:
 ERR_PROTOCOL_GET_FIELD:
 ERR_INVALID_LAYER:
