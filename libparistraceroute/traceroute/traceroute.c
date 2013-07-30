@@ -66,8 +66,8 @@ int main(int argc, char ** argv)
 
     // Harcoded command line parsing here
     //char dst_ip[] = "8.8.8.8";
-    //char dst_ip[] = "1.1.1.2";
-    char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
+    char dst_ip[] = "1.1.1.2";
+    //char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
 
     if (!address_guess_family(dst_ip, &family)) {
         fprintf(stderr, "Cannot guess family of destination address (%s)", dst_ip);
@@ -114,7 +114,7 @@ int main(int argc, char ** argv)
     }
 //    protocol_name = "udp";
     protocol_name = "tcp";
-    printf("protocol_name =%s\n", protocol_name);
+    printf("protocol_name = %s\n", protocol_name);
 
     if (!probe_set_protocols(probe, ip_protocol_name, protocol_name, NULL)) {
         fprintf(stderr, "Can't set protocols %s/%s\n", ip_protocol_name, protocol_name);
@@ -132,6 +132,23 @@ int main(int argc, char ** argv)
         I16("dst_port", 3000),
         NULL
     );
+
+    if (strcmp("tcp", protocol_name) == 0) {
+        printf("setting tcp fields\n");
+        probe_set_fields(probe,
+            BITS("reserved", 1, 1),
+            BITS("ns",  1, 1),
+            BITS("cwr", 1, 1),
+            BITS("urg", 1, 1),
+            BITS("ack", 1, 1),
+            BITS("psh", 1, 1),
+            BITS("rst", 1, 1),
+            BITS("syn", 1, 1),
+            BITS("fin", 1, 1),
+            NULL
+        );
+    }
+    probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm
     if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {

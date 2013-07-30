@@ -8,7 +8,6 @@
 #include <netinet/tcp.h>      // tcphdr
 #include <netinet/in.h>       // IPPROTO_TCP == 6
 
-#include "../layer.h"         // layer_extract
 #include "../protocol.h"      // csum
 #include "../bits.h"
 
@@ -202,32 +201,8 @@ static struct tcphdr tcp_default = {
  * \return The size of an TCP header
  */
 
-#include <stdio.h>
-#include "buffer.h"
-
 size_t tcp_get_header_size(const uint8_t * tcp_header) {
-#ifdef USE_BITS
-    size_t size_in_words;
-
-    buffer_t buffer = {
-        .data = tcp_header,
-        .size = 20
-    };
-
-    printf("tcp_get_header_size: size := %d\n", (tcp_header[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2);
-
-    if (!layer_extract(tcp_header, TCP_FIELD_DATA_OFFSET , &size_in_words)) {
-        goto ERR_LAYER_EXTRACT;
-    }
-    printf("size_in_words = %d\n", size_in_words);
-
-    return size_in_words << 2;
-
-ERR_LAYER_EXTRACT:
-    return 0;
-#else
     return (tcp_header[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2;
-#endif
 }
 
 /**
@@ -240,7 +215,6 @@ ERR_LAYER_EXTRACT:
 size_t tcp_write_default_header(uint8_t * tcp_header) {
     struct tcphdr * tcp_hdr = (struct tcphdr *) tcp_header;
     size_t          size    = TCP_DEFAULT_DATA_OFFSET << 2;
-    printf("tcp_write_default_header: size = %d\n", size);
     
     if (tcp_header) {
         memset(tcp_header, 0, size);

@@ -9,6 +9,7 @@
 
 #include "layer.h"
 #include "common.h"
+
 #ifdef USE_BITS
 #    include "bits.h"
 #endif
@@ -176,6 +177,14 @@ bool layer_write_field(layer_t * layer, const char * key, const void * bytes, si
         goto ERR_LAYER_GET_PROTOCOL_FIELD;
     }
 
+    // TODO support bit level fields
+#ifdef USE_BITS
+    if (protocol_field->size_in_bits) {
+        fprintf(stderr, "layer_write_field: does not support bit-level fields\n");
+        return false;
+    }
+#endif
+
     segment_size = protocol_field_get_size(protocol_field);
     if (num_bytes > segment_size) {
         goto ERR_SEGMENT_TOO_SMALL;
@@ -232,15 +241,26 @@ ERR_CREATE_LAYER:
     return NULL;
 }
 
-bool segment_extract(const uint8_t * segment, fieldtype_t type, void * value) {
+/**
+ * \brief Extract a value from a segment according to a protocol_field_t instance.
+ * \param segment A sequence of bytes related to a layer_t instance.
+ * \param protocol_field A protocol_field_t instance describing which part of
+ *    the segment must be extracted.
+ * \param value A preallocated buffer which will contain the corresponding value.
+ * \return true if successful, false otherwise.
+ */
+
+static bool segment_extract(const uint8_t * segment, const protocol_field_t * protocol_field, void * value) {
     bool ret = true;
 
-    switch (type) {
+    segment += protocol_field->offset;
+
+    switch (protocol_field->type) {
 #ifdef USE_BITS
         case TYPE_BITS:
             ret = (bits_extract(
                 segment,
-                8 * protocol_field->offset + protocol_field->offset_in_bits,
+                protocol_field->offset_in_bits,
                 protocol_field->size_in_bits,
                 value
             ) != NULL);
@@ -248,22 +268,18 @@ bool segment_extract(const uint8_t * segment, fieldtype_t type, void * value) {
 #endif
 #ifdef USE_IPV4
         case TYPE_IPV4:
-            memcpy(value, segment, field_get_type_size(protocol_field->type));
-            break;
 #endif
 #ifdef USE_IPV6
         case TYPE_IPV6:
-            memcpy(value, segment, field_get_type_size(protocol_field->type));
-            break;
 #endif
         case TYPE_UINT8:
             memcpy(value, segment, field_get_type_size(protocol_field->type));
             break;
         case TYPE_UINT16:
-            *(uint16_t *) value = ntohs(*(uint16_t *) segment);
+            *(uint16_t *) value = ntohs(*(const uint16_t *) segment);
             break;
         case TYPE_UINT32:
-            *(uint32_t *) value = ntohl(*(uint32_t *) segment);
+            *(uint32_t *) value = ntohl(*(const uint32_t *) segment);
             break;
         default:
             fprintf(
@@ -279,7 +295,6 @@ bool segment_extract(const uint8_t * segment, fieldtype_t type, void * value) {
 
 bool layer_extract(const layer_t * layer, const char * key, void * value) {
     const protocol_field_t * protocol_field;
-    const uint8_t          * segment;
 
     if (!(layer && layer->protocol)) {
         goto ERR_INVALID_LAYER;
@@ -289,12 +304,7 @@ bool layer_extract(const layer_t * layer, const char * key, void * value) {
         goto ERR_PROTOCOL_GET_FIELD;
     }
 
-    if (!(segment = layer_get_field_segment(layer, key))) {
-        goto ERR_LAYER_GET_FIELD_SEGMENT;
-    }
-
-    return segment_extract(segment, protocol_field->type, value);
-ERR_LAYER_GET_FIELD_SEGMENT:
+    return segment_extract(layer->segment, protocol_field, value);
 ERR_PROTOCOL_GET_FIELD:
 ERR_INVALID_LAYER:
     return false;

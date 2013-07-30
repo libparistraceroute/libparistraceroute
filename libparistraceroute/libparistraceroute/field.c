@@ -268,9 +268,11 @@ void field_dump(const field_t * field)
                 );
                 break;
 #endif
+#ifdef USE_BITS
             case TYPE_BITS:
-                printf("%-10hhu\t(0x%1x)", field->value.bits, field->value.bits);
+                printf("%-10hhu\t", field->value.bits, field->value.bits);
                 break;
+#endif
             case TYPE_UINT8:
                 printf("%-10hhu\t(0x%02x)", field->value.int8, field->value.int8);
                 break;
