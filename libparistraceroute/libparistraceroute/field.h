@@ -278,7 +278,7 @@ field_t * field_dup(const field_t * field);
 #define ADDRESS(x, y)  field_create_address(x, y)
 
 #ifdef USE_BITS
-#    define BITS(key, value, size_in_bits)  field_create_bits(key, (const void *) (value), sizeof(value) - size_in_bits, size_in_bits)
+#    define BITS(key, size_in_bits, value)  field_create_bits(key, (const void *) (value), sizeof(value) - size_in_bits, size_in_bits)
 #endif
 
 /**

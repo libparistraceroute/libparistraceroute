@@ -63,6 +63,14 @@ probe_t * probe_dup(const probe_t * probe_skel);
 void probe_free(probe_t * probe);
 
 /**
+ * \brief Retrieve the size of the packet wrapped by a probe_t instance.
+ * \param probe A probe_t instance.
+ * \return The size of the corresponding packet.
+ */
+
+size_t probe_get_size(const probe_t * probe);
+
+/**
  * \brief Create a probe_t according to a packet_t instance.
  *   The previous value of probe->packet (if any) is not freed.
  * \return A pointer to a newly allocated probe_t instance if

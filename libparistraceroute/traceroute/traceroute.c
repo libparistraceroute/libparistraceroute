@@ -65,8 +65,8 @@ int main(int argc, char ** argv)
     address_t              dst_addr;
 
     // Harcoded command line parsing here
-    //char dst_ip[] = "8.8.8.8";
-    char dst_ip[] = "1.1.1.2";
+    char dst_ip[] = "8.8.8.8";
+    //char dst_ip[] = "1.1.1.2";
     //char dst_ip[] = "2001:db8:85a3::8a2e:370:7338";
 
     if (!address_guess_family(dst_ip, &family)) {
@@ -122,7 +122,7 @@ int main(int argc, char ** argv)
     }
 
     if (strncmp("icmp", protocol_name, 4) != 0) {
-        probe_write_payload(probe, "\0\0", 2);
+        probe_write_payload(probe, "\0\0\0\0", 4);
     } else {
         probe_set_field(probe, I32("body", 1));
     }
@@ -133,21 +133,25 @@ int main(int argc, char ** argv)
         NULL
     );
 
+    /*
     if (strcmp("tcp", protocol_name) == 0) {
         printf("setting tcp fields\n");
+        uint8_t one = 1;
         probe_set_fields(probe,
-            BITS("reserved", 1, 1),
-            BITS("ns",  1, 1),
-            BITS("cwr", 1, 1),
-            BITS("urg", 1, 1),
-            BITS("ack", 1, 1),
-            BITS("psh", 1, 1),
-            BITS("rst", 1, 1),
-            BITS("syn", 1, 1),
-            BITS("fin", 1, 1),
+            BITS("reserved", 1, &one),
+            BITS("ns",  1, &one),
+            BITS("cwr", 1, &one),
+            BITS("ece", 1, &one),
+            BITS("urg", 1, &one),
+            BITS("ack", 1, &one),
+            BITS("psh", 1, &one),
+            BITS("rst", 1, &one),
+            BITS("syn", 1, &one),
+            BITS("fin", 1, &one),
             NULL
         );
     }
+    */
     probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm

@@ -397,7 +397,7 @@ int main(int argc, char ** argv)
         );
 
         // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
-        probe_payload_resize(probe, 2);
+        probe_payload_resize(probe, 4);
     }
 
     // Algorithm options (dedicated options)

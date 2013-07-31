@@ -99,11 +99,14 @@ field_t * field_create_bits(const char * key, const void * value, size_t offset_
     memset(&field->value.bits, 0, sizeof(field->value.bits));
 
     offset_in_bits_out = 8 * sizeof(field->value.bits) - size_in_bits;
-    if (!bits_write(&field->value.bits, offset_in_bits_out, value, offset_in_bits_in, size_in_bits)) goto ERR_BITS_WRITE_BITS;
+    if (!bits_write(&field->value.bits, offset_in_bits_out, value, offset_in_bits_in, size_in_bits)) {
+        goto ERR_BITS_WRITE_BITS;
+    }
 
     return field;
 
 ERR_BITS_WRITE_BITS:
+    free(field);
 ERR_MALLOC:
     return NULL;
 }

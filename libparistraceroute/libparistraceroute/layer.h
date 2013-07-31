@@ -39,8 +39,7 @@ typedef struct layer_s {
     uint8_t          * mask;         /**< TODO (not yet implemented)
                                           Indicates which bits have been set. 
                                           Should points to probe's bitfield */
-    size_t             header_size;  /**< Size of the header (0 if this layer is related to the payload */
-    size_t             segment_size; /**< Size of segment (header + data) related to this layer */
+    size_t             segment_size; /**< Size of segment (e.g. header) related to this layer */
 } layer_t;
 
 /**
@@ -135,8 +134,6 @@ bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_byt
 
 size_t    layer_get_segment_size(const layer_t * layer);
 void      layer_set_segment_size(layer_t * layer, size_t segment_size);
-size_t    layer_get_header_size(const layer_t * layer);
-void      layer_set_header_size(layer_t * layer, size_t header_size);
 uint8_t * layer_get_segment(const layer_t * layer);
 void      layer_set_segment(layer_t * layer, uint8_t * segment);
 uint8_t * layer_get_mask(const layer_t * layer);

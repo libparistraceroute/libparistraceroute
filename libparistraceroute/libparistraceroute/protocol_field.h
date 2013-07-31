@@ -20,7 +20,7 @@
 typedef struct {
     const char  * key;            /**< Pointer to an identifying key */
     fieldtype_t   type;           /**< Enum to set the type of data stored in the field */
-    size_t        offset;         /**< Offset from start of header data */
+    size_t        offset;         /**< Offset from start of segment data */
 #ifdef USE_BITS
     size_t        offset_in_bits; /**< Additional offset in bits for non-aligned fields (set to 0 otherwise) */
     size_t        size_in_bits;   /**< Size in bits (only useful for non-aligned fields and fields not having a size equal to 8 * n bits */
@@ -30,8 +30,8 @@ typedef struct {
     // field content in packet content and vice versa. Most of time there are set
     // to NULL and we call default functions which manage endianness and so on. 
 
-    field_t     * (*get)(const uint8_t * header);                  /**< Allocate a field_t instance corresponding to this field */
-    bool          (*set)(uint8_t * header, const field_t * field); /**< Update a header according to a field. Return true iif successful */
+    field_t     * (*get)(const uint8_t * segment);                  /**< Allocate a field_t instance corresponding to this field */
+    bool          (*set)(uint8_t * segment, const field_t * field); /**< Update a segment according to a field. Return true iif successful */
 } protocol_field_t;
 
 /**

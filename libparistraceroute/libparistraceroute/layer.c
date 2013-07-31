@@ -42,14 +42,6 @@ inline void layer_set_segment_size(layer_t * layer, size_t segment_size) {
     layer->segment_size = segment_size;
 }
 
-inline size_t layer_get_header_size(const layer_t * layer) {
-    return layer->header_size;
-}
-
-inline void layer_set_header_size(layer_t * layer, size_t header_size) {
-    layer->header_size = header_size;
-}
-
 inline uint8_t * layer_get_segment(const layer_t * layer) {
     return layer->segment;
 }
@@ -234,7 +226,6 @@ layer_t * layer_create_from_segment(const protocol_t * protocol, uint8_t * segme
     layer_set_segment(layer, segment);
     layer_set_segment_size(layer, segment_size);
     layer_set_protocol(layer, protocol);
-    layer_set_header_size(layer, protocol ? protocol->get_header_size(segment) : 0);
     return layer;
 
 ERR_CREATE_LAYER:
@@ -317,13 +308,26 @@ void layer_dump(const layer_t * layer, unsigned int indent) {
     const char       * sep = "----------\n";
 
     // There is no nested layer, so data carried by this layer is the payload
+    print_indent(indent);
     if (!layer->protocol) {
-        size = layer->segment_size;
-        print_indent(indent);
         printf("PAYLOAD:\n");
+    } else {
+        printf("LAYER: %s\n", layer->protocol->name);
+    }
+
+    /*
+    print_indent(indent);
+    printf("segment = @%d\n", layer->segment);
+    print_indent(indent);
+    printf("segment_size = %d\n", layer->segment_size);
+    */
+
+    print_indent(indent);
+    printf("%s", sep);
+
+    if (!layer->protocol) {
         print_indent(indent);
-        printf("%s", sep);
-        print_indent(indent);
+        size = layer->segment_size;
         printf("%-15s %lu\n", "size", size);
         print_indent(indent);
         printf("%-15s", "data");
@@ -332,11 +336,6 @@ void layer_dump(const layer_t * layer, unsigned int indent) {
         }
         printf("\n");
     } else {
-        print_indent(indent);
-        printf("LAYER: %s\n", layer->protocol->name);
-        print_indent(indent);
-        printf("%s", sep);
-
         // Dump each field
         for(protocol_field = layer->protocol->fields; protocol_field->key; protocol_field++) {
             field = layer_create_field(layer, protocol_field->key);
