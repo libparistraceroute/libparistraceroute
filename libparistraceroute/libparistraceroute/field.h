@@ -82,6 +82,9 @@ typedef union {
     struct generator_s  * generator; /**< Pointer to generator_t data        */
 } value_t;
 
+void value_dump(const value_t * value, fieldtype_t field_type); 
+void value_dump_hex(const value_t * value, size_t num_bytes, size_t offset_in_bits, size_t num_bits);
+
 /**
  * \struct field_t
  * \brief Structure describing a header field

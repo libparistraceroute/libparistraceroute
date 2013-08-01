@@ -61,39 +61,39 @@ static struct icmphdr icmpv4_default = {
 
 /**
  * \brief Retrieve the size of an ICMP header 
- * \param icmpv4_header Address of an ICMP header or NULL
+ * \param icmpv4_segment Address of an ICMP header or NULL
  * \return The size of an ICMP header
  */
 
-size_t icmpv4_get_header_size(const uint8_t * icmpv4_header) {
+size_t icmpv4_get_header_size(const uint8_t * icmpv4_segment) {
     return sizeof(struct icmphdr);
 }
 
 /**
  * \brief Write the default ICMP header
- * \param icmpv4_header The address of an allocated buffer that will
+ * \param icmpv4_segment The address of an allocated buffer that will
  *    store the ICMPv4 header or NULL.
  * \return The size of the default header.
  */
 
-size_t icmpv4_write_default_header(uint8_t * icmpv4_header) {
+size_t icmpv4_write_default_header(uint8_t * icmpv4_segment) {
     size_t size = sizeof(struct icmphdr);
-    if (icmpv4_header) memcpy(icmpv4_header, &icmpv4_default, size);
+    if (icmpv4_segment) memcpy(icmpv4_segment, &icmpv4_default, size);
     return size;
 }
 
 /**
  * \brief Compute and write the checksum related to an ICMP header
- * \param icmpv4_header A pre-allocated ICMP header. The ICMP checksum
+ * \param icmpv4_segment A pre-allocated ICMP header. The ICMP checksum
  *    stored in this buffer is updated by this function.
  * \param ipv4_psh Pass NULL 
  * \sa http://www.networksorcery.com/enp/protocol/icmp.htm#Checksum
  * \return true if everything is ok, false otherwise
  */
 
-bool icmpv4_write_checksum(uint8_t * icmpv4_header, buffer_t * ipv4_psh)
+bool icmpv4_write_checksum(uint8_t * icmpv4_segment, buffer_t * ipv4_psh)
 {
-    struct icmphdr * icmpv4_hdr = (struct icmphdr *) icmpv4_header;
+    struct icmphdr * icmpv4_header = (struct icmphdr *) icmpv4_segment;
 
     // No pseudo header not required in ICMPv4
     if (ipv4_psh) {
@@ -102,8 +102,8 @@ bool icmpv4_write_checksum(uint8_t * icmpv4_header, buffer_t * ipv4_psh)
     }
 
     // The ICMPv4 checksum must be set to 0 before its calculation
-    icmpv4_hdr->checksum = 0;
-    icmpv4_hdr->checksum = csum((uint16_t *) icmpv4_header, sizeof(struct icmphdr));
+    icmpv4_header->checksum = 0;
+    icmpv4_header->checksum = csum((uint16_t *) icmpv4_segment, sizeof(struct icmphdr));
     return true;
 }
 

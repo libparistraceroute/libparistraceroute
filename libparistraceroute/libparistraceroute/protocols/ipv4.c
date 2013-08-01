@@ -45,9 +45,9 @@
 // The following offsets cannot be retrieved with offsetof() so they are hardcoded 
 #ifdef USE_BITS
 #    define IPV4_OFFSET_VERSION          0
-#    define IPV4_OFFSET_IN_BITS_VERSION  0 // IPV4_OFFSET_VERSION * 8 + 0
+#    define IPV4_OFFSET_IN_BITS_VERSION  0
 #    define IPV4_OFFSET_IHL              0
-#    define IPV4_OFFSET_IN_BITS_IHL      4 // IPV4_OFFSET_IHL * 8 + 4
+#    define IPV4_OFFSET_IN_BITS_IHL      4
 #endif
 
 //-----------------------------------------------------------
@@ -161,16 +161,12 @@ static protocol_field_t ipv4_fields[] = {
         .offset          = IPV4_OFFSET_VERSION,
         .offset_in_bits  = IPV4_OFFSET_IN_BITS_VERSION,
         .size_in_bits    = 4,
-//        .set             = ipv4_set_version,
-//        .get             = ipv4_get_version
     }, {
         .key             = IPV4_FIELD_IHL,
         .type            = TYPE_BITS,
         .offset          = IPV4_OFFSET_IHL,
         .offset_in_bits  = IPV4_OFFSET_IN_BITS_IHL,
         .size_in_bits    = 4,
-//        .set             = ipv4_set_ihl,
-//        .get             = ipv4_get_ihl
     }, {
 #endif // USE_BITS
         .key             = IPV4_FIELD_TOS,

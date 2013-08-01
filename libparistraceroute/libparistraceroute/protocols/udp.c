@@ -79,34 +79,34 @@ static struct udphdr udp_default = {
 
 /**
  * \brief Retrieve the size of an UDP header 
- * \param udp_header Address of an UDP header or NULL
+ * \param udp_segment Address of an UDP header or NULL
  * \return The size of an UDP header
  */
 
-size_t udp_get_header_size(const uint8_t * udp_header) {
+size_t udp_get_header_size(const uint8_t * udp_segment) {
     return sizeof(struct udphdr);
 }
 
 /**
  * \brief Write the default UDP header
- * \param udp_header The address of an allocated buffer that will
+ * \param udp_segment The address of an allocated buffer that will
  *    store the UDP header or NULL.
  * \return The size of the default header.
  */
 
-size_t udp_write_default_header(uint8_t * udp_header) {
+size_t udp_write_default_header(uint8_t * udp_segment) {
     size_t size = sizeof(struct udphdr);
-    if (udp_header) {
-        memcpy(udp_header, &udp_default, size);
-        ((struct udphdr *) udp_header)->SRC_PORT = htons(UDP_DEFAULT_SRC_PORT);
-        ((struct udphdr *) udp_header)->DST_PORT = htons(UDP_DEFAULT_DST_PORT);
+    if (udp_segment) {
+        memcpy(udp_segment, &udp_default, size);
+        ((struct udphdr *) udp_segment)->SRC_PORT = htons(UDP_DEFAULT_SRC_PORT);
+        ((struct udphdr *) udp_segment)->DST_PORT = htons(UDP_DEFAULT_DST_PORT);
     }
     return size;
 }
 
 /**
  * \brief Compute and write the checksum related to an UDP header
- * \param udp_header Points to the begining of the UDP header and its content.
+ * \param udp_segment Points to the begining of the UDP header and its content.
  *    The UDP checksum stored in this header is updated by this function.
  * \param ip_psh The IP layer part of the pseudo header. This buffer should
  *    contain the content of an ipv4_pseudo_header_t or an ipv6_pseudo_header_t
@@ -115,12 +115,12 @@ size_t udp_write_default_header(uint8_t * udp_header) {
  * \return true if everything is fine, false otherwise  
  */
 
-bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
+bool udp_write_checksum(uint8_t * udp_segment, buffer_t * ip_psh)
 {
-    struct udphdr * udp_hdr  = (struct udphdr *) udp_header;
-    size_t          size_ip  = buffer_get_size(ip_psh),
-                    size_udp = ntohs(udp_hdr->LENGTH),
-                    size_psh = size_ip + size_udp;
+    struct udphdr * udp_header = (struct udphdr *) udp_segment;
+    size_t          size_ip    = buffer_get_size(ip_psh),
+                    size_udp   = ntohs(udp_header->LENGTH),
+                    size_psh   = size_ip + size_udp;
     uint8_t       * psh;
 
     // UDP checksum computation requires the IPv* header
@@ -138,14 +138,14 @@ bool udp_write_checksum(uint8_t * udp_header, buffer_t * ip_psh)
     memcpy(psh, buffer_get_data(ip_psh), size_ip);
 
     // Put the UDP header and its content into the pseudo header
-    memcpy(psh + size_ip, udp_hdr, size_udp);
+    memcpy(psh + size_ip, udp_header, size_udp);
 
     // Overrides the UDP checksum in psh with zeros
     // Checksum debug: http://www4.ncsu.edu/~mlsichit/Teaching/407/Resources/udpChecksum.html
     memset(psh + size_ip + offsetof(struct udphdr, CHECKSUM), 0, sizeof(uint16_t));
 
     // Compute the checksum
-    udp_hdr->check = csum((const uint16_t *) psh, size_psh);
+    udp_header->check = csum((const uint16_t *) psh, size_psh);
     free(psh);
     return true;
 }

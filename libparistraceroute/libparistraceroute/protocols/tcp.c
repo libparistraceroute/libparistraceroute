@@ -108,13 +108,6 @@ bool tcp_set_length(uint8_t * tcp_segment, const field_t * field) {
     uint8_t  x;
     size_t   tcp_header_size = tcp_get_header_size(tcp_segment);
 
-    /*
-    if ((field->value.int16 - tcp_header_size) % 4) {
-        printf("tcp_set_length: invalid length = %ld\n", field->value.int16);
-        return false;
-    }
-    */
-
     if (field->type == TYPE_UINT16) {
         size_in_words = field->value.int16 >> 2;
         if ((field->value.int16 - tcp_header_size) % 4) size_in_words += 1;
@@ -128,7 +121,7 @@ bool tcp_set_length(uint8_t * tcp_segment, const field_t * field) {
             ret = true;
         }
     }
-    return true;
+    return ret;
 }
 
 /**
@@ -160,7 +153,6 @@ static protocol_field_t tcp_fields[] = {
         .size_in_bits    = 4,
         .offset          = TCP_OFFSET_DATA_OFFSET,
         .offset_in_bits  = TCP_OFFSET_IN_BITS_DATA_OFFSET,
-        /*
     }, {
         .key             = TCP_FIELD_RESERVED,
         .type            = TYPE_BITS,
@@ -222,7 +214,6 @@ static protocol_field_t tcp_fields[] = {
         .size_in_bits    = 1,
         .offset          = TCP_OFFSET_MASK, 
         .offset_in_bits  = TCP_OFFSET_IN_BITS_FIN,
-        */
 #endif
     }, {
         .key             = TCP_FIELD_WINDOW_SIZE,

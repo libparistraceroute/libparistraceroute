@@ -417,9 +417,7 @@ int main(int argc, char ** argv)
     }
 
     // Algorithm options (common options)
-    if (ptraceroute_options) {
-        options_traceroute_init(ptraceroute_options, &dst_addr);
-    }
+    options_traceroute_init(ptraceroute_options, &dst_addr);
 
     // Create libparistraceroute loop
     if (!(loop = pt_loop_create(loop_handler, NULL))) {

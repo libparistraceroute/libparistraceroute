@@ -246,65 +246,84 @@ const char * field_type_to_string(fieldtype_t type) {
     return "???";
 }
 
-void field_dump(const field_t * field)
-{
-    const uint32_t * ip;
-
-    if (field) {
-        switch (field->type) {
+void value_dump(const value_t * value, fieldtype_t type) {
+    switch (type) {
 #ifdef USE_IPV4
-            case TYPE_IPV4:
-                ipv4_dump(&field->value.ipv4);
-                ip = (const uint32_t *) &field->value.ipv4;
-                printf("\t(0x%08x)", ntohl(*ip));
-                break;
+        case TYPE_IPV4:
+            ipv4_dump(&value->ipv4);
+            break;
 #endif
 #ifdef USE_IPV6
-            case TYPE_IPV6:
-                ipv6_dump(&field->value.ipv6);
-                ip = (const uint32_t *) &field->value.ipv6;
-                printf("\t(0x%08x %08x %08x %08x)",
-                    ntohl(ip[0]),
-                    ntohl(ip[1]),
-                    ntohl(ip[2]),
-                    ntohl(ip[3])
-                );
-                break;
+        case TYPE_IPV6:
+            ipv6_dump(&value->ipv6);
+            break;
 #endif
-#ifdef USE_BITS
-            case TYPE_BITS:
-                printf("%-10hhu\t", field->value.bits, field->value.bits);
-                break;
-#endif
-            case TYPE_UINT8:
-                printf("%-10hhu\t(0x%02x)", field->value.int8, field->value.int8);
-                break;
-            case TYPE_UINT16:
-                printf("%-10hu\t(0x%04x)", field->value.int16, field->value.int16);
-                break;
-            case TYPE_UINT32:
-                printf("%-10u\t(0x%08x)", field->value.int32, field->value.int32);
-                break;
-            case TYPE_UINT64:
-                printf("%lu", field->value.int64);
-                break;
-            case TYPE_DOUBLE:
-                printf("%lf", field->value.dbl);
-                break;
-            case TYPE_UINTMAX:
-                printf("%ju", field->value.intmax);
-                break;
-            case TYPE_STRING:
-                printf("%s", field->value.string);
-                break;
-            case TYPE_GENERATOR :
-                generator_dump(field->value.generator);
-                break;
-            case TYPE_UINT128:
-            default:
-                fprintf(stderr, "field_dump: type not supported (%d) (%s)", field->type, field_type_to_string(field->type));
-                break;
-        }
+        case TYPE_BITS:
+        case TYPE_UINT8:
+            printf("%-10hhu", value->bits);
+            break;
+        case TYPE_UINT16:
+            printf("%-10hu", value->int16);
+            break;
+        case TYPE_UINT32:
+            printf("%-10u", value->int32);
+            break;
+        case TYPE_UINT64:
+            printf("%lu", value->int64);
+            break;
+        case TYPE_DOUBLE:
+            printf("%lf", value->dbl);
+            break;
+        case TYPE_UINTMAX:
+            printf("%ju", value->intmax);
+            break;
+        case TYPE_STRING:
+            printf("%s", value->string);
+            break;
+        case TYPE_GENERATOR :
+            generator_dump(value->generator);
+            break;
+        case TYPE_UINT128:
+        default:
+            fprintf(stderr, "value_dump: type not supported (%d) (%s)", type, field_type_to_string(type));
+            break;
     }
+}
+
+void value_dump_hex(const value_t * value, size_t num_bytes, size_t offset_in_bits, size_t num_bits) {
+    size_t    i;
+    const uint8_t * bytes = (const uint8_t *) value;
+
+    if (num_bytes > 1 || num_bits >= 8 || num_bits == 0) {
+        // >= 8 bits
+        printf("0x");
+        for (i = 0; i < num_bytes; ++i, ++bytes) {
+            printf("%02x", *bytes);
+            if (num_bytes % 8 == 0 && num_bytes > 1) printf(" ");
+        }
+#ifdef USE_BITS
+    } else {
+        // < 8 bits
+        if (offset_in_bits % 4 == 0 && num_bits == 4) {
+            // 4 bits right-aligned or left align
+            printf("0x%01x", offset_in_bits ? (*bytes & 0xf0) >> 4 : (*bytes & 0x0f));
+        } else {
+            // Otherwise...
+            for (i = 0; i < offset_in_bits; ++i) {
+                printf(".");
+            }
+            for (; i < offset_in_bits + num_bits; ++i) {
+                printf("%d", ((*bytes) & (1 << i)) ? 1 : 0);
+            }
+            for (; i < 8; ++i) {
+                printf(".");
+            }
+        }
+#endif
+    }
+}
+
+void field_dump(const field_t * field) {
+    printf("Field %s", field->key);
 }
 

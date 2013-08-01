@@ -56,40 +56,40 @@ static struct icmp6_hdr icmpv6_default = {
 
 /**
  * \brief Retrieve the size of an ICMP6 header
- * \param icmpv6_header (unused) Address of an ICMPv6 header or NULL.
+ * \param icmpv6_segment (unused) Address of an ICMPv6 header or NULL.
  * \return The size of an ICMP6 header
  */
 
-size_t icmpv6_get_header_size(const uint8_t * icmpv6_header) {
+size_t icmpv6_get_header_size(const uint8_t * icmpv6_segment) {
     return sizeof(struct icmp6_hdr);
 }
 
 /**
  * \brief Write the default ICMP6 header
- * \param icmpv6_header The address of an allocated buffer that will
+ * \param icmpv6_segment The address of an allocated buffer that will
  *    store the ICMPv6 header or NULL.
  * \return The size of the default header.
  */
 
-size_t icmpv6_write_default_header(uint8_t * icmpv6_header) {
+size_t icmpv6_write_default_header(uint8_t * icmpv6_segment) {
     size_t size = sizeof(struct icmp6_hdr);
-    if (icmpv6_header) memcpy(icmpv6_header, &icmpv6_default, size);
+    if (icmpv6_segment) memcpy(icmpv6_segment, &icmpv6_default, size);
     return size; 
 }
 
 /**
  * \brief Compute and write the checksum related to an ICMPv6 header.
- * \param icmpv6_hdr A pre-allocated ICMPv6 header.
+ * \param icmpv6_header A pre-allocated ICMPv6 header.
  * \param ipv6_psh The pseudo header.
  * \return true iif successful. 
  */
 
-bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
+bool icmpv6_write_checksum(uint8_t * icmpv6_segment, buffer_t * ipv6_psh)
 {
-    struct icmp6_hdr * icmpv6_hdr = (struct icmp6_hdr *) icmpv6_header;
-    size_t             size_ipv6   = buffer_get_size(ipv6_psh),
-                       size_icmpv6 = sizeof(struct icmp6_hdr),
-                       size_psh    = size_ipv6 + size_icmpv6;
+    struct icmp6_hdr * icmpv6_header = (struct icmp6_hdr *) icmpv6_segment;
+    size_t             size_ipv6     = buffer_get_size(ipv6_psh),
+                       size_icmpv6   = sizeof(struct icmp6_hdr),
+                       size_psh      = size_ipv6 + size_icmpv6;
     uint8_t          * psh;
 
     // ICMPv6 checksum computation requires the IPv6 pseudoheader
@@ -108,12 +108,12 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_header, buffer_t * ipv6_psh)
     memcpy(psh, buffer_get_data(ipv6_psh), size_ipv6);
 
     // Put the ICMPv6 header and its content into the pseudo header
-    memcpy(psh + size_ipv6, icmpv6_hdr, size_icmpv6);
+    memcpy(psh + size_ipv6, icmpv6_header, size_icmpv6);
 
     // Overrides the ICMPv6 checksum in psh with zeros
     memset(psh + size_ipv6 + offsetof(struct icmp6_hdr, icmp6_cksum), 0, sizeof(uint16_t));
 
-    icmpv6_hdr->icmp6_cksum = csum((uint16_t *) psh, size_psh);
+    icmpv6_header->icmp6_cksum = csum((uint16_t *) psh, size_psh);
     free(psh);
     return true;
 }

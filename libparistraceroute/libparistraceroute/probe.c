@@ -6,7 +6,6 @@
 #include <errno.h>           // errno, EINVAL
 #include <stdarg.h>          // va_start, va_copy, va_arg
 #include <string.h>          // memcpy
-#include <netinet/in.h>      // IPPROTO_IPV6
 
 #include "probe.h"
 #include "buffer.h"          // buffer_t
@@ -155,7 +154,7 @@ static bool probe_update_protocol(probe_t * probe)
 static bool probe_update_length(probe_t * probe)
 {
     bool      ret = true;
-    size_t    i, length, offset,
+    size_t    i, offset,
               num_layers = probe_get_num_layers(probe),
               packet_size = probe_get_size(probe);
     layer_t * layer;
@@ -163,14 +162,10 @@ static bool probe_update_length(probe_t * probe)
     for (i = 0, offset = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         if (layer->protocol) {
-            // TODO ipv6 should implement a "length" field equal to "rest_of_header" + 40
-            length = layer->protocol->protocol == IPPROTO_IPV6 ?
-                packet_size - offset - 40 :
-                packet_size - offset;
-
-
             // Update 'length' field (if any)
-            layer_set_field_and_free(layer, I16("length", length));
+            // This protocol field must always corresponds to the size of the
+            // header + its contents.
+            layer_set_field_and_free(layer, I16("length", packet_size - offset));
             offset += layer->protocol->get_header_size(layer->segment);
         } else {
             // Update payload size
