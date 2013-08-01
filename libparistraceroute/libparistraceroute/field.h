@@ -82,7 +82,23 @@ typedef union {
     struct generator_s  * generator; /**< Pointer to generator_t data        */
 } value_t;
 
-void value_dump(const value_t * value, fieldtype_t field_type); 
+/**
+ * \brief Print a value_t instance in the standard output.
+ * \param value The value_t instance to print.
+ * \param type The value type. 
+ */
+
+void value_dump(const value_t * value, fieldtype_t type); 
+
+/**
+ * \brief Print a value_t instance in the standard output.
+ *    Most of time you're interested in pritting this information
+ *    using the network-side endianness, so you should previously
+ *    do this translation using value_htons().
+ * \param value The value_t instance to print.
+ * \param type The value type. 
+ */
+
 void value_dump_hex(const value_t * value, size_t num_bytes, size_t offset_in_bits, size_t num_bits);
 
 /**

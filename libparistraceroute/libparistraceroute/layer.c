@@ -264,13 +264,12 @@ static bool segment_extract(const uint8_t * segment, const protocol_field_t * pr
         case TYPE_IPV6:
 #endif
         case TYPE_UINT8:
-            memcpy(value, segment, field_get_type_size(protocol_field->type));
-            break;
         case TYPE_UINT16:
-            *(uint16_t *) value = ntohs(*(const uint16_t *) segment);
-            break;
         case TYPE_UINT32:
-            *(uint32_t *) value = ntohl(*(const uint32_t *) segment);
+        case TYPE_UINT64:
+        case TYPE_UINT128:
+        case TYPE_UINTMAX:
+            memcpy(value, segment, field_get_type_size(protocol_field->type));
             break;
         default:
             fprintf(
@@ -278,6 +277,28 @@ static bool segment_extract(const uint8_t * segment, const protocol_field_t * pr
                 "segment_extract: type not supported (%s)\n",
                 field_type_to_string(protocol_field->type)
             );
+            break;
+    }
+
+    return ret;
+}
+
+static bool value_htons(void * value, fieldtype_t type) {
+    bool ret = true;
+
+    switch (type) {
+        case TYPE_UINT16:
+            *((uint16_t *) value) = ntohs(*((const uint16_t *) value));
+            break;
+        case TYPE_UINT32:
+            *((uint32_t *) value) = ntohl(*((const uint32_t *) value));
+            break;
+        case TYPE_UINT64:
+        case TYPE_UINT128:
+        case TYPE_UINTMAX:
+            fprintf(stderr, "value_htons: type not supported (%s)\n", field_type_to_string(type));
+            break;
+        default:
             break;
     }
 
@@ -303,7 +324,8 @@ bool layer_extract(const layer_t * layer, const char * key, void * value) {
         field_free(field);
         ret = true;
     } else {
-        ret = segment_extract(layer->segment, protocol_field, value);
+        ret  = segment_extract(layer->segment, protocol_field, value);
+        ret &= value_htons(value, protocol_field->type);         
     }
     return ret;
 
@@ -313,10 +335,33 @@ ERR_INVALID_LAYER:
     return false;
 }
 
+static void layer_dump_value(const layer_t * layer, const protocol_field_t * protocol_field) {
+    value_t value;
+
+    layer_extract(layer, protocol_field->key, &value);
+
+    // Host-side endianness
+    value_dump(&value, protocol_field->type);
+
+    // Network-side endianness
+    value_htons(&value, protocol_field->type);
+    printf("\t(");
+    value_dump_hex(
+        &value,
+        protocol_field_get_size(protocol_field),
+#ifdef USE_BITS
+        protocol_field->offset_in_bits,
+#else
+        0,
+#endif
+        protocol_field->size_in_bits
+    );
+    printf(")");
+}
+
 void layer_dump(const layer_t * layer, unsigned int indent) {
     size_t             i, size;
     protocol_field_t * protocol_field;
-    value_t            value;
     const char       * sep = "----------\n";
 
     // There is no nested layer, so data carried by this layer is the payload
@@ -342,31 +387,17 @@ void layer_dump(const layer_t * layer, unsigned int indent) {
         printf("\n");
     } else {
         // Dump each field
-        for(protocol_field = layer->protocol->fields; protocol_field->key; protocol_field++) {
+        for (protocol_field = layer->protocol->fields; protocol_field->key; protocol_field++) {
             print_indent(indent);
             printf("%-15s ", protocol_field->key);
-            layer_extract(layer, protocol_field->key, &value);
-            value_dump(&value, protocol_field->type);
-            printf("\t(");
-            value_dump_hex(
-                &value,
-                protocol_field_get_size(protocol_field),
-#ifdef USE_BITS
-                protocol_field->offset_in_bits,
-#else
-                0,
-#endif
-                protocol_field->size_in_bits
-            );
-            printf(")\n");
+            layer_dump_value(layer, protocol_field);
+            printf("\n");
         }
     }
 }
 
 void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent) {
     protocol_field_t * protocol_field;
-    field_t          * field1,
-                     * field2;
     const char       * sep = "----------\n";
 
     if (!layer1->protocol) {
@@ -387,17 +418,11 @@ void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int in
                 print_indent(indent);
                 printf("%-15s ", protocol_field->key);
 
-                // Print field1
-                field1 = layer_create_field(layer1, protocol_field->key);
-                field_dump(field1);
-                field_free(field1);
-
-                // Print field2
-                field2 = layer_create_field(layer2, protocol_field->key);
-                printf("\t");
-                field_dump(field2);
-                field_free(field2);
-
+                layer_dump_value(layer1, protocol_field);
+                printf("\n");
+                print_indent(indent);
+                printf("%-15s ", "> should be:");
+                layer_dump_value(layer2, protocol_field);
                 printf("\n");
             }
         }

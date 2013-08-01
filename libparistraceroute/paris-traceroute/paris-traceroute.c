@@ -154,7 +154,7 @@ static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * 
 static bool check_ports(bool is_icmp, int dst_port_enabled, int src_port_enabled)
 {
     if (is_icmp && (dst_port_enabled || src_port_enabled)) {
-        fprintf(stderr, "E: Cannot use -d or -s when using icmp tracerouting\n");
+        fprintf(stderr, "E: Cannot use --src-port or --dst-port when using icmp tracerouting\n");
         return false;
     }
 
@@ -397,7 +397,7 @@ int main(int argc, char ** argv)
         );
 
         // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
-        probe_payload_resize(probe, 4);
+        probe_payload_resize(probe, 2);
     }
 
     // Algorithm options (dedicated options)
@@ -434,8 +434,6 @@ int main(int argc, char ** argv)
         ptraceroute_options->max_ttl,
         packet_get_size(probe->packet)
     );
-
-    if (is_debug) probe_dump(probe);
 
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {

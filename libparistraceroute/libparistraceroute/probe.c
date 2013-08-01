@@ -333,11 +333,8 @@ static bool probe_packet_resize(probe_t * probe, size_t size)
 
         if (layer->protocol) {
             // We're in a layer related to a protocol. Update "length" field (if any).
-            if (!layer_set_field_and_free(layer, I16("length", size - offset))) {
-                if (strncmp("icmp", layer->protocol->name, 4) != 0) {
-                    fprintf(stderr, "Cannot update 'length' field in '%s' layer\n", layer->protocol->name);
-                }
-            }
+            // It concerns: ipv4, ipv6, udp but not tcp, icmpv4, icmpv6
+            layer_set_field_and_free(layer, I16("length", size - offset));
             offset += layer->segment_size;
         }
     }

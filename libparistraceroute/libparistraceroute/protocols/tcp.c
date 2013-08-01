@@ -23,8 +23,16 @@
 // Default values
 #define TCP_DEFAULT_SRC_PORT           2222 
 #define TCP_DEFAULT_DST_PORT           3333
-#define TCP_DEFAULT_WINDOW_SIZE        2     // In [2, 65535]
-#define TCP_DEFAULT_DATA_OFFSET        5     // Size of the TCP header in words (= 4 bytes). Must be greater or equal than 5.
+#define TCP_DEFAULT_WINDOW_SIZE        5840  // In [2, 65535]
+#define TCP_DEFAULT_DATA_OFFSET        5    // Size of the TCP header in words (= 4 bytes). Must be greater or equal than 5.
+#define TCP_DEFAULT_CWR                0
+#define TCP_DEFAULT_ECE                0
+#define TCP_DEFAULT_URG                0
+#define TCP_DEFAULT_ACK                0
+#define TCP_DEFAULT_PSH                0
+#define TCP_DEFAULT_RST                0
+#define TCP_DEFAULT_SYN                0
+#define TCP_DEFAULT_FIN                0
 
 // The following offsets cannot be retrieved with offsetof() so they are hardcoded 
 // - 12th byte
@@ -61,7 +69,7 @@
 #define TCP_FIELD_SYN                  "syn"         // Syn
 #define TCP_FIELD_FIN                  "fin"         // Fin
 #define TCP_FIELD_WINDOW_SIZE          "window_size" // in [2, 65535]
-#define TCP_FIELD_LENGTH               "length"      // This is a virtual field which is based on window size
+//#define TCP_FIELD_LENGTH               "length"      // This is a virtual field which is based on window size
 #define TCP_FIELD_CHECKSUM             "checksum"
 #define TCP_FIELD_URGENT_PTR           "urgent_pointer"
 #define TCP_FIELD_OPTIONS              "options" // if data offset > 5, padded at the end with 0 if necessary
@@ -97,35 +105,10 @@ size_t tcp_get_header_size(const uint8_t * tcp_segment) {
     return (tcp_segment[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2;
 }
 
-field_t * tcp_get_length(const uint8_t * tcp_segment) {
-    return I16("length", tcp_get_header_size(tcp_segment));
-}
-
-bool tcp_set_length(uint8_t * tcp_segment, const field_t * field) {
-    bool     ret = false;
-    uint32_t size_in_words;
-    uint8_t  data_offset;
-    uint8_t  x;
-    size_t   tcp_header_size = tcp_get_header_size(tcp_segment);
-
-    if (field->type == TYPE_UINT16) {
-        size_in_words = field->value.int16 >> 2;
-        if ((field->value.int16 - tcp_header_size) % 4) size_in_words += 1;
-
-        if (size_in_words <= 0x0f) {
-            data_offset = ((uint8_t) size_in_words);
-            x = tcp_segment[TCP_OFFSET_DATA_OFFSET];
-            x &= 0x0f;
-            x |= (data_offset << 4);
-            tcp_segment[TCP_OFFSET_DATA_OFFSET] = x;
-            ret = true;
-        }
-    }
-    return ret;
-}
-
 /**
  * TCP fields
+ * Note: TCP has no "length" field. The size of the payload is
+ * deduced from the IP layer.
  */
 
 static protocol_field_t tcp_fields[] = {
@@ -220,11 +203,6 @@ static protocol_field_t tcp_fields[] = {
         .type            = TYPE_UINT16,
         .offset          = offsetof(struct tcphdr, WINDOW_SIZE),
     }, {
-        .key             = TCP_FIELD_LENGTH,
-        .type            = TYPE_UINT16, // to be compliant with other "length" fields
-        .set             = tcp_set_length,
-        .get             = tcp_get_length,
-    }, {
         .key             = TCP_FIELD_CHECKSUM,
         .type            = TYPE_UINT16,
         .offset          = offsetof(struct tcphdr, CHECKSUM),
@@ -237,13 +215,25 @@ static protocol_field_t tcp_fields[] = {
     END_PROTOCOL_FIELDS
 };
 
-/**
- * Default TCP values
- */
-
-static struct tcphdr tcp_default = {
-    .WINDOW_SIZE = TCP_DEFAULT_WINDOW_SIZE,
-};
+uint8_t tcp_make_mask(
+    uint8_t cwr,
+    uint8_t ece,
+    uint8_t urg,
+    uint8_t ack,
+    uint8_t psh,
+    uint8_t rst,
+    uint8_t syn,
+    uint8_t fin
+){
+    return cwr << (7 - TCP_OFFSET_IN_BITS_CWR)
+         | ece << (7 - TCP_OFFSET_IN_BITS_ECE)
+         | urg << (7 - TCP_OFFSET_IN_BITS_URG)
+         | ack << (7 - TCP_OFFSET_IN_BITS_ACK)
+         | psh << (7 - TCP_OFFSET_IN_BITS_PSH)
+         | rst << (7 - TCP_OFFSET_IN_BITS_RST)
+         | syn << (7 - TCP_OFFSET_IN_BITS_SYN)
+         | fin << (7 - TCP_OFFSET_IN_BITS_FIN);
+}
 
 /**
  * \brief Write the default TCP header
@@ -253,15 +243,25 @@ static struct tcphdr tcp_default = {
  */
 
 size_t tcp_write_default_header(uint8_t * tcp_segment) {
-    struct tcphdr * tcp_hdr = (struct tcphdr *) tcp_segment;
-    size_t          size    = TCP_DEFAULT_DATA_OFFSET << 2;
+    struct tcphdr * tcp_header = (struct tcphdr *) tcp_segment;
+    size_t          size       = TCP_DEFAULT_DATA_OFFSET << 2;
     
     if (tcp_segment) {
         memset(tcp_segment, 0, size);
-        memcpy(tcp_segment, &tcp_default, size);
-        tcp_hdr->DATA_OFFSET = TCP_DEFAULT_DATA_OFFSET;
-        tcp_hdr->SRC_PORT    = htons(TCP_DEFAULT_SRC_PORT);
-        tcp_hdr->DST_PORT    = htons(TCP_DEFAULT_DST_PORT);
+        tcp_header->DATA_OFFSET = TCP_DEFAULT_DATA_OFFSET;
+        tcp_header->SRC_PORT    = htons(TCP_DEFAULT_SRC_PORT);
+        tcp_header->DST_PORT    = htons(TCP_DEFAULT_DST_PORT);
+        tcp_header->WINDOW_SIZE = htons(TCP_DEFAULT_WINDOW_SIZE);
+        ((uint8_t *) tcp_header)[TCP_OFFSET_MASK] = tcp_make_mask(
+            TCP_DEFAULT_CWR,
+            TCP_DEFAULT_ECE,
+            TCP_DEFAULT_URG,
+            TCP_DEFAULT_ACK,
+            TCP_DEFAULT_PSH,
+            TCP_DEFAULT_RST,
+            TCP_DEFAULT_SYN,
+            TCP_DEFAULT_FIN
+        );
     }
 
     return size;
@@ -280,10 +280,10 @@ size_t tcp_write_default_header(uint8_t * tcp_segment) {
 
 bool tcp_write_checksum(uint8_t * tcp_segment, buffer_t * ip_psh)
 {
-    struct tcphdr * tcp_hdr  = (struct tcphdr *) tcp_segment;
-    size_t          size_ip  = buffer_get_size(ip_psh),
-                    size_tcp = tcp_get_header_size(tcp_segment) + ntohs(tcp_hdr->window),
-                    size_psh = size_ip + size_tcp;
+    struct tcphdr * tcp_header = (struct tcphdr *) tcp_segment;
+    size_t          size_ip    = buffer_get_size(ip_psh),
+                    size_tcp   = tcp_get_header_size(tcp_segment) + 2, // hardcoded payload size 
+                    size_psh   = size_ip + size_tcp;
     uint8_t       * psh;
 
     // TCP checksum computation requires the IPv* header
@@ -293,21 +293,26 @@ bool tcp_write_checksum(uint8_t * tcp_segment, buffer_t * ip_psh)
     }
 
     // Allocate the buffer which will contains the pseudo header
-    if (!(psh = malloc(size_psh))) {
+    if (!(psh = calloc(1, size_psh))) {
         return false;
     }
+
+    buffer_t buffer = {
+        .data = psh,
+        .size = size_psh
+    };
 
     // Put the excerpt of the IP header into the pseudo header
     memcpy(psh, buffer_get_data(ip_psh), size_ip);
 
     // Put the TCP header and its content into the pseudo header
-    memcpy(psh + size_ip, tcp_hdr, size_tcp);
+    memcpy(psh + size_ip, tcp_segment, size_tcp);
 
     // Overrides the TCP checksum in psh with zeros
     memset(psh + size_ip + offsetof(struct tcphdr, check), 0, sizeof(uint16_t));
 
     // Compute the checksum
-    tcp_hdr->check = csum((const uint16_t *) psh, size_psh);
+    tcp_header->check = csum((const uint16_t *) psh, size_psh);
     free(psh);
     return true;
 }

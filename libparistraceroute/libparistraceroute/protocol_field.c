@@ -63,6 +63,9 @@ inline size_t protocol_field_get_size(const protocol_field_t * protocol_field) {
 }
 
 void protocol_field_dump(const protocol_field_t * protocol_field) {
-    printf("> %s\n", protocol_field->key);
+    printf("> %s\t%s\n",
+        field_type_to_string(protocol_field->type),
+        protocol_field->key
+    );
 }
 

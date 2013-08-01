@@ -86,7 +86,7 @@ static inline bool reply_extract_tag(const probe_t * reply, uint16_t * ptag_repl
 /**
  * \brief Set the probe ID (tag) from a probe
  * \param probe The probe we want to update
- * \param tag_probe The tag we're assigning to the probe
+ * \param tag_probe The tag we're assigning to the probe (host-side endianness)
  * \return true iif successful
  */
 
@@ -270,7 +270,6 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
             fprintf(stderr, "network_get_matching_probe: This reply has been discarded: tag = 0x%x.\n", tag_reply);
             network_flying_probes_dump(network);
         }
-        // network_flying_probes_dump(network);
         return NULL;
     }
 
@@ -412,7 +411,8 @@ probe_group_t * network_get_scheduled_probes(network_t * network) {
 
 bool network_tag_probe(network_t * network, probe_t * probe)
 {
-    uint16_t   tag, checksum;
+    uint16_t   tag,         // Network-side endianness
+               checksum;    // Host-side endianness
     size_t     payload_size = probe_get_payload_size(probe);
     size_t     tag_size     = sizeof(uint16_t);
     size_t     num_layers   = probe_get_num_layers(probe);
@@ -448,11 +448,11 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         tag_in_body = true;
     }
 
-    tag = network_get_available_tag(network);
+    tag = htons(network_get_available_tag(network));
 
     // Write the tag at offset zero of the payload
     if (tag_in_body) {
-        probe_write_field(probe, "body", &tag, sizeof(tag));
+        probe_write_field(probe, "body", &tag, tag_size);
     } else {
         if (payload_size < tag_size) {
             fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
@@ -470,29 +470,26 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_PROBE_UPDATE_FIELDS;
     }
 
-    // Retrieve the checksum of UDP checksum (host-side endianness)
+    // Retrieve the checksum of UDP/TCP/ICMP checksum (host-side endianness)
     if (!(probe_extract_tag(probe, &checksum))) {
         fprintf(stderr, "Can't extract tag\n");
         goto ERR_PROBE_EXTRACT_CHECKSUM;
     }
 
-    // Write the probe ID in the UDP checksum
-    if (!(probe_set_tag(probe, htons(tag)))) {
+    // Write the probe ID in the UDP/TCP/ICMP checksum
+    if (!(probe_set_tag(probe, ntohs(tag)))) {
         fprintf(stderr, "Can't set tag\n");
         goto ERR_PROBE_SET_TAG;
     }
 
+    // Write the tag using the network-side endianness in the payload
+    checksum = htons(checksum);
     if (tag_in_body) {
-        // The endianness is managed by probe_set_field
-        checksum = htons(checksum);
-        if (!(probe_write_field(probe, "body", &checksum, sizeof(checksum)))) {
+        if (!(probe_write_field(probe, "body", &checksum, tag_size))) {
             fprintf(stderr, "Can't set body\n");
             goto ERR_PROBE_SET_FIELD;
         }
     } else {
-        // Update checksum (network-side endianness)
-        checksum = htons(checksum);
-
         if (!probe_write_payload(probe, &checksum, tag_size)) {
             fprintf(stderr, "Can't write payload (2)\n");
             goto ERR_BUFFER_WRITE_BYTES2;
@@ -517,6 +514,7 @@ bool network_send_probe(network_t * network, probe_t * probe)
     // - Best effort probes are directly pushed in our sendq.
     // - Scheduled probes are scheduled, stored in the probe group, and
     // pushed in the sendq when the probe_group notify pt_loop.
+
 #ifdef USE_SCHEDULING
     if (probe_get_delay(probe) == DELAY_BEST_EFFORT) {
 #endif
@@ -553,6 +551,11 @@ bool network_process_sendq(network_t * network)
         goto ERR_TAG_PROBE;
     }
 
+    if (network->is_verbose) {
+        printf("Sending probe packet:\n");
+        probe_dump(probe);
+    }
+
     // Make a packet from the probe structure
     if (!(packet = probe_create_packet(probe))) {
         fprintf(stderr, "Can't create packet\n");
@@ -566,7 +569,6 @@ bool network_process_sendq(network_t * network)
     }
 
     // Update the sending time
-    //printf(" (%-5.2lfms)\n ", 1000 *(get_timestamp() -  probe_get_sending_time(probe)));
     probe_set_sending_time(probe, get_timestamp());
 
     // Register this probe in the list of flying probes
@@ -605,13 +607,11 @@ bool network_process_recvq(network_t * network)
 
     // Pop the packet from the queue
     if (!(packet = queue_pop_element(network->recvq, NULL))) {
-        fprintf(stderr, "error pop\n");
         goto ERR_PACKET_POP;
     }
 
     // Transform the reply into a probe_t instance
     if(!(reply = probe_wrap_packet(packet))) {
-        fprintf(stderr, "error wrap\n");
         goto ERR_PROBE_WRAP_PACKET;
     }
     probe_set_recv_time(reply, get_timestamp());
@@ -619,13 +619,11 @@ bool network_process_recvq(network_t * network)
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes
     if (!(probe = network_get_matching_probe(network, reply))) {
-        if (network->is_verbose) fprintf(stderr, "error probe discard\n");
         goto ERR_PROBE_DISCARDED;
     }
 
     // Build a pair made of the probe and its corresponding reply
     if (!(probe_reply = probe_reply_create())) {
-        fprintf(stderr, "error probe reply\n");
         goto ERR_PROBE_REPLY_CREATE;
     }
 
@@ -703,7 +701,6 @@ static bool network_process_probe_node(network_t * network, tree_node_t * node, 
     //TODO packet_from_probe must manage generator
 
     probe_set_queueing_time(probe, get_timestamp());
-//    printf("probe delay : %f ,sending time %f\n", probe_get_delay(probe), get_timestamp());
     if (!(queue_push_element(network->sendq, probe)))                   goto ERR_QUEUE_PUSH;
     /*
     probe_set_left_to_send(probe, probe_get_left_to_send(probe) - 1);
@@ -713,7 +710,6 @@ static bool network_process_probe_node(network_t * network, tree_node_t * node, 
     */
     if (--(probe->left_to_send) == 0) {
         if (!(probe_group_del(network->scheduled_probes, node->parent, i)))  goto ERR_PROBE_GROUP_DEL;
- //       printf("probe group delay = %f\n", probe_group_get_next_delay(network->scheduled_probes));
     } else {
         get_node_next_delay(node);
         probe_group_update_delay(network->scheduled_probes, node);
