@@ -126,6 +126,6 @@ void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i);
  *    as parameter.
  */
 
-void dynarray_dump(const dynarray_t * dynarray, void (*element_dump)(void *));
+void dynarray_dump(const dynarray_t * dynarray, void (*element_dump)(const void *));
 
 #endif

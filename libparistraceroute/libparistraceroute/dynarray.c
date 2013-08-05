@@ -155,7 +155,7 @@ bool dynarray_set_ith_element(dynarray_t * dynarray, unsigned int i, void * elem
     return true;
 }
 
-void dynarray_dump(const dynarray_t * dynarray, void (*element_dump)(void *)) {
+void dynarray_dump(const dynarray_t * dynarray, void (*element_dump)(const void *)) {
     size_t i, num_elements = dynarray_get_size(dynarray);
 
     printf("[ ");

@@ -11,8 +11,7 @@
 #include "event.h"
 #include "pt_loop.h"
 
-/* static ? */
-void *algorithms_root;
+static void * algorithms_root = NULL;
 
 /**
  * \brief Create an instance of an algorithm

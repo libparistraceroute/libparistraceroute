@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common.h"  // ELEMENT_FREE, ELEMENT_DUMP
 
 /**
  * \file vector.h
@@ -19,14 +20,13 @@
  */
 
 typedef struct {
-    void              * cells;      /**< Pointer to the elemnts contained in the vector */
-    size_t              cell_size;  /**< The size of each cell caontianed in the vectore */
-    size_t              num_cells;  /**< number of options containeted in the current vector */
-    size_t              max_cells;  /**< maximum number of options contained in the vector */
-    void             (* cells_free)(void *);
-    void             (* cells_dump)(void *); 
+    void    * cells;      /**< Pointer to the elemnts contained in the vector */
+    size_t    cell_size;  /**< The size of each cell caontianed in the vectore */
+    size_t    num_cells;  /**< number of options containeted in the current vector */
+    size_t    max_cells;  /**< maximum number of options contained in the vector */
+    void   (* cells_free)(void *);
+    void   (* cells_dump)(const void *); 
 } vector_t;
-
 
 /**
  * \brief Create a vector structure.
@@ -36,7 +36,9 @@ typedef struct {
  * \return A vector_t structure representing an empty vector
  */
 
-vector_t * vector_create(size_t size, void (* callback_free)(void *), void (* callback_dump)(void *));
+vector_t * vector_create_impl(size_t size, void (* callback_free)(void *), void (* callback_dump)(const void *));
+
+#define vector_create(s, free, dump) vector_create_impl(s, (ELEMENT_FREE) free, (ELEMENT_DUMP) dump)
 
 /** 
   * \biref Dump a vector instance

@@ -292,6 +292,6 @@ static lattice_return_t lattice_element_dump(lattice_elt_t * elt, void * data) {
     return LATTICE_CONTINUE;
 }
 
-void lattice_dump(lattice_t * lattice, void (*element_dump)(void *)) {
+void lattice_dump(lattice_t * lattice, void (*element_dump)(const void *)) {
     lattice_walk(lattice, lattice_element_dump, element_dump, LATTICE_WALK_DFS);
 }

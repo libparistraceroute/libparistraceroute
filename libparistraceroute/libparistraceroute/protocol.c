@@ -14,8 +14,8 @@
 // We require two trees since a protocol may be retrieved
 // by using either its name or its protocol_id.
 
-static void * protocols_root;     /**< Tree ordered by name */
-static void * protocols_id_root;  /**< Tree ordered by id   */
+static void * protocols_root    = NULL;  /**< Tree ordered by name */
+static void * protocols_id_root = NULL;  /**< Tree ordered by id   */
 
 static int protocol_compare(
     const protocol_t * protocol1,
@@ -117,12 +117,12 @@ static void callback_protocols_dump(const void * node, VISIT visit, int level) {
     const protocol_t * protocol;
 
     switch (visit) {
-        case preorder: // 1st visit (not leaf)
-        case leaf:     // 1st visit (leaf)
+        case leaf:      // 1st visit (leaf)
+        case postorder: // 3rd visit
             protocol = *((protocol_t * const *) node);
             protocol_dump(protocol);
             break;
-        default:       // endorder (2nd visit) and postorder (3nd visit)
+        default:        // endorder (2nd visit) and preorder (1st visit, not leaf)
             break;
     }
 }

@@ -20,8 +20,7 @@ static void vector_initialize(vector_t * vector) {
     vector->max_cells = VECTOR_SIZE_INIT;
 }
 
-vector_t * vector_create(size_t size, void (* callback_free)(void *), void (* callback_dump)(void *))
-{
+vector_t * vector_create_impl(size_t size, void (* callback_free)(void *), void (* callback_dump)(const void *)) {
     vector_t * vector = malloc(size);
     if (vector) {
         vector->cell_size = size;

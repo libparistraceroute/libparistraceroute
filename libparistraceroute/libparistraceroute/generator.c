@@ -9,7 +9,7 @@
 #include "generator.h"
 #include "common.h"         // ELEMENT_COMPARE
 
-static void * generators_root; /**< Tree of generator_t, ordered by name */
+static void * generators_root = NULL; /**< Tree of generator_t, ordered by name */
 
 static int generator_compare(
     const generator_t * generator1,

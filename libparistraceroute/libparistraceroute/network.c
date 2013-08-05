@@ -616,6 +616,11 @@ bool network_process_recvq(network_t * network)
     }
     probe_set_recv_time(reply, get_timestamp());
 
+    if (network->is_verbose) {
+        printf("Got reply:\n");
+        probe_dump(reply);
+    }
+
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes
     if (!(probe = network_get_matching_probe(network, reply))) {

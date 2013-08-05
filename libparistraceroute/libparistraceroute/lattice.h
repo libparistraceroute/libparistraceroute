@@ -117,6 +117,6 @@ bool lattice_add_element(lattice_t * lattice, lattice_elt_t * predecessor, void 
  * \param element_dump A function that print lattice_elt->data. You may
  *    pass NULL if unused.
  */
-void lattice_dump(lattice_t * lattice, void (* element_dump)(void *));
+void lattice_dump(lattice_t * lattice, void (* element_dump)(const void *));
 
 #endif // STRUCTURE_LATTICE_H

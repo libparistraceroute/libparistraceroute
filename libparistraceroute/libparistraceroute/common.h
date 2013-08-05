@@ -11,13 +11,13 @@
  * \brief Type related to a *_dup() function
  */
 
-#define ELEMENT_DUP  void * (*)(void *)
+#define ELEMENT_DUP  void * (*)(const void *)
 
 /**
  * \brief Type related to a *_dump() function
  */
 
-#define ELEMENT_DUMP void   (*)(void *)
+#define ELEMENT_DUMP void   (*)(const void *)
 
 /**
  * \brief Type related to a *_compare() function

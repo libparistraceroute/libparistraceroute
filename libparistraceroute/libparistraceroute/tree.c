@@ -19,7 +19,7 @@ ERR_CALLOC:
     return NULL;
 }
 
-void tree_node_free(tree_node_t * node, void (*callback_free)(void * element)) {
+void tree_node_free_impl(tree_node_t * node, void (*callback_free)(void * element)) {
     size_t i;
 
     // Be careful because the parent (if any) now points to an invalid address
@@ -102,22 +102,17 @@ void tree_node_set_data(tree_node_t * node, void * data) {
     }
 }
 
-void tree_node_dump(tree_node_t * node, void (*callback_dump)(void *), size_t indent) {
+static void tree_node_dump(tree_node_t * node, void (*callback_dump)(const void *), size_t indent) {
     size_t i;
 
     if (indent > 3) return;
     if (node) {
         if (callback_dump) {
-            printf("                                   node at level %lu\n\n", indent);
-            /*
-            for (i = 0; i < 4 * indent; i++) {
-                printf("    ");
-            }
-            */
-           if(node->data){ 
-            callback_dump(node->data);
-            printf("\n");
-           } else printf("No data in this node\n\n");
+            if (node->data){ 
+                callback_dump(node->data);
+                printf("\n");
+            } else printf("(null)\n");
+
             for (i = 0; i < tree_node_get_num_children(node); i++) {       
                 tree_node_dump(tree_node_get_ith_child(node, i), callback_dump, indent + 1);
             }
@@ -125,7 +120,7 @@ void tree_node_dump(tree_node_t * node, void (*callback_dump)(void *), size_t in
     }
 }
 
-tree_t * tree_create(void(* callback_free)(void *), void(* callback_dump)(void *)) {
+tree_t * tree_create_impl(void(* callback_free)(void *), void(* callback_dump)(const void *)) {
     tree_t * tree;
 
     if (!(tree = calloc(1, sizeof(tree_t)))) goto ERR_CALLOC;

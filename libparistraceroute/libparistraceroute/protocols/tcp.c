@@ -297,11 +297,6 @@ bool tcp_write_checksum(uint8_t * tcp_segment, buffer_t * ip_psh)
         return false;
     }
 
-    buffer_t buffer = {
-        .data = psh,
-        .size = size_psh
-    };
-
     // Put the excerpt of the IP header into the pseudo header
     memcpy(psh, buffer_get_data(ip_psh), size_ip);
 

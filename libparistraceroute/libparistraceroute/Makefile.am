@@ -36,6 +36,10 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						buffer.h \
 						common.h \
 						config.h \
+						containers/object.h \
+						containers/map.h \
+						containers/pair.h \
+						containers/set.h \
 						dynarray.h \
 						event.h \
 						field.h \
@@ -88,6 +92,10 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						bits.c \
 						buffer.c \
 						common.c \
+						containers/object.c \
+						containers/map.c \
+						containers/pair.c \
+						containers/set.c \
 						dynarray.c \
 						event.c \
 						field.c \

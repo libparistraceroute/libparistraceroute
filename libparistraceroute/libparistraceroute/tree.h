@@ -3,6 +3,7 @@
 
 #include <stddef.h>   // size_t
 #include "dynarray.h" // dynarray_t
+#include "common.h"   // ELEMENT_FREE, ELEMENT_DUMP 
 
 typedef struct tree_node_s {
     struct tree_node_s * parent;       /** Pointer to the parent node (if any), NULL otherwise */
@@ -11,18 +12,15 @@ typedef struct tree_node_s {
     void               * data;         /**< Data stored in this node */
 } tree_node_t;
 
-typedef struct {
-    struct tree_node_s * root;
-    void               (* callback_free)(void *); /**< Callback to free data contained in the tree node */
-    void               (* callback_dump)(void *); /**< Callback to dump data contained in the tree node */
-} tree_t;
-
 //----------------------------------------------------------------------
 //                              tree_node_t
 //----------------------------------------------------------------------
+
 tree_node_t * tree_node_create(void * data);
 
-void tree_node_free(tree_node_t * node, void (*callback_free)(void * element));
+void tree_node_free_impl(tree_node_t * node, void (*callback_free)(void * element));
+
+#define tree_node_free(node, free) tree_node_free_impl(node, (ELEMENT_FREE) free)
 
 size_t tree_node_get_num_children(const tree_node_t * node);
 
@@ -44,8 +42,15 @@ bool tree_node_is_leaf(const tree_node_t * node);
 //                                 tree_t
 //-------------------------------------------------------------------------
 
+typedef struct {
+    struct tree_node_s * root;            /**< Root node */
+    void (* callback_free)(void *);       /**< Callback to free data contained in the tree node */
+    void (* callback_dump)(const void *); /**< Callback to dump data contained in the tree node */
+} tree_t;
 
-tree_t * tree_create(void (*callback_free)(void *), void (*callback_dump)(void *));
+tree_t * tree_create_impl(void (*callback_free)(void *), void (*callback_dump)(const void *));
+
+#define tree_create(free, dump) tree_create_impl((ELEMENT_FREE) free, (ELEMENT_DUMP) dump)
 
 void tree_free(tree_t * tree);
 

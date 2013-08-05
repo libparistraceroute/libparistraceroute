@@ -7,7 +7,7 @@
 #include "metafield.h"
 #include "common.h"
 
-static void * metafields_root;
+static void * metafields_root = NULL;
 
 static int metafield_compare(
     const metafield_t * metafield1,
