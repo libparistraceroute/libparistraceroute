@@ -130,7 +130,7 @@ static inline void discovered_ip_dump(const probe_t * reply, bool do_resolv) {
     if (probe_extract(reply, "src_ip", &discovered_addr)) {
         printf(" ");
         if (do_resolv) {
-            if (address_resolv(&discovered_addr, &discovered_hostname)) {
+            if (address_resolv(&discovered_addr, &discovered_hostname, CACHE_ENABLED)) {
                 printf("%s", discovered_hostname);
                 free(discovered_hostname);
             } else {
@@ -224,7 +224,7 @@ static inline bool destination_reached(const address_t * dst_addr, const probe_t
     address_t   discovered_addr;
 
     if (probe_extract(reply, "src_ip", &discovered_addr)) {
-        ret = (address_cmp(dst_addr, &discovered_addr) == 0);
+        ret = (address_compare(dst_addr, &discovered_addr) == 0);
     }
     return ret;
 }

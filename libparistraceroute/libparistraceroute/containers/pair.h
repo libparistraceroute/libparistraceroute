@@ -29,7 +29,9 @@ pair_t * pair_create(const object_t * first, const object_t * second);
  *    NULL otherwise.
  */
 
-pair_t * make_pair(const pair_t * dummy_pair, const void * first, const void * second);
+pair_t * make_pair_impl(const pair_t * dummy_pair, const void * first, const void * second);
+
+#define make_pair(d, f, s) make_pair_impl(d, (const void *) f, (const void *) s)
 
 /**
  * \brief Release a pair_t instance from the memory.

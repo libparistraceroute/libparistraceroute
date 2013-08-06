@@ -109,12 +109,12 @@ ERR_MALLOC:
     return NULL;
 }
 
-bool map_update(map_t * map, const void * key, const void * data) {
+bool map_update_impl(map_t * map, const void * key, const void * data) {
     pair_t * pair;
     pair_t * pair_in_set;
     void   * swap;
 
-    if (!(pair = make_pair((const pair_t *) map->set->dummy_element->element, key, data))) goto ERR_MAKE_PAIR;
+    if (!(pair = make_pair_impl((const pair_t *) map->set->dummy_element->element, key, data))) goto ERR_MAKE_PAIR;
     if (!(set_insert(map->set, pair))) {
         pair_in_set = (pair_t *) set_find(map->set, pair);
         assert(pair_in_set);
@@ -124,6 +124,30 @@ bool map_update(map_t * map, const void * key, const void * data) {
     }
     pair_free(pair);
     return true;
+
+ERR_MAKE_PAIR:
+    return false;
+}
+
+#include <stdio.h> // DEBUG
+bool map_find_impl(const map_t * map, const void * key, const void ** pdata) {
+    pair_t       * pair,
+                 * search;
+    const pair_t * dummy_pair;
+
+    *pdata = NULL;
+    dummy_pair = (const pair_t *) ((const object_t *) map->set->dummy_element)->element;
+
+    if (!(search = make_pair_impl(dummy_pair, (const void *) key, NULL))) {
+        goto ERR_MAKE_PAIR; 
+    }
+
+    if ((pair = set_find(map->set, search))) {
+        *pdata = pair->second->element;
+    }
+
+    pair_free(search);
+    return (pair != NULL);
 
 ERR_MAKE_PAIR:
     return false;

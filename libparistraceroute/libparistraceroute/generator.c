@@ -10,6 +10,7 @@
 #include "common.h"         // ELEMENT_COMPARE
 
 static void * generators_root = NULL; /**< Tree of generator_t, ordered by name */
+static void generator_clear() __attribute__((destructor(200)));
 
 static int generator_compare(
     const generator_t * generator1,
@@ -165,7 +166,7 @@ void generator_register(generator_t * generator)
 
 static void nothing_to_free(void * nodep __attribute__((__unused__))) {}
 
-void generator_clear() {
+static void generator_clear() {
     tdestroy(generators_root, &nothing_to_free);
 }
 

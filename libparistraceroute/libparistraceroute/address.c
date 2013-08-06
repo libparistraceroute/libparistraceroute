@@ -12,6 +12,31 @@
 
 #include "address.h"
 
+#ifdef USE_CACHE
+#    include "containers/map.h"
+
+static map_t * cache_ip_hostname = NULL;
+
+static void __cache_ip_hostname_create() __attribute__((constructor));
+static void __cache_ip_hostname_free()   __attribute__((destructor(200)));
+
+static void str_dump(const char * s) {
+    printf("%s (%p)", s, s);
+}
+
+static void __cache_ip_hostname_create() {
+    cache_ip_hostname = map_create(
+        address_dup, address_free, address_dump, address_compare,
+        strdup,      free,         str_dump
+    );
+}
+
+static void __cache_ip_hostname_free() {
+    if (cache_ip_hostname) map_free(cache_ip_hostname);
+}
+
+#endif
+
 #define AI_IDN        0x0040
 
 static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
@@ -150,7 +175,7 @@ address_t * address_dup(const address_t * address) {
     return dup;
 }
 
-int address_cmp(const address_t * x, const address_t * y) {
+int address_compare(const address_t * x, const address_t * y) {
     size_t          i, address_size;
     const uint8_t * px, * py;
 
@@ -239,20 +264,36 @@ size_t address_get_size(const address_t * address) {
     return 0;
 }
 
-bool address_resolv(const address_t * address, char ** phostname)
+bool address_resolv(const address_t * address, char ** phostname, int mask_cache)
 {
     struct hostent * hp;
+    bool             found = false;
 
     if (!address) goto ERR_INVALID_PARAMETER;
 
-    if (!(hp = gethostbyaddr(&address->ip, address_get_size(address), address->family))) {
-        // see h_error
-        goto ERR_GETHOSTBYADDR;
+#ifdef USE_CACHE
+    if (cache_ip_hostname && (mask_cache & CACHE_READ)) {
+        found = map_find(cache_ip_hostname, address, phostname);
     }
+#endif
 
-    if (!(*phostname = strdup(hp->h_name))) {
-        goto ERR_STRDUP;
+#ifdef USE_CACHE
+    if (!found) {
+#endif
+        if (!(hp = gethostbyaddr(&address->ip, address_get_size(address), address->family))) {
+            // see h_error
+            goto ERR_GETHOSTBYADDR;
+        }
+
+        if (!(*phostname = strdup(hp->h_name))) {
+            goto ERR_STRDUP;
+        }
+#ifdef USE_CACHE
+        if (mask_cache & CACHE_WRITE) {
+            map_update(cache_ip_hostname, address, *phostname);
+        }
     }
+#endif
 
     return true;
 

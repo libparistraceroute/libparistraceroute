@@ -23,7 +23,7 @@ ERR_MALLOC:
     return NULL;
 }
 
-pair_t * make_pair(const pair_t * dummy_pair, const void * first, const void * second) {
+pair_t * make_pair_impl(const pair_t * dummy_pair, const void * first, const void * second) {
     pair_t   * pair;
 
     if (!(pair         = malloc(sizeof(pair_t))))                  goto ERR_MALLOC;

@@ -157,7 +157,7 @@ static inline void mda_hop_dump_with_resolv(const lattice_elt_t * elt) {
     const mda_interface_t * hop = lattice_elt_get_data(elt);
     char                  * hostname;
 
-    address_resolv(hop->address, &hostname);
+    address_resolv(hop->address, &hostname, CACHE_ENABLED);
     mda_hop_dump(hop, hostname);
     if (hostname) free(hostname);
 }
@@ -171,7 +171,7 @@ void mda_link_dump(const mda_interface_t * link[2], bool do_resolv)
 
     // Print source of the link
     if (do_resolv && link[0]->address) {
-        address_resolv(link[0]->address, &hostname);
+        address_resolv(link[0]->address, &hostname, CACHE_ENABLED);
     }
     mda_hop_dump(link[0], hostname);
     if (hostname) free(hostname);

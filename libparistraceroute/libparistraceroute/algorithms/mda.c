@@ -196,7 +196,7 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
         return LATTICE_DONE; // Done enumerating, walking/DFS can continue
     }
 
-    if (interface->address && (address_cmp(interface->address, mda_data->dst_ip) == 0)) {
+    if (interface->address && (address_compare(interface->address, mda_data->dst_ip) == 0)) {
         return (interface->sent == interface->received) ? LATTICE_DONE : LATTICE_CONTINUE;
     }
 
@@ -420,7 +420,7 @@ static lattice_return_t mda_search_interface(lattice_elt_t * elt, void * data)
     mda_interface_t * interface = lattice_elt_get_data(elt);
     mda_address_t   * search    = data;
 
-    if (interface->address && address_cmp(interface->address, search->address) == 0) {
+    if (interface->address && address_compare(interface->address, search->address) == 0) {
         search->result = elt;
         return LATTICE_INTERRUPT_ALL;
     }

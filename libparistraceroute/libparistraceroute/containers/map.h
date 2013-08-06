@@ -89,6 +89,22 @@ void map_dump(const map_t * map);
  * \return true iif successful.
  */
 
-bool map_update(map_t * map, const void * key, const void * data);
+bool map_update_impl(map_t * map, const void * key, const void * data);
+
+#define map_update(map, key, data) map_update_impl(map, (const void *) key, (const void *) data)
+
+/**
+ * \brief Search a key in the map in order to retrieve the
+ *    corresponding value.
+ * \param map A map_t instance.
+ * \param key The key we're seeking.
+ * \param pdata Pass NULL. *pdata will store the address data
+ *    related to this key (if found).
+ * \return true if the key has been found, false otherwise
+ */
+
+bool map_find_impl(const map_t * map, const void * key, const void ** pdata);
+
+#define map_find(map, key, pdata) map_find_impl(map, (const void *) key, (const void **) pdata)
 
 #endif

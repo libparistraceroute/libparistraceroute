@@ -17,6 +17,8 @@
 static void * protocols_root    = NULL;  /**< Tree ordered by name */
 static void * protocols_id_root = NULL;  /**< Tree ordered by id   */
 
+static void protocol_clear() __attribute__((destructor(200)));
+
 static int protocol_compare(
     const protocol_t * protocol1,
     const protocol_t * protocol2
@@ -33,8 +35,7 @@ static int protocol_id_compare(
 
 static void nothing_to_free() {}
 
-const protocol_t * protocol_search(const char * name)
-{
+const protocol_t * protocol_search(const char * name) {
     protocol_t ** protocol, search;
 
     if (!name) return NULL;
@@ -44,8 +45,7 @@ const protocol_t * protocol_search(const char * name)
     return protocol ? *protocol : NULL;
 }
 
-const protocol_t * protocol_search_by_id(uint8_t id)
-{
+const protocol_t * protocol_search_by_id(uint8_t id) {
     protocol_t ** protocol, search;
 
     search.protocol = id;
@@ -54,15 +54,15 @@ const protocol_t * protocol_search_by_id(uint8_t id)
     return protocol ? *protocol : NULL;
 }
 
-void protocol_register(protocol_t * protocol)
-{
+void protocol_register(protocol_t * protocol) {
     // Insert the protocol in the tree if the keys does not exist yet
     tsearch(protocol, &protocols_root,    (ELEMENT_COMPARE) protocol_compare);
     tsearch(protocol, &protocols_id_root, (ELEMENT_COMPARE) protocol_id_compare);
 }
 
-void protocol_clear() {
+static void protocol_clear() {
     tdestroy(protocols_root, nothing_to_free);
+    tdestroy(protocols_id_root, nothing_to_free);
 }
 
 const protocol_field_t * protocol_get_field(const protocol_t * protocol, const char * name)

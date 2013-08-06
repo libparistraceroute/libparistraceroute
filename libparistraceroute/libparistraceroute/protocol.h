@@ -192,6 +192,4 @@ static void __init_ ## MOD (void) {    \
     protocol_register(&MOD); \
 }
 
-void protocol_clear() __attribute__((destructor(200)));
-
 #endif
