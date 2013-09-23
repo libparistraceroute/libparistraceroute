@@ -28,7 +28,6 @@ config.sub
 configure
 depcomp
 install-sh
-libparistraceroute/.deps/
 libparistraceroute/config.h
 libparistraceroute/stamp-h1
 libparistraceroute/config.h.in
@@ -36,8 +35,17 @@ libtool
 ltmain.sh
 m4/
 missing
-paris-traceroute/.deps/
-traceroute/.deps/
+libparistraceroute/.deps/
+libparistraceroute/algorithms/.deps/
+libparistraceroute/algorithms/.dirstamp
+libparistraceroute/algorithms/mda/.deps/
+libparistraceroute/algorithms/mda/.dirstamp
+libparistraceroute/containers/.deps/
+libparistraceroute/containers/.dirstamp
+libparistraceroute/generators/.deps/
+libparistraceroute/generators/.dirstamp
+libparistraceroute/protocols/.deps/
+libparistraceroute/protocols/.dirstamp
 
 # Binary
 

@@ -82,7 +82,7 @@ void * set_find(const set_t * set, const void * element);
  *   already in the set, it returns false.
  */
 
-bool set_insert(set_t * set, const void * element);
+bool set_insert(set_t * set, void * element);
 
 /**
  * \brief Erase an element from the set.

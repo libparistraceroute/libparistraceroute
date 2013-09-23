@@ -11,10 +11,17 @@ AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = traceroute
 
 # list of sources for the traceroute binary
-traceroute_SOURCES =    \
-                        traceroute.c
+traceroute_SOURCES = \
+	traceroute.c
 
-traceroute_LDADD = -lparistraceroute-1.0
-traceroute_LDFLAGS = -L../libparistraceroute
-traceroute_DEPENDENCIES =
+traceroute_CFLAGS = \
+	$(AM_CFLAGS) \
+	-I$(srcdir)/../libparistraceroute
+
+traceroute_LDADD = \
+	../libparistraceroute/libparistraceroute-@LIBRARY_VERSION@.la
+
+traceroute_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-L../libparistraceroute
 

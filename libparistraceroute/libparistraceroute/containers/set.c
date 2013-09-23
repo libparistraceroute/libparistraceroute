@@ -1,6 +1,6 @@
 #include "config.h"
 
-#define _GNU_SOURCE
+#define _GNU_SOURCE // Expose declaration of tdestroy()
 #include <search.h> // tsearch, twalk, tdestroy, tdelete
 #include <stdlib.h> // malloc, free
 #include <stdio.h>  // printf
@@ -72,14 +72,14 @@ void * set_find(const set_t * set, const void * element) {
     return search ? *search : NULL;
 }
 
-bool set_insert(set_t * set, const void * element) {
+bool set_insert(set_t * set, void * element) {
     void * element_dup;
     bool   inserted;
 
     if (set->dummy_element->dup) {
         if (!(element_dup = set->dummy_element->dup(element))) goto ERR_ELEMENT_DUP;
     } else {
-        element_dup = (void *) element;
+        element_dup = element;
     }
 
     inserted = (* (void **) tsearch(element_dup, &set->root, set->dummy_element->compare) == element_dup);
