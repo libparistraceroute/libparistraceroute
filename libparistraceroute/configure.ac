@@ -91,8 +91,7 @@ fi
 AC_PROG_CC
 AC_LANG_C
 AC_PROG_INSTALL
-AC_DISABLE_STATIC
-AC_PROG_LIBTOOL
+LT_INIT([shared static])
 
 #################################################################################
 #
