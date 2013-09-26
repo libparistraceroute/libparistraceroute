@@ -19,6 +19,13 @@ ERR_CALLOC:
     return NULL;
 }
 
+static void (* tree_node_get_freecb(tree_node_t * node))(void *) {
+    // Require the parent pointer to be valid for tracing back free callback.
+    tree_node_t * root = node;
+    while (root->parent) root = node->parent;
+    return ((tree_t *)root)->callback_free;
+}
+
 void tree_node_free_impl(tree_node_t * node, void (*callback_free)(void * element)) {
     size_t i;
 
@@ -27,8 +34,11 @@ void tree_node_free_impl(tree_node_t * node, void (*callback_free)(void * elemen
         for(i = 0; i < tree_node_get_num_children(node); i++) {       
             tree_node_free(tree_node_get_ith_child(node, i), callback_free);
         }
-        dynarray_free(node->children, callback_free);
+        // Don't need to concern on children elements free, since the
+        // recursion has already done children's resource release.
+        dynarray_free(node->children, NULL);
     }
+    if (callback_free && node->data) callback_free(node->data);
     free(node);
 }
 
@@ -43,7 +53,7 @@ tree_node_t * tree_node_add_child(tree_node_t * node, void * element) {
     return child;
 
 ERR_PUSH_CHILD:
-    tree_node_free(child, NULL); // TODO move callback_free of dynarray into dynarray_create
+    tree_node_free(child, tree_node_get_freecb(node));
 ERR_TREE_NODE_CREATE:
 ERR_PARENT_NODE:
     return NULL;
@@ -135,6 +145,7 @@ ERR_CALLOC:
 void tree_free(tree_t * tree) {
     if (tree) {
         if (tree->root) tree_node_free(tree->root, tree->callback_free);
+        free(tree);
     }
 }
 
