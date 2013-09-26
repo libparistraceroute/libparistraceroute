@@ -224,7 +224,7 @@ bool probe_update_checksum(probe_t * probe)
             }
 
             // Release the pseudo header (if any) from the memory
-            if (pseudo_header) free(pseudo_header);
+            if (pseudo_header) buffer_free(pseudo_header);
         }
     }
     return true;
