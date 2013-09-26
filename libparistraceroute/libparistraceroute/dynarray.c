@@ -107,7 +107,7 @@ bool dynarray_del_n_elements(dynarray_t * dynarray, size_t i, size_t n, void (*e
 
     if (dynarray && i + n <= num_elements) {
         if (element_free) {
-            for (j = i; j < i + n; i++) {
+            for (j = i; j < i + n; j++) {
                 element_free(dynarray_get_ith_element(dynarray, j));
             }
         }
