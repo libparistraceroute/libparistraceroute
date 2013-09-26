@@ -218,7 +218,9 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
                 printf("Lattice:\n");
                 lattice_dump(mda_data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump);
                 printf("\n");
+                mda_data_free(mda_data);
             }
+            pt_instance_stop(loop, event->issuer);
             pt_loop_terminate(loop);
             break;
         case ALGORITHM_EVENT:
@@ -246,6 +248,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
         default:
             break;
     }
+    event_free(event);
 }
 
 const char * get_ip_protocol_name(int family) {
