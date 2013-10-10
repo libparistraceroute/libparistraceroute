@@ -208,7 +208,7 @@ ERR_MALLOC:
 void pt_loop_free(pt_loop_t * loop)
 {
     if (loop) {
-        if (loop->events_user)  dynarray_free(loop->events_user, event_free);
+        if (loop->events_user)  dynarray_free(loop->events_user, (ELEMENT_FREE) event_free);
         if (loop->epoll_events) free(loop->epoll_events);
         network_free(loop->network);
         close(loop->sfd);

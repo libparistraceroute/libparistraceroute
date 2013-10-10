@@ -6,7 +6,7 @@
 #include <limits.h>        // INT_MAX
 
 #include "../algorithm.h"  // algorithm_t
-#include "../common.h"     // MAX
+#include "../common.h"     // MAX, ELEMENT_FREE
 #include "../options.h"    // option_t
 #include "../pt_loop.h"    // pt_send_probe
 #include "../lattice.h"    // LATTICE_*
@@ -385,7 +385,7 @@ static lattice_return_t mda_delete_flow(lattice_elt_t * elt, void * data)
         for (i = 0; i < size; i++) {
             mda_flow_t *flow = dynarray_get_ith_element(interface->flows, i);
             if ((flow->flow_id == search->flow_id) && (flow->state == MDA_FLOW_TESTING)) {
-                dynarray_del_ith_element(interface->flows, i, mda_flow_free);
+                dynarray_del_ith_element(interface->flows, i, (ELEMENT_FREE) mda_flow_free);
                 return LATTICE_INTERRUPT_ALL;
             }
         }

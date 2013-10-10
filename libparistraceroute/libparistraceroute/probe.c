@@ -823,7 +823,7 @@ static field_t * probe_create_metafield_ext(const probe_t * probe, const char * 
         NULL;
 }
 
-const field_t * probe_create_metafield(const probe_t * probe, const char * name) {
+field_t * probe_create_metafield(const probe_t * probe, const char * name) {
     return probe_create_metafield_ext(probe, name, 0);
 }
 
@@ -1033,6 +1033,18 @@ bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, v
 }
 
 bool probe_extract(const probe_t * probe, const char * name, void * dst) {
+    field_t * flow_id_field;
+
+    // TEMPORARY HACK TO MANAGE flow_id metafield
+    if (!strcmp(name, "flow_id")) {
+        if ((flow_id_field = probe_create_metafield(probe, "flow_id")) != NULL) {
+            memcpy(dst, &flow_id_field->value.int16, sizeof(uint16_t));
+            field_free(flow_id_field);
+            return true;
+        }
+        return false;
+    }
+
     return probe_extract_ext(probe, name, 0, dst);
 }
 
