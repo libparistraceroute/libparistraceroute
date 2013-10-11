@@ -177,7 +177,8 @@ address_t * address_dup(const address_t * address) {
 
 int address_compare(const address_t * x, const address_t * y) {
     size_t          i, address_size;
-    const uint8_t * px, * py;
+    const uint8_t * px = NULL,
+                  * py = NULL;
 
     if (x->family < y->family) return -1;
     if (x->family > y->family) return 1;

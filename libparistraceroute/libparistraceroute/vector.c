@@ -28,11 +28,11 @@ vector_t * vector_create_impl(size_t size, void (* callback_free)(void *), void 
         vector->cells_free = callback_free;
         vector->cells_dump = callback_dump;
         vector_initialize(vector);
-    }   
+    }
     return vector;
 }
 
-void vector_free(vector_t * vector, void (* element_free)(void * element)) { 
+void vector_free(vector_t * vector, void (* element_free)(void * element)) {
     size_t i;
     void * element;
 
@@ -136,7 +136,8 @@ bool vector_set_ith_element(vector_t * vector, size_t i, void * element)
 }
 
 void vector_dump(vector_t * vector) {
-    for(size_t i = 0; i < vector_get_num_cells(vector); i++) {
+    size_t i;
+    for(i = 0; i < vector_get_num_cells(vector); i++) {
         vector->cells_dump(vector_get_ith_element_impl(vector, i));
     }
 }

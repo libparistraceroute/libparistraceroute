@@ -1,6 +1,5 @@
 #include "config.h"
 
-#define _GNU_SOURCE // Expose declaration of tdestroy()
 #include <search.h> // tsearch, twalk, tdestroy, tdelete
 #include <stdlib.h> // malloc, free
 #include <stdio.h>  // printf

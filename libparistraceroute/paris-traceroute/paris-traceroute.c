@@ -375,18 +375,17 @@ int main(int argc, char ** argv)
         }
     }
 
-    // ICMPv* do not support ports nor payload.
+    // ICMPv* do not support src_port and dst_port fields nor payload.
     if (!use_icmp) {
-        uint16_t sport, dport;
+        uint16_t sport = 0,
+                 dport = 0;
 
-        // Option -U sets port to 53 (DNS) if dst_port is not explicitely set
         if (use_udp) {
+            // Option -U sets port to 53 (DNS) if dst_port is not explicitely set
             sport = src_port[3] ? src_port[0] : UDP_DEFAULT_SRC_PORT;
             dport = dst_port[3] ? dst_port[0] : (is_udp ? UDP_DST_PORT_USING_U : UDP_DEFAULT_DST_PORT);
-        }
-
-        // Option -T sets port to 80 (http) if dst_port is not explicitely set
-        if (use_tcp) {
+        } else if (use_tcp) {
+            // Option -T sets port to 80 (http) if dst_port is not explicitely set
             sport = src_port[3] ? src_port[0] : TCP_DEFAULT_SRC_PORT;
             dport = dst_port[3] ? dst_port[0] : (is_tcp ? TCP_DST_PORT_USING_T : TCP_DEFAULT_DST_PORT);
         }

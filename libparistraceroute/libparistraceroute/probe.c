@@ -788,6 +788,7 @@ bool probe_set_metafield_ext(probe_t * probe, size_t depth, field_t * field)
         return false;
     }
 
+    // We add 24000 to use port to increase chances to traverse firewalls
     if ((hacked_field = I16("src_port", 24000 + field->value.int16))) {
         ret = probe_set_field(probe, hacked_field);
         field_free(hacked_field);
@@ -818,6 +819,7 @@ static field_t * probe_create_metafield_ext(const probe_t * probe, const char * 
 
     // TODO We've hardcoded the flow-id in the src_port and we only support the "flow_id" metafield
     // In IPv6, flow_id should be set thanks to probe_set_field
+    // We substract 24000 to the port (see probe_set_metafield_ext) 
     return probe_extract(probe, "src_port", &src_port) ?
         IMAX("flow_id", src_port - 24000) :
         NULL;
@@ -921,7 +923,7 @@ double probe_get_delay(const probe_t * probe)
 double probe_next_delay(probe_t * probe)
 {
     field_t * field_delay = probe->delay;
-    double    delay;
+    double    delay       = DELAY_BEST_EFFORT;
 
     if (field_delay) {
         switch (field_delay->type) {
@@ -936,8 +938,6 @@ double probe_next_delay(probe_t * probe)
                 fprintf(stderr, "Invalid 'delay' type field\n");
                 break;
         }
-    } else {
-        delay = DELAY_BEST_EFFORT;
     }
     return delay;
 }

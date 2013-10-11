@@ -1,4 +1,4 @@
-#
+#G
 # Pre-setting for libparistraceroute configure script
 #
 # This file is part of libparistraceroute
@@ -21,7 +21,7 @@ AC_SUBST(API_VERSION)
 AC_CONFIG_SRCDIR([paris-traceroute/paris-traceroute.c])
 AC_CONFIG_SRCDIR([traceroute/traceroute.c])
 
-# automake initialization (mandatory) (no check for automake version)
+# automake initialization
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_GNU_SOURCE
@@ -43,9 +43,7 @@ AC_DEFINE([BSDSOCKET], [1], [BSD socket interface])
 #jo#trpt_others="yes"
 #jo#trpt_buggy="no"
 
-#CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
-CFLAGS="-g -Wall -fno-strict-aliasing  -fno-omit-frame-pointer -g -std=gnu99 -Wall -Wsign-compare -Wpointer-arith -Wbad-function-cast -Wwrite-strings -Wchar-subscripts -Wcast-qual"
-# -Werror
+CFLAGS="$CFLAGS -Wall -Werror"
 
 #############
 ## Options ##
