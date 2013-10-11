@@ -3,10 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: @PACKAGE_NAME@
-Description: libparistraceroute
+Name: paristraceroute-@LIBRARY_VERSION@
+Description: The Paris Traceroute library
 Version: @PACKAGE_VERSION@
 URL: @PACKAGE_URL@
-Libs: -L${libdir} -lparistraceroute-@API_VERSION@
-Cflags: -I${includedir}/paristraceroute-@API_VERSION@ -I${libdir}/paristraceroute-@API_VERSION@/include
-
+Cflags: -I${includedir}/paristraceroute
+Libs: -L${libdir} -lparistraceroute-@LIBRARY_VERSION@
