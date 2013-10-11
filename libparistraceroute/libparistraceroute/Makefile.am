@@ -163,7 +163,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_LDFLAGS = -version-info @API_VERSION@
 ## pkg-config files are also used for architecture-independent data packages,
 ## in which case the correct install location would be $(datadir)/pkgconfig.
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libparistraceroute-@LIBRARY_VERSION@.pc
+nodist_pkgconfig_DATA = libparistraceroute-@LIBRARY_VERSION@.pc
 
 ## Define an independent executable script for inclusion in the distribution
 ## archive.  However, it will not be installed on an end user's system due to
