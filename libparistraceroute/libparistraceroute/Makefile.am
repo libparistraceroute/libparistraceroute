@@ -35,7 +35,6 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						bits.h \
 						buffer.h \
 						common.h \
-						config.h \
 						containers/object.h \
 						containers/map.h \
 						containers/pair.h \
@@ -66,6 +65,9 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         tree.h \
                         use.h \
                         vector.h
+
+nodist_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS = \
+	config.h
 
 # where to install the headers on the system
 libparistraceroute_@LIBRARY_VERSION@_ladir = $(includedir)/paristraceroute
@@ -165,7 +167,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_LDFLAGS = -version-info @API_VERSION@
 pkgconfigdir = $(libdir)/pkgconfig
 nodist_pkgconfig_DATA = libparistraceroute-@LIBRARY_VERSION@.pc
 
-## Define an independent executable script for inclusion in the distribution
-## archive.  However, it will not be installed on an end user's system due to
-## the noinst_ prefix.
-#dist_noinst_SCRIPTS = autogen.sh
+# Dead code.
+EXTRA_DIST = \
+	algorithms/node_query.c \
+	metafields/flow_id.c

@@ -60,3 +60,14 @@ traceroute/traceroute
 # Packages
 
 packages/
+*.dsc
+*.deb
+*.tar.gz
+*.changes
+
+# Patches
+
+*.diff
+*.patch
+
+
