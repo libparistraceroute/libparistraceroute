@@ -23,7 +23,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 ## file (.so).
 lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la
 
-libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
+nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						address.h \
                         algorithm.h \
 						algorithms/mda/data.h \
@@ -66,7 +66,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         use.h \
                         vector.h
 
-nodist_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS = \
+nodist_nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS = \
 	config.h
 
 # where to install the headers on the system
