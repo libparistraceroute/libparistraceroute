@@ -8,7 +8,7 @@ AUTOMAKE_OPTIONS = foreign
 #
 
 # the program to build (the names of the final binaries)
-bin_PROGRAMS = traceroute
+noinst_PROGRAMS = traceroute
 
 # list of sources for the traceroute binary
 traceroute_SOURCES = \
