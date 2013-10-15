@@ -123,6 +123,12 @@ ERR_MALLOC:
     return NULL;
 }
 
+void options_free(options_t * options)
+{
+    vector_free(options->optspecs, NULL);
+    free(options);
+}
+
 void options_dump(const options_t * options) {
     vector_dump(options->optspecs);
 }
@@ -145,7 +151,7 @@ bool options_add_optspec(options_t * options, const option_t * option)
 
     if (!colliding_option) {
         // No collision, add this option
-        ret = vector_push_element(options->optspecs, (void *) option_dup(option));
+        ret = vector_push_element(options->optspecs, (void *) option);
     } else if (options->collision_callback) {
         // Collision detected, call collision_callback
         ret = options->collision_callback(colliding_option, option);

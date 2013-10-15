@@ -70,6 +70,13 @@ typedef struct {
 options_t * options_create(bool (* collision_callback)(option_t * option1, const option_t * option2));
 
 /**
+ * \brief Free the options structure
+ * \param options A pointer to options structure
+ */
+
+void options_free(options_t * options);
+
+/**
  * \brief Add options to an array of options
  * \param options A pointer to an options_t structure containing the array of options to fill
  * \param option A pointer to an array of options to add
