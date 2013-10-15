@@ -255,6 +255,7 @@ static bool send_traceroute_probe(
     }
     if (!probe_set_fields(probe, I8("ttl", ttl), NULL))         goto ERR_PROBE_SET_FIELDS;
     if (!dynarray_push_element(traceroute_data->probes, probe)) goto ERR_PROBE_PUSH_ELEMENT;
+    probe_inc_ref_count(probe);
 
     return pt_send_probe(loop, probe);
 
@@ -368,7 +369,10 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
             data->destination_reached |= destination_reached(options->dst_addr, reply);
 
             // Notify the caller we've discovered an IP address
-            pt_raise_event(loop, event_create(TRACEROUTE_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            pt_raise_event(loop,
+                event_create(TRACEROUTE_PROBE_REPLY, probe_reply, NULL,
+                             (ELEMENT_REF) probe_reply_inc_ref_count,
+                             (ELEMENT_FREE) probe_reply_free));
             break;
 
         case PROBE_TIMEOUT:
@@ -380,7 +384,10 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
             ++(data->num_replies);
 
             // Notify the caller we've got a probe timeout
-            pt_raise_event(loop, event_create(TRACEROUTE_STAR, probe, NULL, (ELEMENT_FREE) probe_free));
+            pt_raise_event(loop,
+                event_create(TRACEROUTE_STAR, probe, NULL,
+                             (ELEMENT_REF) probe_inc_ref_count,
+                             (ELEMENT_FREE) probe_free));
             break;
 
         case ALGORITHM_TERMINATED:
@@ -397,25 +404,34 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
             break;
     }
 
-    // Forward event to the caller
-    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
+    // Don't need to forward those events to the caller.
+    // All events passed into this function are invisible to the caller and
+    // released in algorithm_instance_clear_events(), and the caller can only
+    // get events explicitly created in this handler.
+    // pt_algorithm_throw(loop, loop->cur_instance->caller, event);
 
     // Explore next hop
     if ((data->num_replies % options->num_probes) == 0) {
         if (data->destination_reached) {
             // We've reached the destination
-            pt_raise_event(loop, event_create(TRACEROUTE_DESTINATION_REACHED, NULL, NULL, NULL));
+            pt_raise_event(loop,
+                event_create(TRACEROUTE_DESTINATION_REACHED,
+                             NULL, NULL, NULL, NULL));
             pt_raise_terminated(loop);
         } else if (data->ttl > options->max_ttl) {
             // We've reached the maximum TTL
-            pt_raise_event(loop, event_create(TRACEROUTE_MAX_TTL_REACHED, NULL, NULL, NULL));
+            pt_raise_event(loop,
+                event_create(TRACEROUTE_MAX_TTL_REACHED,
+                             NULL, NULL, NULL, NULL));
             pt_raise_terminated(loop);
         } else if (data->num_stars == options->num_probes) {
             // We've only discovered stars for the current hop
             ++(data->num_undiscovered);
             if (data->num_undiscovered == options->max_undiscovered) {
                 // We've only discovered stars for the last "max_undiscovered" hops, so give up
-                pt_raise_event(loop, event_create(TRACEROUTE_TOO_MANY_STARS, NULL, NULL, NULL));
+                pt_raise_event(loop,
+                    event_create(TRACEROUTE_TOO_MANY_STARS,
+                                 NULL, NULL, NULL, NULL));
                 pt_raise_terminated(loop);
             } else {
                 // Skip this hop and explore the next one
@@ -441,13 +457,9 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
         pt_raise_terminated(loop);
     }
 
-    // Handled event must always been free when leaving the handler
-    event_free(event);
     return 0;
 
 FAILURE:
-    // Handled event must always been free when leaving the handler
-    event_free(event);
 
     // Sent to the current instance a ALGORITHM_FAILURE notification.
     // The caller has to free the data allocated by the algorithm.

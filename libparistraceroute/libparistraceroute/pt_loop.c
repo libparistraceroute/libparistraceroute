@@ -114,6 +114,7 @@ static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_
         type,
         nested_event,
         loop->cur_instance,
+        NULL,
         nested_event ? (ELEMENT_FREE) event_free : NULL
     );
     if (!event) return false;

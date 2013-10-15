@@ -51,6 +51,8 @@ typedef struct {
 
 /** 
  * \brief Create a new event structure
+ *        NOTE: In case of failure, data_free() will be invoked on the data
+ *        to help callers to release the data.
  * \param type Event type
  * \param data Data that must be carried by this event 
  * \param issuer
@@ -61,6 +63,7 @@ event_t * event_create(
     event_type_t type,
     void * data,
     struct algorithm_instance_s * issuer,
+    void (*data_ref) (void * data),
     void (*data_free) (void * data)
 );
 

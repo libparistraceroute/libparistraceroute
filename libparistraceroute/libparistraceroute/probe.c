@@ -359,6 +359,7 @@ probe_t * probe_create()
     if (!(probe->layers = dynarray_create()))    goto ERR_LAYERS;
 //    if (!(probe->bitfield = bitfield_create(0))) goto ERR_BITFIELD;
     probe_set_left_to_send(probe, 1);
+    probe->ref_count = 1;
     return probe;
 
     /*
@@ -386,6 +387,7 @@ probe_t * probe_dup(const probe_t * probe)
     ret->queueing_time = probe->queueing_time;
     ret->recv_time     = probe->recv_time;
     ret->caller        = probe->caller;
+    ret->ref_count     = 1;
 #ifdef USE_SCHEDULING
     ret->delay         = probe->delay ? field_dup(probe->delay): NULL;
 #endif
@@ -405,6 +407,8 @@ ERR_PACKET_DUP:
 void probe_free(probe_t * probe)
 {
     if (probe) {
+        if (--(probe->ref_count) != 0) return;
+
 //        bitfield_free(probe->bitfield);
         probe_layers_free(probe);
         if (probe->packet) {
@@ -495,9 +499,9 @@ probe_t * probe_wrap_packet(packet_t * packet)
         goto ERR_PROBE_CREATE;
     }
 
-    // Clear the probe
-    // The actual value of probe->packet is not freed since it
-    // can pointed by another probe_t instance.
+    // Right now, there is no case that a packet is referred by multiple
+    // probe_t instances.
+    packet_free(probe->packet);
     probe->packet = packet;
     probe_layers_clear(probe);
 
@@ -1071,20 +1075,18 @@ ERR_EXTRACT_DST_IP:
 //---------------------------------------------------------------------------
 
 probe_reply_t * probe_reply_create() {
-    return calloc(1, sizeof(probe_reply_t));
+    probe_reply_t *pr = calloc(1, sizeof(probe_reply_t));
+    if (pr != NULL) pr->ref_count = 1;
+    return pr;
 }
 
 void probe_reply_free(probe_reply_t * probe_reply) {
     if (probe_reply) {
-        free(probe_reply);
-    }
-}
+        if (--(probe_reply->ref_count) != 0) return;
 
-void probe_reply_deep_free(probe_reply_t * probe_reply) {
-    if (probe_reply) {
         if (probe_reply->probe) probe_free(probe_reply->probe);
         if (probe_reply->reply) probe_free(probe_reply->reply);
-        probe_reply_free(probe_reply);
+        free(probe_reply);
     }
 }
 

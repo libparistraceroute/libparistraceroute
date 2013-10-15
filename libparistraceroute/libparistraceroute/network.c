@@ -636,8 +636,12 @@ bool network_process_recvq(network_t * network)
     probe_reply_set_probe(probe_reply, probe);
     probe_reply_set_reply(probe_reply, reply);
 
-    // Notify the instance which has build the probe that we've got the corresponding reply
-    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL)); // TODO probe_reply_free frees only the reply
+    // Notify the instance which has build the probe that we've got the
+    // corresponding reply. No need to explicitly reference probe_reply
+    // since it is just created and no any other entity refer to it.
+    pt_algorithm_throw(NULL, probe->caller,
+        event_create(PROBE_REPLY, probe_reply, NULL, NULL,
+                     (ELEMENT_FREE) probe_reply_free));
     return true;
 
 ERR_PROBE_REPLY_CREATE:
@@ -674,12 +678,15 @@ bool network_drop_expired_flying_probe(network_t * network)
             if (network_get_probe_timeout(network, probe) - EXTRA_DELAY > 0) break;
 
             // This probe has expired, raise a PROBE_TIMEOUT event.
-            pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
+            pt_algorithm_throw(NULL, probe->caller,
+                event_create(PROBE_TIMEOUT, probe, NULL,
+                             (ELEMENT_REF) probe_inc_ref_count,
+                             (ELEMENT_FREE) probe_free));
         }
 
         // Delete the i oldest probes, which have expired.
         if (i != 0) {
-            dynarray_del_n_elements(network->probes, 0, i, NULL);
+            dynarray_del_n_elements(network->probes, 0, i, (ELEMENT_FREE) probe_free);
         }
 
         ret = network_update_next_timeout(network);

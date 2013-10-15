@@ -124,19 +124,13 @@ static int mda_stopping_points(unsigned int num_interfaces, unsigned int confide
 
 static bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst)
 {
-    event_t          * mda_event;
     mda_interface_t ** link;
 
-    if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
+    if (!(link = malloc(2 * sizeof(mda_interface_t)))) return false;
     link[0] = src;
     link[1] = dst;
-    if (!(mda_event = event_create(MDA_NEW_LINK, link, NULL, free))) goto ERR_MDA_EVENT;
-    return pt_raise_event(loop, mda_event);
-
-ERR_MDA_EVENT:
-    free(link);
-ERR_LINK:
-    return false;
+    return pt_raise_event(loop,
+        event_create(MDA_NEW_LINK, link, NULL, NULL, free));
 }
 
 //---------------------------------------------------------------------------

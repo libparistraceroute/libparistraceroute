@@ -39,6 +39,7 @@ typedef struct {
     field_t    * delay;         /**< The time to send this probe */
 #endif
     size_t       left_to_send;  /**< Number of times left to use this probe instance to send packets */
+    unsigned int ref_count;     /**< Reference count to this probe instance */
 } probe_t;
 
 /**
@@ -309,6 +310,14 @@ double probe_get_recv_time(const probe_t * probe);
 
 bool probe_set_delay(probe_t * probe, field_t * delay);
 
+static inline void probe_inc_ref_count(probe_t * probe) {
+    probe->ref_count++;
+}
+
+static inline void probe_dec_ref_count(probe_t * probe) {
+    probe->ref_count--;
+}
+
 /**
  * \brief Retrieve the delay related to a probe skeleton.
  * \param probe The probe skeleton used to craft the probe packet.
@@ -357,11 +366,17 @@ packet_t * probe_create_packet(probe_t * probe);
 typedef struct {
     probe_t * probe;
     probe_t * reply;
+    unsigned int ref_count;
 } probe_reply_t;
 
 probe_reply_t * probe_reply_create();
 void probe_reply_free(probe_reply_t * probe_reply);
-void probe_reply_deep_free(probe_reply_t * probe_reply);
+static inline void probe_reply_inc_ref_count(probe_reply_t * probe_reply) {
+    probe_reply->ref_count++;
+}
+static inline void probe_reply_dec_ref_count(probe_reply_t * probe_reply) {
+    probe_reply->ref_count--;
+}
 
 // Accessors
 

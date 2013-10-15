@@ -2,6 +2,12 @@
 #define COMMON_H
 
 /**
+ * \brief Type related to a *_ref() function
+ */
+
+#define ELEMENT_REF void   (*)(void *)
+
+/**
  * \brief Type related to a *_free() function
  */
 

@@ -283,7 +283,8 @@ algorithm_instance_t * pt_algorithm_add(
     }
 
     // We need to queue a new event for the algorithm: it has been started
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL, NULL, NULL));
+    pt_algorithm_throw(NULL, instance,
+        event_create(ALGORITHM_INIT, NULL, NULL, NULL, NULL));
 
     // Add this algorithms to the list of handled algorithms
     pt_algorithm_instance_add(loop, instance);
@@ -301,7 +302,8 @@ void pt_instance_stop(
         algorithm_instance_t * instance
 ) {
     // Notify the caller that this instance will be freed
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL));
+    pt_algorithm_throw(NULL, instance,
+        event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL, NULL));
 
     // Unregister this instance from the loop
     pt_algorithm_instance_del(loop, instance);
