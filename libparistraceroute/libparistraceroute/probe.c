@@ -1038,7 +1038,7 @@ bool probe_extract(const probe_t * probe, const char * name, void * dst) {
     // TEMPORARY HACK TO MANAGE flow_id metafield
     if (!strcmp(name, "flow_id")) {
         if ((flow_id_field = probe_create_metafield(probe, "flow_id")) != NULL) {
-            memcpy(dst, &flow_id_field->value.int16, sizeof(uint16_t));
+            *(uintmax_t *) dst = flow_id_field->value.int16;
             field_free(flow_id_field);
             return true;
         }
