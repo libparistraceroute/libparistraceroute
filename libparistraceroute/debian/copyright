@@ -1,9 +1,10 @@
 Format: http://dep.debian.net/deps/dep5
 Upstream-Name: paris-traceroute
+Upstream-Contact: Paris Traceroute Team <paris-traceroute@googlegroups.com>
 Source: https://code.google.com/p/paris-traceroute.libparistraceroute/
 
 Files: *
-Copyright 2006, 2012, 2013 Universit? Pierre et Marie Curie
+Copyright: 2006, 2012, 2013 Université Pierre et Marie Curie
 License: BSD-3-Clause
 
 Files: debian/*

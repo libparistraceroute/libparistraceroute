@@ -1,8 +1,9 @@
 Source: paris-traceroute
 Priority: extra
 Maintainer: Paris Traceroute Team <paris-traceroute@googlegroups.com>
+Uploaders: Romain Lenglet <romain.lenglet@berabera.info>
 Build-Depends: debhelper (>= 8.0.0), autotools-dev
-Standards-Version: 3.9.4
+Standards-Version: 3.9.3
 Section: net
 Homepage: http://www.paris-traceroute.net/
 Vcs-Git: https://code.google.com/p/paris-traceroute.libparistraceroute/
@@ -11,7 +12,7 @@ Vcs-Browser: https://code.google.com/p/paris-traceroute/source/browse/?repo=libp
 Package: libparistraceroute-dev
 Section: libdevel
 Architecture: any
-Depends: libparistraceroute1 (= ${binary:Version})
+Depends: ${misc:Depends}, libparistraceroute1 (= ${binary:Version})
 Description: network measurement tool library (development files)
  libparistraceroute is a library designed to simplify the process of
  creating advanced network measurement tools such as ping or
