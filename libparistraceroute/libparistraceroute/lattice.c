@@ -20,6 +20,7 @@ lattice_elt_t * lattice_elt_create(void * data)
     if (!(elt->siblings = dynarray_create()))       goto ERR_DYNARRAY_CREATE2;
     if (!dynarray_push_element(elt->siblings, elt)) goto ERR_DYNARRAY_PUSH_ELEMENT;
     elt->data = data;
+    elt->ref_count = 1;
 
     return elt;
 
@@ -33,8 +34,12 @@ ERR_MALLOC:
     return NULL;
 }
 
-void lattice_elt_free(lattice_elt_t * elt) {
-    // TODO element_free
+void lattice_elt_free(lattice_elt_t * elt,
+                      void (*lattice_element_free)(void *element)) {
+    if (--elt->ref_count != 0) return;
+
+    if (lattice_element_free) lattice_element_free(lattice_elt_get_data(elt));
+
     dynarray_free(elt->siblings, NULL);
     dynarray_free(elt->next, NULL);
     free(elt);
@@ -69,12 +74,37 @@ ERR_MALLOC:
     return NULL;
 }
 
+static void lattice_walk_dfs_rec_free(
+    lattice_elt_t * elt,
+    void (*lattice_element_free)(void *element)
+) {
+    lattice_elt_t    * elt_iter;
+    unsigned int       i;
+
+    for (i = dynarray_get_size(elt->next); i > 0; i--) {
+        elt_iter = dynarray_get_ith_element(elt->next, i - 1);
+        lattice_walk_dfs_rec_free(elt_iter, lattice_element_free);
+        // Remove the "next" from current element to keep entries in
+        // next array always valid, because this element might be deferred
+        // to free for re-visiting from other paths.
+        dynarray_del_ith_element(elt->next, i - 1, NULL);
+    }
+    lattice_elt_free(elt, lattice_element_free);
+}
+
 void lattice_free(lattice_t * lattice, void (*lattice_element_free)(void *element))
 {
-    /* TODO Free elements and data if needed ? */
-    //if (lattice_element_free)
-    //    lattice_element_free();
+    lattice_elt_t *  root;
+    size_t           i, num_roots;
 
+    // Process all roots
+    num_roots = dynarray_get_size(lattice->roots);
+    for (i = 0; i < num_roots; i++) {
+        root = dynarray_get_ith_element(lattice->roots, i);
+        lattice_walk_dfs_rec_free(root, lattice_element_free);
+    }
+
+    dynarray_free(lattice->roots, NULL);
     free(lattice);
 }
 
@@ -217,22 +247,25 @@ bool lattice_add_element(lattice_t * lattice, lattice_elt_t * predecessor, void 
             goto ERR_DYNARRAY_PUSH_ELEMENT;
         }
     } else {
-        // This node has some a predecessor so connect the both nodes.
-        if (!lattice_connect(lattice, predecessor, elt)) {
+        if (lattice_connect(lattice, predecessor, elt) != 0) {
             goto ERR_LATTICE_CONNECT;
         }
+        // A trick to decrement ref_count which is incremented by
+        // lattice_connect() in case of success.
+        elt->ref_count--;
     }
 
     return true;
 
 ERR_LATTICE_CONNECT:
 ERR_DYNARRAY_PUSH_ELEMENT:
-    lattice_elt_free(elt);
+    // caller must take care of data recycle
+    lattice_elt_free(elt, NULL);
 ERR_LATTICE_ELT_CREATE:
     return false;
 }
 
-bool lattice_connect(lattice_t * lattice, lattice_elt_t * u, lattice_elt_t * v)
+int lattice_connect(lattice_t * lattice, lattice_elt_t * u, lattice_elt_t * v)
 {
     size_t          i, j, num_next, num_siblings;
     const void    * elt_data = lattice_elt_get_data(v),
@@ -247,7 +280,7 @@ bool lattice_connect(lattice_t * lattice, lattice_elt_t * u, lattice_elt_t * v)
         cur_data = lattice_elt_get_data(cur_elt);
         if ((lattice->cmp && (lattice->cmp(cur_data, elt_data) == 0))
         ||  (cur_data == elt_data)) {
-            return true;
+            return 1;
         }
     }
     
@@ -277,13 +310,15 @@ bool lattice_connect(lattice_t * lattice, lattice_elt_t * u, lattice_elt_t * v)
     if (!dynarray_push_element(u->next, v)) {
         goto ERR_DYNARRAY_PUSH_ELEMENT3;
     }
+    v->ref_count++;
 
-    return true;
+    return 0;
 
 ERR_DYNARRAY_PUSH_ELEMENT3:
+// In case of following failure, garbage pointer in sibling doesn't matter
 ERR_DYNARRAY_PUSH_ELEMENT2:
 ERR_DYNARRAY_PUSH_ELEMENT1:
-    return false;
+    return -1;
 }
 
 static lattice_return_t lattice_element_dump(lattice_elt_t * elt, void * data) {

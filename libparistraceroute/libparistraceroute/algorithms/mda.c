@@ -443,6 +443,7 @@ static lattice_return_t mda_search_interface(lattice_elt_t * elt, void * data)
 static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pdata, probe_t * skel, const mda_options_t * options)
 {
     mda_data_t * data;
+    mda_interface_t  * root_interface;
 
     /*
     // DEBUG
@@ -469,13 +470,16 @@ static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pd
     // Create a dummy first hop, root of a lattice of discovered interfaces:
     // - not a tree since some interfaces might have several predecessors (diamonds)
     // - we assume the initial hop is not a load balancer
-    if (!lattice_add_element(data->lattice, NULL, mda_interface_create(NULL))) {
+    if (!(root_interface = mda_interface_create(NULL))) goto ERR_INTERFACE_CREATE;
+    if (!lattice_add_element(data->lattice, NULL, root_interface)) {
         goto ERR_LATTICE_ADD_ELEMENT;
     }
 
     return;
 
 ERR_LATTICE_ADD_ELEMENT:
+    mda_interface_free(root_interface);
+ERR_INTERFACE_CREATE:
 ERR_EXTRACT_DST_IP:
     mda_data_free(data);
 ERR_MDA_DATA_CREATE:
@@ -552,7 +556,8 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
         source_interface = lattice_elt_get_data(source_elt);
 
         if (dest_elt) {
-            if (!lattice_connect(data->lattice, source_elt, dest_elt)) {
+            int c = lattice_connect(data->lattice, source_elt, dest_elt);
+            if (c == -1) {
                 goto ERR_LATTICE_CONNECT;
             }
 
@@ -572,6 +577,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
 
         } else {
             if (!lattice_add_element(data->lattice, source_elt, dest_interface)) {
+                mda_interface_free(dest_interface);
                 goto ERR_LATTICE_ADD_ELEMENT;
             }
         }
@@ -658,6 +664,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
                 new_iface->num_stars = source_interface->num_stars + 1;
 
                 if (!lattice_add_element(data->lattice, source_elt, new_iface)) {
+                    mda_interface_free(new_iface);
                     goto ERROR;
                 }
 

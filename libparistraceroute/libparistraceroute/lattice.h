@@ -24,6 +24,7 @@ typedef struct {
     dynarray_t * next;     /**< Successors of this node */
     dynarray_t * siblings; /**< Sibling elements (element having the same depth from the root) */
     void       * data;     /**< Data stored in this node */
+    unsigned int ref_count;/**< Reference count to this element */
 } lattice_elt_t;
 
 /**
@@ -38,9 +39,12 @@ lattice_elt_t * lattice_elt_create(void * data);
 /**
  * \brief Release a lattice_elt_t instance from the memory.
  * \param elt A lattice_elt_t instance.
+ * \param lattice_element_free Pointer to a function used to free up
+ *    element resources (can be NULL).
  */
 
-void lattice_elt_free(lattice_elt_t * elt);
+void lattice_elt_free(lattice_elt_t * elt,
+                      void (*lattice_element_free)(void *element));
 
 void * lattice_elt_get_data(const lattice_elt_t * elt);
 
@@ -97,10 +101,12 @@ lattice_return_t lattice_walk(lattice_t * lattice, lattice_return_t (*visitor)(l
  * \brief Connect two nodes in the lattice.
  * \param u The first node.
  * \param v The second node.
- * \return true iif successful.
+ * \return -1 failure.
+ *         0  success.
+ *         1  connection is already existing.
  */
 
-bool lattice_connect(lattice_t * lattice, lattice_elt_t * u, lattice_elt_t * v);
+int lattice_connect(lattice_t * lattice, lattice_elt_t * u, lattice_elt_t * v);
 
 /**
  * \brief Add a new node in the lattice.
