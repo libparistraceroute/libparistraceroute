@@ -42,6 +42,8 @@
 #    define CHECKSUM check 
 #endif
 
+int load_udp;
+
 /**
  * UDP fields
  */

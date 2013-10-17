@@ -95,6 +95,8 @@
 #    define URGENT_PTR  urg_ptr 
 #endif
 
+int load_tcp;
+
 /**
  * \brief Retrieve the size of an TCP header 
  * \param tcp_segment Address of an TCP header or NULL

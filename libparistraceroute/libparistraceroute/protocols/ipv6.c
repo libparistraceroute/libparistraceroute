@@ -53,6 +53,7 @@
 #    define IPV6_OFFSET_IN_BITS_FLOW_LABEL     4
 #endif
 
+int load_ipv6;
 
 field_t * ipv6_get_length(const uint8_t * ipv6_segment) {
     const struct ip6_hdr * ipv6_header = (const struct ip6_hdr *) ipv6_segment;

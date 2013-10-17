@@ -22,6 +22,8 @@
 #define ICMPV6_DEFAULT_CHECKSUM  0
 #define ICMPV6_DEFAULT_BODY      0
 
+int load_icmpv6;
+
 // ICMP fields
 static protocol_field_t icmpv6_fields[] = {
     {   

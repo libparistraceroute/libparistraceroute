@@ -20,6 +20,8 @@
 #define ICMPV4_DEFAULT_CHECKSUM       0
 #define ICMPV4_DEFAULT_BODY           0
 
+int load_icmpv4;
+
 /**
  * ICMP fields
  */

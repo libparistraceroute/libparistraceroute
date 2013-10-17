@@ -151,4 +151,19 @@ const protocol_t * protocol_get_next_protocol(const layer_t * layer) {
     return next_protocol;
 }
 
-
+// Tricky for linking protocol components when statically link
+// to libparistraceroute library.
+extern int load_ipv4;
+extern int load_ipv6;
+extern int load_icmpv4;
+extern int load_icmpv6;
+extern int load_udp;
+extern int load_tcp;
+__attribute__((constructor)) void dummy(void) {
+    load_ipv4 = 1;
+    load_ipv6 = 1;
+    load_icmpv4 = 1;
+    load_icmpv6 = 1;
+    load_udp = 1;
+    load_tcp = 1;
+}
