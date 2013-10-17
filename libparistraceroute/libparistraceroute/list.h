@@ -52,7 +52,7 @@ void list_cell_free(list_cell_t * list_cell, void (*element_free) (void * elemen
  * \return The newly created list
  */
 
-list_t * list_create();
+list_t * list_create(void);
 
 /**
  * \brief Delete a list

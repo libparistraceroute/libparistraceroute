@@ -126,14 +126,14 @@ typedef struct network_s {
  * \return The value set in the network layer (in seconds)
  */
 
-double options_network_get_timeout();
+double options_network_get_timeout(void);
 
 /**
  * \brief Get the commandline options related to the layer network
  * \returna pointer to a tructure containing the options
  */
 
-const option_t * network_get_options();
+const option_t * network_get_options(void);
 
 /**
  * \brief Init the options related to network.
@@ -148,7 +148,7 @@ void options_network_init(network_t * network, bool verbose);
  * \return The newly created network layer.
  */
 
-network_t * network_create();
+network_t * network_create(void);
 
 /**
  * \brief Delete a network structure

@@ -65,7 +65,7 @@ typedef struct {
  *    NULL otherwise.
  */
 
-lattice_t * lattice_create();
+lattice_t * lattice_create(void);
 
 /**
  * \brief Release a lattice_t instance from the memory.

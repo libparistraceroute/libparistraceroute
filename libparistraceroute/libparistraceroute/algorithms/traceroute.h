@@ -28,11 +28,11 @@
 #define HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)."
 
 // Get the different values of traceroute options
-uint8_t options_traceroute_get_min_ttl();
-uint8_t options_traceroute_get_max_ttl();
-uint8_t options_traceroute_get_num_queries();
-uint8_t options_traceroute_get_max_undiscovered();
-bool    options_traceroute_get_do_resolv();
+uint8_t options_traceroute_get_min_ttl(void);
+uint8_t options_traceroute_get_max_ttl(void);
+uint8_t options_traceroute_get_num_queries(void);
+uint8_t options_traceroute_get_max_undiscovered(void);
+bool    options_traceroute_get_do_resolv(void);
 
 /*
  * Principle: (from man page)
@@ -75,9 +75,9 @@ typedef struct {
     bool              do_resolv;        /**< Resolv each discovered IP hop */
 } traceroute_options_t;
 
-const option_t * traceroute_get_options();
+const option_t * traceroute_get_options(void);
 
-traceroute_options_t traceroute_get_default_options();
+traceroute_options_t traceroute_get_default_options(void);
 
 void    options_traceroute_init(traceroute_options_t * traceroute_options, address_t * address);
 

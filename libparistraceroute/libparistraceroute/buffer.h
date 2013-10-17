@@ -26,7 +26,7 @@ typedef struct {
  *    NULL in case of failure
  */
 
-buffer_t * buffer_create();
+buffer_t * buffer_create(void);
 
 /**
  * \brief Duplicate a buffer instance

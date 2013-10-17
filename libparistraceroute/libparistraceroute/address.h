@@ -61,7 +61,7 @@ typedef struct {
  *    NULL otherwise.
  */
 
-address_t * address_create();
+address_t * address_create(void);
 
 /**
  * \brief Compare two address_t instances.

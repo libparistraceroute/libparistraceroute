@@ -175,7 +175,7 @@ void protocol_dump(const protocol_t * protocol);
  * \brief Print every protocol managed by libparistraceroute 
  */
 
-void protocols_dump();
+void protocols_dump(void);
 
 /**
  * \brief Retrieve the protocol of a nested layer using its "protocol" field.

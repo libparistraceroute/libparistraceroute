@@ -47,7 +47,7 @@ typedef struct layer_s {
  * \return Newly created layer
  */
 
-layer_t * layer_create();
+layer_t * layer_create(void);
 
 /**
  * \brief Duplicate a layer

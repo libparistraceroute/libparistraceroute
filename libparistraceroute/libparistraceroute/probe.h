@@ -47,7 +47,7 @@ typedef struct {
  * \return A pointer to a probe_t structure containing the probe
  */
 
-probe_t * probe_create();
+probe_t * probe_create(void);
 
 /**
  * \brief Duplicate a probe from probe skeleton
@@ -369,7 +369,7 @@ typedef struct {
     unsigned int ref_count;
 } probe_reply_t;
 
-probe_reply_t * probe_reply_create();
+probe_reply_t * probe_reply_create(void);
 void probe_reply_free(probe_reply_t * probe_reply);
 static inline void probe_reply_inc_ref_count(probe_reply_t * probe_reply) {
     probe_reply->ref_count++;

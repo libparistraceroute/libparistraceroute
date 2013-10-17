@@ -31,18 +31,18 @@ typedef struct {
     void           * zero;
 } mda_event_t;
 
-unsigned options_mda_get_bound();
-unsigned options_mda_get_max_branch();
-unsigned options_mda_get_is_set();
+unsigned options_mda_get_bound(void);
+unsigned options_mda_get_max_branch(void);
+unsigned options_mda_get_is_set(void);
 
-const option_t * mda_get_options();
+const option_t * mda_get_options(void);
 
 /**
  * \brief Retrieve the default options of mda.
  * \return The corresponding mda_options_t structure.
  */
 
-mda_options_t mda_get_default_options();
+mda_options_t mda_get_default_options(void);
 
 /**
  * \brief Iinitialize the mda options structure.

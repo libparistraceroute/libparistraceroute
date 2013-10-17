@@ -53,7 +53,7 @@
  * \return The current timestamp (in seconds)
  */
 
-double get_timestamp();
+double get_timestamp(void);
 
 /**
  * \bruef Print some space characters

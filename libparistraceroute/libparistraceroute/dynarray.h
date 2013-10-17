@@ -29,7 +29,7 @@ typedef struct {
  * \return A dynarray_t structure representing an empty dynamic array
  */
 
-dynarray_t * dynarray_create();
+dynarray_t * dynarray_create(void);
 
 /**
  * \brief Duplicate a dynarray

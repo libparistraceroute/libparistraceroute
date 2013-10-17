@@ -16,7 +16,7 @@ typedef struct {
  * \return A pointer to the newly created queue, NULL otherwise.
  */
 
-queue_t * queue_create();
+queue_t * queue_create(void);
 
 /**
  * \brief Delete a queue structure.

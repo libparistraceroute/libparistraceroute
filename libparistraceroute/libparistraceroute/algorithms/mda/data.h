@@ -20,7 +20,7 @@ typedef struct {
  * \return A pointer to the mda_data_t structure, NULL otherwise
  */
 
-mda_data_t * mda_data_create();
+mda_data_t * mda_data_create(void);
 
 /**
  * \brief Release a mda_data_t structure from the memory

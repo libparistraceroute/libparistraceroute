@@ -28,7 +28,7 @@ typedef struct packet_s {
  * \return The newly allocated packet_t instance, NULL in case of failure 
  */
 
-packet_t * packet_create();
+packet_t * packet_create(void);
 
 /**
  * \brief Create a new packet
