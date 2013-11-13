@@ -362,6 +362,7 @@ void network_free(network_t * network)
         socketpool_free(network->socketpool);
 #ifdef USE_SCHEDULING
         probe_group_free(network->scheduled_probes);
+        close(network->scheduled_timerfd);
 #endif
         free(network);
     }
