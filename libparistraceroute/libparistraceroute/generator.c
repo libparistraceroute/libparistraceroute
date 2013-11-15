@@ -10,7 +10,7 @@
 #include "common.h"         // ELEMENT_COMPARE
 
 static void * generators_root = NULL; /**< Tree of generator_t, ordered by name */
-static void generator_clear() __attribute__((destructor(200)));
+static void generator_clear() __attribute__((destructor));
 
 static int generator_compare(
     const generator_t * generator1,
