@@ -17,7 +17,7 @@
 static void * protocols_root    = NULL;  /**< Tree ordered by name */
 static void * protocols_id_root = NULL;  /**< Tree ordered by id   */
 
-static void protocol_clear() __attribute__((destructor(200)));
+static void protocol_clear() __attribute__((destructor));
 
 static int protocol_compare(
     const protocol_t * protocol1,

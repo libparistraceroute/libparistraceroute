@@ -18,7 +18,7 @@
 static map_t * cache_ip_hostname = NULL;
 
 static void __cache_ip_hostname_create() __attribute__((constructor));
-static void __cache_ip_hostname_free()   __attribute__((destructor(200)));
+static void __cache_ip_hostname_free()   __attribute__((destructor));
 
 static void str_dump(const char * s) {
     printf("%s (%p)", s, s);
