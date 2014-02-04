@@ -169,7 +169,7 @@ static bool probe_update_length(probe_t * probe)
             offset += layer->protocol->get_header_size(layer->segment);
         } else {
             // Update payload size
-            layer_set_segment_size(layer, packet_size - offset); 
+            layer_set_segment_size(layer, packet_size - offset);
         }
     }
 
@@ -424,7 +424,7 @@ void probe_dump(const probe_t * probe)
     if (probe->delay) {
         printf("probe delay \n\n");
         field_dump(probe->delay);
-        printf("number of probes left to send: (%ld) \n\n", probe->left_to_send);
+        printf("number of probes left to send: (%d) \n\n", (int)probe->left_to_send);
         printf("probe structure\n\n");
     }
 
@@ -819,7 +819,7 @@ static field_t * probe_create_metafield_ext(const probe_t * probe, const char * 
 
     // TODO We've hardcoded the flow-id in the src_port and we only support the "flow_id" metafield
     // In IPv6, flow_id should be set thanks to probe_set_field
-    // We substract 24000 to the port (see probe_set_metafield_ext) 
+    // We substract 24000 to the port (see probe_set_metafield_ext)
     return probe_extract(probe, "src_port", &src_port) ?
         IMAX("flow_id", src_port - 24000) :
         NULL;
@@ -1025,7 +1025,7 @@ bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, v
 
         if ((layer = probe_get_layer(probe, i))
         &&   layer_extract(layer, name, value)) {
-            return true; 
+            return true;
         }
     }
 

@@ -47,7 +47,7 @@
 #define UDP_DEFAULT_DST_PORT  33456
 #define UDP_DST_PORT_USING_U  53
 
-#define TCP_DEFAULT_SRC_PORT  16449 
+#define TCP_DEFAULT_SRC_PORT  16449
 #define TCP_DEFAULT_DST_PORT  16963
 #define TCP_DST_PORT_USING_T  80
 
@@ -120,7 +120,7 @@ ERR_OPTIONS_CREATE:
 }
 
 //---------------------------------------------------------------------------
-// Options checking 
+// Options checking
 //---------------------------------------------------------------------------
 
 static bool check_ip_version(bool is_ipv4, bool is_ipv6)
@@ -432,9 +432,9 @@ int main(int argc, char ** argv)
 
     printf("traceroute to %s (", dst_ip);
     address_dump(&dst_addr);
-    printf("), %u hops max, %ld bytes packets\n",
+    printf("), %u hops max, %u bytes packets\n",
         ptraceroute_options->max_ttl,
-        packet_get_size(probe->packet)
+        (unsigned int)packet_get_size(probe->packet)
     );
 
     // Add an algorithm instance in the main loop

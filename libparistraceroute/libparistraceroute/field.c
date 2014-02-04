@@ -269,7 +269,7 @@ void value_dump(const value_t * value, fieldtype_t type) {
             printf("%-10u", value->int32);
             break;
         case TYPE_UINT64:
-            printf("%lu", value->int64);
+            printf("%llu", (unsigned long long)value->int64);
             break;
         case TYPE_DOUBLE:
             printf("%lf", value->dbl);

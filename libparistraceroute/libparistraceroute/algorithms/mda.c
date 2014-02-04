@@ -447,7 +447,7 @@ static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pd
     /*
     // DEBUG
     probe_dump(skel);
-    printf("min_ttl = %d max_ttl = %d num_probes = %lu dst_ip = %s bound = %d max_branch = %d\n",
+    printf("min_ttl = %d max_ttl = %d num_probes = %u dst_ip = %s bound = %d max_branch = %d\n",
         options->traceroute_options.min_ttl,
         options->traceroute_options.max_ttl,
         options->traceroute_options.num_probes,

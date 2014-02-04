@@ -132,7 +132,7 @@ static void network_flying_probes_dump(network_t * network) {
     uint16_t   tag_probe;
     probe_t  * probe;
 
-    printf("\n%lu flying probe(s) :\n", num_flying_probes);
+    printf("\n%u flying probe(s) :\n", (unsigned int)num_flying_probes);
     for (i = 0; i < num_flying_probes; i++) {
         probe = dynarray_get_ith_element(network->probes, i);
         probe_extract_tag(probe, &tag_probe) ?
@@ -437,7 +437,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
      * encode information. */
 
     if (num_layers < 2 || !(last_layer = probe_get_layer(probe, num_layers - 2))) {
-        fprintf(stderr, "network_tag_probe: not enough layer (num_layers = %ld)\n", num_layers);
+        fprintf(stderr, "network_tag_probe: not enough layer (num_layers = %d)\n", (unsigned int)num_layers);
         goto ERR_GET_LAYER;
     }
 
@@ -455,7 +455,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         probe_write_field(probe, "body", &tag, tag_size);
     } else {
         if (payload_size < tag_size) {
-            fprintf(stderr, "Payload too short (payload_size = %lu tag_size = %lu)\n", payload_size, tag_size);
+            fprintf(stderr, "Payload too short (payload_size = %u tag_size = %u)\n", (unsigned int)payload_size, (unsigned int)tag_size);
             goto ERR_INVALID_PAYLOAD;
         }
 

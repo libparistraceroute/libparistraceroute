@@ -378,7 +378,7 @@ void layer_dump(const layer_t * layer, unsigned int indent) {
     if (!layer->protocol) {
         print_indent(indent);
         size = layer->segment_size;
-        printf("%-15s %lu\n", "size", size);
+        printf("%-15s %u\n", "size", (unsigned int)size);
         print_indent(indent);
         printf("%-15s", "data");
         for (i = 0; i < size; i++) {
