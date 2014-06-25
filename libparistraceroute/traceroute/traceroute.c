@@ -84,7 +84,7 @@ int main(int argc, char ** argv)
     options.dst_addr = &dst_addr;
     options.num_probes = 1;
 //    options.max_ttl = 1;
-    printf("num_probes = %lu max_ttl = %u\n", options.num_probes, options.max_ttl);
+    printf("num_probes = %zu max_ttl = %u\n", options.num_probes, options.max_ttl);
 
     // Create libparistraceroute loop
     // No information shared by traceroute algorithm instances, so we pass NULL
