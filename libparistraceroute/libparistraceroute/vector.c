@@ -7,6 +7,8 @@
 #include "vector.h"
 
 #define VECTOR_SIZE_INIT  5
+#define VECTOR_SIZE_INC   5
+
 
 static void * vector_get_ith_element_impl(const vector_t * vector, size_t i) {
     return (uint8_t *)(vector->cells) + i * (vector->cell_size);
@@ -54,10 +56,19 @@ bool vector_push_element(vector_t * vector, void * element)
     bool ret = false;
 
     if (vector && element) {
-        // If the vector is full, resize to double
-        // previous max capacity
+        // If the vector is full, allocate VECTOR_SIZE_INC
+        // cells in the vector
         if (vector->num_cells == vector->max_cells) {
-            vector_resize(vector, 2 * vector->max_cells);
+            vector->cells = realloc(
+                    vector->cells,
+                    (vector->num_cells + VECTOR_SIZE_INC) * vector->cell_size
+                    );
+            memset(
+                    vector_get_ith_element_impl(vector, vector->num_cells),
+                    0,
+                    VECTOR_SIZE_INC * vector->cell_size
+                  );
+            vector->max_cells += VECTOR_SIZE_INC;
         }
 
         // Add the new element and update exposed size
@@ -66,22 +77,6 @@ bool vector_push_element(vector_t * vector, void * element)
         ret = true;
     }
     return ret;
-}
-
-void vector_resize(vector_t * vector, size_t max_cells)
-{
-    if (vector) {
-        vector->cells = realloc(vector->cells, max_cells * vector->cell_size);
-        // If resizing larger, set added memory to 0
-        if (max_cells > vector->max_cells) {
-            memset(
-                    vector->cells + vector->max_cells,
-                    0,
-                    (max_cells - vector->max_cells) * vector->cell_size
-                  );
-        }
-        vector->max_cells = max_cells;
-    }
 }
 
 bool vector_del_ith_element(vector_t * vector, size_t i)
@@ -136,9 +131,6 @@ bool vector_set_ith_element(vector_t * vector, size_t i, void * element)
     if (i < vector->num_cells) {
         memcpy(vector_get_ith_element_impl(vector, i), element, vector->cell_size);
         ret = true;
-    }
-    else if (i >= 0) {
-        ret = vector_push_element(vector, element);
     }
     return ret;
 }
