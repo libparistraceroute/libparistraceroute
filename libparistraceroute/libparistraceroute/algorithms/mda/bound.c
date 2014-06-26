@@ -6,46 +6,19 @@
  * Detailed explanation can be found at www.paris-traceroute.net/publications.
  */
 
-#include <stdio.h>  //fprintf, sscanf
-#include <stdlib.h> //malloc, calloc, free
-#include <string.h> //memset
-#include <math.h>   //log
+#include <stdbool.h> // bool
+#include <stdio.h>   // fprintf, sscanf
+#include <stdlib.h>  // malloc, calloc, free
+#include <string.h>  // memset
+#include <math.h>    // log
 
 #include "bound.h"
 
-#define HOR(i, j) j / i
-#define VER(i, j) (i - j + 1) / i
-#define PROBES(i, j) i + j - 1
-#define HYPOTHESIS h
-#define HSTART 2 // First two hypothesis (0 or 1 interfaces) are ignored
-
-
-//--------------------------------------------------------------------------
-// vector_t
-//--------------------------------------------------------------------------
-
-static void vector_elem_free(void * value) {
-    //nothing to free
-}
-
-static void vector_elem_dump(const void * value) {
-    printf("%Lf\n", *(long double *)value);
-}
-
-static vector_t * make_vector_with_size(size_t elem_size, size_t max_cells) 
-{
-    vector_t * vector;
-
-    vector = vector_create(
-       elem_size,
-       vector_elem_free,
-       vector_elem_dump
-    ); 
-    
-    vector_resize(vector, max_cells);
-    return vector;
-}
-
+// We condiser a set of diagonal vectors (indexed by i) made of several cells (indexed by j)
+#define PROBA_HOR(i, j)    ((long double)(j) / (i))              // Probability to follow a horizontal transition
+#define PROBA_VER(i, j)    ((long double)((i) - (j) + 1) / (i)) // Probability to follow a vertical transition
+#define NUM_PROBES(i, j)   ((i) + (j) - 1)                      // Translate position (i, j) into the corresponding number of probes
+#define HSTART             2                                    // First two hypothesis (0 or 1 interfaces) are ignored
 
 //--------------------------------------------------------------------------
 // bound_state_t
@@ -60,38 +33,31 @@ static bound_state_t * bound_state_create(size_t max_interfaces)
     }
 
     // Create parallel vectors contained in state
-    if (!(state->first = make_vector_with_size(
-        sizeof(long double),
-        max_interfaces
-    ))) {
+    if (!(state->first = malloc(max_interfaces * sizeof(probability_t)))) {
         goto ERR_FIRST_VECTOR;
     }
-    if (!(state->second = make_vector_with_size(
-        sizeof(long double),
-        max_interfaces
-    ))) {
+
+    if (!(state->second = malloc(max_interfaces * sizeof(probability_t)))) {
         goto ERR_SECOND_VECTOR;
     }
+
     return state;
 
     ERR_SECOND_VECTOR:
-        vector_free(state->first, &vector_elem_free); 
+        free(state->first);
     ERR_FIRST_VECTOR:
         free(state);
     ERR_STATE_MALLOC:
         return NULL;
 }
 
-static void bound_state_free(bound_state_t * state) 
+static void bound_state_free(bound_state_t * bound_state) 
 {
-    if (state) {
-        if (state->first) {
-            vector_free(state->first, vector_elem_free);
-        }
-        if (state->second) {
-            vector_free(state->second, vector_elem_free);
-        }
-        free(state);
+    if (bound_state) {
+        if (bound_state->first)  free(bound_state->first);
+        if (bound_state->second) free(bound_state->second);
+
+        free(bound_state);
     }
 }
 
@@ -112,10 +78,11 @@ static void bound_state_free(bound_state_t * state)
  */
 
 inline static bool continue_condition(
-    size_t jstart, 
-    size_t HYPOTHESIS, 
-    long double cur_state, 
-    bound_t * bound) {
+    size_t        jstart, 
+    size_t        hypothesis, 
+    long double   cur_state, 
+    bound_t     * bound
+) {
 
     size_t i;
     long double pr_sum = 0.0;
@@ -123,7 +90,7 @@ inline static bool continue_condition(
     for (i = 0; i <= jstart + 1; ++i) {
         pr_sum += bound->pk_table[i];
     }
-    return (jstart != HYPOTHESIS - 1 || 
+    return (jstart != hypothesis - 1 || 
             bound->confidence < pr_sum + cur_state);
 }
 
@@ -133,39 +100,37 @@ inline static bool continue_condition(
  *        2) the probability of reaching the state from a vertical move
  */
 
-inline static long double calculate(bound_state_t * state, size_t HYPOTHESIS, size_t j) {
-    return *(long double *)vector_get_ith_element(state->first, j)      * 
-           HOR(HYPOTHESIS, j)                                           + //1
-           *(long double *)vector_get_ith_element(state->second, j - 1) * 
-           VER(HYPOTHESIS, j);                                            //2
+inline static probability_t calculate(bound_state_t * bound_state, size_t hypothesis, size_t j) {
+    return bound_state->first[j]
+         * PROBA_HOR(hypothesis, j)   //1
+         + bound_state->second[j - 1]
+         * PROBA_VER(hypothesis, j);  //2
 }
 
-inline static void swap(bound_state_t * state) {
-    vector_t * temp = state->first;
-    state->first = state->second;
-    state->second = temp;
+inline static void swap(bound_state_t * bound_state) {
+    probability_t * temp = bound_state->first;
+    bound_state->first = bound_state->second;
+    bound_state->second = temp;
 }
 
 /**
  * \brief For each new hypothesis' state space, initialize dummy "first" 
- * vector to all 0s and initialize second vector with 1.0 at first reachable 
- * state - state(1,1)
+ * vector to all with probability_t 0.0 and initialize second vector
+ * with probability 1.0 at first reachable  state - state(1,1)
  */
 
-static long double init_state(bound_t * bound, bound_state_t * state) {
+static probability_t init_state(bound_t * bound, bound_state_t * bound_state) {
     size_t j;
-    long double empty = 0.0;
-    long double certain = 1.0;
 
     for (j = 0; j < bound->max_n; ++j) {
-        vector_set_ith_element(state->first, j, &empty);
+        bound_state->first[j] = 0.0;
     }
-    vector_set_ith_element(state->second, 0, &empty);
-    vector_set_ith_element(state->second, 1, &certain); 
+
+    bound_state->second[0] = 0.0;
+    bound_state->second[1] = 1.0;
 
     return 1.0;
 }
-
 
 bound_t * bound_create(double confidence, size_t max_interfaces)
 {
@@ -173,17 +138,23 @@ bound_t * bound_create(double confidence, size_t max_interfaces)
 
     // Allocate and populate bound_t structure
     if (!(bound = malloc(sizeof(bound_t)))) goto ERR_BOUND_MALLOC;
+
     bound->confidence = confidence;
     bound->max_n = max_interfaces;
+
+    // TODO comment about +1
     if (!(bound->nk_table = calloc(max_interfaces + 1, sizeof(size_t)))) {
         goto ERR_NK_TABLE_MALLOC;
     }
+
     if (!(bound->pk_table = calloc(max_interfaces + 1, sizeof(size_t)))) {
         goto ERR_PK_TABLE_MALLOC;
     }  
+
     if (!(bound->state = bound_state_create(max_interfaces))) {
         goto ERR_STATE;
     }
+
     return bound;
 
     ERR_STATE:
@@ -198,13 +169,9 @@ bound_t * bound_create(double confidence, size_t max_interfaces)
 
 void bound_build(bound_t * bound)
 {
-    size_t          HYPOTHESIS;
-    size_t          i;
-    size_t          j = 0;
-    size_t          jstart;
+    size_t          hypothesis, i, j = 0, jstart; // Note: j does not require to be set to 0
     bound_state_t * state;
-    long double     cur_state;
-    long double     empty = 0.0;
+    probability_t   cur_state;
 
     // Handle potential nulls
     if (!bound || !(bound->nk_table) || !(bound->state)) {
@@ -212,30 +179,32 @@ void bound_build(bound_t * bound)
     }
     state = bound->state;
 
-    for (HYPOTHESIS = HSTART; HYPOTHESIS <= bound->max_n; ++HYPOTHESIS) {
+    for (hypothesis = HSTART; hypothesis <= bound->max_n; ++hypothesis) {
         cur_state = init_state(bound, state);
         jstart = 2;
+
         // Walk horizontally accross state space
-        for (i = 1; continue_condition(jstart, HYPOTHESIS, cur_state, bound); ++i) {
+        for (i = 1; continue_condition(jstart, hypothesis, cur_state, bound); ++i) {
             jstart = (i == 2) ? 1 : jstart; // Awkward check required to get around state(1, 1) = 1.0 necessarily
+
             // Compute values and fill vector (vertically)
-            for (j = jstart; j < HYPOTHESIS; ++j) {
-                cur_state = calculate(state, HYPOTHESIS, j); 
+            for (j = jstart; j < hypothesis; ++j) {
+                cur_state = calculate(state, hypothesis, j); 
+
                 // If at a previously computed stopping point, enter
                 // unreachable state (probability 0). Add probability of
                 // failure at this level to pk_table
-                if (PROBES(i, j) == (bound->nk_table)[j + 1]) {
+                if (NUM_PROBES(i, j) == (bound->nk_table)[j + 1]) {
                     jstart = j + 1;
-                    vector_set_ith_element(state->second, j, &empty);
+                    state->second[j] = 0.0;
                     (bound->pk_table)[j + 1] = cur_state;
-                }
-                else {
-                    vector_set_ith_element(state->second, j, &cur_state);
+                } else {
+                    state->second[j] = cur_state;
                 }
             }
             swap(state);
         }
-        bound->nk_table[HYPOTHESIS] = PROBES(i, j) - 2; // Sub 2 for increment of i and j after stopping condition
+        bound->nk_table[hypothesis] = NUM_PROBES(i, j) - 2; // Sub 2 for increment of i and j after stopping condition
     }
     return;
 
@@ -260,33 +229,32 @@ void bound_dump(bound_t * bound)
     size_t i;
 
     for (i = 0; i <= bound->max_n; i++) {
-        printf("%zu - %zu\n", i, (bound->nk_table)[i]);
+        printf("%zu - %zu\n", i, bound->nk_table[i]);
     }
 }
 
 void bound_free(bound_t * bound)
 {
     if (bound) {
-        if (bound->pk_table) {
-            free(bound->pk_table);
-        }
-        if (bound->nk_table) {
-            free(bound->nk_table);
-        }
-        if (bound->state) {
-            bound_state_free(bound->state);
-        }
+        if (bound->pk_table) free(bound->pk_table);
+        if (bound->nk_table) free(bound->nk_table);
+        if (bound->state)    bound_state_free(bound->state);
         free(bound);
     }
 }
 
 int main(int argc, const char * argv[]) {
-    long double confidence = 0.05;
-    size_t      interfaces = 16;
+    long double confidence;
+    size_t      interfaces;
 
+//    sscanf(argv[1], "%Lf", &confidence);
+//    sscanf(argv[2], "%d", &interfaces);
+    confidence = 0.05;
+    interfaces = 16;
     bound_t * bound = bound_create(confidence, interfaces);
     bound_build(bound);
     bound_dump(bound);
     bound_free(bound);
-    return 1;
+    return 0;
 }
+

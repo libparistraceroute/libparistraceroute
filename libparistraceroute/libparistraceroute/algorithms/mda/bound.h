@@ -1,14 +1,13 @@
+#ifndef WORKSHOP_BOUND_H
+#define WORKSHOP_BOUND_H
+
 /**
  * bound.h
  * Author: Thomas Delacour
  * Description: header file to support various workshopBound versions
  */
 
-#ifndef WORKSHOP_BOUND_H
-
-#define WORKSHOP_BOUND_H
-
-#include "../../vector.h"
+typedef long double probability_t;
 
 /**
  * \struct bound_state_t
@@ -19,8 +18,8 @@
  */
 
 typedef struct {
-    vector_t * first;
-    vector_t * second;
+    probability_t * first;
+    probability_t * second;
 } bound_state_t;
 
 /** 
@@ -33,9 +32,9 @@ typedef struct {
     size_t          max_n;      /**< Max assumed branching at an interface */
     size_t        * nk_table;   /**< Stored stopping points */
     size_t        * pk_table;   /**< Temp stored probabilities at stopping
-                                        point states for each hypothesis */
+                                     point states for each hypothesis */
     bound_state_t * state;      /**< Reference to memory (vector_ts) used to 
-                                        build state */
+                                     build state */
 } bound_t;
 
 

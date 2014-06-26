@@ -134,10 +134,9 @@ void * vector_get_ith_element(const vector_t * vector, size_t i);
  * \brief Set the i-th element stored in a vector
  * \param vector A vector instance
  * \param i The index of the element to set.
-      Valid values are all those > 0. If i > num_cells, 
-      element is pushed to back of vector.
+            Valid values are between 0 and num_cells
  * \param element Pointer to the element to be set
- * \return False if i is < 0, True otherwise.
+ * \return False if i is outside of range, True otherwise.
  */
 
 bool vector_set_ith_element(vector_t * vector, size_t i, void * element);

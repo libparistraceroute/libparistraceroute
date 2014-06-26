@@ -26,6 +26,7 @@ lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la
 nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						address.h \
                         algorithm.h \
+						algorithms/mda/bound.h \
 						algorithms/mda/data.h \
 						algorithms/mda/flow.h \
 						algorithms/mda/interface.h \
@@ -86,6 +87,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 					    address.c \
                         algorithm.c \
 						algorithms/mda.c \
+						algorithms/mda/bound.c \
 						algorithms/mda/data.c \
 						algorithms/mda/flow.c \
 						algorithms/mda/interface.c \

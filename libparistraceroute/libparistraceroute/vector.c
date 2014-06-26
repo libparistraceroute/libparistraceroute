@@ -19,7 +19,7 @@ static void vector_initialize(vector_t * vector) {
 }
 
 vector_t * vector_create_impl(size_t size, void (* callback_free)(void *), void (* callback_dump)(const void *)) {
-    vector_t * vector = malloc(sizeof(vector_t));
+    vector_t * vector = malloc(size);
     if (vector) {
         vector->cell_size = size;
         vector->cells = calloc(VECTOR_SIZE_INIT, vector->cell_size);
@@ -133,12 +133,9 @@ void * vector_get_ith_element(const vector_t * vector, size_t i) {
 bool vector_set_ith_element(vector_t * vector, size_t i, void * element)
 {
     bool ret = false;
-    if (i < vector->num_cells) {
+    if (i >= 0 && i < vector->num_cells) {
         memcpy(vector_get_ith_element_impl(vector, i), element, vector->cell_size);
         ret = true;
-    }
-    else if (i >= 0) {
-        ret = vector_push_element(vector, element);
     }
     return ret;
 }
