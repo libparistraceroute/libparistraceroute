@@ -41,7 +41,7 @@ vector_t * vector_create_impl(size_t size, void (* callback_free)(void *), void 
 #define vector_create(s, free, dump) vector_create_impl(s, (ELEMENT_FREE) free, (ELEMENT_DUMP) dump)
 
 /** 
-  * \brief Dump a vector instance
+  * \biref Dump a vector instance
   * \param vector pointer to a vector structure 
   */
 
@@ -87,16 +87,6 @@ bool vector_del_ith_element(vector_t * vector, size_t i);
 void vector_clear(vector_t * vector, void (*element_free)(void * element));
 
 /**
- * \brief Resize a vector.
- * \param vector A vector instance
- * \param max_cells The size the vector will be resized to.
- *      if smaller than current size, truncates to new size 
- *      beginning at front of the vector.
- */
-
-void vector_resize(vector_t * vector, size_t max_cells);
-
-/**
  * \brief Get the current number of options contained in the vector.
  * \param vector A vector instance 
  * \return number of options contained in the vector
@@ -130,14 +120,4 @@ size_t vector_get_cell_size(const vector_t * vector);
 
 void * vector_get_ith_element(const vector_t * vector, size_t i);
 
-/**
- * \brief Set the i-th element stored in a vector
- * \param vector A vector instance
- * \param i The index of the element to set.
-            Valid values are between 0 and num_cells
- * \param element Pointer to the element to be set
- * \return False if i is outside of range, True otherwise.
- */
-
-bool vector_set_ith_element(vector_t * vector, size_t i, void * element);
 #endif

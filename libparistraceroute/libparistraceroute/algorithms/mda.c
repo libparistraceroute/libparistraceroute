@@ -78,7 +78,7 @@ inline mda_options_t mda_get_default_options() {
     return mda_options;
 }
 
-
+/*
 //---------------------------------------------------------------------------
 // Precomputed number of probes
 //---------------------------------------------------------------------------
@@ -87,12 +87,12 @@ inline mda_options_t mda_get_default_options() {
 // stopping points
 static int mda_stopping_points(unsigned int num_interfaces, unsigned int confidence)
 {
-    /*
+    *
      * number of probes (k) to send to rule out a load-balancer having n hops;
      * 95% confidence level first from 823-augustin-e2emon.pdf, then extended
      * with gmp-based code.
      * 99% confidence derived with gmp-based code.
-     */
+     *
     static const int k[][2] = {
         {   0,   0 }, {   0,   0 }, {   6,   8 }, {  11,  15 }, {  16,  21 },
         {  21,  28 }, {  27,  36 }, {  33,  43 }, {  38,  51 }, {  44,  58 },
@@ -122,6 +122,7 @@ static int mda_stopping_points(unsigned int num_interfaces, unsigned int confide
 
     return k[num_interfaces][(confidence == 95) ? 0 : 1];
 }
+*/
 
 static bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst)
 {
@@ -188,9 +189,9 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
     num_nexthops = lattice_elt_get_num_next(elt);
 
     // ... and thus deduce how many packets we have to send
-    to_send = mda_stopping_points(MAX(num_nexthops + 1, 2), mda_data->confidence) - interface->sent;
-    /*to_send = bound_get_nk(mda_data->bound, MAX(num_nexthops + 1, 2)) -
- * interface->sent;*/
+    /*to_send = mda_stopping_points(MAX(num_nexthops + 1, 2),
+ * mda_data->confidence) - interface->sent;*/
+    to_send = bound_get_nk(mda_data->bound, MAX(num_nexthops + 1, 2)) - interface->sent;
 
     //printf("find next hops of %s (to_send= %u)\n", interface->address, to_send);
 
