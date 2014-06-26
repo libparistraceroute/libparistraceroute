@@ -21,8 +21,15 @@ mda_data_t * mda_data_create()
     // Options
     data->confidence = 95;
 
+    if (!(data->bound = bound_create(data->confidence, 16))) {
+        goto ERR_BOUND_CREATE;
+    }
+    bound_build(data->bound);            // Run stopping point calculation
+
     return data;
 
+ERR_BOUND_CREATE:
+    address_free(data->dst_ip); 
 ERR_ADDRESS_CREATE:
     lattice_free(data->lattice, (ELEMENT_FREE) mda_interface_free);
 ERR_LATTICE_CREATE:

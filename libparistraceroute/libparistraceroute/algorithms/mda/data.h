@@ -1,6 +1,7 @@
 #ifndef MDA_DATA_H
 #define MDA_DATA_H
 
+#include "bound.h"          // bound_t
 #include "../../address.h"  // address_t
 #include "../../lattice.h"  // lattice_t
 #include "../../pt_loop.h"  // pt_loop_t
@@ -13,6 +14,7 @@ typedef struct {
     address_t    * dst_ip;       /**< Destination IP */
     pt_loop_t    * loop;         /**< Main loop */
     probe_t      * skel;         /**< Probe skeleton */
+    bound_t      * bound;        /**< Bound on probes to send */
 } mda_data_t;
 
 /**

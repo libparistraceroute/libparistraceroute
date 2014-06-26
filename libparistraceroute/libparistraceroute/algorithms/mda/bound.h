@@ -1,6 +1,7 @@
 #ifndef WORKSHOP_BOUND_H
 #define WORKSHOP_BOUND_H
 
+#include <stddef.h>
 /**
  * bound.h
  * Author: Thomas Delacour
