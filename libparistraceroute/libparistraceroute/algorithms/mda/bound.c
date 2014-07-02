@@ -87,7 +87,7 @@ inline static bool continue_condition(
     size_t i;
     long double pr_sum = 0.0;
     
-    for (i = 0; i <= jstart + 1; ++i) {
+    for (i = 0; i <= jstart; ++i) {
         pr_sum += bound->pk_table[i];
     }
     return (jstart != hypothesis - 1 || 
@@ -132,6 +132,50 @@ static probability_t init_state(bound_t * bound, bound_state_t * bound_state) {
     return 1.0;
 }
 
+/**
+ * \brief Reallocate memory in bound structure given new Hypothesis 
+ * range (Param new_max_n)
+ */
+
+static bool reallocate_bound(bound_t * bound, size_t new_max_n)
+{
+    bound_state_t * bound_state = bound->state;
+
+    // Reallocate state space memory
+    if (!(bound_state->first = realloc(
+                       bound_state->first, 
+                       (new_max_n * sizeof(probability_t))
+                       ))){
+        goto ERR_REALLOC;
+    }
+    if (!(bound_state->second = realloc(
+                       bound_state->second, 
+                       (new_max_n * sizeof(probability_t))
+                       ))){
+        goto ERR_REALLOC;
+    }
+
+    // Reallocate nk and pk table memory
+    if (!(bound->nk_table = realloc(
+                 bound->nk_table,
+                 ((new_max_n + 1) * sizeof(size_t))
+                 ))){
+        goto ERR_REALLOC;
+    } 
+    if (!(bound->pk_table = realloc(
+                 bound->pk_table,
+                 ((new_max_n + 1) * sizeof(probability_t))
+                 ))){
+        goto ERR_REALLOC;
+    }
+
+    return true;
+
+    ERR_REALLOC:
+        fprintf(stderr, "Error allocating resources for new hypothesis\n");
+        return false;
+}
+
 bound_t * bound_create(double confidence, size_t max_interfaces)
 {
     bound_t * bound;
@@ -140,20 +184,29 @@ bound_t * bound_create(double confidence, size_t max_interfaces)
     if (!(bound = malloc(sizeof(bound_t)))) goto ERR_BOUND_MALLOC;
 
     bound->confidence = confidence;
-    bound->max_n = max_interfaces;
+    bound->max_n      = max_interfaces;
 
-    // TODO comment about +1
-    if (!(bound->nk_table = calloc(max_interfaces + 1, sizeof(size_t)))) {
+    // Create parrallel tables to store stopping points and associated
+    // probabilities. Note: of size + 1 because table ranges from 0 - 16
+    // (max_interfaces), which is size 17.
+    if (!(bound->nk_table = malloc((max_interfaces + 1) * sizeof(size_t)))) {
         goto ERR_NK_TABLE_MALLOC;
     }
 
-    if (!(bound->pk_table = calloc(max_interfaces + 1, sizeof(size_t)))) {
+    if (!(bound->pk_table = malloc((max_interfaces + 1) * sizeof(probability_t)))) {
         goto ERR_PK_TABLE_MALLOC;
     }  
 
     if (!(bound->state = bound_state_create(max_interfaces))) {
         goto ERR_STATE;
     }
+
+    // First two hypotheses represent impossible "dummy" states
+    bound->nk_table[0] = 0.0;
+    bound->nk_table[1] = 0.0;
+    bound->pk_table[0] = 0.0;
+    bound->pk_table[1] = 0.0;
+    bound_build(bound, bound->max_n); // Calculate stopping points
 
     return bound;
 
@@ -167,7 +220,7 @@ bound_t * bound_create(double confidence, size_t max_interfaces)
         return NULL;
 }
 
-void bound_build(bound_t * bound)
+void bound_build(bound_t * bound, size_t end)
 {
     size_t          hypothesis, i, j = 0, jstart; // Note: j does not require to be set to 0
     bound_state_t * state;
@@ -177,9 +230,18 @@ void bound_build(bound_t * bound)
     if (!bound || !(bound->nk_table) || !(bound->state)) {
         goto ERR_NULL_ARG;
     }
-    state = bound->state;
+    state      = bound->state;
+    hypothesis = HSTART;
 
-    for (hypothesis = HSTART; hypothesis <= bound->max_n; ++hypothesis) {
+    // If expanding the build to higher hypotheses
+    if (end > bound->max_n) {
+        if (reallocate_bound(bound, end)) {
+            hypothesis   = bound->max_n + 1; // Begin at next hypothesis
+            bound->max_n = end;
+        }
+    }
+
+    for ( ; hypothesis <= bound->max_n; ++hypothesis) {
         cur_state = init_state(bound, state);
         jstart = 2;
 
@@ -229,7 +291,7 @@ void bound_dump(bound_t * bound)
     size_t i;
 
     for (i = 0; i <= bound->max_n; i++) {
-        printf("%zu - %zu\n", i, bound->nk_table[i]);
+        printf("%zu - %zu\n", i, bound_get_nk(bound, i));
     }
 }
 
@@ -250,9 +312,9 @@ int main(int argc, const char * argv[]) {
 //    sscanf(argv[1], "%Lf", &confidence);
 //    sscanf(argv[2], "%d", &interfaces);
     confidence = 0.05;
-    interfaces = 16;
+    interfaces = 10;
     bound_t * bound = bound_create(confidence, interfaces);
-    bound_build(bound);
+    bound_build(bound, 16);
     bound_dump(bound);
     bound_free(bound);
     return 0;

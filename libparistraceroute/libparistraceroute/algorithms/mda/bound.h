@@ -32,7 +32,7 @@ typedef struct {
     double          confidence; /**< Desired failure confidence */
     size_t          max_n;      /**< Max assumed branching at an interface */
     size_t        * nk_table;   /**< Stored stopping points */
-    size_t        * pk_table;   /**< Temp stored probabilities at stopping
+    probability_t * pk_table;   /**< Temp stored probabilities at stopping
                                      point states for each hypothesis */
     bound_state_t * state;      /**< Reference to memory (vector_ts) used to 
                                      build state */
@@ -53,7 +53,7 @@ bound_t * bound_create(double confidence, size_t max_interfaces);
  * \param bound Reference to bound_t structure
  */
 
-void bound_build(bound_t * bound);
+void bound_build(bound_t * bound, size_t end);
 
 /**
  * \brief Get stopping point for a given hypothesis

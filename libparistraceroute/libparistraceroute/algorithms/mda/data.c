@@ -24,7 +24,6 @@ mda_data_t * mda_data_create()
     if (!(data->bound = bound_create(data->confidence, 16))) {
         goto ERR_BOUND_CREATE;
     }
-    bound_build(data->bound);            // Run stopping point calculation
 
     return data;
 
