@@ -21,7 +21,7 @@ mda_data_t * mda_data_create()
     // Options
     data->confidence = 95;
 
-    if (!(data->bound = bound_create(data->confidence, 16))) {
+    if (!(data->bound = bound_create(0.05, 16))) {
         goto ERR_BOUND_CREATE;
     }
 
