@@ -1,10 +1,15 @@
 #include <stdlib.h>
 #include "data.h"
 #include "interface.h"
+#include "../mda.h"
+
+#define PERCENT_TO_INVERSE_DECIMAL(X) ((double)(100 - (X)) / 100.0)
 
 mda_data_t * mda_data_create()
 {
-    mda_data_t * data;
+    double        failure;
+    mda_data_t  * data;
+    mda_options_t mda_options = mda_get_default_options();
 
     if (!(data = calloc(1, sizeof(mda_data_t)))) {
         goto ERR_MALLOC;
@@ -19,9 +24,12 @@ mda_data_t * mda_data_create()
     }
 
     // Options
-    data->confidence = 95;
+    options_mda_init(&mda_options);
+    data->confidence = mda_options.bound;
 
-    if (!(data->bound = bound_create(0.05, 16))) {
+    failure = PERCENT_TO_INVERSE_DECIMAL(mda_options.bound);
+
+    if (!(data->bound = bound_create(failure, mda_options.max_branch))) {
         goto ERR_BOUND_CREATE;
     }
 

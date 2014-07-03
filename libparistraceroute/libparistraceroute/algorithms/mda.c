@@ -35,6 +35,8 @@ typedef struct {
 static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH;
 
 // MDA options
+// TODO: Can only pass integer values for confidence (thus cannot, for
+// example, measure confidence of 99.9999%). Expand functionality.
 static option_t mda_opt_specs[] = {
     // action           short long          metavar             help    variable
     {opt_store_int_2,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values},
@@ -71,7 +73,7 @@ inline mda_options_t mda_get_default_options() {
 
     mda_options_t mda_options = {
          .traceroute_options = traceroute_get_default_options(),
-         .bound              = 99,
+         .bound              = 95,
          .max_branch         = 5
     };
 
