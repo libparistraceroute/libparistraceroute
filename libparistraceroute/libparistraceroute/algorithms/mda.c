@@ -71,7 +71,7 @@ inline mda_options_t mda_get_default_options() {
 
     mda_options_t mda_options = {
          .traceroute_options = traceroute_get_default_options(),
-         .bound              = 95,
+         .bound              = 99,
          .max_branch         = 5
     };
 
@@ -183,7 +183,15 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
     int       num_flows_testing = 0;
     int       num_siblings = 0;
 
-    //printf("Processing interface %s at ttl %hhu\n", interface->address, interface->ttl);
+    /*
+    char *addr = malloc(100);
+    if (interface->address) {
+        address_to_string(interface->address, &addr);
+    } else {
+        addr = "NULL";
+    }
+    printf("Enumerating interface %s at ttl %hhu\n", addr, interface->ttl);
+    */
 
     // Determine the number of next hop interfaces
     num_nexthops = lattice_elt_get_num_next(elt);
@@ -193,9 +201,9 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
  * mda_data->confidence) - interface->sent;*/
     to_send = bound_get_nk(mda_data->bound, MAX(num_nexthops + 1, 2)) - interface->sent;
 
-    //printf("find next hops of %s (to_send= %u)\n", interface->address, to_send);
+    //printf("find next hops of %s (to_send= %u)\n", addr, to_send);
 
-    //printf("Interface %s : to_send %d - sent %u - received %u\n", interface->address, to_send, interface->sent, interface->received);
+    //printf("Interface %s : to_send %d - sent %zu - received %zu\n", addr, to_send, interface->sent, interface->received);
     if ((to_send <= 0) && (interface->sent == interface->received + interface->timeout)) {
         return LATTICE_DONE; // Done enumerating, walking/DFS can continue
     }
@@ -285,6 +293,16 @@ static int mda_classify(lattice_elt_t * elt, mda_data_t * data)
 {
     mda_interface_t * interface = lattice_elt_get_data(elt);
     size_t            num_nexthops;
+
+    /*
+    char *addr = malloc(100);
+    if (interface->address) {
+        address_to_string(interface->address, &addr);
+    } else {
+        addr = "NULL";
+    }
+    printf("Classifying interface %s at ttl %hhu\n", addr, interface->ttl);
+    */
 
     // If the classification has already been done or started
     if (interface->type != MDA_LB_TYPE_UNKNOWN) {
@@ -507,7 +525,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     mda_address_t      search_interface;
     mda_flow_t       * mda_flow;
     address_t          addr;
-    uintmax_t          flow_id;
+    uint16_t           flow_id;
     uint8_t            ttl;
     int                ret;
 

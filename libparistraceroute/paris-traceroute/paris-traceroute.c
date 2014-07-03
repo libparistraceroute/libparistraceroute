@@ -230,7 +230,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
                 traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
                 switch (mda_event->type) {
                     case MDA_NEW_LINK:
-                        mda_link_dump(mda_event->data, traceroute_options->do_resolv);
+                        //mda_link_dump(mda_event->data, traceroute_options->do_resolv);
                         break;
                     default:
                         break;
