@@ -32,14 +32,14 @@ typedef struct {
 // mda also supports options supported by traceroute.
 //---------------------------------------------------------------------------
 
-static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH;
+static unsigned mda_values[10] = OPTIONS_MDA_BOUND_MAXBRANCH;
 
 // MDA options
 // TODO: Can only pass integer values for confidence (thus cannot, for
 // example, measure confidence of 99.9999%). Expand functionality.
 static option_t mda_opt_specs[] = {
     // action           short long          metavar             help    variable
-    {opt_store_int_2,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values},
+    {opt_store_int_3,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values},
     END_OPT_SPECS
     // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest
@@ -59,14 +59,19 @@ unsigned options_mda_get_max_branch() {
     return mda_values[3];
 }
 
-unsigned options_mda_get_is_set() {
+unsigned options_mda_get_max_children() {
     return mda_values[6];
+}
+
+unsigned options_mda_get_is_set() {
+    return mda_values[9];
 }
 
 void options_mda_init(mda_options_t * mda_options)
 {
-    mda_options->bound      = options_mda_get_bound();
-    mda_options->max_branch = options_mda_get_max_branch();
+    mda_options->bound        = options_mda_get_bound();
+    mda_options->max_branch   = options_mda_get_max_branch();
+    mda_options->max_children = options_mda_get_max_children();
 }
 
 inline mda_options_t mda_get_default_options() {
@@ -74,7 +79,8 @@ inline mda_options_t mda_get_default_options() {
     mda_options_t mda_options = {
          .traceroute_options = traceroute_get_default_options(),
          .bound              = 95,
-         .max_branch         = 5
+         .max_branch         = 16,
+         .max_children       = 128
     };
 
     return mda_options;

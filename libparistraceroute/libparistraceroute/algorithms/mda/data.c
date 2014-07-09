@@ -29,7 +29,11 @@ mda_data_t * mda_data_create()
 
     failure = PERCENT_TO_INVERSE_DECIMAL(mda_options.bound);
 
-    if (!(data->bound = bound_create(failure, mda_options.max_branch))) {
+    if (!(data->bound = bound_create(
+        failure, 
+        mda_options.max_children, 
+        mda_options.max_branch
+    ))) {
         goto ERR_BOUND_CREATE;
     }
 

@@ -10,7 +10,7 @@
 #include <stdio.h>   // fprintf, sscanf
 #include <stdlib.h>  // malloc, calloc, free
 #include <string.h>  // memset
-#include <math.h>    // log
+#include <math.h>    // pow
 
 #include "bound.h"
 
@@ -84,14 +84,20 @@ inline static bool continue_condition(
     bound_t     * bound
 ) {
 
-    size_t i;
+    bool        ret = true;
+    size_t      i;
     long double pr_sum = 0.0;
     
-    for (i = 0; i <= jstart; ++i) {
-        pr_sum += bound->pk_table[i];
+    if (jstart == hypothesis - 1) {
+        for (i = 0; i <= jstart; ++i) {
+            pr_sum += bound->pk_table[i];
+        }
+        if (pr_sum + cur_state <= bound->confidence) {
+            ret = false;
+            bound->pr_failure[hypothesis] = pr_sum + cur_state;
+        }
     }
-    return (jstart != hypothesis - 1 || 
-            bound->confidence < pr_sum + cur_state);
+    return ret;
 }
 
 /**
@@ -133,6 +139,21 @@ static probability_t init_state(bound_t * bound, bound_state_t * bound_state) {
 }
 
 /**
+ * \brief Calculate confidence required at each branching point given 
+ * graph-wide confidence and max assumed branching points
+ */
+
+static double node_confidence(double graph_confidence, size_t max_branch)
+{
+    double ret;
+    double power = 1.0 / max_branch;
+    
+    ret = pow((1 - graph_confidence), power); 
+    printf("%lf, %zu - %lf\n", graph_confidence, max_branch, 1 - ret);
+    return 1 - ret;
+} 
+
+/**
  * \brief Reallocate memory in bound structure given new Hypothesis 
  * range (Param new_max_n)
  */
@@ -155,7 +176,7 @@ static bool reallocate_bound(bound_t * bound, size_t new_max_n)
         goto ERR_REALLOC;
     }
 
-    // Reallocate nk and pk table memory
+    // Reallocate nk, pk, and failure pr table memory
     if (!(bound->nk_table = realloc(
                  bound->nk_table,
                  ((new_max_n + 1) * sizeof(size_t))
@@ -168,6 +189,13 @@ static bool reallocate_bound(bound_t * bound, size_t new_max_n)
                  ))){
         goto ERR_REALLOC;
     }
+    if (!(bound->pr_failure = realloc(
+                 bound->pr_failure,
+                 ((new_max_n + 1) * sizeof(probability_t))
+                 ))){
+        goto ERR_REALLOC;
+    }
+
 
     return true;
 
@@ -176,14 +204,14 @@ static bool reallocate_bound(bound_t * bound, size_t new_max_n)
         return false;
 }
 
-bound_t * bound_create(double confidence, size_t max_interfaces)
+bound_t * bound_create(double confidence, size_t max_interfaces, size_t max_branch)
 {
     bound_t * bound;
 
     // Allocate and populate bound_t structure
     if (!(bound = malloc(sizeof(bound_t)))) goto ERR_BOUND_MALLOC;
 
-    bound->confidence = confidence;
+    bound->confidence = node_confidence(confidence, max_branch);
     bound->max_n      = max_interfaces;
 
     // Create parrallel tables to store stopping points and associated
@@ -195,7 +223,11 @@ bound_t * bound_create(double confidence, size_t max_interfaces)
 
     if (!(bound->pk_table = malloc((max_interfaces + 1) * sizeof(probability_t)))) {
         goto ERR_PK_TABLE_MALLOC;
-    }  
+    }
+
+    if (!(bound->pr_failure = malloc((max_interfaces + 1) * sizeof(probability_t)))) {
+        goto ERR_PR_FAILURE;
+    }   
 
     if (!(bound->state = bound_state_create(max_interfaces))) {
         goto ERR_STATE;
@@ -211,6 +243,8 @@ bound_t * bound_create(double confidence, size_t max_interfaces)
     return bound;
 
     ERR_STATE:
+        free(bound->pr_failure);
+    ERR_PR_FAILURE:
         free(bound->pk_table);
     ERR_PK_TABLE_MALLOC:
         free(bound->nk_table);
@@ -244,10 +278,9 @@ void bound_build(bound_t * bound, size_t end)
     for ( ; hypothesis <= bound->max_n; ++hypothesis) {
         cur_state = init_state(bound, state);
         jstart = 2;
-
+        
         // Walk horizontally accross state space
         for (i = 1; continue_condition(jstart, hypothesis, cur_state, bound); ++i) {
-            jstart = (i == 2) ? 1 : jstart; // Awkward check required to get around state(1, 1) = 1.0 necessarily
 
             // Compute values and fill vector (vertically)
             for (j = jstart; j < hypothesis; ++j) {
@@ -259,11 +292,13 @@ void bound_build(bound_t * bound, size_t end)
                 if (NUM_PROBES(i, j) == (bound->nk_table)[j + 1]) {
                     jstart = j + 1;
                     state->second[j] = 0.0;
+                    state->first[j] = 0.0;
                     (bound->pk_table)[j + 1] = cur_state;
                 } else {
                     state->second[j] = cur_state;
                 }
             }
+            jstart = (i == 1) ? 1 : jstart; // Awkward check required to get around state(1, 1) = 1.0 necessarily
             swap(state);
         }
         bound->nk_table[hypothesis] = NUM_PROBES(i, j) - 2; // Sub 2 for increment of i and j after stopping condition
@@ -286,6 +321,15 @@ size_t bound_get_nk(bound_t * bound, size_t k)
     return ret;
 }
 
+void bound_failure_dump(bound_t * bound)
+{
+    size_t i;
+
+    for (i = 0; i <= bound->max_n; ++i) {
+        printf("%zu - %Lf\n", i, bound->pr_failure[i]);    
+    }
+}
+
 void bound_dump(bound_t * bound) 
 {
     size_t i;
@@ -300,6 +344,7 @@ void bound_free(bound_t * bound)
     if (bound) {
         if (bound->pk_table) free(bound->pk_table);
         if (bound->nk_table) free(bound->nk_table);
+        if (bound->pr_failure) free(bound->pr_failure);
         if (bound->state)    bound_state_free(bound->state);
         free(bound);
     }
@@ -308,14 +353,16 @@ void bound_free(bound_t * bound)
 int main(int argc, const char * argv[]) {
     long double confidence;
     size_t      interfaces;
+    size_t      max_branch;
 
 //    sscanf(argv[1], "%Lf", &confidence);
 //    sscanf(argv[2], "%d", &interfaces);
-    confidence = 0.05;
-    interfaces = 10;
-    bound_t * bound = bound_create(confidence, interfaces);
-    bound_build(bound, 16);
+    confidence = .05;
+    interfaces = 128;
+    max_branch = 16;
+    bound_t * bound = bound_create(confidence, interfaces, max_branch);
     bound_dump(bound);
+    bound_failure_dump(bound);
     bound_free(bound);
     return 0;
 }

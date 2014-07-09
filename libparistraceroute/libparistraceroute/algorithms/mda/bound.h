@@ -34,8 +34,9 @@ typedef struct {
     size_t        * nk_table;   /**< Stored stopping points */
     probability_t * pk_table;   /**< Temp stored probabilities at stopping
                                      point states for each hypothesis */
-    bound_state_t * state;      /**< Reference to memory (vector_ts) used to 
-                                     build state */
+    probability_t * pr_failure; /**< Table to store actual probability of
+                                     failure if given hypothesis (index) is true */
+    bound_state_t * state;      /**< Reference to memory used to build state */
 } bound_t;
 
 
@@ -43,10 +44,11 @@ typedef struct {
  * \brief Create a bound_t structure
  * \param confidence User-specified failure confidence
  * \param max_interfaces User-specified max branching at an interface
+ * \param max_branch User-specified max number of branching points in network
  * \return Reference to bound_t structure
  */
 
-bound_t * bound_create(double confidence, size_t max_interfaces);
+bound_t * bound_create(double confidence, size_t max_interfaces, size_t max_branch);
 
 /**
  * \brief Compute stopping points
@@ -63,6 +65,13 @@ void bound_build(bound_t * bound, size_t end);
  */
 
 size_t bound_get_nk(bound_t * bound, size_t k);
+
+/**
+ * \brief Print all true failure probabilities
+ * \param bound Reference to bound_t structure
+ */
+
+void bound_failure_dump(bound_t * bound);
 
 /**
  * \brief Print all stopping points

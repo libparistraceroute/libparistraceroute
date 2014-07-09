@@ -185,6 +185,13 @@ int opt_store_str(char *, void *);
  * \
  */
 
+int opt_store_int_3(char *, void *);
+
+/**
+ * \brief
+ * \
+ */
+
 int opt_store_int_2(char *,void *);
 
 /**

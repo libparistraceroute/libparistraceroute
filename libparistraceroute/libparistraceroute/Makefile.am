@@ -136,7 +136,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 ## Instruct libtool to include ABI version information in the generated shared
 ## library file (.so).  The library ABI version is defined in configure.ac, so
 ## that all version information is kept in one place.
-libparistraceroute_@LIBRARY_VERSION@_la_LDFLAGS = -version-info @API_VERSION@
+libparistraceroute_@LIBRARY_VERSION@_la_LDFLAGS = -lm -version-info @API_VERSION@
 
 ## Define the list of public header files and their install location.  The
 ## nobase_ prefix instructs Automake to not strip the directory part from each
