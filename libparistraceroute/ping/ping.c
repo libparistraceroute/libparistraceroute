@@ -52,7 +52,6 @@
 */
 const char * algorithm_names[] = {
     "ping", // default value
-    "mda",
     NULL
 };
 
@@ -66,8 +65,8 @@ static bool is_icmp  = false;
 // indicates whether a flow label should be set on the packet or not 
 static bool set_flow_label = false;
 
-// points to the source address (if indicated) GET COMPILER ERROR....
-// static char *src_ip = NULL;
+// points to the source address (if indicated)
+struct opt_str src_ip = {NULL, 0};
 
 const char * protocol_names[] = {
     "icmp", // default value    
@@ -81,7 +80,7 @@ const char * protocol_names[] = {
 static int    dst_port[4]      = {33457,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
 static int    src_port[4]      = {33456,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
 static double send_time[4]     = {1,      1,   DBL_MAX,    0}; 
-static int packet_size[3]   = OPTIONS_PING_PACKET_SIZE;
+static int    packet_size[3]   = OPTIONS_PING_PACKET_SIZE;
 
 struct opt_spec runnable_options[] = {
     // action                 sf          lf                   metavar              help          data
@@ -90,9 +89,9 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,      HELP_4,       &is_ipv4},
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,      HELP_6,       &is_ipv6},
     {opt_store_1,             "f",        OPT_NO_LF,           OPT_NO_METAVAR,      HELP_f,       &set_flow_label},
-  //{opt_store_str,           "I",        OPT_NO_LF,           "INTERFACE ADDRESS", HELP_I,       src_ip},
+    {opt_store_str,           "I",        OPT_NO_LF,           "INTERFACE_ADDRESS", HELP_I,       &src_ip},
     {opt_store_int_lim_en,    "i",        OPT_NO_LF,           "WAIT",              HELP_i,       send_time},
-    {opt_store_int_lim,       "s",        OPT_NO_LF,           "SIZE",              HELP_s,       packet_size},
+    {opt_store_int_lim,       "s",        OPT_NO_LF,           "PACKET_SIZE",       HELP_s,       packet_size},
 
     /*
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
@@ -315,7 +314,7 @@ int main(int argc, char ** argv)
    // pt_loop_t               * loop;
     int                       family;
     address_t                 dst_addr;
-   // address_t                 src_addr;
+    address_t                 src_addr;
     options_t               * options;
     char                    * dst_ip;
     const char              * algorithm_name;
@@ -381,9 +380,8 @@ int main(int argc, char ** argv)
     );
 
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
-
-    /*
-    if (!src_ip) {  // true if user has specified an interface address (-I)
+    
+    if (src_ip.s) {  // true if user has specified an interface address (-I)
         if (is_ipv4) {
            family = AF_INET;
         } else if (is_ipv6) {
@@ -392,14 +390,13 @@ int main(int argc, char ** argv)
         // Get address family if not defined by the user
            if (!address_guess_family(dst_ip, &family)) goto ERR_ADDRESS_GUESS_FAMILY;
         }
-        if (address_from_string(family, src_ip, &src_addr) != 0) {
-            fprintf(stderr, "E: Invalid source address %s\n", src_ip);
+        if (address_from_string(family, src_ip.s, &src_addr) != 0) {
+            fprintf(stderr, "E: Invalid source address %s\n", src_ip.s);
             goto ERR_ADDRESS_IP_FROM_STRING;
         } else {         
             probe_set_field(probe, ADDRESS("src_ip", &src_addr));
         }
     }
-    */
 
     if (send_time[3]) {
         if(send_time[0] <= 10) { // seconds
@@ -409,7 +406,7 @@ int main(int argc, char ** argv)
         }
     }
 
-    if (!packet_size[0]) {
+    if (packet_size[0]) {
         probe_payload_resize(probe, packet_size[0]);
     }
 

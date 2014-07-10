@@ -391,7 +391,7 @@ int opt_store_str(char *arg, void *data) {
     struct opt_str *s = data;
 
     assert(arg && data);
-    s->s = arg;
+    s->s = strdup(arg);
     s->s0 = arg[0];
     return 0;
 }

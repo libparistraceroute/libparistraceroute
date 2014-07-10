@@ -21,7 +21,7 @@
 #define OPTIONS_PING_PACKET_SIZE_DEFAULT              0
 #define OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT           false
 #define OPTIONS_PING_IS_QUIET_DEFAULT                 false
-#define OPTIONS_PING_COUNT_DEFAULT                    0
+#define OPTIONS_PING_COUNT_DEFAULT                    INT_MAX
 
 #define OPTIONS_TRACEROUTE_MIN_TTL          {OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,          1, 255}
 #define OPTIONS_TRACEROUTE_MAX_TTL          {OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,          1, 255}
@@ -29,22 +29,22 @@
 #define OPTIONS_TRACEROUTE_NUM_QUERIES      {OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,      1, 255}
 
 #define OPTIONS_PING_PACKET_SIZE            {OPTIONS_PING_PACKET_SIZE_DEFAULT,      0, INT_MAX}
-#define OPTIONS_PING_COUNT                  {OPTIONS_PING_COUNT_DEFAULT, OPTIONS_PING_COUNT_DEFAULT, INT_MAX}
+#define OPTIONS_PING_COUNT                  {OPTIONS_PING_COUNT_DEFAULT, 1, OPTIONS_PING_COUNT_DEFAULT}
 
-#define HELP_c "Stop after sending count ECHO_REQUEST packets. With deadline option, ping waits for 'count' ECHO_REPLY packets, until the timeout expires."
-#define HELP_D "Print timestamp (unix time + microseconds as in gettimeofday) before each line."
-#define HELP_n "Do not resolve IP addresses to their domain names"
+#define HELP_c      "Stop after sending count ECHO_REQUEST packets. With deadline option, ping waits for 'count' ECHO_REPLY packets, until the timeout expires."
+#define HELP_D      "Print timestamp (unix time + microseconds as in gettimeofday) before each line."
+#define HELP_n      "Do not resolve IP addresses to their domain names"
 #define HELP_q_ping "Quiet output. Nothing is displayed except the summary lines at startup time and when finished."
-#define HELP_t "Set the IP Time to Live."
-#define HELP_v "Verbose output."
+#define HELP_t      "Set the IP Time to Live."
+#define HELP_v      "Verbose output."
 
 typedef traceroute_event_type_t ping_event_type_t;
 
 // Get the different values of traceroute options
-uint8_t options_ping_get_min_ttl();
+uint8_t options_ping_get_min_ttl(); // NOT NEEDED FOR PING
 uint8_t options_ping_get_max_ttl();
-uint8_t options_ping_get_num_queries(); //TO DELETE
-uint8_t options_ping_get_max_undiscovered(); //TO DELETE
+uint8_t options_ping_get_num_queries(); // NOT NEEDED FOR PING
+uint8_t options_ping_get_max_undiscovered(); // NOT NEEDED FOR PING
 bool    options_ping_get_do_resolv();
 
 /*
@@ -80,11 +80,11 @@ bool    options_ping_get_do_resolv();
 //--------------------------------------------------------------------
 
 typedef struct {
-    uint8_t           min_ttl;          /**< Minimum ttl at which to send probes */
-    uint8_t           max_ttl;          /**< Maximum ttl at which to send probes */
+    uint8_t           min_ttl;          /**< Minimum ttl at which to send probes */ // NOT NEEDED FOR PING 
+    uint8_t           max_ttl;          /**< Maximum ttl at which to send probes */ 
     unsigned int      count;            /**< Number of probes to be sent         */
-    size_t            num_probes;       /**< Number of probes per hop            */ //TO DELETE
-    size_t            max_undiscovered; /**< Maximum number of consecutives undiscovered hops */ //TO DELETE
+    size_t            num_probes;       /**< Number of probes per hop            */ // NOT NEEDED FOR PING
+    size_t            max_undiscovered; /**< Maximum number of consecutives undiscovered hops */ // NOT NEEDED FOR PING
     const address_t * dst_addr;         /**< The target IP */
     bool              do_resolv;        /**< Resolv each discovered IP hop */
 } ping_options_t;
@@ -93,7 +93,7 @@ const option_t * ping_get_options();
 
 ping_options_t ping_get_default_options();
 
-void    options_ping_init(ping_options_t * traceroute_options, address_t * address);
+void options_ping_init(ping_options_t * traceroute_options, address_t * address);
 
 //--------------------------------------------------------------------
 // Custom-events raised by traceroute algorithm
@@ -131,7 +131,7 @@ typedef struct {
  */
 
 void ping_handler(
-    pt_loop_t                  * loop,
+    pt_loop_t            * loop,
     ping_event_t         * traceroute_event,
     const ping_options_t * traceroute_options,
     const ping_data_t    * traceroute_data

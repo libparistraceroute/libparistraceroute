@@ -25,7 +25,7 @@ static bool              show_timestamp      = OPTIONS_PING_SHOW_TIMESTAMP_DEFAU
 static bool              is_quiet            = OPTIONS_PING_IS_QUIET_DEFAULT;
 static unsigned int      count[3]            = OPTIONS_PING_COUNT;
 
-static option_t traceroute_options[] = {
+static option_t ping_options[] = {
     // action           short       long                 metavar             help          data            
     {opt_store_int,     "c",        OPT_NO_LF,           " COUNT",           HELP_c,       &count},
     {opt_store_1,       "D",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_D,       &show_timestamp},  
@@ -57,7 +57,7 @@ bool options_ping_get_do_resolv() {
 }
 
 const option_t * ping_get_options() {
-    return traceroute_options;
+    return ping_options;
 }
 
 void options_ping_init(ping_options_t * traceroute_options, address_t * address)
@@ -464,7 +464,7 @@ FAILURE:
 static algorithm_t traceroute = {
     .name    = "traceroute",
     .handler = ping_loop_handler,
-    .options = (const option_t *) &traceroute_options // TODO akram pass pointer to traceroute_get_options
+    .options = (const option_t *) &ping_options // TODO akram pass pointer to traceroute_get_options
 };
 
 ALGORITHM_REGISTER(traceroute);

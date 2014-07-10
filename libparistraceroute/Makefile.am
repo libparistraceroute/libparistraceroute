@@ -4,7 +4,7 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 # The subdirectories of the project to go into
-SUBDIRS = libparistraceroute paris-traceroute traceroute man doc
+SUBDIRS = libparistraceroute ping paris-traceroute traceroute man doc
 
 dist_noinst_SCRIPTS = \
 	autogen.sh \
