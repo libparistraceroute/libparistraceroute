@@ -357,9 +357,9 @@ int main(int argc, const char * argv[]) {
 
 //    sscanf(argv[1], "%Lf", &confidence);
 //    sscanf(argv[2], "%d", &interfaces);
-    confidence = .05;
+    confidence = .5;
     interfaces = 128;
-    max_branch = 16;
+    max_branch = 1;
     bound_t * bound = bound_create(confidence, interfaces, max_branch);
     bound_dump(bound);
     bound_failure_dump(bound);
