@@ -76,23 +76,25 @@ const char * protocol_names[] = {
 };
 
 // Bounded integer parameters
-//                              def     min  max         option_enabled
-static int    dst_port[4]      = {33457,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
-static int    src_port[4]      = {33456,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
-static double send_time[4]     = {1,      1,   DBL_MAX,    0}; 
-static int    packet_size[3]   = OPTIONS_PING_PACKET_SIZE;
+//                                  def     min  max         option_enabled
+static int      dst_port[4]      = {33457,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
+static int      src_port[4]      = {33456,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
+static double   send_time[4]     = {1,      1,   DBL_MAX,    0}; 
+static int      packet_size[3]   = OPTIONS_PING_PACKET_SIZE;
+static unsigned max_ttl[3]       = OPTIONS_PING_MAX_TTL;
 
 struct opt_spec runnable_options[] = {
-    // action                 sf          lf                   metavar              help          data
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,      TEXT,         OPT_NO_DATA},
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,      TEXT_OPTIONS, OPT_NO_DATA},
-    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,      HELP_4,       &is_ipv4},
-    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,      HELP_6,       &is_ipv6},
-    {opt_store_1,             "f",        OPT_NO_LF,           OPT_NO_METAVAR,      HELP_f,       &set_flow_label},
-    {opt_store_str,           "I",        OPT_NO_LF,           "INTERFACE_ADDRESS", HELP_I,       &src_ip},
-    {opt_store_int_lim_en,    "i",        OPT_NO_LF,           "WAIT",              HELP_i,       send_time},
-    {opt_store_int_lim,       "s",        OPT_NO_LF,           "PACKET_SIZE",       HELP_s,       packet_size},
-
+    // action                 sf          lf                   metavar               help          data
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,       TEXT,         OPT_NO_DATA},
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,       TEXT_OPTIONS, OPT_NO_DATA},
+    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,       HELP_4,       &is_ipv4},
+    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,       HELP_6,       &is_ipv6},
+    {opt_store_1,             "f",        OPT_NO_LF,           OPT_NO_METAVAR,       HELP_f,       &set_flow_label},
+    {opt_store_str,           "I",        OPT_NO_LF,           " INTERFACE_ADDRESS", HELP_I,       &src_ip},
+    {opt_store_double_lim_en, "i",        OPT_NO_LF,           " INTERVAL",          HELP_i,       send_time},
+    {opt_store_int_lim,       "s",        OPT_NO_LF,           " PACKET_SIZE",       HELP_s,       packet_size},
+    {opt_store_int,           "t",        OPT_NO_LF,           " TIME TO LIVE",      HELP_t,       max_ttl},
+    
     /*
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
     {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     HELP_d,       &is_debug},
@@ -217,15 +219,16 @@ static bool check_options(
 
 void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
-    ping_event_t         * traceroute_event;
-    const ping_options_t * traceroute_options;
-    const ping_data_t    * traceroute_data;
-    mda_event_t                * mda_event;
-    mda_data_t                 * mda_data;
-    const char                 * algorithm_name;
+    ping_event_t         * ping_event;
+    const ping_options_t * ping_options;
+    ping_data_t          * ping_data;
+    // mda_event_t                * mda_event;
+    // mda_data_t                 * mda_data;
+    // const char                 * algorithm_name;
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
+            /*
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_data = event->issuer->data;
@@ -234,10 +237,12 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
                 printf("\n");
                 mda_data_free(mda_data);
             }
+            */
             pt_instance_stop(loop, event->issuer);
             pt_loop_terminate(loop);
             break;
         case ALGORITHM_EVENT:
+            /*
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_event = event->data;
@@ -250,14 +255,15 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
                         break;
                 }
             } else if (strcmp(algorithm_name, "traceroute") == 0) {
-                traceroute_event   = event->data;
-                traceroute_options = event->issuer->options;
-                traceroute_data    = event->issuer->data;
+            */
+            ping_event   = event->data;
+            ping_options = event->issuer->options;
+            ping_data    = event->issuer->data;
 
-                // Forward this event to the default traceroute handler
-                // See libparistraceroute/algorithms/traceroute.c
-                ping_handler(loop, traceroute_event, traceroute_options, traceroute_data);
-            }
+            // Forward this event to the default ping handler
+            // See libparistraceroute/algorithms/ping.c
+            ping_handler(loop, ping_event, ping_options, ping_data);
+            // }
             break;
         default:
             break;
@@ -308,13 +314,13 @@ int main(int argc, char ** argv)
     int                       exit_code = EXIT_FAILURE;
     char                    * version = strdup("version 1.0");
     const char              * usage = "usage: %s [options] host\n";
-   // void                    * algorithm_options = NULL;
+    void                    * algorithm_options = NULL;
     ping_options_t            ping_options;
     probe_t                 * probe;
-   // pt_loop_t               * loop;
+    pt_loop_t               * loop;
     int                       family;
     address_t                 dst_addr;
-    address_t                 src_addr;
+    // address_t                 src_addr;
     options_t               * options;
     char                    * dst_ip;
     const char              * algorithm_name;
@@ -374,13 +380,14 @@ int main(int argc, char ** argv)
     // Prepare the probe skeleton
     probe_set_protocols(
         probe,
-        get_ip_protocol_name(family),                          // "ipv4"   | "ipv6"
-        get_protocol_name(family, use_icmp, use_tcp, use_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
+        "ipv4",  //get_ip_protocol_name(family),                          // "ipv4"   | "ipv6"
+        "icmpv4",//get_protocol_name(family, use_icmp, use_tcp, use_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
         NULL
     );
 
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
     
+/*
     if (src_ip.s) {  // true if user has specified an interface address (-I)
         if (is_ipv4) {
            family = AF_INET;
@@ -399,16 +406,17 @@ int main(int argc, char ** argv)
     }
 
     if (send_time[3]) {
-        if(send_time[0] <= 10) { // seconds
-            probe_set_delay(probe, DOUBLE("delay", send_time[0]));
-        } else { // milli-seconds
-            probe_set_delay(probe, DOUBLE("delay", 0.001 * send_time[0]));
-        }
+        probe_set_delay(probe, DOUBLE("delay", send_time[0]));
+    }
+
+    if (max_ttl[0] != 255) {
+        probe_set_field(probe, I8("ttl", max_ttl[0]));
     }
 
     if (packet_size[0]) {
         probe_payload_resize(probe, packet_size[0]);
     }
+*/
 
     // ICMPv* do not support src_port and dst_port fields nor payload.
     /*
@@ -458,11 +466,11 @@ int main(int argc, char ** argv)
     */
 
     ping_options = ping_get_default_options();
+    algorithm_options = &ping_options;
 
     // Algorithm options (common options)
-    options_ping_init(&ping_options, &dst_addr);
+    options_ping_init(&ping_options, &dst_addr, send_time[0]);
 
-    /*
     // Create libparistraceroute loop
     if (!(loop = pt_loop_create(loop_handler, NULL))) {
         fprintf(stderr, "E: Cannot create libparistraceroute loop");
@@ -474,13 +482,8 @@ int main(int argc, char ** argv)
 
     printf("ping to %s (", dst_ip);
     address_dump(&dst_addr);
-    printf("), %u hops max, %u bytes packets\n",
-        ptraceroute_options->max_ttl,
-        (unsigned int)packet_get_size(probe->packet)
-    );
-    */
-
-    /*
+    printf(")\n");
+    
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {
         fprintf(stderr, "E: Cannot add the chosen algorithm");
@@ -492,10 +495,10 @@ int main(int argc, char ** argv)
         fprintf(stderr, "E: Main loop interrupted");
         goto ERR_PT_LOOP;
     }
-    */
+
     exit_code = EXIT_SUCCESS;
 
-/*
+
     // Leave the program
 ERR_PT_LOOP:
 ERR_INSTANCE:
@@ -504,9 +507,8 @@ ERR_INSTANCE:
     // Options and probe must be manually removed.
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
-//ERR_UNKNOWN_ALGORITHM:
-//    probe_free(probe);
-*/
+// ERR_UNKNOWN_ALGORITHM:
+    probe_free(probe);
 ERR_PROBE_CREATE:
 ERR_ADDRESS_IP_FROM_STRING:
 ERR_ADDRESS_GUESS_FAMILY:

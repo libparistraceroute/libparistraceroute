@@ -10,42 +10,36 @@
 #include "../pt_loop.h"  // pt_loop_t
 #include "../dynarray.h" // dynarray_t
 #include "../options.h"  // option_t
-#include "traceroute.h"
 
-#define OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT            1
-#define OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT            30
-#define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT   3
-#define OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT        3
-#define OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT          true
+#define OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT            1  // NOT NEEDED FOR PING
+#define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT   3  // NOT NEEDED FOR PING
+#define OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT        3   // NOT NEEDED FOR PING
 
+#define OPTIONS_PING_MAX_TTL_DEFAULT                  255
 #define OPTIONS_PING_PACKET_SIZE_DEFAULT              0
 #define OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT           false
 #define OPTIONS_PING_IS_QUIET_DEFAULT                 false
 #define OPTIONS_PING_COUNT_DEFAULT                    INT_MAX
+#define OPTIONS_PING_DO_RESOLV_DEFAULT                true
+#define OPTIONS_PING_INTERVAL_DEFAULT                 1
 
-#define OPTIONS_TRACEROUTE_MIN_TTL          {OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,          1, 255}
-#define OPTIONS_TRACEROUTE_MAX_TTL          {OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,          1, 255}
-#define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED {OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT, 1, 255}
-#define OPTIONS_TRACEROUTE_NUM_QUERIES      {OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,      1, 255}
-
-#define OPTIONS_PING_PACKET_SIZE            {OPTIONS_PING_PACKET_SIZE_DEFAULT,      0, INT_MAX}
-#define OPTIONS_PING_COUNT                  {OPTIONS_PING_COUNT_DEFAULT, 1, OPTIONS_PING_COUNT_DEFAULT}
+#define OPTIONS_PING_MAX_TTL                {OPTIONS_PING_MAX_TTL_DEFAULT,     1, 255}
+#define OPTIONS_PING_PACKET_SIZE            {OPTIONS_PING_PACKET_SIZE_DEFAULT, 0, INT_MAX}
+#define OPTIONS_PING_COUNT                  {OPTIONS_PING_COUNT_DEFAULT,       1, OPTIONS_PING_COUNT_DEFAULT}
 
 #define HELP_c      "Stop after sending count ECHO_REQUEST packets. With deadline option, ping waits for 'count' ECHO_REPLY packets, until the timeout expires."
 #define HELP_D      "Print timestamp (unix time + microseconds as in gettimeofday) before each line."
 #define HELP_n      "Do not resolve IP addresses to their domain names"
 #define HELP_q_ping "Quiet output. Nothing is displayed except the summary lines at startup time and when finished."
-#define HELP_t      "Set the IP Time to Live."
 #define HELP_v      "Verbose output."
+#define HELP_t      "Set the IP Time to Live."
 
-typedef traceroute_event_type_t ping_event_type_t;
-
-// Get the different values of traceroute options
-uint8_t options_ping_get_min_ttl(); // NOT NEEDED FOR PING
-uint8_t options_ping_get_max_ttl();
-uint8_t options_ping_get_num_queries(); // NOT NEEDED FOR PING
-uint8_t options_ping_get_max_undiscovered(); // NOT NEEDED FOR PING
-bool    options_ping_get_do_resolv();
+// Get the different values of ping options
+bool         options_ping_get_do_resolv();
+double       options_ping_get_interval();
+bool         options_ping_get_show_timestamp();
+bool         options_ping_get_is_quiet();
+unsigned int options_ping_get_count();
 
 /*
  * Principle: (from man page)
@@ -80,46 +74,55 @@ bool    options_ping_get_do_resolv();
 //--------------------------------------------------------------------
 
 typedef struct {
-    uint8_t           min_ttl;          /**< Minimum ttl at which to send probes */ // NOT NEEDED FOR PING 
     uint8_t           max_ttl;          /**< Maximum ttl at which to send probes */ 
     unsigned int      count;            /**< Number of probes to be sent         */
-    size_t            num_probes;       /**< Number of probes per hop            */ // NOT NEEDED FOR PING
-    size_t            max_undiscovered; /**< Maximum number of consecutives undiscovered hops */ // NOT NEEDED FOR PING
     const address_t * dst_addr;         /**< The target IP */
     bool              do_resolv;        /**< Resolv each discovered IP hop */
+    double            interval;         /**< The time to wait to send each packet; if <= 10 in seconds, in ms otherwise */
+    bool              is_quiet;         /**< If enabled, only summary lines at startup time and when finished are shown */
+    bool              show_timestamp;   /**< If enabled, timestamp is shown */
 } ping_options_t;
 
 const option_t * ping_get_options();
 
 ping_options_t ping_get_default_options();
 
-void options_ping_init(ping_options_t * traceroute_options, address_t * address);
+void options_ping_init(ping_options_t * traceroute_options, address_t * address, double interval);
 
 //--------------------------------------------------------------------
-// Custom-events raised by traceroute algorithm
+// Custom-events raised by ping algorithm
 //--------------------------------------------------------------------
 
+typedef enum {
+    // event_type                      | data (type)     | data (meaning)
+    // --------------------------------+-----------------+--------------------------------------------
+    PING_PROBE_REPLY,                // | probe_reply_t * | The probe and its corresponding reply
+    PING_TIMEOUT,                    // | NULL            | N/A
+    PING_ALL_PROBES_SENT,            // | NULL            | N/A
+    PING_WAIT,                       // | NULL            | N/A
+} ping_event_type_t;
 
 // TODO since this structure should exactly match with a standard event_t, define a macro allowing to define custom events
 // CREATE_EVENT(traceroute) uses ping_event_type_t and defines ping_event_t
 typedef struct {
-    ping_event_type_t type;
+    ping_event_type_t       type;
     void                  * data;
     void                 (* data_free)(void *); /**< Called in event_free to release data. Ignored if NULL. */
     void                  * zero;
 } ping_event_t;
 
 typedef struct {
-    bool          destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
-    uint8_t       ttl;                 /**< TTL currently explored                   */
-    size_t        num_replies;         /**< Total of probe sent for this instance    */
-    size_t        num_undiscovered;    /**< Number of consecutive undiscovered hops  */
-    size_t        num_stars;           /**< Number of probe lost for the current hop */
-    dynarray_t  * probes;              /**< Probe instances allocated by traceroute  */
+    bool          destination_reached;  /**< True iif the destination has been reached at least once for the current TTL */
+    size_t        num_replies;          /**< Total of probe sent for this instance    */
+    size_t        num_sent;             /**< Number of probes already sent            */
+    dynarray_t  * probes;               /**< Probe instances allocated by traceroute  */
+    size_t        num_losses;           /**< Number of packets lost                   */
+    size_t        num_probes_in_flight; /**<The number of probes which haven't provoked a reply so far */
+    // dynarray_t  * rtt_results            /**<RTTs in order to be able to compute statistics */ 
 } ping_data_t;
 
 //-----------------------------------------------------------------
-// Traceroute default handler
+// Ping default handler
 //-----------------------------------------------------------------
 
 /**
@@ -134,7 +137,7 @@ void ping_handler(
     pt_loop_t            * loop,
     ping_event_t         * traceroute_event,
     const ping_options_t * traceroute_options,
-    const ping_data_t    * traceroute_data
+    ping_data_t          * traceroute_data
 );
 
 #endif
