@@ -11,10 +11,6 @@
 #include "../dynarray.h" // dynarray_t
 #include "../options.h"  // option_t
 
-#define OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT            1  // NOT NEEDED FOR PING
-#define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT   3  // NOT NEEDED FOR PING
-#define OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT        3   // NOT NEEDED FOR PING
-
 #define OPTIONS_PING_MAX_TTL_DEFAULT                  255
 #define OPTIONS_PING_PACKET_SIZE_DEFAULT              0
 #define OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT           false
@@ -78,7 +74,7 @@ typedef struct {
     unsigned int      count;            /**< Number of probes to be sent         */
     const address_t * dst_addr;         /**< The target IP */
     bool              do_resolv;        /**< Resolv each discovered IP hop */
-    double            interval;         /**< The time to wait to send each packet; if <= 10 in seconds, in ms otherwise */
+    double            interval;         /**< The time to wait to send each packet; in seconds */
     bool              is_quiet;         /**< If enabled, only summary lines at startup time and when finished are shown */
     bool              show_timestamp;   /**< If enabled, timestamp is shown */
 } ping_options_t;
@@ -87,23 +83,32 @@ const option_t * ping_get_options();
 
 ping_options_t ping_get_default_options();
 
-void options_ping_init(ping_options_t * traceroute_options, address_t * address, double interval);
+void options_ping_init(ping_options_t * ping_options, address_t * address, double interval);
 
 //--------------------------------------------------------------------
 // Custom-events raised by ping algorithm
 //--------------------------------------------------------------------
 
 typedef enum {
-    // event_type                      | data (type)     | data (meaning)
-    // --------------------------------+-----------------+--------------------------------------------
+    // event_type                       | data (type)     | data (meaning)
+    // ---------------------------------+-----------------+--------------------------------------------
     PING_PROBE_REPLY,                // | probe_reply_t * | The probe and its corresponding reply
+    PING_DEST_NET_UNREACHABLE,       // | probe_reply_t * | The probe and its corresponding reply
+    PING_DEST_HOST_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
+    PING_DEST_PROT_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
+    PING_DEST_PORT_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
+    PING_TTL_EXCEEDED_TRANSIT,       // | probe_reply_t * | The probe and its corresponding reply
+    PING_TIME_EXCEEDED_REASSEMBLY,   // | probe_reply_t * | The probe and its corresponding reply
+    PING_REDIRECT,                   // | probe_reply_t * | The probe and its corresponding reply
+    PING_PARAMETER_PROBLEM,          // | probe_reply_t * | The probe and its corresponding reply
+    PING_GEN_ERROR,                  // | probe_reply_t * | The probe and its corresponding reply
     PING_TIMEOUT,                    // | NULL            | N/A
     PING_ALL_PROBES_SENT,            // | NULL            | N/A
     PING_WAIT,                       // | NULL            | N/A
 } ping_event_type_t;
 
 // TODO since this structure should exactly match with a standard event_t, define a macro allowing to define custom events
-// CREATE_EVENT(traceroute) uses ping_event_type_t and defines ping_event_t
+// CREATE_EVENT(ping) uses ping_event_type_t and defines ping_event_t
 typedef struct {
     ping_event_type_t       type;
     void                  * data;
@@ -112,10 +117,8 @@ typedef struct {
 } ping_event_t;
 
 typedef struct {
-    bool          destination_reached;  /**< True iif the destination has been reached at least once for the current TTL */
     size_t        num_replies;          /**< Total of probe sent for this instance    */
-    size_t        num_sent;             /**< Number of probes already sent            */
-    dynarray_t  * probes;               /**< Probe instances allocated by traceroute  */
+    dynarray_t  * probes;               /**< Probe instances allocated by ping  */
     size_t        num_losses;           /**< Number of packets lost                   */
     size_t        num_probes_in_flight; /**<The number of probes which haven't provoked a reply so far */
     // dynarray_t  * rtt_results            /**<RTTs in order to be able to compute statistics */ 
@@ -128,16 +131,16 @@ typedef struct {
 /**
  * \brief Handle raised ping_event_t events.
  * \param loop The main loop.
- * \param traceroute_event The handled event.
- * \param traceroute_options Options related to this instance of traceroute .
- * \param traceroute_data Data related to this instance of traceroute.
+ * \param ping_event The handled event.
+ * \param ping_options Options related to this instance of ping .
+ * \param ping_data Data related to this instance of ping.
  */
 
 void ping_handler(
     pt_loop_t            * loop,
-    ping_event_t         * traceroute_event,
-    const ping_options_t * traceroute_options,
-    ping_data_t          * traceroute_data
+    ping_event_t         * ping_event,
+    const ping_options_t * ping_options,
+    ping_data_t          * ping_data
 );
 
 #endif

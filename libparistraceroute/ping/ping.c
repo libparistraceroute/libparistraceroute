@@ -69,9 +69,9 @@ static bool set_flow_label = false;
 struct opt_str src_ip = {NULL, 0};
 
 const char * protocol_names[] = {
-    "icmp", // default value    
-    "udp",
+    "icmp", // default value
     "tcp",
+    "udp",
     NULL
 };
 
@@ -222,22 +222,10 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     ping_event_t         * ping_event;
     const ping_options_t * ping_options;
     ping_data_t          * ping_data;
-    // mda_event_t                * mda_event;
-    // mda_data_t                 * mda_data;
-    // const char                 * algorithm_name;
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
-            /*
-            algorithm_name = event->issuer->algorithm->name;
-            if (strcmp(algorithm_name, "mda") == 0) {
-                mda_data = event->issuer->data;
-                printf("Lattice:\n");
-                lattice_dump(mda_data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump);
-                printf("\n");
-                mda_data_free(mda_data);
-            }
-            */
+            printf("DONE\n");
             pt_instance_stop(loop, event->issuer);
             pt_loop_terminate(loop);
             break;
@@ -246,7 +234,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_event = event->data;
-                traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
+               loo traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
                 switch (mda_event->type) {
                     case MDA_NEW_LINK:
                         mda_link_dump(mda_event->data, traceroute_options->do_resolv);
@@ -380,8 +368,8 @@ int main(int argc, char ** argv)
     // Prepare the probe skeleton
     probe_set_protocols(
         probe,
-        "ipv4",  //get_ip_protocol_name(family),                          // "ipv4"   | "ipv6"
-        "icmpv4",//get_protocol_name(family, use_icmp, use_tcp, use_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
+        get_ip_protocol_name(family),                          // "ipv4"   | "ipv6"
+        get_protocol_name(family, use_icmp, use_tcp, use_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
         NULL
     );
 
@@ -442,10 +430,12 @@ int main(int argc, char ** argv)
             NULL
         );
 
-        // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
-        probe_payload_resize(probe, 2);
     }
     */
+
+    // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
+    //probe_payload_resize(probe, 2);
+
     // Algorithm options (dedicated options)
 
     /*
@@ -483,7 +473,7 @@ int main(int argc, char ** argv)
     printf("ping to %s (", dst_ip);
     address_dump(&dst_addr);
     printf(")\n");
-    
+
     // Add an algorithm instance in the main loop
     if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {
         fprintf(stderr, "E: Cannot add the chosen algorithm");

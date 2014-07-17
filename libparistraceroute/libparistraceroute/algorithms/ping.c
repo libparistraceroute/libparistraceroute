@@ -1,16 +1,18 @@
 #include "ping.h"
 
-#include <errno.h>       // errno, EINVAL
-#include <stdlib.h>      // malloc
-#include <stdio.h>       // fprintf
-#include <string.h>      // memset()
+#include <errno.h>            // errno, EINVAL
+#include <stdlib.h>           // malloc
+#include <stdio.h>            // fprintf
+#include <string.h>           // memset()
+#include <netinet/ip_icmp.h>  // icmpv4 constants
+#include <netinet/icmp6.h>    // icmpv6 constantsak
 
 #include "../probe.h"
 #include "../event.h"
 #include "../algorithm.h"
-#include "../address.h"  // address_resolv
-#include "../common.h"   // get_timestamp
-#include "../network.h"  // options_network_get_timeout
+#include "../address.h"       // address_resolv
+#include "../common.h"        // get_timestamp
+#include "../network.h"       // options_network_get_timeout
 
 //-----------------------------------------------------------------
 // Ping options
@@ -23,9 +25,9 @@ static bool              is_quiet            = OPTIONS_PING_IS_QUIET_DEFAULT;
 static unsigned int      count[3]            = OPTIONS_PING_COUNT;
 
 static option_t ping_options[] = {
-    // action              short       long                 metavar             help          data            
+    // action              short       long                 metavar             help          data
     {opt_store_int,        "c",        OPT_NO_LF,           " COUNT",           HELP_c,       &count},
-    {opt_store_1,          "D",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_D,       &show_timestamp},  
+    {opt_store_1,          "D",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_D,       &show_timestamp},
     {opt_store_0,          "n",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,       &do_resolv},
     {opt_store_1,          "q",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_q_ping,  &is_quiet},
     {opt_help,             "v",        OPT_NO_LF,           OPT_NO_METAVAR,     OPT_NO_HELP,  OPT_NO_DATA},
@@ -74,6 +76,123 @@ inline ping_options_t ping_get_default_options() {
     return ping_options;
 };
 
+//-------------------------------------------------------------
+// ICMP error analysing NOTE: these functions probably have to be put in another file
+//-------------------------------------------------------------
+
+static bool destination_network_unreachable(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_HOST);
+    }
+    else {
+        return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_ADDR);
+    }
+}
+
+static bool destination_host_unreachable(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_NET);
+    }
+    else {
+        return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOROUTE);
+    }
+}
+
+static bool destination_port_unreachable(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PORT);
+    }
+    else {
+        return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOPORT);
+    }
+}
+
+static bool destination_protocol_unreachable(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PROTOCOL);
+    }
+    else {
+        return (type == ICMP6_PARAM_PROB) && (code == ICMP6_PARAMPROB_NEXTHEADER);
+    }
+}
+
+static bool ttl_exceeded(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_INTRANS);
+    }
+    else {
+        return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_TRANSIT);
+    }
+}
+
+static bool fragment_reassembly_time_exceeded(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_REASS);
+    }
+    else {
+        return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_REASSEMBLY);
+    }
+}
+
+static bool redirect(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_REDIRECT) && (code == ICMP_REDIRECT_NET);
+    }
+    else {
+        return (type == ND_REDIRECT);
+    }
+}
+
+static bool parameter_problem(const probe_t *reply) {
+    uint8_t version = 0, code = 0, type = 0;
+    probe_extract(reply, "version", &version);
+    probe_extract(reply, "code", &code);
+    probe_extract(reply, "type", &type);
+
+    if (version == 4) {
+        return (type == ICMP_PARAMPROB);
+    }
+    else {
+        return (type == ICMP6_PARAM_PROB ) && ((code == ICMP6_PARAMPROB_HEADER) 
+                                                || (code == ICMP6_PARAMPROB_OPTION));
+    }
+}
+
 /**
  * \brief Check whether the destination is reached.
  * \param dst_addr The destination address of this ping instance.
@@ -105,7 +224,7 @@ static ping_data_t * ping_data_create() { // RENAME
 
     if (!(ping_data = calloc(1, sizeof(ping_data_t))))    goto ERR_MALLOC;
     if (!(ping_data->probes = dynarray_create()))         goto ERR_PROBES;
-    // if (!ping_data->rtt_results = dynarray_create())   goto ERR_RTT_RESULTS; 
+    // if (!ping_data->rtt_results = dynarray_create())   goto ERR_RTT_RESULTS;
     return ping_data;
 
 // ERR_RTT_RESULTS:
@@ -117,10 +236,10 @@ ERR_MALLOC:
 
 /**
  * \brief Release a ping_data_t instance from the memory
- * \param traceroute_data The ping_data_t instance we want to release.
+ * \param ping_data The ping_data_t instance we want to release.
  */
 
-static void ping_data_free(ping_data_t * ping_data) { // RENAME
+static void ping_data_free(ping_data_t * ping_data) {
     if (ping_data) {
         if (ping_data->probes) {
             dynarray_free(ping_data->probes, (ELEMENT_FREE) probe_free);
@@ -182,10 +301,9 @@ void ping_handler(
 ) {
     const probe_t * probe;
     const probe_t * reply;    
-    
+
     switch (ping_event->type) {
         case PING_PROBE_REPLY:
-
             // Retrieve the probe and its corresponding reply
             probe = ((const probe_reply_t *) ping_event->data)->probe;
             reply = ((const probe_reply_t *) ping_event->data)->reply;
@@ -193,63 +311,95 @@ void ping_handler(
             if (ping_options->show_timestamp) {    // option -D enabled
                 printf("[%lf] ",get_timestamp());
             }
- 
-            if (destination_reached(ping_options->dst_addr, reply)) {
-                printf("%d bytes from ", (int)probe_get_size(probe));
-                discovered_ip_dump(reply, ping_options->do_resolv);
-                printf(": seq=%d ttl=%d time= ", (int)(ping_data->num_replies), (int)(ping_options->max_ttl));
-                // Print delay
-                delay_dump(probe, reply);
-                //double delay = delay_get(probe, reply); // we need to store the rtts to compute statistics
-                //dynarray_push_element(ping_data->rtt_results, &delay);
-            }
-            else { //an error occured, the reply is thus an ICMP packet
-                ++(ping_data->num_losses);
 
-                size_t type = 0;
-                size_t code = 0;
-                probe_extract(reply, "type", &type);
-                probe_extract(reply, "code", &code);
-                printf("From ");
-                discovered_ip_dump(reply, ping_options->do_resolv);
-                printf(" seq=%d", (int)(ping_data->num_replies));
+            printf("%d bytes from ", (int)probe_get_size(probe));
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ttl=%d time= ", (int)(ping_data->num_replies), (int)(ping_options->max_ttl));
+            // Print delay
+            delay_dump(probe, reply);
+            //double delay = delay_get(probe, reply); // we need to store the rtts to compute statistics
+            //dynarray_push_element(ping_data->rtt_results, &delay);
+            break;
 
-                //retrieve information about the error
-                switch(type) {
-                    case 3: // Destination unreachable
-                        switch (code) { //MORE OPTIONS MAY BE ADDED
-                            case 0:
-                                printf(" Destination network unreachable\n");
-                                break;
+        case PING_DEST_NET_UNREACHABLE:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
 
-                            case 1:
-                                printf(" Destination host unreachable\n");
-                                break;
-                                
-                            case 3:
-                                printf(" Destination port unreachable\n");
-                                break;
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("network unreachable\n");
+            break;
 
-                            default:
-                                printf(" Destination not reachable\n");
-                                break;
-                        }
-                        break;
+        case PING_DEST_HOST_UNREACHABLE:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
 
-                    case 11: // Time exceeded
-                        switch(code)
-                        {
-                            case 0:
-                                printf(" TTL expired in transit\n");
-                                break;
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("host unreachable\n");
+            break;
 
-                            case 1:
-                                printf(" Fragment reassembly time exceeded\n");
-                                break;  
-                        }
-                        break;      
-            }
-            fflush(stdout);                
+        case PING_DEST_PROT_UNREACHABLE:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
+
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("protocol unreachable\n");
+            break;
+
+        case PING_DEST_PORT_UNREACHABLE:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
+
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("port unreachable\n");
+            break;
+
+        case PING_TTL_EXCEEDED_TRANSIT:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
+
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("ttl exceeded in transit\n");
+            break;
+
+        case PING_TIME_EXCEEDED_REASSEMBLY:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
+
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("fragment reassembly time exeeded\n");
+            break;
+
+        case PING_REDIRECT:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
+
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("redirect\n");
+            break;
+
+        case PING_PARAMETER_PROBLEM:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
+
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("parameter problem\n");
+            break;
+
+        case PING_GEN_ERROR:
+            reply = ((const probe_reply_t *) ping_event->data)->reply;
+
+            printf("From ");
+            discovered_ip_dump(reply, ping_options->do_resolv);
+            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf("packet has not reached its destination\n");
             break;
 
         case PING_ALL_PROBES_SENT:
@@ -257,15 +407,17 @@ void ping_handler(
             break;
 
         case PING_TIMEOUT:
+            printf("Timeout\n");
+            break;
+
         case PING_WAIT:
             break;
 
         default:
             break;
         }
+        fflush(stdout);
     }
-}
-
 
 //-----------------------------------------------------------------
 // Ping algorithm
@@ -374,8 +526,38 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             --(data->num_probes_in_flight);
            
             // Notify the caller we've got a response
-            pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            num_probes_to_send = options->count - data->num_replies == 0;
+            if (destination_reached(options->dst_addr, reply)) {
+                pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (destination_network_unreachable(reply)) {
+                pt_raise_event(loop, event_create(PING_DEST_NET_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (destination_host_unreachable(reply)) {
+                pt_raise_event(loop, event_create(PING_DEST_HOST_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (destination_protocol_unreachable(reply)) {
+                pt_raise_event(loop, event_create(PING_DEST_PROT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (destination_port_unreachable(reply)) {
+                pt_raise_event(loop, event_create(PING_DEST_PORT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (ttl_exceeded(reply)) {
+                pt_raise_event(loop, event_create(PING_TTL_EXCEEDED_TRANSIT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (fragment_reassembly_time_exceeded(reply)) {
+                pt_raise_event(loop, event_create(PING_TIME_EXCEEDED_REASSEMBLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (redirect(reply)) {
+                pt_raise_event(loop, event_create(PING_REDIRECT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else if (parameter_problem(reply)) {
+                pt_raise_event(loop, event_create(PING_PARAMETER_PROBLEM, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+            else {
+                pt_raise_event(loop, event_create(PING_GEN_ERROR, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+            }
+
+            num_probes_to_send = (int)(options->count - data->num_replies) > 0;
             break;
 
         case PROBE_TIMEOUT:
@@ -388,7 +570,8 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
             // Notify the caller we've got a probe timeout
             pt_raise_event(loop, event_create(PING_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
-            num_probes_to_send = options->count - data->num_replies == 0;
+
+            num_probes_to_send = (int)(options->count - data->num_replies) > 0;
             break;
 
         case ALGORITHM_TERMINATED:
@@ -406,13 +589,14 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     // Forward event to the caller
     pt_algorithm_throw(loop, loop->cur_instance->caller, event);
 
-    // check if we can send another probe or if we have already sent the maximum number of probes 
-    if (num_probes_to_send > 0) {
+    // check if we can send another probe or if we have already sent the maximum number of probes
+    if (num_probes_to_send > 0 && (data->num_replies + data->num_probes_in_flight != options->count)) {
         send_ping_probes(loop, data, probe_skel, num_probes_to_send);
-        data->num_probes_in_flight += (size_t)send_ping_probes;
-    }
+        data->num_probes_in_flight += (size_t)num_probes_to_send;
+    }   
     else {
-        if (data->num_replies - data->num_probes_in_flight == 0) { // we've recieved a response from all the probes we sent
+       
+        if (data->num_probes_in_flight == 0) { // we've recieved a response from all the probes we sent
             pt_raise_event(loop, event_create(PING_ALL_PROBES_SENT, NULL, NULL, NULL));
             pt_raise_terminated(loop);
         }
