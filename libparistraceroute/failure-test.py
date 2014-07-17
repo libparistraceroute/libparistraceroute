@@ -3,7 +3,7 @@
 # Script for tests executing mda with bound calculation
 #
 
-import subprocess, os, sys
+import subprocess, os, sys, time
 
 def main():
     sys_args = sys.argv
@@ -12,21 +12,35 @@ def main():
         sys.exit(0)
 
     num_fail = 0
-    for i in range(int(sys_args[3])):
+    runs = int(sys_args[3])
+    errors = 0
+    start_time = time.time()
+    for i in range(runs):
         ret = run(sys_args[1], sys_args[2])
-        if not ret:
+        if ret == "fail":
             num_fail += 1
-        if (i % (int(sys_args[3]) / 10)) == 0:
-            print "Processing..."
-    print num_fail
+        elif ret == "dropped":
+            errors += 1
+        if (i % 10) == 0:
+            print ("Processing... %d / %d runs ---> total of %d dropped" % (i, runs, errors)) 
+    end_time = time.time()
+    total_time = end_time - start_time
+    minutes = total_time / 60
+    seconds = total_time % 60 
+    print 
+    print ("%d failures out of %d runs" % (num_fail, runs - errors))
+    print ("Failure rate: %.4f" % (num_fail / float(runs - errors)))
+    print
+    print ("Tests dropped: %d" % errors)
+    print ("Duration: %d minutes %d seconds" % (minutes, seconds))
 
 def run(bound_args, destination):
-    pt_out = open('output.txt', 'w+')
-    pt_args = ['./paris-traceroute/paris-traceroute', '-a', 'mda', '-n', '-B', bound_args, destination]
-    process = subprocess.Popen(pt_args, stdout=pt_out)
+    pt_args = ['./launch_fkrt_pt.sh', bound_args, destination]
+    process = subprocess.Popen(pt_args)
     process.wait()
-    pt_out.truncate()
-    pt_out.seek(0)
+    if process.returncode == 23:
+        return "dropped"
+    pt_out = open('output.txt', 'r')
 
     cur_line = pt_out.readline().strip(' \n\t\r')
     while cur_line != "Lattice:":
@@ -72,9 +86,9 @@ def run(bound_args, destination):
     topology.close()
 
     if actual == discovered:
-        return True
+        return "pass"
     else:
-        return False    
+        return "fail"    
 
 
 if __name__ == "__main__":

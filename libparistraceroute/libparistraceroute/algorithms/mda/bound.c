@@ -325,6 +325,7 @@ void bound_failure_dump(bound_t * bound)
 {
     size_t i;
 
+    printf("Expected failure:\n");
     for (i = 0; i <= bound->max_n; ++i) {
         printf("%zu - %Lf\n", i, bound->pr_failure[i]);    
     }

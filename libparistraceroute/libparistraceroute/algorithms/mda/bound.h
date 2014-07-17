@@ -41,7 +41,7 @@ typedef struct {
 
 
 /**
- * \brief Create a bound_t structure
+ * \brief Create a bound_t structure and build up to max_interfaces
  * \param confidence User-specified failure confidence
  * \param max_interfaces User-specified max branching at an interface
  * \param max_branch User-specified max number of branching points in network
@@ -53,6 +53,7 @@ bound_t * bound_create(double confidence, size_t max_interfaces, size_t max_bran
 /**
  * \brief Compute stopping points
  * \param bound Reference to bound_t structure
+ * \param end Highest table value user wishes to calculate
  */
 
 void bound_build(bound_t * bound, size_t end);

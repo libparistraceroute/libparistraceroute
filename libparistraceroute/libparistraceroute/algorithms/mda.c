@@ -38,8 +38,8 @@ static unsigned mda_values[10] = OPTIONS_MDA_BOUND_MAXBRANCH;
 // TODO: Can only pass integer values for confidence (thus cannot, for
 // example, measure confidence of 99.9999%). Expand functionality.
 static option_t mda_opt_specs[] = {
-    // action           short long          metavar             help    variable
-    {opt_store_int_3,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values},
+    // action           short long          metavar                          help    variable
+    {opt_store_int_3,   "B",  "--mda",      "bound,max_branch,max_children", HELP_B, mda_values},
     END_OPT_SPECS
     // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest

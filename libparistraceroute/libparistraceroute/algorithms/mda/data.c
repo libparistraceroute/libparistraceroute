@@ -36,6 +36,7 @@ mda_data_t * mda_data_create()
     ))) {
         goto ERR_BOUND_CREATE;
     }
+    bound_failure_dump(data->bound);
 
     return data;
 
