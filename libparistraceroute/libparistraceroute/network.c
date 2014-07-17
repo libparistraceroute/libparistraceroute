@@ -233,6 +233,20 @@ static bool network_update_next_timeout(network_t * network)
  *   this reply.
  */
 
+bool probe_match(const probe_t * probe, const probe_t * reply)
+{
+    // XXX Only matching ICMP echo reply at the moment
+    uint8_t type;
+    if (!(probe_extract_ext(reply, "type", 1, &type))) {
+        printf("Cannot extract type from probe... continueing\n");
+        return false;
+    }
+    
+    printf("TYPE=%u\n", type);
+
+    return (type == 0); // ECHO REPLY
+}
+
 static probe_t * network_get_matching_probe(network_t * network, const probe_t * reply)
 {
     // Suppose we perform a traceroute measurement thanks to IPv4/UDP packet
@@ -246,9 +260,11 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     probe_t  * probe;
     size_t     i, num_flying_probes;
 
+    // XXX 
+    /*
     // Fetch the tag from the reply. Its the 3rd checksum field.
     if (!(reply_extract_tag(reply, &tag_reply))) {
-        // This is not an IP/ICMP/IP/* reply :(
+        // This is not an IP / ICMP / IP / * reply :(
         if (network->is_verbose) fprintf(stderr, "Can't retrieve tag from reply\n");
         return NULL;
     }
@@ -263,6 +279,22 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
             if (tag_reply == tag_probe) break;
         }
     }
+    */
+
+    // XXX BEGIN Harcoded ICMP response (JA 17/07/2014)
+    tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++; 
+
+    num_flying_probes = dynarray_get_size(network->probes);
+    for (i = 0; i < num_flying_probes; i++) {
+        probe = dynarray_get_ith_element(network->probes, i);
+
+        // Reply / probe comparison. In our probe packet, the probe ID
+        // is stored in the checksum of the (first) IP layer.
+        if (probe_match(probe, reply))
+            break;
+    }
+    
+    // XXX END Hardcoded ICMP response
 
     // No match found if we reached the end of the array
     if (i == num_flying_probes) {
