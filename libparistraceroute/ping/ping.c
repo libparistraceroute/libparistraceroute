@@ -125,7 +125,6 @@ static options_t * init_options(char * version) {
 
     options_add_optspecs(options, runnable_options);
     options_add_optspecs(options, ping_get_options());
-    // options_add_optspecs(options, mda_get_options());
     options_add_optspecs(options, network_get_options());
     options_add_common  (options, version);
     return options;
@@ -226,24 +225,14 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     switch (event->type) {
         case ALGORITHM_TERMINATED:
             printf("DONE\n");
+            printf("---Ping statistics---\n");
+            ping_data    = event->issuer->data;
+            ping_dump_statistics(ping_data);
             pt_instance_stop(loop, event->issuer);
             pt_loop_terminate(loop);
             break;
+
         case ALGORITHM_EVENT:
-            /*
-            algorithm_name = event->issuer->algorithm->name;
-            if (strcmp(algorithm_name, "mda") == 0) {
-                mda_event = event->data;
-               loo traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
-                switch (mda_event->type) {
-                    case MDA_NEW_LINK:
-                        mda_link_dump(mda_event->data, traceroute_options->do_resolv);
-                        break;
-                    default:
-                        break;
-                }
-            } else if (strcmp(algorithm_name, "traceroute") == 0) {
-            */
             ping_event   = event->data;
             ping_options = event->issuer->options;
             ping_data    = event->issuer->data;
@@ -251,8 +240,8 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
             // Forward this event to the default ping handler
             // See libparistraceroute/algorithms/ping.c
             ping_handler(loop, ping_event, ping_options, ping_data);
-            // }
             break;
+
         default:
             break;
     }
@@ -392,15 +381,15 @@ int main(int argc, char ** argv)
             probe_set_field(probe, ADDRESS("src_ip", &src_addr));
         }
     }
+*/
 
     if (send_time[3]) {
         probe_set_delay(probe, DOUBLE("delay", send_time[0]));
     }
 
-    if (max_ttl[0] != 255) {
-        probe_set_field(probe, I8("ttl", max_ttl[0]));
-    }
+    probe_set_field(probe, I8("ttl", max_ttl[0]));
 
+/*
     if (packet_size[0]) {
         probe_payload_resize(probe, packet_size[0]);
     }
@@ -459,7 +448,7 @@ int main(int argc, char ** argv)
     algorithm_options = &ping_options;
 
     // Algorithm options (common options)
-    options_ping_init(&ping_options, &dst_addr, send_time[0]);
+    options_ping_init(&ping_options, &dst_addr, send_time[0], max_ttl[0]);
 
     // Create libparistraceroute loop
     if (!(loop = pt_loop_create(loop_handler, NULL))) {

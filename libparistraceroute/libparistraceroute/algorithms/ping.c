@@ -4,6 +4,7 @@
 #include <stdlib.h>           // malloc
 #include <stdio.h>            // fprintf
 #include <string.h>           // memset()
+#include <math.h>             // abs()
 #include <netinet/ip_icmp.h>  // icmpv4 constants
 #include <netinet/icmp6.h>    // icmpv6 constantsak
 
@@ -54,7 +55,10 @@ const option_t * ping_get_options() {
     return ping_options;
 }
 
-void options_ping_init(ping_options_t * ping_options, address_t * address, double interval)
+void options_ping_init(ping_options_t * ping_options,
+                       address_t * address, 
+                       double interval,
+                       uint8_t max_ttl)
 {
     ping_options->count            = options_ping_get_count();
     ping_options->dst_addr         = address;
@@ -62,6 +66,7 @@ void options_ping_init(ping_options_t * ping_options, address_t * address, doubl
     ping_options->show_timestamp   = options_ping_get_show_timestamp();
     ping_options->is_quiet         = options_ping_get_is_quiet();
     ping_options->do_resolv        = options_ping_get_do_resolv();
+    ping_options->max_ttl          = max_ttl;
 }
 
 inline ping_options_t ping_get_default_options() {
@@ -77,7 +82,78 @@ inline ping_options_t ping_get_default_options() {
 };
 
 //-------------------------------------------------------------
-// ICMP error analysing NOTE: these functions probably have to be put in another file
+// statistics computing    NOTE: these functions probably have to be put in another file
+//-------------------------------------------------------------
+
+static double compute_minimum(dynarray_t *array) {
+    size_t array_length = dynarray_get_size(array);
+    double current_min = *((double*)dynarray_get_ith_element(array, 0));
+    unsigned int i = 1;
+
+    for (i = 1; i < array_length; i++) {
+        if (*((double *)dynarray_get_ith_element(array, i)) < current_min) {
+            current_min = *((double *)dynarray_get_ith_element(array, i));
+        }
+    }
+    return current_min;
+}
+
+static double compute_maximum(dynarray_t *array) {
+    size_t array_length = dynarray_get_size(array);
+    double current_max = *((double*)dynarray_get_ith_element(array, 0));
+    unsigned int i = 1;
+
+    for (i = 1; i < array_length; i++) {
+        printf("%lf \n", *((double *)dynarray_get_ith_element(array, i)));
+        if (*((double *)dynarray_get_ith_element(array, i)) > current_max) {
+            current_max = *((double *)dynarray_get_ith_element(array, i));
+        }
+    }
+    return current_max;
+}
+
+static double compute_mean(dynarray_t *array) {
+    size_t array_length = dynarray_get_size(array);
+    double sum = 0;
+    unsigned int i = 0;
+
+    for (i = 0; i < array_length; i++) {
+        sum += *((double *)dynarray_get_ith_element(array, i));
+    }
+    return sum / array_length;
+}
+
+static double compute_mean_deviation(dynarray_t *array) {
+    size_t array_length = dynarray_get_size(array);
+    double sum = 0;
+    double mean = compute_mean(array);
+    unsigned int i = 0;
+
+    for (i = 0; i < array_length; i++) {
+        sum += abs(*((double *)dynarray_get_ith_element(array, i)) - mean);
+    }
+
+    return sum / array_length;
+}
+
+void ping_dump_statistics(ping_data_t *ping_data) {
+    if (ping_data->rtt_results == NULL) {
+        fprintf(stderr, "An error occured while computing statistics...\n");
+    }
+    else {
+        double max = compute_maximum(ping_data->rtt_results);
+        double min = compute_minimum(ping_data->rtt_results);
+        double avg = compute_mean(ping_data->rtt_results);
+        double mdev = compute_mean_deviation(ping_data->rtt_results);
+        printf("%zu packets transmitted, %zu recieved, %d%% packet loss \n",
+                ping_data->num_replies, ping_data->num_replies - ping_data->num_losses,
+                (int)(((double)ping_data->num_losses / (double)ping_data->num_replies) * 100));
+        printf("rtt max/min/avg/mdev = %.3lf %.3lf %.3lf %.3lf ms\n", max, min, avg, mdev);
+    }
+}
+
+//-------------------------------------------------------------
+// ICMP error analysing    NOTE: these functions probably have to be put in another file
 //-------------------------------------------------------------
 
 static bool destination_network_unreachable(const probe_t *reply) {
@@ -224,10 +300,10 @@ static ping_data_t * ping_data_create() { // RENAME
 
     if (!(ping_data = calloc(1, sizeof(ping_data_t))))    goto ERR_MALLOC;
     if (!(ping_data->probes = dynarray_create()))         goto ERR_PROBES;
-    // if (!ping_data->rtt_results = dynarray_create())   goto ERR_RTT_RESULTS;
+    if (!(ping_data->rtt_results = dynarray_create()))    goto ERR_RTT_RESULTS;
     return ping_data;
 
-// ERR_RTT_RESULTS:
+ERR_RTT_RESULTS:
 ERR_PROBES:
     free(ping_data);
 ERR_MALLOC:
@@ -243,8 +319,9 @@ static void ping_data_free(ping_data_t * ping_data) {
     if (ping_data) {
         if (ping_data->probes) {
             dynarray_free(ping_data->probes, (ELEMENT_FREE) probe_free);
-        // if (ping_data->rtt:results) {
-            // dynarray_free(ping_data->rtt_results, NULL);
+        }
+        if (ping_data->rtt_results) {
+            dynarray_free(ping_data->rtt_results, NULL);
         }
         free(ping_data);
     }
@@ -286,11 +363,11 @@ static inline void discovered_ip_dump(const probe_t * reply, bool do_resolv) {
 static inline void delay_dump(const probe_t * probe, const probe_t * reply) {
     double send_time = probe_get_sending_time(probe),
            recv_time = probe_get_recv_time(reply);
-    printf("  %-5.3lfms  ", 1000 * (recv_time - send_time));
+    printf(" %.3lf ms  ", 1000 * (recv_time - send_time));
 }
 
 static inline double delay_get(const probe_t * probe, const probe_t * reply) {
-    return probe_get_recv_time(probe) - probe_get_sending_time(probe);     
+    return probe_get_recv_time(reply) - probe_get_sending_time(probe);     
 }
 
 void ping_handler(
@@ -300,7 +377,7 @@ void ping_handler(
     ping_data_t          * ping_data
 ) {
     const probe_t * probe;
-    const probe_t * reply;    
+    const probe_t * reply;
 
     switch (ping_event->type) {
         case PING_PROBE_REPLY:
@@ -312,49 +389,54 @@ void ping_handler(
                 printf("[%lf] ",get_timestamp());
             }
 
-            printf("%d bytes from ", (int)probe_get_size(probe));
+            printf("%zu bytes from ", probe_get_size(reply));
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ttl=%d time= ", (int)(ping_data->num_replies), (int)(ping_options->max_ttl));
+            //unsigned int sequence_num = 0;
+            //probe_extract(reply, "body", &sequence_num);
+            printf(" : seq=%zu ttl=%d time=", ping_data->num_replies, (int)(ping_options->max_ttl));
             // Print delay
             delay_dump(probe, reply);
-            //double delay = delay_get(probe, reply); // we need to store the rtts to compute statistics
-            //dynarray_push_element(ping_data->rtt_results, &delay);
+            printf("\n");
+            double *delay = (double *)malloc(sizeof(double)); // // we need to store the rtts to compute statistics
+            *delay = delay_get(probe, reply);
+            printf("%lf\n", *delay);
+            dynarray_push_element(ping_data->rtt_results, delay);
             break;
 
-        case PING_DEST_NET_UNREACHABLE:
+        case PING_DST_NET_UNREACHABLE:
             reply = ((const probe_reply_t *) ping_event->data)->reply;
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("network unreachable\n");
+            fprintf(stderr, "network unreachable\n");
             break;
 
-        case PING_DEST_HOST_UNREACHABLE:
+        case PING_DST_HOST_UNREACHABLE:
             reply = ((const probe_reply_t *) ping_event->data)->reply;
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("host unreachable\n");
+            fprintf(stderr, "host unreachable\n");
             break;
 
-        case PING_DEST_PROT_UNREACHABLE:
+        case PING_DST_PROT_UNREACHABLE:
             reply = ((const probe_reply_t *) ping_event->data)->reply;
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("protocol unreachable\n");
+            fprintf(stderr, "protocol unreachable\n");
             break;
 
-        case PING_DEST_PORT_UNREACHABLE:
+        case PING_DST_PORT_UNREACHABLE:
             reply = ((const probe_reply_t *) ping_event->data)->reply;
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("port unreachable\n");
+            fprintf(stderr, "port unreachable\n");
             break;
 
         case PING_TTL_EXCEEDED_TRANSIT:
@@ -363,7 +445,7 @@ void ping_handler(
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("ttl exceeded in transit\n");
+            fprintf(stderr, "ttl exceeded in transit\n");
             break;
 
         case PING_TIME_EXCEEDED_REASSEMBLY:
@@ -372,7 +454,7 @@ void ping_handler(
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("fragment reassembly time exeeded\n");
+            fprintf(stderr, "fragment reassembly time exeeded\n");
             break;
 
         case PING_REDIRECT:
@@ -381,7 +463,7 @@ void ping_handler(
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("redirect\n");
+            fprintf(stderr, "redirect\n");
             break;
 
         case PING_PARAMETER_PROBLEM:
@@ -390,7 +472,7 @@ void ping_handler(
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
             printf(" : seq=%d ", (int)(ping_data->num_replies));
-            printf("parameter problem\n");
+            fprintf(stderr, "parameter problem\n");
             break;
 
         case PING_GEN_ERROR:
@@ -416,7 +498,7 @@ void ping_handler(
         default:
             break;
         }
-        fflush(stdout);
+        //fflush(stdout);
     }
 
 //-----------------------------------------------------------------
@@ -446,8 +528,8 @@ static bool send_ping_probe(
         delay = i * probe_get_delay(probe_skel);
         probe_set_delay(probe, DOUBLE("delay", delay));
     }
+   //probe_set_field(probe, I32("body", ping_data->num_replies)); /*XXX TO IMPROVE: add an id, and the matching has to be improved too (function in the lib) XXX */
     if (!dynarray_push_element(ping_data->probes, probe))       goto ERR_PROBE_PUSH_ELEMENT;
-
     return pt_send_probe(loop, probe);
 
 ERR_PROBE_PUSH_ELEMENT:
@@ -524,22 +606,22 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
             ++(data->num_replies);
             --(data->num_probes_in_flight);
-           
+
             // Notify the caller we've got a response
             if (destination_reached(options->dst_addr, reply)) {
                 pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             }
             else if (destination_network_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DEST_NET_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                pt_raise_event(loop, event_create(PING_DST_NET_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             }
             else if (destination_host_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DEST_HOST_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                pt_raise_event(loop, event_create(PING_DST_HOST_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             }
             else if (destination_protocol_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DEST_PROT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                pt_raise_event(loop, event_create(PING_DST_PROT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             }
             else if (destination_port_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DEST_PORT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                pt_raise_event(loop, event_create(PING_DST_PORT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             }
             else if (ttl_exceeded(reply)) {
                 pt_raise_event(loop, event_create(PING_TTL_EXCEEDED_TRANSIT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
@@ -595,7 +677,6 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
         data->num_probes_in_flight += (size_t)num_probes_to_send;
     }   
     else {
-       
         if (data->num_probes_in_flight == 0) { // we've recieved a response from all the probes we sent
             pt_raise_event(loop, event_create(PING_ALL_PROBES_SENT, NULL, NULL, NULL));
             pt_raise_terminated(loop);

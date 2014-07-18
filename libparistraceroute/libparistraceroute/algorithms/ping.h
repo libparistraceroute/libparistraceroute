@@ -83,7 +83,7 @@ const option_t * ping_get_options();
 
 ping_options_t ping_get_default_options();
 
-void options_ping_init(ping_options_t * ping_options, address_t * address, double interval);
+void options_ping_init(ping_options_t * ping_options, address_t * address, double interval, uint8_t max_ttl);
 
 //--------------------------------------------------------------------
 // Custom-events raised by ping algorithm
@@ -92,19 +92,19 @@ void options_ping_init(ping_options_t * ping_options, address_t * address, doubl
 typedef enum {
     // event_type                       | data (type)     | data (meaning)
     // ---------------------------------+-----------------+--------------------------------------------
-    PING_PROBE_REPLY,                // | probe_reply_t * | The probe and its corresponding reply
-    PING_DEST_NET_UNREACHABLE,       // | probe_reply_t * | The probe and its corresponding reply
-    PING_DEST_HOST_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
-    PING_DEST_PROT_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
-    PING_DEST_PORT_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
-    PING_TTL_EXCEEDED_TRANSIT,       // | probe_reply_t * | The probe and its corresponding reply
-    PING_TIME_EXCEEDED_REASSEMBLY,   // | probe_reply_t * | The probe and its corresponding reply
-    PING_REDIRECT,                   // | probe_reply_t * | The probe and its corresponding reply
-    PING_PARAMETER_PROBLEM,          // | probe_reply_t * | The probe and its corresponding reply
-    PING_GEN_ERROR,                  // | probe_reply_t * | The probe and its corresponding reply
-    PING_TIMEOUT,                    // | NULL            | N/A
-    PING_ALL_PROBES_SENT,            // | NULL            | N/A
-    PING_WAIT,                       // | NULL            | N/A
+    PING_PROBE_REPLY,               // | probe_reply_t * | The probe and its corresponding reply
+    PING_DST_NET_UNREACHABLE,       // | probe_reply_t * | The probe and its corresponding reply
+    PING_DST_HOST_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
+    PING_DST_PROT_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
+    PING_DST_PORT_UNREACHABLE,      // | probe_reply_t * | The probe and its corresponding reply
+    PING_TTL_EXCEEDED_TRANSIT,      // | probe_reply_t * | The probe and its corresponding reply
+    PING_TIME_EXCEEDED_REASSEMBLY,  // | probe_reply_t * | The probe and its corresponding reply
+    PING_REDIRECT,                  // | probe_reply_t * | The probe and its corresponding reply
+    PING_PARAMETER_PROBLEM,         // | probe_reply_t * | The probe and its corresponding reply
+    PING_GEN_ERROR,                 // | probe_reply_t * | The probe and its corresponding reply
+    PING_TIMEOUT,                   // | NULL            | N/A
+    PING_ALL_PROBES_SENT,           // | NULL            | N/A
+    PING_WAIT,                      // | NULL            | N/A
 } ping_event_type_t;
 
 // TODO since this structure should exactly match with a standard event_t, define a macro allowing to define custom events
@@ -121,8 +121,10 @@ typedef struct {
     dynarray_t  * probes;               /**< Probe instances allocated by ping  */
     size_t        num_losses;           /**< Number of packets lost                   */
     size_t        num_probes_in_flight; /**<The number of probes which haven't provoked a reply so far */
-    // dynarray_t  * rtt_results            /**<RTTs in order to be able to compute statistics */ 
+    dynarray_t  * rtt_results;          /**<RTTs in order to be able to compute statistics */ 
 } ping_data_t;
+
+void ping_dump_statistics(ping_data_t * ping_data);
 
 //-----------------------------------------------------------------
 // Ping default handler
