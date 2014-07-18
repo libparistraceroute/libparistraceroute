@@ -118,7 +118,7 @@ typedef struct {
 
 typedef struct {
     size_t        num_replies;          /**< Total of probe sent for this instance    */
-    dynarray_t  * probes;               /**< Probe instances allocated by ping  */
+    //dynarray_t  * probes;               /**< Probe instances allocated by ping  */
     size_t        num_losses;           /**< Number of packets lost                   */
     size_t        num_probes_in_flight; /**<The number of probes which haven't provoked a reply so far */
     dynarray_t  * rtt_results;          /**<RTTs in order to be able to compute statistics */ 

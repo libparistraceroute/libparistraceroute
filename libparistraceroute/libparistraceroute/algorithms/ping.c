@@ -4,7 +4,7 @@
 #include <stdlib.h>           // malloc
 #include <stdio.h>            // fprintf
 #include <string.h>           // memset()
-#include <math.h>             // abs()
+#include <math.h>             // abs(), ceil()
 #include <netinet/ip_icmp.h>  // icmpv4 constants
 #include <netinet/icmp6.h>    // icmpv6 constantsak
 
@@ -104,7 +104,6 @@ static double compute_maximum(dynarray_t *array) {
     unsigned int i = 1;
 
     for (i = 1; i < array_length; i++) {
-        printf("%lf \n", *((double *)dynarray_get_ith_element(array, i)));
         if (*((double *)dynarray_get_ith_element(array, i)) > current_max) {
             current_max = *((double *)dynarray_get_ith_element(array, i));
         }
@@ -130,7 +129,7 @@ static double compute_mean_deviation(dynarray_t *array) {
     unsigned int i = 0;
 
     for (i = 0; i < array_length; i++) {
-        sum += abs(*((double *)dynarray_get_ith_element(array, i)) - mean);
+        sum += fabs(*((double *)dynarray_get_ith_element(array, i)) - mean);
     }
 
     return sum / array_length;
@@ -149,6 +148,12 @@ void ping_dump_statistics(ping_data_t *ping_data) {
                 ping_data->num_replies, ping_data->num_replies - ping_data->num_losses,
                 (int)(((double)ping_data->num_losses / (double)ping_data->num_replies) * 100));
         printf("rtt max/min/avg/mdev = %.3lf %.3lf %.3lf %.3lf ms\n", max, min, avg, mdev);
+    }
+}
+
+static void double_free(double * double_to_delete) {
+    if (!double_to_delete) {
+        free(double_to_delete);
     }
 }
 
@@ -299,12 +304,12 @@ static ping_data_t * ping_data_create() { // RENAME
     ping_data_t * ping_data;
 
     if (!(ping_data = calloc(1, sizeof(ping_data_t))))    goto ERR_MALLOC;
-    if (!(ping_data->probes = dynarray_create()))         goto ERR_PROBES;
+   // if (!(ping_data->probes = dynarray_create()))         goto ERR_PROBES;
     if (!(ping_data->rtt_results = dynarray_create()))    goto ERR_RTT_RESULTS;
     return ping_data;
 
 ERR_RTT_RESULTS:
-ERR_PROBES:
+//ERR_PROBES:
     free(ping_data);
 ERR_MALLOC:
     return NULL;
@@ -317,11 +322,11 @@ ERR_MALLOC:
 
 static void ping_data_free(ping_data_t * ping_data) {
     if (ping_data) {
-        if (ping_data->probes) {
-            dynarray_free(ping_data->probes, (ELEMENT_FREE) probe_free);
-        }
+        //if (ping_data->probes) {
+        //    dynarray_free(ping_data->probes, (ELEMENT_FREE) probe_free);
+        //}
         if (ping_data->rtt_results) {
-            dynarray_free(ping_data->rtt_results, NULL);
+            dynarray_free(ping_data->rtt_results, (ELEMENT_FREE) double_free);
         }
         free(ping_data);
     }
@@ -367,7 +372,7 @@ static inline void delay_dump(const probe_t * probe, const probe_t * reply) {
 }
 
 static inline double delay_get(const probe_t * probe, const probe_t * reply) {
-    return probe_get_recv_time(reply) - probe_get_sending_time(probe);     
+    return 1000 * (probe_get_recv_time(reply) - probe_get_sending_time(probe));
 }
 
 void ping_handler(
@@ -378,29 +383,42 @@ void ping_handler(
 ) {
     const probe_t * probe;
     const probe_t * reply;
+    double        * delay;
 
     switch (ping_event->type) {
         case PING_PROBE_REPLY:
             // Retrieve the probe and its corresponding reply
             probe = ((const probe_reply_t *) ping_event->data)->probe;
             reply = ((const probe_reply_t *) ping_event->data)->reply;
-            
-            if (ping_options->show_timestamp) {    // option -D enabled
-                printf("[%lf] ",get_timestamp());
+
+            if (!(delay = (double *)malloc(sizeof(double)))) {
+                fprintf(stderr, "Error while processing data \n");
+                pt_raise_error(loop);
             }
 
-            printf("%zu bytes from ", probe_get_size(reply));
-            discovered_ip_dump(reply, ping_options->do_resolv);
-            //unsigned int sequence_num = 0;
-            //probe_extract(reply, "body", &sequence_num);
-            printf(" : seq=%zu ttl=%d time=", ping_data->num_replies, (int)(ping_options->max_ttl));
-            // Print delay
-            delay_dump(probe, reply);
-            printf("\n");
-            double *delay = (double *)malloc(sizeof(double)); // // we need to store the rtts to compute statistics
+            if (!ping_options->is_quiet) {
+
+                if (ping_options->show_timestamp) {    // option -D enabled
+                    printf("[%lf] ",get_timestamp());
+                }
+
+                printf("%zu bytes from ", probe_get_size(reply));
+                discovered_ip_dump(reply, ping_options->do_resolv);
+                //unsigned int sequence_num = 0;
+                //probe_extract(reply, "body", &sequence_num);
+                printf(" : seq=%zu ttl=", ping_data->num_replies);
+                ttl_dump(probe);
+                printf(" time =");
+                // Print delay
+                delay_dump(probe, reply);
+                printf("\n");
+            }
+
             *delay = delay_get(probe, reply);
-            printf("%lf\n", *delay);
-            dynarray_push_element(ping_data->rtt_results, delay);
+
+            if (!dynarray_push_element(ping_data->rtt_results, delay)) { // we need to store the rtts to compute statistics
+                  pt_raise_error(loop);
+            }
             break;
 
         case PING_DST_NET_UNREACHABLE:
@@ -498,8 +516,8 @@ void ping_handler(
         default:
             break;
         }
-        //fflush(stdout);
-    }
+        fflush(stdout);
+}
 
 //-----------------------------------------------------------------
 // Ping algorithm
@@ -529,10 +547,10 @@ static bool send_ping_probe(
         probe_set_delay(probe, DOUBLE("delay", delay));
     }
    //probe_set_field(probe, I32("body", ping_data->num_replies)); /*XXX TO IMPROVE: add an id, and the matching has to be improved too (function in the lib) XXX */
-    if (!dynarray_push_element(ping_data->probes, probe))       goto ERR_PROBE_PUSH_ELEMENT;
+   //if (!dynarray_push_element(ping_data->probes, probe))       goto ERR_PROBE_PUSH_ELEMENT;
     return pt_send_probe(loop, probe);
 
-ERR_PROBE_PUSH_ELEMENT:
+//ERR_PROBE_PUSH_ELEMENT:
 ERR_PROBE_DUP:
     fprintf(stderr, "Error in send_ping_probe\n");
     return false;
@@ -581,6 +599,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     probe_reply_t        * probe_reply;             // (Probe, Reply) pair
     ping_options_t       * options = opts;          // Options passed to this instance
     size_t                 num_probes_to_send  = 0; // the number of probes to send
+    double                 num_max_probes_to_schedule = 0;
 
     switch (event->type) {
         case ALGORITHM_INIT:
@@ -596,7 +615,8 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             }
             *pdata = data;
             // We have to make sure not to send too many probes
-            num_probes_to_send = MIN((int)(options_network_get_timeout() / options->interval), options->count);
+            num_max_probes_to_schedule = ceil(options_network_get_timeout() / options->interval);
+            num_probes_to_send = MIN(num_max_probes_to_schedule, options->count);
             break;
 
         case PROBE_REPLY:
@@ -672,7 +692,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     pt_algorithm_throw(loop, loop->cur_instance->caller, event);
 
     // check if we can send another probe or if we have already sent the maximum number of probes
-    if (num_probes_to_send > 0 && (data->num_replies + data->num_probes_in_flight != options->count)) {
+    if (data->num_replies + data->num_probes_in_flight != options->count) {
         send_ping_probes(loop, data, probe_skel, num_probes_to_send);
         data->num_probes_in_flight += (size_t)num_probes_to_send;
     }   

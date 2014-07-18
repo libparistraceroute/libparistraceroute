@@ -79,7 +79,7 @@ const char * protocol_names[] = {
 //                                  def     min  max         option_enabled
 static int      dst_port[4]      = {33457,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
 static int      src_port[4]      = {33456,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
-static double   send_time[4]     = {1,      1,   DBL_MAX,    0}; 
+static double   send_time[3]     = {1,      1,   DBL_MAX};
 static int      packet_size[3]   = OPTIONS_PING_PACKET_SIZE;
 static unsigned max_ttl[3]       = OPTIONS_PING_MAX_TTL;
 
@@ -224,9 +224,8 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
-            printf("DONE\n");
             printf("---Ping statistics---\n");
-            ping_data    = event->issuer->data;
+            ping_data = event->issuer->data;
             ping_dump_statistics(ping_data);
             pt_instance_stop(loop, event->issuer);
             pt_loop_terminate(loop);
@@ -383,17 +382,13 @@ int main(int argc, char ** argv)
     }
 */
 
-    if (send_time[3]) {
-        probe_set_delay(probe, DOUBLE("delay", send_time[0]));
-    }
+    probe_set_delay(probe, DOUBLE("delay", send_time[0]));
 
     probe_set_field(probe, I8("ttl", max_ttl[0]));
 
-/*
     if (packet_size[0]) {
         probe_payload_resize(probe, packet_size[0]);
     }
-*/
 
     // ICMPv* do not support src_port and dst_port fields nor payload.
     /*
