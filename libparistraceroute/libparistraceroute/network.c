@@ -242,8 +242,6 @@ bool probe_match(const probe_t * probe, const probe_t * reply)
         return false;
     }
     
-    printf("TYPE=%u\n", type);
-
     return (type == 0); // ECHO REPLY
 }
 
