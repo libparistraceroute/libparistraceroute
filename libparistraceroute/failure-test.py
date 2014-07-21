@@ -5,35 +5,6 @@
 
 import subprocess, os, sys, time
 
-def main():
-    sys_args = sys.argv
-    if (len(sys_args) < 4):
-        print "Usage: [failure-test.py] <confidence,max branching,max children> <destination> <repititions>"
-        sys.exit(0)
-
-    num_fail = 0
-    runs = int(sys_args[3])
-    errors = 0
-    start_time = time.time()
-    for i in range(runs):
-        ret = run(sys_args[1], sys_args[2])
-        if ret == "fail":
-            num_fail += 1
-        elif ret == "dropped":
-            errors += 1
-        if (i % 10) == 0:
-            print ("Processing... %d / %d runs ---> total of %d dropped" % (i, runs, errors)) 
-    end_time = time.time()
-    total_time = end_time - start_time
-    minutes = total_time / 60
-    seconds = total_time % 60 
-    print 
-    print ("%d failures out of %d runs" % (num_fail, runs - errors))
-    print ("Failure rate: %.4f" % (num_fail / float(runs - errors)))
-    print
-    print ("Tests dropped: %d" % errors)
-    print ("Duration: %d minutes %d seconds" % (minutes, seconds))
-
 def run(bound_args, destination):
     pt_args = ['./launch_fkrt_pt.sh', bound_args, destination]
     process = subprocess.Popen(pt_args)
@@ -90,6 +61,34 @@ def run(bound_args, destination):
     else:
         return "fail"    
 
+def main():
+    sys_args = sys.argv
+    if (len(sys_args) < 4):
+        print "Usage: [failure-test.py] <confidence,max branching,max children> <destination> <repititions>"
+        sys.exit(0)
+
+    num_fail = 0
+    runs = int(sys_args[3])
+    errors = 0
+    start_time = time.time()
+    for i in range(runs):
+        ret = run(sys_args[1], sys_args[2])
+        if ret == "fail":
+            num_fail += 1
+        elif ret == "dropped":
+            errors += 1
+        if (i % 10) == 0:
+            print ("Processing... %d / %d runs ---> total of %d dropped" % (i, runs, errors)) 
+    end_time = time.time()
+    total_time = end_time - start_time
+    minutes = total_time / 60
+    seconds = total_time % 60 
+    print 
+    print ("%d failures out of %d runs" % (num_fail, runs - errors))
+    print ("Failure rate: %.4f" % (num_fail / float(runs - errors)))
+    print
+    print ("Tests dropped: %d" % errors)
+    print ("Duration: %d minutes %d seconds" % (minutes, seconds))
 
 if __name__ == "__main__":
     main()
