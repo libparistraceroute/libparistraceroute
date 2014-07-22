@@ -1,6 +1,7 @@
 #include "use.h"
 #include "config.h"
 
+#include <search.h>        // VISIT
 #include <stdbool.h>       // bool
 #include <stdio.h>         // perror
 #include <stdlib.h>        // malloc, free
@@ -17,6 +18,10 @@
 #include "algorithm.h"
 
 #define MAXEVENTS 100
+
+//----------------------------------------------------------------
+// Static functions
+//----------------------------------------------------------------
 
 /**
  * \brief (Internal usage) Release from the memory loop->user_events;
@@ -123,9 +128,51 @@ static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_
     return true;
 }
 
+/**
+ * \brief Process every pending user events (e.g. pt_loop_get_num_user_events(loop) events)
+ * \param loop The main loop
+ * \return true iif successfull
+ */
+
+static int pt_loop_process_user_events(pt_loop_t * loop) {
+    event_t      ** events        = pt_loop_get_user_events(loop);
+    size_t          i, num_events = pt_loop_get_num_user_events(loop);
+    uint64_t        ret;
+
+    for (i = 0; i < num_events; i++) {
+        if (read(loop->eventfd_user, &ret, sizeof(ret)) == -1) {
+            return -1;
+        }
+        // TODO decrement the associated eventfd counter
+
+        // Call user-defined handler and pass the current user event
+        loop->handler_user(loop, events[i], loop->user_data);
+    }
+    return 1;
+}
+
+/**
+ * \brief Called when pt_loop handles a SIGINT|SIGQUIT to notify algorithms
+ *   they must terminate.
+ * \param node The current algorithm_instance_t
+ * \param visit
+ * \param level
+ */
+
+static void pt_process_algorithms_terminate(const void * node, VISIT visit, int level) {
+    algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
+
+    // The pt_loop_t must send a TERM event to the current instance
+    pt_algorithm_throw(instance->loop, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
+}
+
+//----------------------------------------------------------------
+// Non static functions
+//----------------------------------------------------------------
+
 pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *), void * user_data)
 {
-    pt_loop_t          * loop;
+    pt_loop_t * loop;
 
     if (!(loop = malloc(sizeof(pt_loop_t)))) goto ERR_MALLOC;
     loop->handler_user = handler_user;
@@ -234,30 +281,6 @@ inline size_t pt_loop_get_num_user_events(pt_loop_t * loop) {
     return loop->events_user->size;
 }
 
-/**
- * \brief Process every pending user events (e.g. pt_loop_get_num_user_events(loop) events)
- * \param loop The main loop
- * \return true iif successfull
- */
-
-static int pt_loop_process_user_events(pt_loop_t * loop) {
-    event_t      ** events        = pt_loop_get_user_events(loop);
-    size_t          i, num_events = pt_loop_get_num_user_events(loop);
-    uint64_t        ret;
-
-    for (i = 0; i < num_events; i++) {
-        if (read(loop->eventfd_user, &ret, sizeof(ret)) == -1) {
-            return -1;
-        }
-        // TODO decrement the associated eventfd counter
-
-        // Call user-defined handler and pass the current user event
-        loop->handler_user(loop, events[i], loop->user_data);
-    }
-    return 1;
-}
-
-
 int pt_loop(pt_loop_t *loop, unsigned int timeout)
 {
     int n, i, cur_fd;
@@ -338,41 +361,51 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
 
                 // Flush the queue
                 pt_loop_clear_user_events(loop);
+
+            // TODO Sarah: is it useful?
+            } else if (cur_fd == loop->eventfd_terminate) {
+
+                printf("break\n");
+                break;
+
             } else if (cur_fd == loop->sfd) {
-                // Handling signals
-                //
+
+                // Handling signals (ctrl-c, etc.)
                 s = read(loop->sfd, &fdsi, sizeof(struct signalfd_siginfo));
                 if (s != sizeof(struct signalfd_siginfo)) {
                     perror("read");
                     continue;
                 }
 
-                if (fdsi.ssi_signo == SIGINT) {
-                    fprintf(stderr, "SIGINT");
-                    goto QUIT;
-                } else if (fdsi.ssi_signo == SIGQUIT) {
-                    exit(EXIT_SUCCESS);
+                if (fdsi.ssi_signo == SIGINT || fdsi.ssi_signo == SIGQUIT) {
+                    network_free(loop->network);
+                    loop->network = NULL;
+                    pt_algorithm_instance_iter(loop, pt_process_algorithms_terminate);
                 } else {
                     perror("Read unexpected signal\n");
                 }
+                loop->stop = PT_LOOP_TERMINATE;
+                break;
+
             } else if (cur_fd == network_timerfd) {
 
                 // Timer managing timeout in network layer has expired
                 // At least one probe has expired
                 if (!network_drop_expired_flying_probe(loop->network)) {
-                    fprintf(stderr, "Error while processing timeout");
+                    fprintf(stderr, "Error while processing timeout\n");
                 }
+
+            } else {
+                fprintf(stderr, "Internal error, this fd is not properly managed\n");
             }
         }
     } while (loop->stop == PT_LOOP_CONTINUE);
 
-QUIT:
     // Process internal events
     return loop->stop == PT_LOOP_TERMINATE ? 0 : -1;
 }
 
-bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
-{
+bool pt_send_probe(pt_loop_t * loop, probe_t * probe) {
     // Annotate which algorithm has generated this probe
     probe_set_caller(probe, loop->cur_instance);
 
@@ -381,6 +414,7 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe)
 }
 
 void pt_loop_terminate(pt_loop_t * loop) {
+    eventfd_write(loop->eventfd_terminate, 1);
     loop->stop = PT_LOOP_TERMINATE;
 }
 
@@ -393,5 +427,5 @@ bool pt_raise_error(pt_loop_t * loop) {
 }
 
 bool pt_raise_terminated(pt_loop_t * loop) {
-    return pt_raise_impl(loop, ALGORITHM_TERMINATED, NULL);
+    return pt_raise_impl(loop, ALGORITHM_HAS_TERMINATED, NULL);
 }

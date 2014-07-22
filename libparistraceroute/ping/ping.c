@@ -241,7 +241,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     ping_data_t          * ping_data;
 
     switch (event->type) {
-        case ALGORITHM_TERMINATED:
+        case ALGORITHM_HAS_TERMINATED:
             printf("STOP ALGO!\n");
             ping_data = event->issuer->data;
             ping_dump_statistics(ping_data);

@@ -759,7 +759,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             num_probes_to_send = (int)(options->count - data->num_replies) > 0;
             break;
 
-        case ALGORITHM_TERMINATED:
+        case ALGORITHM_TERM:
             // The caller allows us to free ping's data
             ping_data_free(*pdata);
             *pdata = NULL;

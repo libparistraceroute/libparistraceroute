@@ -23,7 +23,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     const char                 * algorithm_name;
 
     switch (event->type) {
-        case ALGORITHM_TERMINATED:
+        case ALGORITHM_HAS_TERMINATED:
             printf("> ALGORITHM_TERMINATED\n");
             pt_instance_stop(loop, event->issuer); // release traceroute's data from the memory
             pt_loop_terminate(loop);               // we've only run one 'traceroute' algorithm, so we can break the main loop

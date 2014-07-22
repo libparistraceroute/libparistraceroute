@@ -23,6 +23,7 @@ typedef struct pt_loop_s {
 
     // User
     int                    eventfd_user;             /**< User notification */
+    int                    eventfd_terminate;        /**< This eventfd_terminate is set when the pt_loop_t must break */
     dynarray_t           * events_user;              /**< User events queue (events raised from the library to a program */
 
     void (*handler_user)(
@@ -136,14 +137,14 @@ size_t pt_loop_get_num_user_events(pt_loop_t * loop);
 bool pt_send_probe(pt_loop_t * loop, probe_t * probe);
 
 /**
- * \brief Stop the main loop
+ * \brief Stop the main loop. It is usually used to break the pt_loop call in the main program.
  * \param loop The main loop
  */
 
 void pt_loop_terminate(pt_loop_t * loop);
 
 /**
- * \brief Raise an ALGORITHM_EVENT event to the calling instance (if any).
+ * \brief (Used by algorithm) Notify pt_loop that the algorithm has raised a algorithm specific event.
  * \param loop The main loop
  * \param event The event nested in the ALGORITHM_EVENT event we will raise
  * \return true iif successful
@@ -152,7 +153,7 @@ void pt_loop_terminate(pt_loop_t * loop);
 bool pt_raise_event(pt_loop_t * loop, event_t * event);
 
 /**
- * \brief Raise an ALGORITHM_ERROR event to the calling instance (if any).
+ * \brief (Used by algorithm) Notify pt_loop that the algorithm has an error has occured.
  * \param loop The main loop
  * \return true iif successful
  */
@@ -160,7 +161,7 @@ bool pt_raise_event(pt_loop_t * loop, event_t * event);
 bool pt_raise_error(pt_loop_t * loop);
 
 /**
- * \brief Raise an ALGORITHM_TERMINATED event to the calling instance (if any).
+ * \brief (Used by algorithm) Notify pt_loop that the algorithm has terminated.
  * \param loop The main loop
  * \return true iif successful
  */

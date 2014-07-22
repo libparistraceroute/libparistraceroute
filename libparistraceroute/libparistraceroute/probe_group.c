@@ -85,16 +85,28 @@ void  probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node) 
         }
     } else {
         if (probe_group_get_next_delay(probe_group) < DBL_MAX) {
-            if (probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group) < 0) probe_group_set_last_delay(probe_group, 0);
-            update_timer(probe_group->scheduling_timerfd, probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group));
-            probe_group_set_last_delay(probe_group, probe_group_get_next_delay(probe_group));
+            if (probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group) < 0) {
+                probe_group_set_last_delay(probe_group, 0);
+            }
+
+            update_timer(
+                probe_group->scheduling_timerfd,
+                probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group)
+            );
+
+            probe_group_set_last_delay(
+                probe_group,
+                probe_group_get_next_delay(probe_group)
+            );
         } else update_timer(probe_group->scheduling_timerfd, 0);
     }
 }
 
 void tree_node_probe_free(tree_node_probe_t * tree_node_probe) {
     if (tree_node_probe) {
-        if (tree_node_probe->tag == PROBE) probe_free((probe_t *)tree_node_probe);
+        if (tree_node_probe->tag == PROBE) {
+            probe_free(tree_node_probe->data.probe);
+        }
         free(tree_node_probe);
     }
 }

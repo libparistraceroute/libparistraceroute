@@ -8,11 +8,13 @@
 
 typedef tree_t tree_probe_t;
 
+// TODO rename tree_node_probe_tag_t
 typedef enum {
     DOUBLE,                 /**< The node stores a double.      */
     PROBE                   /**< The node stores a (probe_t *). */
 } tree_node_tag_t;
 
+// TODO rename tree_node_probe_data_t
 typedef union {
     double    delay;        /**< Value of a data as a double.  */
     probe_t * probe;        /**< Pointer to probe_t instance.  */

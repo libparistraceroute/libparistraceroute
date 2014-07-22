@@ -211,7 +211,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     const char                 * algorithm_name;
 
     switch (event->type) {
-        case ALGORITHM_TERMINATED:
+        case ALGORITHM_HAS_TERMINATED:
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_data = event->issuer->data;
@@ -220,7 +220,11 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
                 printf("\n");
                 mda_data_free(mda_data);
             }
+
+            // Tell to the algorithm it can free its data
             pt_instance_stop(loop, event->issuer);
+
+            // Kill the loop
             pt_loop_terminate(loop);
             break;
         case ALGORITHM_EVENT:

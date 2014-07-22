@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <search.h>
@@ -301,7 +302,7 @@ void pt_instance_stop(
         algorithm_instance_t * instance
 ) {
     // Notify the caller that this instance will be freed
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL));
+    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
 
     // Unregister this instance from the loop
     pt_algorithm_instance_del(loop, instance);
@@ -315,18 +316,17 @@ void pt_algorithm_throw(
     algorithm_instance_t * instance,
     event_t              * event
 ) {
-    //int ret;
     if (event) {
         if (instance) {
             // Enqueue an algorithm event
             dynarray_push_element(instance->events, event);
             eventfd_write(instance->loop->eventfd_algorithm, 1);
-           // printf("ret1 = %d\n", ret);
         } else if (loop) {
             // Enqueue an user event
             dynarray_push_element(loop->events_user, event);
             eventfd_write(loop->eventfd_user, 1);
-            //printf("ret2 = %d\n", ret);
+        } else {
+            fprintf(stderr, "pt_algorithm_throw: event ignored\n");
         }
     }
 }
