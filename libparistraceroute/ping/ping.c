@@ -27,20 +27,25 @@
 // Command line stuff
 //---------------------------------------------------------------------------
 
-#define HELP_4        "Use IPv4."
-#define HELP_6        "Use IPv6."
-#define HELP_F        "Allocate and set 20 bit flow label on echo request packets. (Only IPv6)."
-#define HELP_i        "Wait 'interval' seconds between sending each packet."
-#define HELP_I        "Set source address to specified interface address."
-#define HELP_s        "Specifies the number of data bytes to be sent."
-#define HELP_W        "Time to wait for a response, in seconds."
+#define PING_HELP_4        "Use IPv4."
+#define PING_HELP_6        "Use IPv6."
+#define PING_HELP_F        "Allocate and set 20 bit flow label on echo request packets. (Only IPv6)."
+#define PING_HELP_i        "Wait 'interval' seconds between sending each packet."
+#define PING_HELP_I        "Set source address to specified interface address."
+#define PING_HELP_s        "Specifies the number of data bytes to be sent."
+#define PING_HELP_W        "Time to wait for a response, in seconds."
+#define PING_HELP_P        "Set PORT as destination port (default: 33457)."
+#define PING_HELP_S        "Set PORT as source port (default: 33456)."
+#define PING_HELP_T        "Use TCP. The destination port is set by default to 80."
+#define PING_HELP_U        "Use UDP. The destination port is set by default to 53."
+#define PING_HELP_k        "Send a TCP ACK packet. (Works only with TCP)"
+
 
 #define TEXT          "ping - verify the connection between two hosts."
 #define TEXT_OPTIONS  "Options:"
 
 // Default values (based on modern traceroute for linux)
 
-/*
 #define UDP_DEFAULT_SRC_PORT  33457
 #define UDP_DEFAULT_DST_PORT  33456
 #define UDP_DST_PORT_USING_U  53
@@ -49,23 +54,20 @@
 #define TCP_DEFAULT_DST_PORT  16963
 #define TCP_DST_PORT_USING_T  80
 
-*/
 const char * algorithm_names[] = {
     "ping", // default value
     NULL
 };
 
-static bool is_ipv4  = false;
-static bool is_ipv6  = false;
+static bool is_ipv4    = false;
+static bool is_ipv6    = false;
 
-static bool is_tcp   = false;
-static bool is_udp   = false;
-static bool is_icmp  = false;
+static bool is_tcp     = false;
+static bool is_udp     = false;
+static bool is_icmp    = false;
+static bool is_tcp_ack = false;
 
-// indicates whether a flow label should be set on the packet or not 
-static bool set_flow_label = false;
-
-// points to the source address (if indicated)
+// points to the source address (if indicated; option -I)
 struct opt_str src_ip = {NULL, 0};
 
 const char * protocol_names[] = {
@@ -77,23 +79,29 @@ const char * protocol_names[] = {
 
 // Bounded integer parameters
 //                                  def     min  max         option_enabled
-static int      dst_port[4]      = {33457,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
-static int      src_port[4]      = {33456,  0,   UINT16_MAX, 0};    // NOT NEEDED FOR PING
+static int      dst_port[4]      = {33457,  0,   UINT16_MAX, 0};
+static int      src_port[4]      = {33456,  0,   UINT16_MAX, 0};
+static int      flow_label[4]    = {0,      0,   1048576,    0};
 static double   send_time[3]     = {1,      1,   DBL_MAX};
 static int      packet_size[3]   = OPTIONS_PING_PACKET_SIZE;
 static unsigned max_ttl[3]       = OPTIONS_PING_MAX_TTL;
 
 struct opt_spec runnable_options[] = {
-    // action                 sf          lf                   metavar               help          data
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,       TEXT,         OPT_NO_DATA},
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,       TEXT_OPTIONS, OPT_NO_DATA},
-    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,       HELP_4,       &is_ipv4},
-    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,       HELP_6,       &is_ipv6},
-    {opt_store_1,             "f",        OPT_NO_LF,           OPT_NO_METAVAR,       HELP_f,       &set_flow_label},
-    {opt_store_str,           "I",        OPT_NO_LF,           " INTERFACE_ADDRESS", HELP_I,       &src_ip},
-    {opt_store_double_lim_en, "i",        OPT_NO_LF,           " INTERVAL",          HELP_i,       send_time},
-    {opt_store_int_lim,       "s",        OPT_NO_LF,           " PACKET_SIZE",       HELP_s,       packet_size},
-    {opt_store_int,           "t",        OPT_NO_LF,           " TIME TO LIVE",      HELP_t,       max_ttl},
+    // action                 sf          lf                   metavar               help               data
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,       TEXT,              OPT_NO_DATA},
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,       TEXT_OPTIONS,      OPT_NO_DATA},
+    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,       PING_HELP_4,       &is_ipv4},
+    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,       PING_HELP_6,       &is_ipv6},
+    {opt_store_int_lim_en,    "F",        OPT_NO_LF,           " FLOW_LABEL",        PING_HELP_F,       flow_label},
+    {opt_store_str,           "I",        OPT_NO_LF,           " INTERFACE_ADDRESS", PING_HELP_I,       &src_ip},
+    {opt_store_double_lim_en, "i",        OPT_NO_LF,           " INTERVAL",          PING_HELP_i,       send_time},
+    {opt_store_int_lim,       "s",        OPT_NO_LF,           " PACKET_SIZE",       PING_HELP_s,       packet_size},
+    {opt_store_int_lim_en,    "P",        "--dst-port",        " PORT",              PING_HELP_P,       dst_port},
+    {opt_store_int_lim_en,    "S",        "--src-port",        " PORT",              PING_HELP_S,       src_port},
+    {opt_store_1,             "T",        "--tcp",             OPT_NO_METAVAR,       PING_HELP_T,       &is_tcp},
+    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,       PING_HELP_U,       &is_udp},
+    {opt_store_1,             "k",        OPT_NO_LF,           OPT_NO_METAVAR,       PING_HELP_k,       &is_tcp_ack},
+    {opt_store_int,           "t",        OPT_NO_LF,           " TIME TO LIVE",      PING_HELP_t,       max_ttl},
     
     /*
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
@@ -158,7 +166,7 @@ static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * 
     if (is_tcp)  check += 1;
 
     if (check > 1) {
-        fprintf(stderr, "E: Cannot use simultaneously icmp tcp and udp tracerouting\n");
+        fprintf(stderr, "E: Cannot use simultaneously icmp tcp and udp\n");
         return false;
     }
 
@@ -168,7 +176,7 @@ static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * 
 static bool check_ports(bool is_icmp, int dst_port_enabled, int src_port_enabled)
 {
     if (is_icmp && (dst_port_enabled || src_port_enabled)) {
-        fprintf(stderr, "E: Cannot use --src-port or --dst-port when using icmp tracerouting\n");
+        fprintf(stderr, "E: Cannot use --src-port or --dst-port when using icmp\n");
         return false;
     }
 
@@ -184,10 +192,19 @@ static bool check_valid_flow_option(bool is_ipv6, bool set_flow_label)
     return true;
 }
 
+static bool check_valid_ack_option(bool is_tcp, bool is_ack) {
+    if (is_ack && !is_tcp) {
+        fprintf(stderr, "E: Cannot send a TCP ACK packet when a protocol other than TCP is chosen\n");
+        return false;
+    }
+    return true;
+}
+
 static bool check_options(
     bool         is_icmp,
     bool         is_tcp,
     bool         is_udp,
+    bool         is_tcp_ack,
     bool         is_ipv4,
     bool         is_ipv6,
     bool         set_flow_label,
@@ -199,7 +216,8 @@ static bool check_options(
     return check_ip_version(is_ipv4, is_ipv6)
         && check_protocol(is_icmp, is_tcp, is_udp, protocol_name)
         && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
-        && check_valid_flow_option(is_ipv6, set_flow_label);
+        && check_valid_flow_option(is_ipv6, set_flow_label)
+        && check_valid_ack_option(is_tcp, is_tcp_ack);
 }
 
 //---------------------------------------------------------------------------
@@ -224,7 +242,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
 
     switch (event->type) {
         case ALGORITHM_TERMINATED:
-            printf("---Ping statistics---\n");
+            printf("STOP ALGO!\n");
             ping_data = event->issuer->data;
             ping_dump_statistics(ping_data);
             pt_instance_stop(loop, event->issuer);
@@ -262,7 +280,13 @@ const char * get_ip_protocol_name(int family) {
 }
 
 const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
-    if (use_icmp) {
+    if (use_tcp) {
+        return "tcp";
+    } 
+    else if (use_udp) {
+        return "udp";
+    }
+    else if (use_icmp) {
         switch (family) {
             case AF_INET:
                 return "icmpv4";
@@ -272,10 +296,6 @@ const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use
                 fprintf(stderr, "Internet family not supported (%d)\n", family);
                 break;
         }
-    } else if (use_tcp) {
-        return "tcp";
-    } else if (use_udp) {
-        return "udp";
     }
 
     return NULL;
@@ -322,7 +342,8 @@ int main(int argc, char ** argv)
 
     // Checking if there is any conflicts between options passed in the commandline
     
-    if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, set_flow_label, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
+    if (!check_options(is_icmp, is_tcp, is_udp, is_tcp_ack, is_ipv4, is_ipv6, flow_label[3], 
+                       dst_port[3], src_port[3], protocol_name, algorithm_name)) {
         goto ERR_CHECK_OPTIONS;
     }
 
@@ -386,13 +407,16 @@ int main(int argc, char ** argv)
 
     probe_set_field(probe, I8("ttl", max_ttl[0]));
 
-    if (packet_size[0]) {
-        probe_payload_resize(probe, packet_size[0]);
+    if (flow_label[3]) {
+        probe_set_field(probe, BITS("flow_label", 20, &(flow_label[0])));
     }
 
+     /*XXX UDP and TCP have to have a payload with size 2. However, this line of code shows that sth in the implementation
+           has to change XXX*/
+    probe_payload_resize(probe, packet_size[0] + 2 * (int)(is_tcp || is_udp));
+
     // ICMPv* do not support src_port and dst_port fields nor payload.
-    /*
-    if (!use_icmp) {
+    if (use_tcp || use_udp) {
         uint16_t sport = 0,
                  dport = 0;
 
@@ -413,31 +437,20 @@ int main(int argc, char ** argv)
             I16("dst_port", dport),
             NULL
         );
-
     }
-    */
+
+    if (is_tcp) {
+        int bit_value = 1;
+        if (is_tcp_ack) {
+            probe_set_field(probe, BITS("ack", 1, &bit_value));
+        }
+        else  {
+            probe_set_field(probe, BITS("syn", 1, &bit_value));
+        }
+    }
 
     // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
     //probe_payload_resize(probe, 2);
-
-    // Algorithm options (dedicated options)
-
-    /*
-    if (strcmp(algorithm_name, "paris-traceroute") == 0) {
-        traceroute_options  = traceroute_get_default_options();
-        ptraceroute_options = &traceroute_options;
-        algorithm_options   = &traceroute_options;
-        algorithm_name      = "traceroute";
-    } else if ((strcmp(algorithm_name, "mda") == 0) || options_mda_get_is_set()) {
-        mda_options         = mda_get_default_options();
-        ptraceroute_options = &mda_options.traceroute_options;
-        algorithm_options   = &mda_options;
-        options_mda_init(&mda_options);
-    } else {
-        fprintf(stderr, "E: Unknown algorithm");
-        goto ERR_UNKNOWN_ALGORITHM;
-    }
-    */
 
     ping_options = ping_get_default_options();
     algorithm_options = &ping_options;
@@ -466,7 +479,8 @@ int main(int argc, char ** argv)
 
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop, 0) < 0) {
-        fprintf(stderr, "E: Main loop interrupted");
+        printf("Stop!\n");
+        // pt_raise_terminated(loop);
         goto ERR_PT_LOOP;
     }
 

@@ -348,7 +348,8 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 }
 
                 if (fdsi.ssi_signo == SIGINT) {
-                    loop->stop = PT_LOOP_TERMINATE;
+                    fprintf(stderr, "SIGINT");
+                    goto QUIT;
                 } else if (fdsi.ssi_signo == SIGQUIT) {
                     exit(EXIT_SUCCESS);
                 } else {
@@ -365,6 +366,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
         }
     } while (loop->stop == PT_LOOP_CONTINUE);
 
+QUIT:
     // Process internal events
     return loop->stop == PT_LOOP_TERMINATE ? 0 : -1;
 }

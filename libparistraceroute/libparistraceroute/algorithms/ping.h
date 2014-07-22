@@ -23,12 +23,12 @@
 #define OPTIONS_PING_PACKET_SIZE            {OPTIONS_PING_PACKET_SIZE_DEFAULT, 0, INT_MAX}
 #define OPTIONS_PING_COUNT                  {OPTIONS_PING_COUNT_DEFAULT,       1, OPTIONS_PING_COUNT_DEFAULT}
 
-#define HELP_c      "Stop after sending count ECHO_REQUEST packets. With deadline option, ping waits for 'count' ECHO_REPLY packets, until the timeout expires."
-#define HELP_D      "Print timestamp (unix time + microseconds as in gettimeofday) before each line."
-#define HELP_n      "Do not resolve IP addresses to their domain names"
-#define HELP_q_ping "Quiet output. Nothing is displayed except the summary lines at startup time and when finished."
-#define HELP_v      "Verbose output."
-#define HELP_t      "Set the IP Time to Live."
+#define PING_HELP_c      "Stop after sending count ECHO_REQUEST packets. With deadline option, ping waits for 'count' ECHO_REPLY packets, until the timeout expires."
+#define PING_HELP_D      "Print timestamp (unix time + microseconds as in gettimeofday) before each line."
+#define PING_HELP_n      "Do not resolve IP addresses to their domain names"
+#define PING_HELP_q      "Quiet output. Nothing is displayed except the summary lines at startup time and when finished."
+#define PING_HELP_v      "Verbose output."
+#define PING_HELP_t      "Set the IP Time to Live."
 
 // Get the different values of ping options
 bool         options_ping_get_do_resolv();
@@ -104,7 +104,6 @@ typedef enum {
     PING_GEN_ERROR,                 // | probe_reply_t * | The probe and its corresponding reply
     PING_TIMEOUT,                   // | NULL            | N/A
     PING_ALL_PROBES_SENT,           // | NULL            | N/A
-    PING_WAIT,                      // | NULL            | N/A
 } ping_event_type_t;
 
 // TODO since this structure should exactly match with a standard event_t, define a macro allowing to define custom events
@@ -122,6 +121,7 @@ typedef struct {
     size_t        num_losses;           /**< Number of packets lost                   */
     size_t        num_probes_in_flight; /**<The number of probes which haven't provoked a reply so far */
     dynarray_t  * rtt_results;          /**<RTTs in order to be able to compute statistics */ 
+    size_t        num_sent;
 } ping_data_t;
 
 void ping_dump_statistics(ping_data_t * ping_data);

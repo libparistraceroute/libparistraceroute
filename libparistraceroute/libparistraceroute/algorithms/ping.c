@@ -27,10 +27,10 @@ static unsigned int      count[3]            = OPTIONS_PING_COUNT;
 
 static option_t ping_options[] = {
     // action              short       long                 metavar             help          data
-    {opt_store_int,        "c",        OPT_NO_LF,           " COUNT",           HELP_c,       &count},
-    {opt_store_1,          "D",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_D,       &show_timestamp},
-    {opt_store_0,          "n",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_n,       &do_resolv},
-    {opt_store_1,          "q",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_q_ping,  &is_quiet},
+    {opt_store_int,        "c",        OPT_NO_LF,           " COUNT",           PING_HELP_c,  &count},
+    {opt_store_1,          "D",        OPT_NO_LF,           OPT_NO_METAVAR,     PING_HELP_D,  &show_timestamp},
+    {opt_store_0,          "n",        OPT_NO_LF,           OPT_NO_METAVAR,     PING_HELP_n,  &do_resolv},
+    {opt_store_1,          "q",        OPT_NO_LF,           OPT_NO_METAVAR,     PING_HELP_q,  &is_quiet},
     {opt_help,             "v",        OPT_NO_LF,           OPT_NO_METAVAR,     OPT_NO_HELP,  OPT_NO_DATA},
     END_OPT_SPECS
 };
@@ -81,46 +81,81 @@ inline ping_options_t ping_get_default_options() {
     return ping_options;
 };
 
-//-------------------------------------------------------------
+//--------------------------------------------------------------------------------------
 // statistics computing    NOTE: these functions probably have to be put in another file
-//-------------------------------------------------------------
+//--------------------------------------------------------------------------------------
+
+
+/**
+ * \brief compute the minimum of the values contained in array
+ * \param array the array containing values of type double
+ * \return the computed minimum
+ */
 
 static double compute_minimum(dynarray_t *array) {
     size_t array_length = dynarray_get_size(array);
-    double current_min = *((double*)dynarray_get_ith_element(array, 0));
+    double current_min = 0;
     unsigned int i = 1;
 
-    for (i = 1; i < array_length; i++) {
-        if (*((double *)dynarray_get_ith_element(array, i)) < current_min) {
-            current_min = *((double *)dynarray_get_ith_element(array, i));
+    if (array_length != 0) {
+        current_min = *((double*)dynarray_get_ith_element(array, 0));
+        for (i = 1; i < array_length; i++) {
+            if (*((double *)dynarray_get_ith_element(array, i)) < current_min) {
+                current_min = *((double *)dynarray_get_ith_element(array, i));
+            }
         }
     }
     return current_min;
 }
 
+/**
+ * \brief compute the maximum of the values contained in array
+ * \param array the array containing values of type double
+ * \return the computed maximum
+ */
+
 static double compute_maximum(dynarray_t *array) {
     size_t array_length = dynarray_get_size(array);
-    double current_max = *((double*)dynarray_get_ith_element(array, 0));
+    double current_max = 0;
     unsigned int i = 1;
 
-    for (i = 1; i < array_length; i++) {
-        if (*((double *)dynarray_get_ith_element(array, i)) > current_max) {
-            current_max = *((double *)dynarray_get_ith_element(array, i));
+    if (array_length != 0) {
+        current_max = *((double*)dynarray_get_ith_element(array, 0));
+        for (i = 1; i < array_length; i++) {
+            if (*((double *)dynarray_get_ith_element(array, i)) > current_max) {
+                current_max = *((double *)dynarray_get_ith_element(array, i));
+            }
         }
     }
     return current_max;
 }
+
+/**
+ * \brief compute the mean of the values contained in array
+ * \param array the array containing values of type double
+ * \return the computed mean
+ */
 
 static double compute_mean(dynarray_t *array) {
     size_t array_length = dynarray_get_size(array);
     double sum = 0;
     unsigned int i = 0;
 
-    for (i = 0; i < array_length; i++) {
-        sum += *((double *)dynarray_get_ith_element(array, i));
+    if (array_length != 0) {
+        for (i = 0; i < array_length; i++) {
+            sum += *((double *)dynarray_get_ith_element(array, i));
+        }
+        return sum / array_length;
+    } else {
+        return 0;
     }
-    return sum / array_length;
 }
+
+/**
+ * \brief compute the mean deviation of the values contained in array
+ * \param array the array containing values of type double
+ * \return the computed mean deviation
+ */
 
 static double compute_mean_deviation(dynarray_t *array) {
     size_t array_length = dynarray_get_size(array);
@@ -128,38 +163,51 @@ static double compute_mean_deviation(dynarray_t *array) {
     double mean = compute_mean(array);
     unsigned int i = 0;
 
-    for (i = 0; i < array_length; i++) {
-        sum += fabs(*((double *)dynarray_get_ith_element(array, i)) - mean);
+    if (array_length != 0) {
+        for (i = 0; i < array_length; i++) {
+            sum += fabs(*((double *)dynarray_get_ith_element(array, i)) - mean);
+        }
+        return sum / array_length;
+    } else {
+        return 0;
     }
-
-    return sum / array_length;
 }
 
+/**
+ * \brief print the computed statistics
+ * \param ping_data pointer to a ping_data_t instance containing the data of the algorithm
+ */
 void ping_dump_statistics(ping_data_t *ping_data) {
     if (ping_data->rtt_results == NULL) {
         fprintf(stderr, "An error occured while computing statistics...\n");
-    }
-    else {
+    } else {
+        printf("---Ping statistics---\n");
         double max = compute_maximum(ping_data->rtt_results);
         double min = compute_minimum(ping_data->rtt_results);
         double avg = compute_mean(ping_data->rtt_results);
         double mdev = compute_mean_deviation(ping_data->rtt_results);
-        printf("%zu packets transmitted, %zu recieved, %d%% packet loss \n",
-                ping_data->num_replies, ping_data->num_replies - ping_data->num_losses,
-                (int)(((double)ping_data->num_losses / (double)ping_data->num_replies) * 100));
-        printf("rtt max/min/avg/mdev = %.3lf %.3lf %.3lf %.3lf ms\n", max, min, avg, mdev);
-    }
-}
+        int percentage = 0;
 
-static void double_free(double * double_to_delete) {
-    if (!double_to_delete) {
-        free(double_to_delete);
+        if (ping_data->num_replies != 0)
+        {
+            percentage = (int)(((double)ping_data->num_losses / (double)ping_data->num_replies) * 100);
+        }
+ 
+        printf("%zu packets transmitted, %zu recieved, %d%% packet loss \n",
+                ping_data->num_replies, ping_data->num_replies - ping_data->num_losses, percentage);
+        printf("rtt max/min/avg/mdev = %.3lf %.3lf %.3lf %.3lf ms\n", max, min, avg, mdev);
     }
 }
 
 //-------------------------------------------------------------
 // ICMP error analysing    NOTE: these functions probably have to be put in another file
 //-------------------------------------------------------------
+
+/**
+ * \brief check whether the algorithm has encountered a "network unreachable" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool destination_network_unreachable(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -169,11 +217,16 @@ static bool destination_network_unreachable(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_HOST);
-    }
-    else {
+    } else {
         return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_ADDR);
     }
 }
+
+/**
+ * \brief check whether the algorithm has encountered a "host unreachable" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool destination_host_unreachable(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -183,11 +236,16 @@ static bool destination_host_unreachable(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_NET);
-    }
-    else {
+    } else {
         return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOROUTE);
     }
 }
+
+/**
+ * \brief check whether the algorithm has encountered a "network unreachable" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool destination_port_unreachable(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -197,11 +255,16 @@ static bool destination_port_unreachable(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PORT);
-    }
-    else {
+    } else {
         return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOPORT);
     }
 }
+
+/**
+ * \brief check whether the algorithm has encountered a "protocol unreachable" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool destination_protocol_unreachable(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -211,11 +274,16 @@ static bool destination_protocol_unreachable(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PROTOCOL);
-    }
-    else {
+    } else {
         return (type == ICMP6_PARAM_PROB) && (code == ICMP6_PARAMPROB_NEXTHEADER);
     }
 }
+
+/**
+ * \brief check whether the algorithm has encountered a "ttl exceeded" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool ttl_exceeded(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -225,11 +293,16 @@ static bool ttl_exceeded(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_INTRANS);
-    }
-    else {
+    } else {
         return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_TRANSIT);
     }
 }
+
+/**
+ * \brief check whether the algorithm has encountered a "fragment reassembly time exceeded" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool fragment_reassembly_time_exceeded(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -239,11 +312,16 @@ static bool fragment_reassembly_time_exceeded(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_REASS);
-    }
-    else {
+    } else {
         return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_REASSEMBLY);
     }
 }
+
+/**
+ * \brief check whether the algorithm has encountered a "redirect" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool redirect(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -253,11 +331,16 @@ static bool redirect(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_REDIRECT) && (code == ICMP_REDIRECT_NET);
-    }
-    else {
+    } else {
         return (type == ND_REDIRECT);
     }
 }
+
+/**
+ * \brief check whether the algorithm has encountered a "parameter" problem
+ * \param reply the probe to analyse
+ * \return true if this error has occured, false otherwise
+ */
 
 static bool parameter_problem(const probe_t *reply) {
     uint8_t version = 0, code = 0, type = 0;
@@ -267,10 +350,9 @@ static bool parameter_problem(const probe_t *reply) {
 
     if (version == 4) {
         return (type == ICMP_PARAMPROB);
-    }
-    else {
+    } else {
         return (type == ICMP6_PARAM_PROB ) && ((code == ICMP6_PARAMPROB_HEADER) 
-                                                || (code == ICMP6_PARAMPROB_OPTION));
+            || (code == ICMP6_PARAMPROB_OPTION));
     }
 }
 
@@ -313,6 +395,17 @@ ERR_RTT_RESULTS:
     free(ping_data);
 ERR_MALLOC:
     return NULL;
+}
+
+/**
+ * \brief free a pointer to a double
+ * \param double_to_delete  pointer to the location in memory to free
+ */
+
+static void double_free(double * double_to_delete) {
+    if (!double_to_delete) {
+        free(double_to_delete);
+    }
 }
 
 /**
@@ -396,7 +489,7 @@ void ping_handler(
                 pt_raise_error(loop);
             }
 
-            if (!ping_options->is_quiet) {
+            if (!ping_options->is_quiet) { // option -q disabled
 
                 if (ping_options->show_timestamp) {    // option -D enabled
                     printf("[%lf] ",get_timestamp());
@@ -404,8 +497,6 @@ void ping_handler(
 
                 printf("%zu bytes from ", probe_get_size(reply));
                 discovered_ip_dump(reply, ping_options->do_resolv);
-                //unsigned int sequence_num = 0;
-                //probe_extract(reply, "body", &sequence_num);
                 printf(" : seq=%zu ttl=", ping_data->num_replies);
                 ttl_dump(probe);
                 printf(" time =");
@@ -426,7 +517,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "network unreachable\n");
             break;
 
@@ -435,7 +526,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "host unreachable\n");
             break;
 
@@ -444,7 +535,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "protocol unreachable\n");
             break;
 
@@ -453,7 +544,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "port unreachable\n");
             break;
 
@@ -462,7 +553,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "ttl exceeded in transit\n");
             break;
 
@@ -471,7 +562,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "fragment reassembly time exeeded\n");
             break;
 
@@ -480,7 +571,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "redirect\n");
             break;
 
@@ -489,7 +580,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             fprintf(stderr, "parameter problem\n");
             break;
 
@@ -498,7 +589,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%d ", (int)(ping_data->num_replies));
+            printf(" : seq=%zu ", ping_data->num_replies);
             printf("packet has not reached its destination\n");
             break;
 
@@ -508,9 +599,6 @@ void ping_handler(
 
         case PING_TIMEOUT:
             printf("Timeout\n");
-            break;
-
-        case PING_WAIT:
             break;
 
         default:
@@ -546,7 +634,11 @@ static bool send_ping_probe(
         delay = i * probe_get_delay(probe_skel);
         probe_set_delay(probe, DOUBLE("delay", delay));
     }
-   //probe_set_field(probe, I32("body", ping_data->num_replies)); /*XXX TO IMPROVE: add an id, and the matching has to be improved too (function in the lib) XXX */
+    //probe_set_field(probe, I32("body", ping_data->num_sent)); /*XXX TO IMPROVE: add an id, and the matching has to be improved too (function in the lib) XXX */
+    //printf("---SEND---\n");
+    //probe_dump(probe);
+    //probe_dump(probe);
+    ++(ping_data->num_sent);
    //if (!dynarray_push_element(ping_data->probes, probe))       goto ERR_PROBE_PUSH_ELEMENT;
     return pt_send_probe(loop, probe);
 
@@ -599,7 +691,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     probe_reply_t        * probe_reply;             // (Probe, Reply) pair
     ping_options_t       * options = opts;          // Options passed to this instance
     size_t                 num_probes_to_send  = 0; // the number of probes to send
-    double                 num_max_probes_to_schedule = 0;
+    double                 num_max_probes_to_schedule = 0; // the maximum number of probes to schedule at the same time
 
     switch (event->type) {
         case ALGORITHM_INIT:
@@ -626,36 +718,27 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
             ++(data->num_replies);
             --(data->num_probes_in_flight);
-
+            
             // Notify the caller we've got a response
             if (destination_reached(options->dst_addr, reply)) {
                 pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (destination_network_unreachable(reply)) {
+            } else if (destination_network_unreachable(reply)) {
                 pt_raise_event(loop, event_create(PING_DST_NET_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (destination_host_unreachable(reply)) {
+            } else if (destination_host_unreachable(reply)) {
                 pt_raise_event(loop, event_create(PING_DST_HOST_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (destination_protocol_unreachable(reply)) {
+            } else if (destination_protocol_unreachable(reply)) {
                 pt_raise_event(loop, event_create(PING_DST_PROT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (destination_port_unreachable(reply)) {
+            } else if (destination_port_unreachable(reply)) {
                 pt_raise_event(loop, event_create(PING_DST_PORT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (ttl_exceeded(reply)) {
+            } else if (ttl_exceeded(reply)) {
                 pt_raise_event(loop, event_create(PING_TTL_EXCEEDED_TRANSIT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (fragment_reassembly_time_exceeded(reply)) {
+            } else if (fragment_reassembly_time_exceeded(reply)) {
                 pt_raise_event(loop, event_create(PING_TIME_EXCEEDED_REASSEMBLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (redirect(reply)) {
+            } else if (redirect(reply)) {
                 pt_raise_event(loop, event_create(PING_REDIRECT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else if (parameter_problem(reply)) {
+            } else if (parameter_problem(reply)) {
                 pt_raise_event(loop, event_create(PING_PARAMETER_PROBLEM, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            }
-            else {
+            } else {
                 pt_raise_event(loop, event_create(PING_GEN_ERROR, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             }
 
@@ -688,30 +771,24 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
         default:
             break;
     }
-    // Forward event to the caller
-    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
 
     // check if we can send another probe or if we have already sent the maximum number of probes
     if (data->num_replies + data->num_probes_in_flight != options->count) {
         send_ping_probes(loop, data, probe_skel, num_probes_to_send);
         data->num_probes_in_flight += (size_t)num_probes_to_send;
-    }   
-    else {
+    } else {
         if (data->num_probes_in_flight == 0) { // we've recieved a response from all the probes we sent
             pt_raise_event(loop, event_create(PING_ALL_PROBES_SENT, NULL, NULL, NULL));
             pt_raise_terminated(loop);
         }
-        else { // there are still probes in flight
-            pt_raise_event(loop, event_create(PING_WAIT, NULL, NULL, NULL));
-        }
     }
 
-    // Handled event must always been free when leaving the handler
+    // Handled event must always been freed when leaving the handler
     event_free(event);
     return 0;
 
 FAILURE:
-    // Handled event must always been free when leaving the handler
+    // Handled event must always been freed when leaving the handler
     event_free(event);
 
     // Sent to the current instance a ALGORITHM_FAILURE notification.
