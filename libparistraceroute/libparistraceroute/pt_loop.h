@@ -11,6 +11,7 @@
 
 #define PT_LOOP_CONTINUE  0
 #define PT_LOOP_TERMINATE 1
+#define PT_LOOP_INTERRUPTED 2
 
 typedef struct pt_loop_s {
     // Network

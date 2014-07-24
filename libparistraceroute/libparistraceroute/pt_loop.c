@@ -327,23 +327,23 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 continue;
             }
 
-            if (cur_fd == network_sendq_fd) {
+            if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_sendq_fd) {
                 if (!network_process_sendq(loop->network)) {
                     if (loop->network->is_verbose) fprintf(stderr, "pt_loop: Can't send packet\n");
                 }
-            } else if (cur_fd == network_recvq_fd) {
+            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_recvq_fd) {
                 if (!network_process_recvq(loop->network)) {
                     if (loop->network->is_verbose) fprintf(stderr, "pt_loop: Cannot fetch packet\n");
                 }
-            } else if (cur_fd == network_group_timerfd) {
+            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_group_timerfd) {
                  //printf("pt_loop processing scheduled probes\n");
                 network_process_scheduled_probe(loop->network);
 #ifdef USE_IPV4
-            } else if (cur_fd == network_icmpv4_sockfd) {
+            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_icmpv4_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMP);
 #endif
 #ifdef USE_IPV6
-            } else if (cur_fd == network_icmpv6_sockfd) {
+            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_icmpv6_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMPV6);
 #endif
             } else if (cur_fd == loop->eventfd_algorithm) {
@@ -384,10 +384,10 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 } else {
                     perror("Read unexpected signal\n");
                 }
-                loop->stop = PT_LOOP_TERMINATE;
+                loop->stop = PT_LOOP_INTERRUPTED;
                 break;
 
-            } else if (cur_fd == network_timerfd) {
+            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_timerfd) {
 
                 // Timer managing timeout in network layer has expired
                 // At least one probe has expired
@@ -399,7 +399,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 fprintf(stderr, "Internal error, this fd is not properly managed\n");
             }
         }
-    } while (loop->stop == PT_LOOP_CONTINUE);
+    } while (loop->stop == PT_LOOP_CONTINUE || loop->stop == PT_LOOP_INTERRUPTED);
 
     // Process internal events
     return loop->stop == PT_LOOP_TERMINATE ? 0 : -1;

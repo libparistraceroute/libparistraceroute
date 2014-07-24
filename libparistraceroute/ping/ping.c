@@ -102,18 +102,6 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,       PING_HELP_U,       &is_udp},
     {opt_store_1,             "k",        OPT_NO_LF,           OPT_NO_METAVAR,       PING_HELP_k,       &is_tcp_ack},
     {opt_store_int,           "t",        OPT_NO_LF,           " TIME TO LIVE",      PING_HELP_t,       max_ttl},
-    
-    /*
-    {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
-    {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     HELP_d,       &is_debug},
-    {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             HELP_p,       dst_port},
-    {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             HELP_s,       src_port},
-    {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             HELP_z,       send_time},
-    {opt_store_1,             "I",        "--icmp",            OPT_NO_METAVAR,     HELP_I,       &is_icmp},
-    {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         HELP_P,       protocol_names},
-    {opt_store_1,             "T",        "--tcp",             OPT_NO_METAVAR,     HELP_T,       &is_tcp},
-    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
-    */
 
     END_OPT_SPECS
 };
@@ -242,9 +230,12 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
 
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
-            printf("STOP ALGO!\n");
             ping_data = event->issuer->data;
+
+            if (ping_data != NULL) {
             ping_dump_statistics(ping_data);
+            }
+
             pt_instance_stop(loop, event->issuer);
             pt_loop_terminate(loop);
             break;
@@ -407,9 +398,11 @@ int main(int argc, char ** argv)
 
     probe_set_field(probe, I8("ttl", max_ttl[0]));
 
+    /*
     if (flow_label[3]) {
         probe_set_field(probe, BITS("flow_label", 20, &(flow_label[0])));
     }
+    */
 
      /*XXX UDP and TCP have to have a payload with size 2. However, this line of code shows that sth in the implementation
            has to change XXX*/
@@ -479,8 +472,7 @@ int main(int argc, char ** argv)
 
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop, 0) < 0) {
-        printf("Stop!\n");
-        // pt_raise_terminated(loop);
+        fprintf(stderr, "E: Main loop interrupted");
         goto ERR_PT_LOOP;
     }
 

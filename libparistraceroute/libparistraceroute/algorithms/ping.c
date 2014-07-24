@@ -178,7 +178,7 @@ static double compute_mean_deviation(dynarray_t *array) {
  * \param ping_data pointer to a ping_data_t instance containing the data of the algorithm
  */
 void ping_dump_statistics(ping_data_t *ping_data) {
-    if (ping_data->rtt_results == NULL) {
+    if (ping_data == NULL || ping_data->rtt_results == NULL) {
         fprintf(stderr, "An error occured while computing statistics...\n");
     } else {
         printf("---Ping statistics---\n");
@@ -373,29 +373,8 @@ static inline bool destination_reached(const address_t * dst_addr, const probe_t
 }
 
 //-----------------------------------------------------------------
-// Ping algorithm's data
+// Operations on double     // NOTE: these functions probably have to be put in another file
 //-----------------------------------------------------------------
-
-/**
- * \brief Allocate a ping_data_t instance
- * \return The newly allocated ping_data_t instance,
- *    NULL in case of failure
- */
-
-static ping_data_t * ping_data_create() { // RENAME
-    ping_data_t * ping_data;
-
-    if (!(ping_data = calloc(1, sizeof(ping_data_t))))    goto ERR_MALLOC;
-   // if (!(ping_data->probes = dynarray_create()))         goto ERR_PROBES;
-    if (!(ping_data->rtt_results = dynarray_create()))    goto ERR_RTT_RESULTS;
-    return ping_data;
-
-ERR_RTT_RESULTS:
-//ERR_PROBES:
-    free(ping_data);
-ERR_MALLOC:
-    return NULL;
-}
 
 /**
  * \brief free a pointer to a double
@@ -409,15 +388,78 @@ static void double_free(double * double_to_delete) {
 }
 
 /**
+ * \brief duplicate a pointer to a double
+ * \param double_to_duplicate the pointer to duplicated
+ * \return a pointer to the copied double
+ */
+
+static double * double_dup(double * double_to_duplicate) {
+    double * new_double = NULL;
+    if (double_to_duplicate == NULL) {
+        return new_double;
+    }
+    new_double = (double *)malloc(sizeof(double));
+    if (new_double == NULL) {
+        return new_double;
+    }
+    *new_double = *double_to_duplicate;
+    return new_double;
+}
+
+//-----------------------------------------------------------------
+// Ping algorithm's data
+//-----------------------------------------------------------------
+
+/**
+ * \brief Allocate a ping_data_t instance
+ * \return The newly allocated ping_data_t instance,
+ *    NULL in case of failure
+ */
+
+static ping_data_t * ping_data_create() {
+    ping_data_t * ping_data;
+
+    if (!(ping_data = calloc(1, sizeof(ping_data_t))))    goto ERR_MALLOC;
+    if (!(ping_data->rtt_results = dynarray_create()))    goto ERR_RTT_RESULTS;
+    return ping_data;
+
+ERR_RTT_RESULTS:
+    free(ping_data);
+ERR_MALLOC:
+    return NULL;
+}
+
+/**
+ * \brief duplicate an instance of ping_data_t
+ * \param ping_data the instance to duplicate
+ * \return a pointer to the copy of the instance
+ */
+
+static ping_data_t * ping_data_dup(ping_data_t * ping_data) {
+    ping_data_t * new_ping_data = NULL;
+    if (ping_data == NULL) {
+        return new_ping_data;
+    }
+    new_ping_data = (ping_data_t *)malloc(sizeof(ping_data_t));
+    if (new_ping_data == NULL) {
+        return new_ping_data;
+    }
+    new_ping_data->rtt_results = dynarray_dup(ping_data->rtt_results, (void * (*)(void *))double_dup);
+    new_ping_data->num_replies = ping_data->num_replies;
+    new_ping_data->num_sent = ping_data->num_sent;
+    new_ping_data->num_losses = ping_data->num_losses;
+    new_ping_data->num_probes_in_flight = ping_data->num_probes_in_flight;
+
+    return new_ping_data;
+}
+
+/**
  * \brief Release a ping_data_t instance from the memory
  * \param ping_data The ping_data_t instance we want to release.
  */
 
 static void ping_data_free(ping_data_t * ping_data) {
     if (ping_data) {
-        //if (ping_data->probes) {
-        //    dynarray_free(ping_data->probes, (ELEMENT_FREE) probe_free);
-        //}
         if (ping_data->rtt_results) {
             dynarray_free(ping_data->rtt_results, (ELEMENT_FREE) double_free);
         }
@@ -510,6 +552,12 @@ void ping_handler(
             if (!dynarray_push_element(ping_data->rtt_results, delay)) { // we need to store the rtts to compute statistics
                   pt_raise_error(loop);
             }
+            break;
+
+        case PING_PRINT_STATISTICS:
+            printf("\n");
+            ping_data = (ping_data_t *) ping_event->data;
+            ping_dump_statistics(ping_data);
             break;
 
         case PING_DST_NET_UNREACHABLE:
@@ -634,15 +682,9 @@ static bool send_ping_probe(
         delay = i * probe_get_delay(probe_skel);
         probe_set_delay(probe, DOUBLE("delay", delay));
     }
-    //probe_set_field(probe, I32("body", ping_data->num_sent)); /*XXX TO IMPROVE: add an id, and the matching has to be improved too (function in the lib) XXX */
-    //printf("---SEND---\n");
-    //probe_dump(probe);
-    //probe_dump(probe);
     ++(ping_data->num_sent);
-   //if (!dynarray_push_element(ping_data->probes, probe))       goto ERR_PROBE_PUSH_ELEMENT;
     return pt_send_probe(loop, probe);
 
-//ERR_PROBE_PUSH_ELEMENT:
 ERR_PROBE_DUP:
     fprintf(stderr, "Error in send_ping_probe\n");
     return false;
@@ -685,13 +727,15 @@ bool send_ping_probes(
 // TODO remove opts parameter and define pt_loop_get_cur_options()
 int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
 {
-    ping_data_t          * data = NULL;             // Current state of the algorithm instance
-    probe_t              * probe;                   // Probe
-    const probe_t        * reply;                   // Reply
-    probe_reply_t        * probe_reply;             // (Probe, Reply) pair
-    ping_options_t       * options = opts;          // Options passed to this instance
-    size_t                 num_probes_to_send  = 0; // the number of probes to send
+    ping_data_t          * data = NULL;                    // Current state of the algorithm instance
+    ping_data_t          * data_dup = NULL;                // Copy of the current stata
+    probe_t              * probe;                          // Probe
+    const probe_t        * reply;                          // Reply
+    probe_reply_t        * probe_reply;                    // (Probe, Reply) pair
+    ping_options_t       * options = opts;                 // Options passed to this instance
+    size_t                 num_probes_to_send  = 0;        // the number of probes to send
     double                 num_max_probes_to_schedule = 0; // the maximum number of probes to schedule at the same time
+    bool                   has_terminated = false;         // Indicates whether the algorithm has terminated or not
 
     switch (event->type) {
         case ALGORITHM_INIT:
@@ -761,9 +805,13 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
         case ALGORITHM_TERM:
             // The caller allows us to free ping's data
+            data = *pdata;
+            data_dup = ping_data_dup(data);
+            pt_raise_event(loop, event_create(PING_PRINT_STATISTICS, data_dup, NULL, (ELEMENT_FREE) ping_data_free));
             ping_data_free(*pdata);
             *pdata = NULL;
-            break;
+            has_terminated = true;
+            goto HAS_TERMINATED;
 
         case ALGORITHM_ERROR:
             goto FAILURE;
@@ -784,6 +832,18 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     }
 
     // Handled event must always been freed when leaving the handler
+    event_free(event);
+    return 0;
+
+HAS_TERMINATED:
+    // Notify the caller the algorithm has terminated. The caller can still
+    // use traceroute's data. It has to run pt_instance_free once this
+    // data if no more needed.
+    if (has_terminated) {
+        pt_raise_terminated(loop);
+    }
+
+    // Handled event must always been free when leaving the handler
     event_free(event);
     return 0;
 
