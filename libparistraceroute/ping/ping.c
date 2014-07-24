@@ -78,10 +78,10 @@ const char * protocol_names[] = {
 };
 
 // Bounded integer parameters
-//                                  def     min  max         option_enabled
-static int      dst_port[4]      = {33457,  0,   UINT16_MAX, 0};
-static int      src_port[4]      = {33456,  0,   UINT16_MAX, 0};
-static int      flow_label[4]    = {0,      0,   1048576,    0};
+//                                  def     min  max                     option_enabled
+static int      dst_port[4]      = {33457,  0,   UINT16_MAX,             0};
+static int      src_port[4]      = {33456,  0,   UINT16_MAX,             0};
+static int      flow_label[4]    = {0,      0,   PING_FLOW_LABEL_MAX,    0};
 static double   send_time[3]     = {1,      1,   DBL_MAX};
 static int      packet_size[3]   = OPTIONS_PING_PACKET_SIZE;
 static unsigned max_ttl[3]       = OPTIONS_PING_MAX_TTL;
@@ -232,7 +232,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
         case ALGORITHM_HAS_TERMINATED:
             ping_data = event->issuer->data;
 
-            if (ping_data != NULL) {
+            if (ping_data != NULL) { // to prevent to print statistics twice
             ping_dump_statistics(ping_data);
             }
 
@@ -374,8 +374,8 @@ int main(int argc, char ** argv)
     );
 
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
-    
-/*
+
+    /*
     if (src_ip.s) {  // true if user has specified an interface address (-I)
         if (is_ipv4) {
            family = AF_INET;
@@ -392,12 +392,13 @@ int main(int argc, char ** argv)
             probe_set_field(probe, ADDRESS("src_ip", &src_addr));
         }
     }
-*/
+    */
 
     probe_set_delay(probe, DOUBLE("delay", send_time[0]));
 
     probe_set_field(probe, I8("ttl", max_ttl[0]));
 
+    // TODO fix BITS(x, y)
     /*
     if (flow_label[3]) {
         probe_set_field(probe, BITS("flow_label", 20, &(flow_label[0])));
@@ -442,9 +443,6 @@ int main(int argc, char ** argv)
         }
     }
 
-    // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
-    //probe_payload_resize(probe, 2);
-
     ping_options = ping_get_default_options();
     algorithm_options = &ping_options;
 
@@ -487,7 +485,6 @@ ERR_INSTANCE:
     // Options and probe must be manually removed.
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
-// ERR_UNKNOWN_ALGORITHM:
     probe_free(probe);
 ERR_PROBE_CREATE:
 ERR_ADDRESS_IP_FROM_STRING:

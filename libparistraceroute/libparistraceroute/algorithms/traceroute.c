@@ -389,6 +389,7 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
             // The caller allows us to free traceroute's data
             traceroute_data_free(*pdata);
             *pdata = NULL;
+            has_terminated = true;
             goto HAS_TERMINATED;
 
         case ALGORITHM_ERROR:

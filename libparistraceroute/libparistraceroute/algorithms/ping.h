@@ -19,13 +19,15 @@
 #define OPTIONS_PING_DO_RESOLV_DEFAULT                true
 #define OPTIONS_PING_INTERVAL_DEFAULT                 1
 
+#define PING_FLOW_LABEL_MAX                           1048576
+
 #define OPTIONS_PING_MAX_TTL                {OPTIONS_PING_MAX_TTL_DEFAULT,     1, 255}
 #define OPTIONS_PING_PACKET_SIZE            {OPTIONS_PING_PACKET_SIZE_DEFAULT, 0, INT_MAX}
 #define OPTIONS_PING_COUNT                  {OPTIONS_PING_COUNT_DEFAULT,       1, OPTIONS_PING_COUNT_DEFAULT}
 
 #define PING_HELP_c      "Stop after sending count ECHO_REQUEST packets. With deadline option, ping waits for 'count' ECHO_REPLY packets, until the timeout expires."
 #define PING_HELP_D      "Print timestamp (unix time + microseconds as in gettimeofday) before each line."
-#define PING_HELP_n      "Do not resolve IP addresses to their domain names"
+#define PING_HELP_n      "Do not resolve IP addresses to their domain names."
 #define PING_HELP_q      "Quiet output. Nothing is displayed except the summary lines at startup time and when finished."
 #define PING_HELP_v      "Verbose output."
 #define PING_HELP_t      "Set the IP Time to Live."
@@ -36,34 +38,6 @@ double       options_ping_get_interval();
 bool         options_ping_get_show_timestamp();
 bool         options_ping_get_is_quiet();
 unsigned int options_ping_get_count();
-
-/*
- * Principle: (from man page)
- *
- * traceroute - print the route packets trace to network host
- *
- * traceroute  tracks the route packets taken from an IP network on
- * their way to a given host. It utilizes the IP protocol's time to
- * live (TTL) field and * attempts to elicit an ICMP TIME_EXCEEDED
- * response from each gateway along the path to the host.
- *
- * Algorithm:
- *
- *     INIT:
- *         cur_ttl = min_ttl
- *         SEND
- *
- *     SEND:
- *         send num_probes probes with TTL = cur_ttl
- *
- *     PROBE_REPLY:
- *         if < num_probes
- *             continue waiting
- *             if all_stars or destination_reached or stopping ICMP error
- *                 EXIT
- *             cur_ttl += 1
- *             SEND
- */
 
 //--------------------------------------------------------------------
 // Options
@@ -93,7 +67,7 @@ typedef enum {
     // event_type                       | data (type)     | data (meaning)
     // ---------------------------------+-----------------+--------------------------------------------
     PING_PROBE_REPLY,                // | probe_reply_t * | The probe and its corresponding reply
-    PING_PRINT_STATISTICS,           // | ping_data_t *   | The data of the algorithm
+    PING_PRINT_STATISTICS,           // | ping_data_t   * | The data of the algorithm
     PING_DST_NET_UNREACHABLE,        // | probe_reply_t * | The probe and its corresponding reply
     PING_DST_HOST_UNREACHABLE,       // | probe_reply_t * | The probe and its corresponding reply
     PING_DST_PROT_UNREACHABLE,       // | probe_reply_t * | The probe and its corresponding reply
@@ -119,10 +93,15 @@ typedef struct {
 typedef struct {
     size_t        num_replies;          /**< Total of probe sent for this instance    */
     size_t        num_losses;           /**< Number of packets lost                   */
-    size_t        num_probes_in_flight; /**<The number of probes which haven't provoked a reply so far */
-    dynarray_t  * rtt_results;          /**<RTTs in order to be able to compute statistics */ 
-    size_t        num_sent;
+    size_t        num_probes_in_flight; /**< The number of probes which haven't provoked a reply so far */
+    dynarray_t  * rtt_results;          /**< RTTs in order to be able to compute statistics             */ 
+    size_t        num_sent;             /**< The number of probes sent                */
 } ping_data_t;
+
+/**
+ * \brief print the computet statistics
+ * \param ping_data the data of the algorithm
+ */
 
 void ping_dump_statistics(ping_data_t * ping_data);
 

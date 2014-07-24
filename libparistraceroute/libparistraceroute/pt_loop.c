@@ -363,12 +363,13 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 pt_loop_clear_user_events(loop);
 
             // TODO Sarah: is it useful?
+            /*
             } else if (cur_fd == loop->eventfd_terminate) {
 
                 printf("break\n");
                 break;
-
-            } else if (cur_fd == loop->sfd) {
+            */
+            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == loop->sfd) {
 
                 // Handling signals (ctrl-c, etc.)
                 s = read(loop->sfd, &fdsi, sizeof(struct signalfd_siginfo));
@@ -378,8 +379,8 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 }
 
                 if (fdsi.ssi_signo == SIGINT || fdsi.ssi_signo == SIGQUIT) {
-                    network_free(loop->network);
-                    loop->network = NULL;
+                    // network_free(loop->network);
+                    // loop->network = NULL;
                     pt_algorithm_instance_iter(loop, pt_process_algorithms_terminate);
                 } else {
                     perror("Read unexpected signal\n");
@@ -414,7 +415,7 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe) {
 }
 
 void pt_loop_terminate(pt_loop_t * loop) {
-    eventfd_write(loop->eventfd_terminate, 1);
+    // eventfd_write(loop->eventfd_terminate, 1);
     loop->stop = PT_LOOP_TERMINATE;
 }
 

@@ -124,7 +124,7 @@ static void tree_node_probe_dump(const tree_node_probe_t * tree_node_probe) {
     }
 }
 
-tree_node_probe_t * tree_node_probe_create(tree_node_tag_t tag, void * data) {
+tree_node_probe_t * tree_node_probe_create(tree_node_probe_tag_t tag, void * data) {
     tree_node_probe_t * tree_node_probe;
 
     if (!(tree_node_probe = calloc(1, sizeof(tree_node_probe_t)))) goto ERR_CALLOC;
@@ -180,7 +180,7 @@ void probe_group_free(probe_group_t * probe_group) {
     }
 }
 
-static bool probe_group_add_impl(probe_group_t * probe_group, tree_node_t * node_caller, tree_node_tag_t tag, void * data) {
+static bool probe_group_add_impl(probe_group_t * probe_group, tree_node_t * node_caller, tree_node_probe_tag_t tag, void * data) {
     bool                ret = false;
     tree_node_t       * new_child;
     tree_node_probe_t * tree_node_probe;
