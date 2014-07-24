@@ -5,7 +5,7 @@ rm -rf output.txt
 rm -rf log_fkrt.txt
 cd ../../paris-traceroute.fakeroute/fakeroute; fakeroute/fakeroute "-4" "random" > log_fkrt.txt &
 PID_FKRT=$!
-sleep 0.3
+sleep 0.10
 cd ../../paris-traceroute.libparistraceroute/libparistraceroute; paris-traceroute/paris-traceroute "-a" "mda" "-n" "-B" $1 $2 > output.txt &
 PID_PT=$!
 counter=0
@@ -17,7 +17,7 @@ do
         kill -9 $PID_FKRT
         exit 23
     fi
-    sleep 0.01
+    sleep 0.001
 done
 kill -9 $PID_FKRT
 exit 0

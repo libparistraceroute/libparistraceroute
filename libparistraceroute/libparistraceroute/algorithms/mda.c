@@ -137,6 +137,9 @@ static bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_inte
     event_t          * mda_event;
     mda_interface_t ** link;
 
+    printf("New link found:\n");
+    printf("-------------------\n");
+
     if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
     link[0] = src;
     link[1] = dst;
@@ -749,10 +752,12 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
 
     switch (event->type) {
         case ALGORITHM_INIT:
+            printf("Entered Algo init\n");
             mda_handler_init(loop, event, (mda_data_t **) pdata, skel, options);
             data = *pdata;
             break;
         case PROBE_REPLY:
+            printf("Probe Reply\n");
             data = *pdata;
             mda_handler_reply(loop, event, data, skel, options);
             break;
