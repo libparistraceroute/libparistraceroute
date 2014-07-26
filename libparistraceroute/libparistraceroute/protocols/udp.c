@@ -1,5 +1,6 @@
 #include "use.h"
 
+#include <stdio.h>
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -7,7 +8,10 @@
 #include <stddef.h>           // offsetof()
 #include <netinet/udp.h>      // udphdr
 #include <netinet/in.h>       // IPPROTO_UDP = 17
+#include <netinet/ip_icmp.h>  // icmpv4 constants
+#include <netinet/icmp6.h>    // icmpv6 constants
 
+#include "../probe.h"
 #include "../protocol.h"      // csum
 
 #ifdef USE_IPV4
@@ -174,6 +178,44 @@ buffer_t * udp_create_pseudo_header(const uint8_t * ip_segment)
     return buffer;
 }
 
+bool udp_matches(const struct probe_s * probe, const struct probe_s * reply)
+{
+    int     result  = 0;
+
+    /*
+    uint8_t code    = 0,
+            type    = 0,
+            version = 4;
+
+    if (probe_extract((const probe_t *)reply, "version", &version)
+        && probe_extract((const probe_t *)reply, "type", &type)
+        && probe_extract((const probe_t *)reply, "code", &code)) {
+
+        if (version == 4) {
+            result = ((type == ICMP_UNREACH) && (code == ICMP_UNREACH_PORT));
+        } else {
+            result = ((type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOPORT));
+        }
+    }
+    */
+    uint16_t probe_src_port = 0,
+             probe_dst_port = 0,
+             reply_src_port = 0,
+             reply_dst_port = 0;
+
+    if (probe_extract((const probe_t *)probe, "src_port", &probe_src_port)
+       && probe_extract((const probe_t *)probe, "dst_port", &probe_dst_port)
+       && probe_extract((const probe_t *)reply, "src_port", &reply_src_port)
+       && probe_extract((const probe_t *)reply, "dst_port", &reply_dst_port)) {
+
+        if (probe_src_port == reply_dst_port && reply_src_port == probe_dst_port) {
+            result = 1;
+        }
+    }
+    printf("udp = %d\n", result);
+    return (bool)result;
+}
+
 static protocol_t udp = {
     .name                 = "udp",
     .protocol             = IPPROTO_UDP, 
@@ -184,6 +226,7 @@ static protocol_t udp = {
     .write_default_header = udp_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = udp_get_header_size,
+    .matches              = udp_matches,
 };
 
 PROTOCOL_REGISTER(udp);

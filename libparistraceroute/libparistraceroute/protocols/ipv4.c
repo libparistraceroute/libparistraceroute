@@ -4,6 +4,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <stdbool.h>      // bool
 #include <unistd.h>       // close()
 #include <stddef.h>       // offsetof()
@@ -11,6 +12,8 @@
 #include <arpa/inet.h>    // inet_pton()
 #include <netinet/ip.h>   // iphdr
 #include <netinet/in.h>   // IPPROTO_IPIP, INET_ADDRSTRLEN
+
+#include "../probe.h"
 
 #include "../field.h"     // field_t
 #include "../protocol.h"  // csum
@@ -252,6 +255,23 @@ bool ipv4_instance_of(uint8_t * bytes) {
         && version == IPV4_DEFAULT_VERSION; 
 }
 
+bool ipv4_matches(const struct probe_s * probe, const struct probe_s * reply)
+{
+    address_t probe_src_address, probe_dst_address, reply_src_address, reply_dst_address;
+    if (probe_extract((const probe_t *)probe, "src_ip", &probe_src_address)
+        && probe_extract((const probe_t *)probe, "dst_ip", &probe_dst_address)
+        && probe_extract((const probe_t *)reply, "src_ip", &reply_src_address)
+        && probe_extract((const probe_t *)reply, "dst_ip", &reply_dst_address)) {
+
+        int result = (!address_compare(&probe_src_address, &reply_dst_address)
+                && (!address_compare(&probe_dst_address, &reply_src_address)));
+        printf("ipv4 = %d\n",  result);
+        return (bool)result;
+    }
+
+    return false;
+}
+
 static protocol_t ipv4 = {
     .name                 = "ipv4",
     .protocol             = IPPROTO_IPIP, // XXX only IP over IP (encapsulation). Beware probe.c, icmpv4_get_next_protocol_id 
@@ -263,6 +283,7 @@ static protocol_t ipv4 = {
     .finalize             = ipv4_finalize,
     .instance_of          = ipv4_instance_of,
     .get_next_protocol    = protocol_get_next_protocol,
+    .matches              = ipv4_matches,
 };
 
 PROTOCOL_REGISTER(ipv4);

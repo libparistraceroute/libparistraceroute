@@ -307,7 +307,7 @@ int main(int argc, char ** argv)
     pt_loop_t               * loop;
     int                       family;
     address_t                 dst_addr;
-    // address_t                 src_addr;
+    address_t                 src_addr;
     options_t               * options;
     char                    * dst_ip;
     const char              * algorithm_name;
@@ -375,7 +375,6 @@ int main(int argc, char ** argv)
 
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
 
-    /*
     if (src_ip.s) {  // true if user has specified an interface address (-I)
         if (is_ipv4) {
            family = AF_INET;
@@ -392,7 +391,6 @@ int main(int argc, char ** argv)
             probe_set_field(probe, ADDRESS("src_ip", &src_addr));
         }
     }
-    */
 
     probe_set_delay(probe, DOUBLE("delay", send_time[0]));
 
@@ -435,6 +433,7 @@ int main(int argc, char ** argv)
 
     if (is_tcp) {
         int bit_value = 1;
+
         if (is_tcp_ack) {
             probe_set_field(probe, BITS("ack", 1, &bit_value));
         }

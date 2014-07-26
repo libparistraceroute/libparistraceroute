@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>        // malloc()
 #include <string.h>        // memcpy()
 #include <stdbool.h>       // bool
@@ -8,6 +9,7 @@
 #include <netinet/in.h>    // IPPROTO_ICMPV6 
 #include <arpa/inet.h>
 
+#include "../probe.h"
 #include "../protocol.h"
 #include "../layer.h"
 #include "ipv6_pseudo_header.h"
@@ -135,6 +137,17 @@ const protocol_t * icmpv6_get_next_protocol(const layer_t * icmpv6_layer) {
     return next_protocol;
 }
 
+bool icmpv6_matches(const struct probe_s * probe, const struct probe_s * reply)
+{
+    uint8_t type = 0;
+    int result = 0;
+    if ((probe_extract((const probe_t *)reply, "type", &type))) {
+       result = (type == ICMP6_ECHO_REPLY);
+    }
+    printf("icmpv6 = %d\n", result);
+    return (bool)result;
+}
+
 static protocol_t icmpv6 = {
     .name                 = "icmpv6",
     .protocol             = IPPROTO_ICMPV6,
@@ -144,6 +157,7 @@ static protocol_t icmpv6 = {
     .write_default_header = icmpv6_write_default_header, // TODO generic memcpy + header size
     .get_header_size      = icmpv6_get_header_size,
     .get_next_protocol    = icmpv6_get_next_protocol,
+    .matches              = icmpv6_matches,
 };
 
 PROTOCOL_REGISTER(icmpv6);

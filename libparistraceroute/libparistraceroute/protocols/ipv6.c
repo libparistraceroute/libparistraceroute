@@ -11,6 +11,7 @@
 #include <netinet/ip6.h>  // ip6_hdr
 #include <stdio.h>        // perror
 
+#include "../probe.h"
 #include "../field.h"
 #include "../protocol.h"
 
@@ -274,6 +275,23 @@ bool ipv6_instance_of(uint8_t * bytes) {
     return (bytes[0] >> 4) == 6;
 }
 
+bool ipv6_matches(const struct probe_s * probe, const struct probe_s * reply)
+{
+    address_t probe_src_address, probe_dst_address, reply_src_address, reply_dst_address;
+    if (probe_extract((const probe_t *)probe, "src_ip", &probe_src_address)
+        && probe_extract((const probe_t *)probe, "dst_ip", &probe_dst_address)
+        && probe_extract((const probe_t *)reply, "src_ip", &reply_src_address)
+        && probe_extract((const probe_t *)reply, "dst_ip", &reply_dst_address)) {
+
+        int result = (!address_compare(&probe_src_address, &reply_dst_address)
+                && (!address_compare(&probe_dst_address, &reply_src_address)));
+        printf("ipv6 = %d\n",  result);
+        return (bool)result;
+    }
+
+    return false;
+}
+
 static protocol_t ipv6 = {
     .name                 = "ipv6",
     .protocol             = IPPROTO_IPV6,
@@ -285,6 +303,7 @@ static protocol_t ipv6 = {
     .finalize             = ipv6_finalize,
     .instance_of          = ipv6_instance_of,
     .get_next_protocol    = protocol_get_next_protocol,
+    .matches              = ipv6_matches,
 };
 
 PROTOCOL_REGISTER(ipv6);

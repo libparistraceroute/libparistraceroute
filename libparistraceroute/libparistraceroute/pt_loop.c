@@ -163,7 +163,7 @@ static void pt_process_algorithms_terminate(const void * node, VISIT visit, int 
     algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
 
     // The pt_loop_t must send a TERM event to the current instance
-    pt_algorithm_throw(instance->loop, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
+    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
 }
 
 //----------------------------------------------------------------
@@ -379,8 +379,6 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 }
 
                 if (fdsi.ssi_signo == SIGINT || fdsi.ssi_signo == SIGQUIT) {
-                    // network_free(loop->network);
-                    // loop->network = NULL;
                     pt_algorithm_instance_iter(loop, pt_process_algorithms_terminate);
                 } else {
                     perror("Read unexpected signal\n");

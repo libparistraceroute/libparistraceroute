@@ -14,6 +14,7 @@
 #define END_PROTOCOL_FIELDS { .key = NULL }
 
 struct layer_s;
+struct probe_s;
 
 /**
  * \struct protocol_t
@@ -107,6 +108,13 @@ typedef struct protocol_s {
      */
 
     const struct protocol_s * (*get_next_protocol)(const struct layer_s * layer);
+
+    /**
+     * \brief Checks whether the protocols of two probes match
+     * \param probe the probe to analyse
+     * \param reply the reply to the probe to analyse
+     */
+    bool (*matches)(const struct probe_s * probe, const struct probe_s * reply);
 
 } protocol_t;
 

@@ -6,7 +6,7 @@
 #include <string.h>           // memset()
 #include <math.h>             // abs(), ceil()
 #include <netinet/ip_icmp.h>  // icmpv4 constants
-#include <netinet/icmp6.h>    // icmpv6 constantsak
+#include <netinet/icmp6.h>    // icmpv6 constants
 
 #include "../probe.h"
 #include "../event.h"
@@ -56,9 +56,9 @@ const option_t * ping_get_options() {
 }
 
 void options_ping_init(ping_options_t * ping_options,
-                       address_t * address, 
-                       double interval,
-                       uint8_t max_ttl)
+                       address_t      * address,
+                       double           interval,
+                       uint8_t          max_ttl)
 {
     ping_options->count            = options_ping_get_count();
     ping_options->dst_addr         = address;
@@ -92,7 +92,7 @@ inline ping_options_t ping_get_default_options() {
  * \return the computed minimum
  */
 
-static double compute_minimum(dynarray_t *array) {
+static double compute_minimum(dynarray_t * array) {
     size_t array_length = dynarray_get_size(array);
     double current_min  = 0;
     unsigned int i      = 1;
@@ -114,7 +114,7 @@ static double compute_minimum(dynarray_t *array) {
  * \return the computed maximum
  */
 
-static double compute_maximum(dynarray_t *array) {
+static double compute_maximum(dynarray_t * array) {
     size_t array_length = dynarray_get_size(array);
     double current_max  = 0;
     unsigned int i      = 1;
@@ -136,7 +136,7 @@ static double compute_maximum(dynarray_t *array) {
  * \return the computed mean
  */
 
-static double compute_mean(dynarray_t *array) {
+static double compute_mean(dynarray_t * array) {
     size_t array_length = dynarray_get_size(array);
     double sum          = 0;
     unsigned int i      = 0;
@@ -157,7 +157,7 @@ static double compute_mean(dynarray_t *array) {
  * \return the computed mean deviation
  */
 
-static double compute_mean_deviation(dynarray_t *array) {
+static double compute_mean_deviation(dynarray_t * array) {
     size_t array_length = dynarray_get_size(array);
     double sum          = 0;
     double mean         = compute_mean(array);
@@ -177,8 +177,11 @@ static double compute_mean_deviation(dynarray_t *array) {
  * \brief print the computed statistics
  * \param ping_data pointer to a ping_data_t instance containing the data of the algorithm
  */
-void ping_dump_statistics(ping_data_t *ping_data) {
-    double max = 0, min = 0, avg = 0, mdev = 0;
+void ping_dump_statistics(ping_data_t * ping_data) {
+    double max        = 0,
+           min        = 0,
+           avg        = 0,
+           mdev       = 0;
     int    percentage = 0;
 
     if (ping_data == NULL || ping_data->rtt_results == NULL) {
@@ -210,8 +213,10 @@ void ping_dump_statistics(ping_data_t *ping_data) {
  * \return true if this error has occured, false otherwise
  */
 
-static bool destination_network_unreachable(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+static bool destination_network_unreachable(const probe_t * reply) {
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -231,7 +236,9 @@ static bool destination_network_unreachable(const probe_t *reply) {
  */
 
 static bool destination_host_unreachable(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -251,7 +258,9 @@ static bool destination_host_unreachable(const probe_t *reply) {
  */
 
 static bool destination_port_unreachable(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -271,7 +280,9 @@ static bool destination_port_unreachable(const probe_t *reply) {
  */
 
 static bool destination_protocol_unreachable(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -291,7 +302,9 @@ static bool destination_protocol_unreachable(const probe_t *reply) {
  */
 
 static bool ttl_exceeded(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -311,7 +324,9 @@ static bool ttl_exceeded(const probe_t *reply) {
  */
 
 static bool fragment_reassembly_time_exceeded(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -331,7 +346,9 @@ static bool fragment_reassembly_time_exceeded(const probe_t *reply) {
  */
 
 static bool redirect(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -351,7 +368,9 @@ static bool redirect(const probe_t *reply) {
  */
 
 static bool parameter_problem(const probe_t *reply) {
-    uint8_t version = 0, code = 0, type = 0;
+    uint8_t version = 0,
+            code    = 0,
+            type    = 0;
 
     probe_extract(reply, "version", &version);
     probe_extract(reply, "code", &code);
@@ -383,6 +402,7 @@ static inline bool destination_reached(const address_t * dst_addr, const probe_t
 
 //-----------------------------------------------------------------
 // Operations on double     // NOTE: these functions probably have to be put in another file
+// These functions are needed to store and free the rtt results correctly
 //-----------------------------------------------------------------
 
 /**
@@ -453,7 +473,10 @@ static ping_data_t * ping_data_dup(ping_data_t * ping_data) {
     if (!(new_ping_data = (ping_data_t *)malloc(sizeof(ping_data_t)))) {
         return new_ping_data;
     }
-    new_ping_data->rtt_results = dynarray_dup(ping_data->rtt_results, (void * (*)(void *))double_dup);
+    if (!(new_ping_data->rtt_results = dynarray_dup(ping_data->rtt_results,
+        (void * (*)(void *))double_dup))) {
+        return NULL;
+    }
     new_ping_data->num_replies = ping_data->num_replies;
     new_ping_data->num_sent = ping_data->num_sent;
     new_ping_data->num_losses = ping_data->num_losses;
@@ -684,6 +707,7 @@ static bool send_ping_probe(
 ) {
     probe_t * probe;
     double    delay;
+
     // a probe must never be altered, otherwise the network layer may
     // manage corrupted probes.
     if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP;
@@ -691,6 +715,9 @@ static bool send_ping_probe(
         delay = i * probe_get_delay(probe_skel);
         probe_set_delay(probe, DOUBLE("delay", delay));
     }
+
+    probe_set_fields(probe, NULL); // set source ip
+
     ++(ping_data->num_sent);
     return pt_send_probe(loop, probe);
 
@@ -795,7 +822,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
                 pt_raise_event(loop, event_create(PING_GEN_ERROR, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             }
 
-            num_probes_to_send = (int)(options->count - data->num_replies) > 0;
+            num_probes_to_send = (options->count - data->num_replies) > 0; // we should send only 1 or 0 probes
             break;
 
         case PROBE_TIMEOUT:
@@ -809,13 +836,13 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             // Notify the caller we've got a probe timeout
             pt_raise_event(loop, event_create(PING_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
 
-            num_probes_to_send = (int)(options->count - data->num_replies) > 0;
+            num_probes_to_send = (options->count - data->num_replies) > 0;
             break;
 
         case ALGORITHM_TERM:
             // The caller allows us to free ping's data
             data = *pdata;
-            data_dup = ping_data_dup(data);
+            data_dup = ping_data_dup(data); // we have to make a copy of the data in order to be able to print statistics correctly
             pt_raise_event(loop, event_create(PING_PRINT_STATISTICS, data_dup, NULL, (ELEMENT_FREE) ping_data_free));
             ping_data_free(*pdata);
             *pdata = NULL;
@@ -832,7 +859,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     // check if we can send another probe or if we have already sent the maximum number of probes
     if (data->num_replies + data->num_probes_in_flight != options->count) {
         send_ping_probes(loop, data, probe_skel, num_probes_to_send);
-        data->num_probes_in_flight += (size_t)num_probes_to_send;
+        data->num_probes_in_flight += num_probes_to_send;
     } else {
         if (data->num_probes_in_flight == 0) { // we've recieved a response from all the probes we sent
             pt_raise_event(loop, event_create(PING_ALL_PROBES_SENT, NULL, NULL, NULL));
@@ -847,12 +874,12 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 HAS_TERMINATED:
     // Notify the caller the algorithm has terminated. The caller can still
     // use ping's data. It has to run pt_instance_free once this
-    // data if no more needed.
+    // data is no more needed.
     if (has_terminated) {
         pt_raise_terminated(loop);
     }
 
-    // Handled event must always been free when leaving the handler
+    // Handled event must always been freed when leaving the handler
     event_free(event);
     return 0;
 

@@ -1,5 +1,6 @@
 #include "use.h"
 
+#include <stdio.h>
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -9,6 +10,7 @@
 #include <netinet/tcp.h>      // tcphdr
 #include <netinet/in.h>       // IPPROTO_TCP == 6
 
+#include "../probe.h"
 #include "../protocol.h"      // csum
 #include "../bits.h"
 
@@ -332,6 +334,27 @@ buffer_t * tcp_create_pseudo_header(const uint8_t * ip_segment)
     return buffer;
 }
 
+bool tcp_matches(const struct probe_s * probe, const struct probe_s * reply)
+{
+    uint16_t probe_src_port = 0,
+             probe_dst_port = 0,
+             reply_src_port = 0,
+             reply_dst_port = 0;
+    int result = 0;
+
+    if (probe_extract((const probe_t *)probe, "src_port", &probe_src_port)
+       && probe_extract((const probe_t *)probe, "dst_port", &probe_dst_port)
+       && probe_extract((const probe_t *)reply, "src_port", &reply_src_port)
+       && probe_extract((const probe_t *)reply, "dst_port", &reply_dst_port)) {
+
+        if (probe_src_port == reply_dst_port && reply_src_port == probe_dst_port) {
+            result = 1;
+        }
+    }
+    printf("tcp = %d\n", result);
+    return (bool)result;
+}
+
 static protocol_t tcp = {
     .name                 = "tcp",
     .protocol             = IPPROTO_TCP, 
@@ -342,6 +365,7 @@ static protocol_t tcp = {
     .write_default_header = tcp_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = tcp_get_header_size,
+    .matches              = tcp_matches,
 };
 
 PROTOCOL_REGISTER(tcp);

@@ -10,6 +10,7 @@
 #include <arpa/inet.h>   // htons
 #include <limits.h>      // INT_MAX
 
+#include "protocol.h"    // struct probe_s
 #include "network.h"
 #include "common.h"
 #include "packet.h"
@@ -233,6 +234,7 @@ static bool network_update_next_timeout(network_t * network)
  *   this reply.
  */
 
+/*
 bool probe_match(const probe_t * probe, const probe_t * reply)
 {
     // XXX Only matching ICMP echo reply at the moment
@@ -241,12 +243,31 @@ bool probe_match(const probe_t * probe, const probe_t * reply)
         printf("Cannot extract type from probe... continueing\n");
         return false;
     }
-    
     return (type == 0); // ECHO REPLY
+}
+*/
+
+bool probe_match(const struct probe_s * probe, const struct probe_s * reply)
+{
+    size_t    num_layers       = probe_get_num_layers((const probe_t *)probe);
+    size_t    i                = 0;
+    layer_t * layer_to_analyse = NULL;
+
+    for (i = 0; i < num_layers - 1; i++)
+    {
+        layer_to_analyse = probe_get_layer((const probe_t *)probe, i);
+        if (layer_to_analyse->protocol->matches != NULL) {
+            if (!layer_to_analyse->protocol->matches(probe, reply)) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 static probe_t * network_get_matching_probe(network_t * network, const probe_t * reply)
 {
+
     // Suppose we perform a traceroute measurement thanks to IPv4/UDP packet
     // We encode in the IPv4 checksum the ID of the probe.
     // Then, we should sniff an IPv4/ICMP/IPv4/UDP packet.
@@ -288,7 +309,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
 
         // Reply / probe comparison. In our probe packet, the probe ID
         // is stored in the checksum of the (first) IP layer.
-        if (probe_match(probe, reply))
+        if (probe_match((const struct probe_s *)probe, (const struct probe_s *)reply))
             break;
     }
     

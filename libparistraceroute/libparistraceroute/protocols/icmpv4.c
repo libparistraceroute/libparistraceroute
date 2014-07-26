@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -9,6 +10,7 @@
 
 #include "../protocol.h"
 #include "../layer.h"
+#include "../probe.h"
 
 #define ICMPV4_FIELD_TYPE             "type"
 #define ICMPV4_FIELD_CODE             "code"
@@ -124,6 +126,17 @@ const protocol_t * icmpv4_get_next_protocol(const layer_t * icmpv4_layer) {
     return next_protocol;
 }
 
+bool icmpv4_matches(const struct probe_s * probe, const struct probe_s * reply)
+{
+    uint8_t type = 0;
+    int result = 0;
+    if ((probe_extract((const probe_t *)reply, "type", &type))) {
+       result = (type == ICMP_ECHOREPLY);
+    }
+    printf("icmpv4 = %d\n", result);
+    return (bool)result;
+}
+
 static protocol_t icmpv4 = {
     .name                 = "icmpv4",
     .protocol             = IPPROTO_ICMP,
@@ -132,6 +145,7 @@ static protocol_t icmpv4 = {
     .write_default_header = icmpv4_write_default_header, // TODO generic
     .get_header_size      = icmpv4_get_header_size,
     .get_next_protocol    = icmpv4_get_next_protocol,
+    .matches              = icmpv4_matches,
 };
 
 PROTOCOL_REGISTER(icmpv4);
