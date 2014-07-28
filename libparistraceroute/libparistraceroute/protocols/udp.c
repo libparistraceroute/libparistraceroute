@@ -178,42 +178,36 @@ buffer_t * udp_create_pseudo_header(const uint8_t * ip_segment)
     return buffer;
 }
 
-bool udp_matches(const struct probe_s * probe, const struct probe_s * reply)
+bool udp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 {
-    int     result  = 0;
+    const probe_t * probe = (const probe_t *) _probe,
+                  * reply = (const probe_t *) _reply;
 
-    /*
-    uint8_t code    = 0,
-            type    = 0,
-            version = 4;
+    uint16_t        probe_src_port = 0,
+                    probe_dst_port = 0,
+                    reply_src_port = 0,
+                    reply_dst_port = 0;
+    layer_t       * udp_layer      = NULL;
 
-    if (probe_extract((const probe_t *)reply, "version", &version)
-        && probe_extract((const probe_t *)reply, "type", &type)
-        && probe_extract((const probe_t *)reply, "code", &code)) {
-
-        if (version == 4) {
-            result = ((type == ICMP_UNREACH) && (code == ICMP_UNREACH_PORT));
-        } else {
-            result = ((type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOPORT));
-        }
-    }
-    */
-    uint16_t probe_src_port = 0,
-             probe_dst_port = 0,
-             reply_src_port = 0,
-             reply_dst_port = 0;
-
-    if (probe_extract((const probe_t *)probe, "src_port", &probe_src_port)
-       && probe_extract((const probe_t *)probe, "dst_port", &probe_dst_port)
-       && probe_extract((const probe_t *)reply, "src_port", &reply_src_port)
-       && probe_extract((const probe_t *)reply, "dst_port", &reply_dst_port)) {
+    if (probe_extract(probe, "src_port", &probe_src_port)
+     && probe_extract(probe, "dst_port", &probe_dst_port)
+     && probe_extract(reply, "src_port", &reply_src_port)
+     && probe_extract(reply, "dst_port", &reply_dst_port)) {
 
         if (probe_src_port == reply_dst_port && reply_src_port == probe_dst_port) {
-            result = 1;
+            return true;
+        } else {
+            if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
+             || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
+
+                if (!(udp_layer = probe_get_layer(reply, 3)) || strcmp(udp_layer->protocol->name, "udp")) {
+                    return false;
+                }
+                return (probe_src_port == reply_src_port) && (probe_dst_port == reply_dst_port);
+            }
         }
     }
-    printf("udp = %d\n", result);
-    return (bool)result;
+    return false;
 }
 
 static protocol_t udp = {

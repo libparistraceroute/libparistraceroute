@@ -362,13 +362,6 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 // Flush the queue
                 pt_loop_clear_user_events(loop);
 
-            // TODO Sarah: is it useful?
-            /*
-            } else if (cur_fd == loop->eventfd_terminate) {
-
-                printf("break\n");
-                break;
-            */
             } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == loop->sfd) {
 
                 // Handling signals (ctrl-c, etc.)
@@ -394,7 +387,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                     fprintf(stderr, "Error while processing timeout\n");
                 }
 
-            } else {
+            } else if (loop->stop != PT_LOOP_INTERRUPTED) {
                 fprintf(stderr, "Internal error, this fd is not properly managed\n");
             }
         }
@@ -413,7 +406,6 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe) {
 }
 
 void pt_loop_terminate(pt_loop_t * loop) {
-    // eventfd_write(loop->eventfd_terminate, 1);
     loop->stop = PT_LOOP_TERMINATE;
 }
 

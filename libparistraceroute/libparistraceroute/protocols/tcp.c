@@ -334,25 +334,35 @@ buffer_t * tcp_create_pseudo_header(const uint8_t * ip_segment)
     return buffer;
 }
 
-bool tcp_matches(const struct probe_s * probe, const struct probe_s * reply)
+bool tcp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 {
-    uint16_t probe_src_port = 0,
-             probe_dst_port = 0,
-             reply_src_port = 0,
-             reply_dst_port = 0;
-    int result = 0;
+    const probe_t * probe = (const probe_t *) _probe,
+                  * reply = (const probe_t *) _reply;
+    uint16_t        probe_src_port = 0,
+                    probe_dst_port = 0,
+                    reply_src_port = 0,
+                    reply_dst_port = 0;
+    layer_t       * tcp_layer      = NULL;
 
-    if (probe_extract((const probe_t *)probe, "src_port", &probe_src_port)
-       && probe_extract((const probe_t *)probe, "dst_port", &probe_dst_port)
-       && probe_extract((const probe_t *)reply, "src_port", &reply_src_port)
-       && probe_extract((const probe_t *)reply, "dst_port", &reply_dst_port)) {
+    if (probe_extract(probe, "src_port", &probe_src_port)
+     && probe_extract(probe, "dst_port", &probe_dst_port)
+     && probe_extract(reply, "src_port", &reply_src_port)
+     && probe_extract(reply, "dst_port", &reply_dst_port)) {
 
         if (probe_src_port == reply_dst_port && reply_src_port == probe_dst_port) {
-            result = 1;
+            return true;
+        } else {
+            if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
+             || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
+
+                if (!(tcp_layer = probe_get_layer(reply, 3)) || strcmp(tcp_layer->protocol->name, "tcp")) {
+                    return false;
+                }
+                return (probe_src_port == reply_src_port) && (probe_dst_port == reply_dst_port);
+            }
         }
     }
-    printf("tcp = %d\n", result);
-    return (bool)result;
+    return false;
 }
 
 static protocol_t tcp = {

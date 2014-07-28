@@ -255,20 +255,34 @@ bool ipv4_instance_of(uint8_t * bytes) {
         && version == IPV4_DEFAULT_VERSION; 
 }
 
-bool ipv4_matches(const struct probe_s * probe, const struct probe_s * reply)
+bool ipv4_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 {
-    address_t probe_src_address, probe_dst_address, reply_src_address, reply_dst_address;
-    if (probe_extract((const probe_t *)probe, "src_ip", &probe_src_address)
-        && probe_extract((const probe_t *)probe, "dst_ip", &probe_dst_address)
-        && probe_extract((const probe_t *)reply, "src_ip", &reply_src_address)
-        && probe_extract((const probe_t *)reply, "dst_ip", &reply_dst_address)) {
+    const probe_t * probe = (const probe_t *) _probe,
+                  * reply = (const probe_t *) _reply;
+    address_t       probe_src_ip,
+                    probe_dst_ip,
+                    reply_src_ip,
+                    reply_dst_ip;
 
-        int result = (!address_compare(&probe_src_address, &reply_dst_address)
-                && (!address_compare(&probe_dst_address, &reply_src_address)));
-        printf("ipv4 = %d\n",  result);
-        return (bool)result;
+    if (probe_extract(probe, "src_ip", &probe_src_ip)
+     && probe_extract(probe, "dst_ip", &probe_dst_ip)
+     && probe_extract(reply, "src_ip", &reply_src_ip)
+     && probe_extract(reply, "dst_ip", &reply_dst_ip)) {
+
+        if (!(!address_compare(&probe_src_ip, &reply_dst_ip) && (!address_compare(&probe_dst_ip, &reply_src_ip)))) {
+
+            if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
+             || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
+
+                if (probe_extract_ext(reply, "src_ip", 2, &reply_src_ip)
+                 && probe_extract_ext(reply, "dst_ip", 2, &reply_dst_ip)) {
+                    return !address_compare(&probe_src_ip, &reply_src_ip) && !address_compare(&probe_dst_ip, &reply_dst_ip);
+                }
+            }
+            return false;
+        }
+        return true;
     }
-
     return false;
 }
 

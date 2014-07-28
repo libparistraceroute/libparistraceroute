@@ -137,15 +137,33 @@ const protocol_t * icmpv6_get_next_protocol(const layer_t * icmpv6_layer) {
     return next_protocol;
 }
 
-bool icmpv6_matches(const struct probe_s * probe, const struct probe_s * reply)
+bool icmpv6_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 {
-    uint8_t type = 0;
-    int result = 0;
-    if ((probe_extract((const probe_t *)reply, "type", &type))) {
-       result = (type == ICMP6_ECHO_REPLY);
+    uint8_t         reply_type = 0,
+                    reply_code = 0,
+                    probe_type = 0,
+                    probe_code = 0;
+    layer_t       * icmp_layer = NULL;
+    const probe_t * probe      = (const probe_t *) _probe;
+    const probe_t * reply      = (const probe_t *) _reply;
+
+    if (probe_extract(reply, "type", &reply_type)
+     && probe_extract(probe, "type", &probe_type)
+     && probe_extract(probe, "code", &probe_code)) {
+
+        if (reply_type == ICMP6_ECHO_REPLY) {
+            return true;
+        }
+
+        if (!(icmp_layer = probe_get_layer(reply, 3)) || strcmp(icmp_layer->protocol->name, "icmpv4")) {
+            return false;
+        }
+
+        if (probe_extract_ext(reply, "type", 3, &reply_type) && probe_extract_ext(reply, "code", 3, &reply_code)) {
+            return (probe_type == reply_type) && (probe_code == reply_code);
+        }
     }
-    printf("icmpv6 = %d\n", result);
-    return (bool)result;
+    return false;
 }
 
 static protocol_t icmpv6 = {

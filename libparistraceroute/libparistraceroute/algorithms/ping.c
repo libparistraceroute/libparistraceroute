@@ -98,10 +98,10 @@ static double compute_minimum(dynarray_t * array) {
     unsigned int i      = 1;
 
     if (array_length != 0) {
-        current_min = *((double*)dynarray_get_ith_element(array, 0));
+        current_min = *((double*) dynarray_get_ith_element(array, 0));
         for (i = 1; i < array_length; i++) {
-            if (*((double *)dynarray_get_ith_element(array, i)) < current_min) {
-                current_min = *((double *)dynarray_get_ith_element(array, i));
+            if (*((double *) dynarray_get_ith_element(array, i)) < current_min) {
+                current_min = *((double *) dynarray_get_ith_element(array, i));
             }
         }
     }
@@ -120,10 +120,10 @@ static double compute_maximum(dynarray_t * array) {
     unsigned int i      = 1;
 
     if (array_length != 0) {
-        current_max = *((double*)dynarray_get_ith_element(array, 0));
+        current_max = *((double*) dynarray_get_ith_element(array, 0));
         for (i = 1; i < array_length; i++) {
-            if (*((double *)dynarray_get_ith_element(array, i)) > current_max) {
-                current_max = *((double *)dynarray_get_ith_element(array, i));
+            if (*((double *) dynarray_get_ith_element(array, i)) > current_max) {
+                current_max = *((double *) dynarray_get_ith_element(array, i));
             }
         }
     }
@@ -143,7 +143,7 @@ static double compute_mean(dynarray_t * array) {
 
     if (array_length != 0) {
         for (i = 0; i < array_length; i++) {
-            sum += *((double *)dynarray_get_ith_element(array, i));
+            sum += *((double *) dynarray_get_ith_element(array, i));
         }
         return sum / array_length;
     } else {
@@ -165,7 +165,7 @@ static double compute_mean_deviation(dynarray_t * array) {
 
     if (array_length != 0) {
         for (i = 0; i < array_length; i++) {
-            sum += fabs(*((double *)dynarray_get_ith_element(array, i)) - mean);
+            sum += fabs(*((double *) dynarray_get_ith_element(array, i)) - mean);
         }
         return sum / array_length;
     } else {
@@ -194,7 +194,7 @@ void ping_dump_statistics(ping_data_t * ping_data) {
         mdev = compute_mean_deviation(ping_data->rtt_results);
 
         if (ping_data->num_replies != 0) {
-            percentage = (int)(((double)ping_data->num_losses / (double)ping_data->num_replies) * 100);
+            percentage = (int) (((double) ping_data->num_losses / (double) ping_data->num_replies) * 100);
         }
  
         printf("%zu packets transmitted, %zu recieved, %d%% packet loss \n",
@@ -218,15 +218,16 @@ static bool destination_network_unreachable(const probe_t * reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+        && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_HOST);
-    } else {
-        return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_ADDR);
+        if (version == 4) {
+            return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_HOST);
+        } else {
+            return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_ADDR);
+        }
     }
+    return false;
 }
 
 /**
@@ -240,15 +241,16 @@ static bool destination_host_unreachable(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+        && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_NET);
-    } else {
-        return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOROUTE);
+        if (version == 4) {
+            return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_NET);
+        } else {
+            return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOROUTE);
+        }
     }
+    return false;
 }
 
 /**
@@ -262,15 +264,16 @@ static bool destination_port_unreachable(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+        && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PORT);
-    } else {
-        return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOPORT);
+        if (version == 4) {
+            return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PORT);
+        } else {
+            return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_NOPORT);
+        }
     }
+    return false;
 }
 
 /**
@@ -284,15 +287,16 @@ static bool destination_protocol_unreachable(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+        && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PROTOCOL);
-    } else {
-        return (type == ICMP6_PARAM_PROB) && (code == ICMP6_PARAMPROB_NEXTHEADER);
+        if (version == 4) {
+            return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_PROTOCOL);
+        } else {
+            return (type == ICMP6_PARAM_PROB) && (code == ICMP6_PARAMPROB_NEXTHEADER);
+        }
     }
+    return false;
 }
 
 /**
@@ -306,15 +310,16 @@ static bool ttl_exceeded(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+        && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_INTRANS);
-    } else {
-        return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_TRANSIT);
+        if (version == 4) {
+            return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_INTRANS);
+        } else {
+            return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_TRANSIT);
+        }
     }
+    return false;
 }
 
 /**
@@ -328,15 +333,16 @@ static bool fragment_reassembly_time_exceeded(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+        && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_REASS);
-    } else {
-        return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_REASSEMBLY);
+        if (version == 4) {
+            return (type == ICMP_TIMXCEED) && (code == ICMP_TIMXCEED_REASS);
+        } else {
+            return (type == ICMP6_TIME_EXCEEDED) && (code == ICMP6_TIME_EXCEED_REASSEMBLY);
+        }
     }
+    return false;
 }
 
 /**
@@ -350,15 +356,16 @@ static bool redirect(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+        && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_REDIRECT) && (code == ICMP_REDIRECT_NET);
-    } else {
-        return (type == ND_REDIRECT);
+        if (version == 4) {
+            return (type == ICMP_REDIRECT) && (code == ICMP_REDIRECT_NET);
+        } else {
+            return (type == ND_REDIRECT);
+        }
     }
+    return false;
 }
 
 /**
@@ -372,16 +379,17 @@ static bool parameter_problem(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    probe_extract(reply, "version", &version);
-    probe_extract(reply, "code", &code);
-    probe_extract(reply, "type", &type);
+   if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
+       && probe_extract(reply, "type", &type)) {
 
-    if (version == 4) {
-        return (type == ICMP_PARAMPROB);
-    } else {
-        return (type == ICMP6_PARAM_PROB ) && ((code == ICMP6_PARAMPROB_HEADER) 
-            || (code == ICMP6_PARAMPROB_OPTION));
+        if (version == 4) {
+            return (type == ICMP_PARAMPROB);
+        } else {
+            return (type == ICMP6_PARAM_PROB ) && ((code == ICMP6_PARAMPROB_HEADER)
+                || (code == ICMP6_PARAMPROB_OPTION));
+        }
     }
+    return false;
 }
 
 /**
@@ -428,7 +436,7 @@ static double * double_dup(double * double_to_duplicate) {
     if (double_to_duplicate == NULL) {
         return new_double;
     }
-    if (!(new_double = (double *)malloc(sizeof(double)))) {
+    if (!(new_double = (double *) malloc(sizeof(double)))) {
         return new_double;
     }
     *new_double = *double_to_duplicate;
@@ -474,7 +482,7 @@ static ping_data_t * ping_data_dup(ping_data_t * ping_data) {
         return new_ping_data;
     }
     if (!(new_ping_data->rtt_results = dynarray_dup(ping_data->rtt_results,
-        (void * (*)(void *))double_dup))) {
+        (void * (*)(void *)) double_dup))) {
         return NULL;
     }
     new_ping_data->num_replies = ping_data->num_replies;
@@ -566,7 +574,7 @@ void ping_handler(
 
                 printf("%zu bytes from ", probe_get_size(reply));
                 discovered_ip_dump(reply, ping_options->do_resolv);
-                printf(" : seq=%zu ttl=", ping_data->num_replies);
+                printf(" : seq=%zu   ttl=", ping_data->num_replies);
                 ttl_dump(probe);
                 printf(" time =");
                 // Print delay
@@ -574,7 +582,7 @@ void ping_handler(
                 printf("\n");
             }
 
-            if (!(delay = (double *)malloc(sizeof(double)))) {
+            if (!(delay = (double *) malloc(sizeof(double)))) {
                 fprintf(stderr, "Error while processing data \n");
                 pt_raise_error(loop);
             }
@@ -597,8 +605,8 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
-            fprintf(stderr, "network unreachable\n");
+            printf(" : seq=%zu   ", ping_data->num_replies);
+            printf("network unreachable\n");
             break;
 
         case PING_DST_HOST_UNREACHABLE:
@@ -606,8 +614,8 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
-            fprintf(stderr, "host unreachable\n");
+            printf(" : seq=%zu   ", ping_data->num_replies);
+            printf("host unreachable\n");
             break;
 
         case PING_DST_PROT_UNREACHABLE:
@@ -615,8 +623,8 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
-            fprintf(stderr, "protocol unreachable\n");
+            printf(" : seq=%zu   ", ping_data->num_replies);
+            printf("protocol unreachable\n");
             break;
 
         case PING_DST_PORT_UNREACHABLE:
@@ -624,8 +632,8 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
-            fprintf(stderr, "port unreachable\n");
+            printf(" : seq=%zu   ", ping_data->num_replies);
+            printf("port unreachable\n");
             break;
 
         case PING_TTL_EXCEEDED_TRANSIT:
@@ -633,8 +641,8 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
-            fprintf(stderr, "ttl exceeded in transit\n");
+            printf(" : seq=%zu   ", ping_data->num_replies);
+            printf("ttl exceeded in transit\n");
             break;
 
         case PING_TIME_EXCEEDED_REASSEMBLY:
@@ -642,7 +650,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
+            printf(" : seq=%zu   ", ping_data->num_replies);
             fprintf(stderr, "fragment reassembly time exeeded\n");
             break;
 
@@ -651,7 +659,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
+            printf(" : seq=%zu   ", ping_data->num_replies);
             fprintf(stderr, "redirect\n");
             break;
 
@@ -660,7 +668,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
+            printf(" : seq=%zu   ", ping_data->num_replies);
             fprintf(stderr, "parameter problem\n");
             break;
 
@@ -669,7 +677,7 @@ void ping_handler(
 
             printf("From ");
             discovered_ip_dump(reply, ping_options->do_resolv);
-            printf(" : seq=%zu ", ping_data->num_replies);
+            printf(" : seq=%zu   ", ping_data->num_replies);
             fprintf(stderr, "packet has not reached its destination\n");
             break;
 
@@ -802,27 +810,30 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             // Notify the caller we've got a response
             if (destination_reached(options->dst_addr, reply)) {
                 pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (destination_network_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DST_NET_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (destination_host_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DST_HOST_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (destination_protocol_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DST_PROT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (destination_port_unreachable(reply)) {
-                pt_raise_event(loop, event_create(PING_DST_PORT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (ttl_exceeded(reply)) {
-                pt_raise_event(loop, event_create(PING_TTL_EXCEEDED_TRANSIT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (fragment_reassembly_time_exceeded(reply)) {
-                pt_raise_event(loop, event_create(PING_TIME_EXCEEDED_REASSEMBLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (redirect(reply)) {
-                pt_raise_event(loop, event_create(PING_REDIRECT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
-            } else if (parameter_problem(reply)) {
-                pt_raise_event(loop, event_create(PING_PARAMETER_PROBLEM, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             } else {
-                pt_raise_event(loop, event_create(PING_GEN_ERROR, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                  ++(data->num_losses);
+                  if (destination_network_unreachable(reply)) {
+                    pt_raise_event(loop, event_create(PING_DST_NET_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else if (destination_host_unreachable(reply)) {
+                    pt_raise_event(loop, event_create(PING_DST_HOST_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else if (destination_protocol_unreachable(reply)) {
+                    pt_raise_event(loop, event_create(PING_DST_PROT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else if (destination_port_unreachable(reply)) {
+                    pt_raise_event(loop, event_create(PING_DST_PORT_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else if (ttl_exceeded(reply)) {
+                    pt_raise_event(loop, event_create(PING_TTL_EXCEEDED_TRANSIT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else if (fragment_reassembly_time_exceeded(reply)) {
+                    pt_raise_event(loop, event_create(PING_TIME_EXCEEDED_REASSEMBLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else if (redirect(reply)) {
+                    pt_raise_event(loop, event_create(PING_REDIRECT, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else if (parameter_problem(reply)) {
+                    pt_raise_event(loop, event_create(PING_PARAMETER_PROBLEM, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                } else {
+                    pt_raise_event(loop, event_create(PING_GEN_ERROR, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+                }
             }
 
-            num_probes_to_send = (options->count - data->num_replies) > 0; // we should send only 1 or 0 probes
+            num_probes_to_send = data->num_sent != options->count; // we should send only 1 or 0 probes
             break;
 
         case PROBE_TIMEOUT:
@@ -836,7 +847,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             // Notify the caller we've got a probe timeout
             pt_raise_event(loop, event_create(PING_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
 
-            num_probes_to_send = (options->count - data->num_replies) > 0;
+            num_probes_to_send = data->num_sent != options->count;
             break;
 
         case ALGORITHM_TERM:
@@ -857,7 +868,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
     }
 
     // check if we can send another probe or if we have already sent the maximum number of probes
-    if (data->num_replies + data->num_probes_in_flight != options->count) {
+    if (num_probes_to_send > 0) {
         send_ping_probes(loop, data, probe_skel, num_probes_to_send);
         data->num_probes_in_flight += num_probes_to_send;
     } else {

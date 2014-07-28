@@ -260,6 +260,8 @@ bool probe_match(const struct probe_s * probe, const struct probe_s * reply)
             if (!layer_to_analyse->protocol->matches(probe, reply)) {
                 return false;
             }
+        } else {
+            return false;
         }
     }
     return true;
@@ -312,7 +314,6 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
         if (probe_match((const struct probe_s *)probe, (const struct probe_s *)reply))
             break;
     }
-    
     // XXX END Hardcoded ICMP response
 
     // No match found if we reached the end of the array
