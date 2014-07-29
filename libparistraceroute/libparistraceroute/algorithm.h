@@ -102,11 +102,11 @@ void       algorithm_instance_clear_events  (algorithm_instance_t * instance);
 //--------------------------------------------------------------------
 
 /**
- * \brief Throw an event from the loop to a given algorithm_instance_t 
+ * \brief Throw an event from the loop to a given algorithm_instance_t
  * \param loop The libparistraceroute loop.
  *    Pass NULL if this event is raised for an instance.
  * \param instance The instance that must receives the event.
- *    Pass NULL if this event has to be sent to the user program. 
+ *    Pass NULL if this event has to be sent to the user program.
  * \param event The event that must be raised
  */
 

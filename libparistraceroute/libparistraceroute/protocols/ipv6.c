@@ -275,6 +275,13 @@ bool ipv6_instance_of(uint8_t * bytes) {
     return (bytes[0] >> 4) == 6;
 }
 
+/**
+ * \brief check whether the ipv6 protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
 bool ipv6_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 {
     const probe_t * probe = (const probe_t *) _probe,
@@ -290,7 +297,7 @@ bool ipv6_matches(const struct probe_s * _probe, const struct probe_s * _reply)
      && probe_extract(reply, "dst_ip", &reply_dst_ip)) {
 
         if (!(!address_compare(&probe_src_ip, &reply_dst_ip) && (!address_compare(&probe_dst_ip, &reply_src_ip)))) {
-
+            // probe has most probably not reached its destination
             if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
              || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
 

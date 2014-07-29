@@ -8,8 +8,6 @@
 #include <stddef.h>           // offsetof()
 #include <netinet/udp.h>      // udphdr
 #include <netinet/in.h>       // IPPROTO_UDP = 17
-#include <netinet/ip_icmp.h>  // icmpv4 constants
-#include <netinet/icmp6.h>    // icmpv6 constants
 
 #include "../probe.h"
 #include "../protocol.h"      // csum
@@ -178,6 +176,13 @@ buffer_t * udp_create_pseudo_header(const uint8_t * ip_segment)
     return buffer;
 }
 
+/**
+ * \brief check whether the udp protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
 bool udp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 {
     const probe_t * probe = (const probe_t *) _probe,
@@ -196,7 +201,7 @@ bool udp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 
         if (probe_src_port == reply_dst_port && reply_src_port == probe_dst_port) {
             return true;
-        } else {
+        } else { //it is not a UDP probe; is it an ICMP probe?
             if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
              || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
 

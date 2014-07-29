@@ -209,7 +209,7 @@ static bool check_options(
 }
 
 //---------------------------------------------------------------------------
-// Command-line 
+// Command-line
 
 // libparistraceroute translation
 //---------------------------------------------------------------------------
@@ -232,7 +232,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
         case ALGORITHM_HAS_TERMINATED:
             ping_data = event->issuer->data;
 
-            if (ping_data != NULL) { // to prevent to print statistics twice
+            if (ping_data != NULL) { // to prevent to print statistics twice and to print an error-message
             ping_dump_statistics(ping_data);
             }
 
@@ -273,7 +273,7 @@ const char * get_ip_protocol_name(int family) {
 const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
     if (use_tcp) {
         return "tcp";
-    } 
+    }
     else if (use_udp) {
         return "udp";
     }
@@ -331,9 +331,8 @@ int main(int argc, char ** argv)
     algorithm_name = algorithm_names[0];
     protocol_name  = protocol_names[0];
 
-    // Checking if there is any conflicts between options passed in the commandline
-    
-    if (!check_options(is_icmp, is_tcp, is_udp, is_tcp_ack, is_ipv4, is_ipv6, flow_label[3], 
+    // Checking if there are any conflicts between options passed in the commandline
+    if (!check_options(is_icmp, is_tcp, is_udp, is_tcp_ack, is_ipv4, is_ipv6, flow_label[3],
                        dst_port[3], src_port[3], protocol_name, algorithm_name)) {
         goto ERR_CHECK_OPTIONS;
     }
@@ -352,7 +351,7 @@ int main(int argc, char ** argv)
         // Get address family if not defined by the user
         if (!address_guess_family(dst_ip, &family)) goto ERR_ADDRESS_GUESS_FAMILY;
     }
-    
+
     // Translate the string IP / FQDN into an address_t * instance
     if (address_from_string(family, dst_ip, &dst_addr) != 0) {
         fprintf(stderr, "E: Invalid destination address %s\n", dst_ip);
@@ -387,7 +386,7 @@ int main(int argc, char ** argv)
         if (address_from_string(family, src_ip.s, &src_addr) != 0) {
             fprintf(stderr, "E: Invalid source address %s\n", src_ip.s);
             goto ERR_ADDRESS_IP_FROM_STRING;
-        } else {         
+        } else {
             probe_set_field(probe, ADDRESS("src_ip", &src_addr));
         }
     }

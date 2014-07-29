@@ -196,7 +196,7 @@ void ping_dump_statistics(ping_data_t * ping_data) {
         if (ping_data->num_replies != 0) {
             percentage = (int) (((double) ping_data->num_losses / (double) ping_data->num_replies) * 100);
         }
- 
+
         printf("%zu packets transmitted, %zu recieved, %d%% packet loss \n",
                 ping_data->num_replies, ping_data->num_replies - ping_data->num_losses, percentage);
         printf("rtt max/min/avg/mdev = %.3lf %.3lf %.3lf %.3lf ms\n", max, min, avg, mdev);
@@ -726,7 +726,7 @@ static bool send_ping_probe(
 
     probe_set_fields(probe, NULL); // set source ip
 
-    ++(ping_data->num_sent);
+    ++(ping_data->num_sent); // XXX ping_data->num_sent should be used to set seq number, is currently not working
     return pt_send_probe(loop, probe);
 
 ERR_PROBE_DUP:
@@ -806,7 +806,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
             ++(data->num_replies);
             --(data->num_probes_in_flight);
-            
+
             // Notify the caller we've got a response
             if (destination_reached(options->dst_addr, reply)) {
                 pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
@@ -839,7 +839,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
         case PROBE_TIMEOUT:
             data  = *pdata;
             probe = (probe_t *) event->data;
-            
+
             ++(data->num_replies);
             ++(data->num_losses);
             --(data->num_probes_in_flight);
@@ -907,7 +907,7 @@ FAILURE:
 static algorithm_t ping = {
     .name    = "ping",
     .handler = ping_loop_handler,
-    .options = (const option_t *) &ping_options   
+    .options = (const option_t *) &ping_options
 };
 
 ALGORITHM_REGISTER(ping);

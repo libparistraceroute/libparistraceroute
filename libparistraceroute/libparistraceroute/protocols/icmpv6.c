@@ -137,6 +137,13 @@ const protocol_t * icmpv6_get_next_protocol(const layer_t * icmpv6_layer) {
     return next_protocol;
 }
 
+/**
+ * \brief check whether the icmpv6 protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
 bool icmpv6_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 {
     uint8_t         reply_type = 0,

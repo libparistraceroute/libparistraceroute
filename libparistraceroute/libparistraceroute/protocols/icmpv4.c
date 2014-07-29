@@ -109,6 +109,13 @@ bool icmpv4_write_checksum(uint8_t * icmpv4_segment, buffer_t * ipv4_psh)
     return true;
 }
 
+/**
+ * \brief check whether the icmpv4 protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
 const protocol_t * icmpv4_get_next_protocol(const layer_t * icmpv4_layer) {
     const protocol_t * next_protocol = NULL;
     uint8_t            icmpv4_type;

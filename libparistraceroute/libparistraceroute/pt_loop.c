@@ -386,9 +386,6 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 if (!network_drop_expired_flying_probe(loop->network)) {
                     fprintf(stderr, "Error while processing timeout\n");
                 }
-
-            } else if (loop->stop != PT_LOOP_INTERRUPTED) {
-                fprintf(stderr, "Internal error, this fd is not properly managed\n");
             }
         }
     } while (loop->stop == PT_LOOP_CONTINUE || loop->stop == PT_LOOP_INTERRUPTED);

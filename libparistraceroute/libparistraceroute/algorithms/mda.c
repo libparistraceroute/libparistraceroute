@@ -71,7 +71,7 @@ inline mda_options_t mda_get_default_options() {
 
     mda_options_t mda_options = {
          .traceroute_options = traceroute_get_default_options(),
-         .bound              = 95,
+         .bound              = 99,
          .max_branch         = 5
     };
 
@@ -733,6 +733,7 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
         case ALGORITHM_TERM:
             fprintf(stderr, "event not yet handled\n");
             // We should release the memory here
+            pt_raise_terminated(loop);
             break;
         default:
             fprintf(stderr, "mda_handler: ignoring unhandled event (type = %d)\n", event->type);

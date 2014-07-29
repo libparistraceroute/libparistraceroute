@@ -234,7 +234,7 @@ static bool network_update_next_timeout(network_t * network)
  *   this reply.
  */
 
-/*
+/* // XXX this commented function can probably be removed
 bool probe_match(const probe_t * probe, const probe_t * reply)
 {
     // XXX Only matching ICMP echo reply at the moment
@@ -281,7 +281,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     probe_t  * probe;
     size_t     i, num_flying_probes;
 
-    // XXX 
+    // XXX
     /*
     // Fetch the tag from the reply. Its the 3rd checksum field.
     if (!(reply_extract_tag(reply, &tag_reply))) {
@@ -303,7 +303,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     */
 
     // XXX BEGIN Harcoded ICMP response (JA 17/07/2014)
-    tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++; 
+    tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++;
 
     num_flying_probes = dynarray_get_size(network->probes);
     for (i = 0; i < num_flying_probes; i++) {

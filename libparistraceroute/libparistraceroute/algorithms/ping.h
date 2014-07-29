@@ -19,7 +19,7 @@
 #define OPTIONS_PING_DO_RESOLV_DEFAULT                true
 #define OPTIONS_PING_INTERVAL_DEFAULT                 1
 
-#define PING_FLOW_LABEL_MAX                           1048576
+#define PING_FLOW_LABEL_MAX                           1048576 // 2^20
 
 #define OPTIONS_PING_MAX_TTL                {OPTIONS_PING_MAX_TTL_DEFAULT,     1, 255}
 #define OPTIONS_PING_PACKET_SIZE            {OPTIONS_PING_PACKET_SIZE_DEFAULT, 0, INT_MAX}
@@ -44,7 +44,7 @@ unsigned int options_ping_get_count();
 //--------------------------------------------------------------------
 
 typedef struct {
-    uint8_t           max_ttl;          /**< Maximum ttl at which to send probes */ 
+    uint8_t           max_ttl;          /**< Maximum ttl at which to send probes */
     unsigned int      count;            /**< Number of probes to be sent         */
     const address_t * dst_addr;         /**< The target IP */
     bool              do_resolv;        /**< Resolv each discovered IP hop */
@@ -94,12 +94,12 @@ typedef struct {
     size_t        num_replies;          /**< Total of probe sent for this instance    */
     size_t        num_losses;           /**< Number of packets lost                   */
     size_t        num_probes_in_flight; /**< The number of probes which haven't provoked a reply so far */
-    dynarray_t  * rtt_results;          /**< RTTs in order to be able to compute statistics             */ 
+    dynarray_t  * rtt_results;          /**< RTTs in order to be able to compute statistics             */
     size_t        num_sent;             /**< The number of probes sent                */
 } ping_data_t;
 
 /**
- * \brief print the computet statistics
+ * \brief print the computed statistics
  * \param ping_data the data of the algorithm
  */
 
