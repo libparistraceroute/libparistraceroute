@@ -226,7 +226,11 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
                 probe = probe_dup(mda_data->skel);
                 flow_id = ++mda_data->last_flow_id;
                 mda_interface_add_flow_id(interface, flow_id, MDA_FLOW_TESTING); // TODO control returned value
-                probe_set_fields(probe, I8("ttl", interface->ttl), I16("flow_id", flow_id), NULL); // TODO control returned value, free fields
+                probe_set_fields(
+                    probe, I8("ttl", interface->ttl),
+                    I16("flow_id", flow_id), // I16 casts flow_id into a uint16_t before memcpy
+                    NULL
+                ); // TODO control returned value, free fields
                 pt_send_probe(mda_data->loop, probe); // TODO control returned value
             }
         }
@@ -259,7 +263,12 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
             goto ERR_PROBE_DUP;
         }
 
-        probe_set_fields(probe, I16("flow_id", flow_id), I8("ttl", interface->ttl + 1), NULL); // TODO control returned value, free fields
+        probe_set_fields(
+            probe,
+            I16("flow_id", flow_id),
+            I8("ttl", interface->ttl + 1),
+            NULL
+        ); // TODO control returned value, free fields
         pt_send_probe(mda_data->loop, probe);
         interface->sent++;
     }
@@ -361,6 +370,7 @@ static lattice_return_t mda_search_source(lattice_elt_t * elt, void * data)
         size = dynarray_get_size(interface->flows);
         for (i = 0; i < size; i++) {
             mda_flow = dynarray_get_ith_element(interface->flows, i);
+            
             if ((mda_flow->flow_id == search->flow_id)
             &&  (mda_flow->state != MDA_FLOW_TESTING)) {
                 search->result = elt;
@@ -503,18 +513,18 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     mda_address_t      search_interface;
     mda_flow_t       * mda_flow;
     address_t          addr;
-    uint16_t           flow_id;
+    uint16_t           flow_id_u16;
     uint8_t            ttl;
     int                ret;
 
     probe = ((const probe_reply_t *) event->data)->probe;
     reply = ((const probe_reply_t *) event->data)->reply;
 
-    if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
-    if (!(probe_extract(probe, "flow_id", &flow_id))) goto ERR_EXTRACT_FLOW_ID;
-    if (!(probe_extract(reply, "src_ip",  &addr)))    goto ERR_EXTRACT_SRC_IP;
+    if (!(probe_extract(probe, "ttl",     &ttl)))         goto ERR_EXTRACT_TTL;
+    if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
+    if (!(probe_extract(reply, "src_ip",  &addr)))        goto ERR_EXTRACT_SRC_IP;
 
-    //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id);
+    //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id_u16);
 
     /* The couple probe-reply defines a link (origin, destination)
      *
@@ -543,7 +553,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     }
 
     search_ttl_flow.ttl = ttl - 1;
-    search_ttl_flow.flow_id = flow_id;
+    search_ttl_flow.flow_id = flow_id_u16;
     search_ttl_flow.result = NULL;
     ret = lattice_walk(data->lattice, mda_search_source, &search_ttl_flow, LATTICE_WALK_DFS);
     if (ret == LATTICE_INTERRUPT_ALL) {
@@ -588,13 +598,13 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     } else {
         // Delete flow in all siblings
         search_ttl_flow.ttl = ttl;
-        search_ttl_flow.flow_id = flow_id;
+        search_ttl_flow.flow_id = flow_id_u16;
         search_ttl_flow.result = NULL;
         lattice_walk(data->lattice, mda_delete_flow, &search_ttl_flow, LATTICE_WALK_DFS);
     }
 
     // Insert flow in the right interface
-    if (!(mda_flow = mda_flow_create(flow_id, MDA_FLOW_AVAILABLE))) {
+    if (!(mda_flow = mda_flow_create(flow_id_u16, MDA_FLOW_AVAILABLE))) {
         goto ERR_MDA_FLOW_CREATE;
     }
 
@@ -622,7 +632,8 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     lattice_elt_t         * source_elt;
     mda_interface_t       * source_interface;
     mda_ttl_flow_t          search_ttl_flow;
-    uintmax_t               flow_id;
+    //uintmax_t               flow_id = 0;
+    uint16_t                flow_id_u16 = 0;
     uint8_t                 ttl;
     int                     ret;
     size_t                  i, num_next;
@@ -630,21 +641,21 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     probe = event->data;
 
     if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
-    if (!(probe_extract(probe, "flow_id", &flow_id))) goto ERR_EXTRACT_FLOW_ID;
+    if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
 
     search_ttl_flow.ttl = ttl - 1;
-    search_ttl_flow.flow_id = flow_id;
+    search_ttl_flow.flow_id = flow_id_u16;
     search_ttl_flow.result = NULL;
     ret = lattice_walk(data->lattice, mda_search_source, &search_ttl_flow, LATTICE_WALK_DFS);
     if (ret == LATTICE_INTERRUPT_ALL) {
         // Found
         source_elt = search_ttl_flow.result;
-        source_interface = lattice_elt_get_data(source_elt);
+        source_interface = lattice_elt_get_data(source_elt); // shit
         source_interface->timeout++;
 
         // Mark the flow as timeout
         search_ttl_flow.ttl = ttl - 1;
-        search_ttl_flow.flow_id = flow_id;
+        search_ttl_flow.flow_id = flow_id_u16;
         search_ttl_flow.result = NULL;
         mda_timeout_flow(source_elt, &search_ttl_flow);
 
@@ -683,7 +694,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     } else {
         // Delete flow in all siblings
         search_ttl_flow.ttl = ttl;
-        search_ttl_flow.flow_id = flow_id;
+        search_ttl_flow.flow_id = flow_id_u16;
         search_ttl_flow.result = NULL;
 
         // Mark the flow as timeout
