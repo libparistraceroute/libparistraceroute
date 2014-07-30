@@ -189,9 +189,9 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
     // ... and thus deduce how many packets we have to send
     to_send = mda_stopping_points(MAX(num_nexthops + 1, 2), mda_data->confidence) - interface->sent;
 
-    //printf("find next hops of %s (to_send= %u)\n", interface->address, to_send);
+    //printf("find next hops of %s (to_send= %zu)\n", interface->address, to_send);
 
-    //printf("Interface %s : to_send %d - sent %u - received %u\n", interface->address, to_send, interface->sent, interface->received);
+    //printf("Interface %s : to_send %d - sent %zu - received %zu\n", interface->address, to_send, interface->sent, interface->received);
     if ((to_send <= 0) && (interface->sent == interface->received + interface->timeout)) {
         return LATTICE_DONE; // Done enumerating, walking/DFS can continue
     }
@@ -447,7 +447,7 @@ static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pd
     /*
     // DEBUG
     probe_dump(skel);
-    printf("min_ttl = %d max_ttl = %d num_probes = %u dst_ip = %s bound = %d max_branch = %d\n",
+    printf("min_ttl = %d max_ttl = %d num_probes = %zu dst_ip = %s bound = %d max_branch = %d\n",
         options->traceroute_options.min_ttl,
         options->traceroute_options.max_ttl,
         options->traceroute_options.num_probes,
@@ -503,7 +503,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     mda_address_t      search_interface;
     mda_flow_t       * mda_flow;
     address_t          addr;
-    uintmax_t          flow_id;
+    uint16_t           flow_id;
     uint8_t            ttl;
     int                ret;
 
