@@ -12,7 +12,7 @@
 #include "../options.h"  // option_t
 
 #define OPTIONS_PING_MAX_TTL_DEFAULT                  255
-#define OPTIONS_PING_PACKET_SIZE_DEFAULT              0
+#define OPTIONS_PING_PACKET_SIZE_DEFAULT              56
 #define OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT           false
 #define OPTIONS_PING_IS_QUIET_DEFAULT                 false
 #define OPTIONS_PING_COUNT_DEFAULT                    INT_MAX

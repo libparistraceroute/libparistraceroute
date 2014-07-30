@@ -22,6 +22,7 @@
 #include "algorithms/ping.h"         // ping_options_t
 #include "address.h"                 // address_to_string
 #include "options.h"                 // options_*
+#include "layer.h"
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -313,6 +314,8 @@ int main(int argc, char ** argv)
     const char              * algorithm_name;
     const char              * protocol_name;
     bool                      use_icmp, use_udp, use_tcp;
+    layer_t                 * first_layer = NULL;
+    layer_t                 * layer_payload = NULL;
 
     // Prepare the commande line options
     if (!(options = init_options(version))) {
@@ -429,6 +432,11 @@ int main(int argc, char ** argv)
             NULL
         );
     }
+
+    first_layer = probe_get_layer(probe, 0);
+    layer_payload = probe_get_layer_payload(probe);
+
+    printf("%lu\n", layer_payload - first_layer);
 
     if (is_tcp) {
         int bit_value = 1;
