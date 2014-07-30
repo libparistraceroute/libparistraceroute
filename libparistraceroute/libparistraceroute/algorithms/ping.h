@@ -96,7 +96,8 @@ typedef struct {
     size_t       num_probes_in_flight; /**< The number of probes which haven't provoked a reply so far */
     dynarray_t * rtt_results;          /**< RTTs in order to be able to compute statistics */
     size_t       num_sent;             /**< The number of probes sent (== the sequence number of the next probe packet) */
-    double       date_start;           /**< The date at which ping starts measurement */
+    double       start_time;           /**< The date at which ping starts measurement (in microsecond) */
+    double       last_time;            /**< The date at which the last reply or timeout have been handled (in microsecond) */
 } ping_data_t;
 
 /**
