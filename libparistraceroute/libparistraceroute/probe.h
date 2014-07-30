@@ -263,8 +263,6 @@ bool probe_write_payload_ext(probe_t * probe, const void * bytes, size_t num_byt
 
 size_t probe_get_payload_size(const probe_t * probe);
 
-layer_t * probe_get_layer_payload(const probe_t * probe);
-
 /**
  * \brief Get the name of protocol involved in the probe
  * \param i Index of the related layer
@@ -292,6 +290,15 @@ layer_t * probe_get_layer(const probe_t * probe, size_t i);
  */
 
 size_t probe_get_num_layers(const probe_t * probe);
+
+/**
+ * \brief Retrieve the layer related to the payload from a probe
+ * \param probe The queried probe
+ * \return The corresponding layer, NULL if i is invalid.
+ */
+
+layer_t * probe_get_layer_payload(const probe_t * probe);
+
 
 void probe_set_caller(probe_t * probe, void * caller);
 

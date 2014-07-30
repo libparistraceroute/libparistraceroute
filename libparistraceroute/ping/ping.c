@@ -447,6 +447,8 @@ int main(int argc, char ** argv)
         );
     }
 
+    is_icmp = (!is_tcp) && (!is_udp);
+
     // Resize the packet
     {
         size_t headers_size = probe_get_layer_payload(probe)->segment - probe_get_layer(probe, 0)->segment,

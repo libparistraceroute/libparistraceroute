@@ -197,7 +197,7 @@ void ping_dump_statistics(ping_data_t * ping_data) {
             ping_data->num_replies,
             ping_data->num_replies - ping_data->num_losses,
             ping_data->num_replies ? (unsigned) (100 * ((float) ping_data->num_losses / ping_data->num_replies)) : 0,
-            1000 * ((size_t) (ping_data->last_time - ping_data->start_time))
+            (size_t) (1000 * (ping_data->last_time - ping_data->start_time))
         );
 
         printf("rtt max/min/avg/mdev = %.3lf/%.3lf/%.3lf/%.3lf ms\n", max, min, avg, mdev);
@@ -490,6 +490,8 @@ static ping_data_t * ping_data_dup(ping_data_t * ping_data) {
     new_ping_data->num_sent = ping_data->num_sent;
     new_ping_data->num_losses = ping_data->num_losses;
     new_ping_data->num_probes_in_flight = ping_data->num_probes_in_flight;
+    new_ping_data->start_time = ping_data->start_time;
+    new_ping_data->last_time = ping_data->last_time;
 
     return new_ping_data;
 }
@@ -768,6 +770,11 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             --(data->num_probes_in_flight);
             data->last_time = reply->recv_time;
 
+            // If this corresponds to the 1st probe
+            if (data->num_replies == 1) {
+                data->start_time = probe_reply->probe->sending_time;
+            }
+
             // Notify the caller we've got a response
             if (destination_reached(options->dst_addr, reply)) {
                 pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
@@ -806,6 +813,11 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             --(data->num_probes_in_flight);
             data->last_time = probe->sending_time + network_get_timeout(loop->network);
 
+            // If this corresponds to the 1st probe
+            if (data->num_replies == 1) {
+                data->start_time = probe->sending_time;
+            }
+
             // Notify the caller we've got a probe timeout
             pt_raise_event(loop, event_create(PING_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
 
@@ -831,11 +843,6 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
         default:
             break;
-    }
-
-    // If this corresponds to the 1st probe
-    if ((event->type == PROBE_REPLY || event->type == PROBE_TIMEOUT) && data->num_replies == 1) {
-        data->start_time = probe_reply->probe->sending_time;
     }
 
     // check if we can send another probe or if we have already sent the maximum number of probes
