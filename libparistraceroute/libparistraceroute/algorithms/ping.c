@@ -703,23 +703,23 @@ void ping_handler(
 /**
  * \brief Send a ping probe packet
  * \param loop The main loop
- * \param ping_data Data attached to this instance of ping algorithm
+ * \param pnum_sent The address of the current the sequence number
  * \param probe_skel The probe skeleton used to craft the probe packet
  * \param ttl The TTL that we set for this packet
  */
 
 static bool send_ping_probe(
-    pt_loop_t         * loop,
-    ping_data_t       * ping_data,
-    const probe_t     * probe_skel,
-    size_t              i
+    pt_loop_t     * loop,
+    size_t        * pnum_sent,
+    const probe_t * probe_skel,
+    size_t          i
 ) {
     probe_t * probe;
     double    delay;
 
     // a probe must never be altered, otherwise the network layer may
     // manage corrupted probes.
-    if (!(probe = probe_dup(probe_skel)))                       goto ERR_PROBE_DUP;
+    if (!(probe = probe_dup(probe_skel))) goto ERR_PROBE_DUP;
     if (probe_get_delay(probe) != DELAY_BEST_EFFORT) {
         delay = i * probe_get_delay(probe_skel);
         probe_set_delay(probe, DOUBLE("delay", delay));
@@ -727,7 +727,7 @@ static bool send_ping_probe(
 
     probe_set_fields(probe, NULL); // set source ip
 
-    ++(ping_data->num_sent); // XXX ping_data->num_sent should be used to set seq number, is currently not working
+    ++(*pnum_sent);
     return pt_send_probe(loop, probe);
 
 ERR_PROBE_DUP:
@@ -737,22 +737,23 @@ ERR_PROBE_DUP:
 
 /**
  * \brief Send n ping probes toward a destination with a given TTL
- * \param pt_loop The paris traceroute loop
+ * \param loop The paris traceroute loop
+ * \param pnum_sent The address of the current the sequence number
+ *    ping measurements.
  * \param probe_skel The probe skeleton used to craft the probe packet
  * \param num_probes The amount of probe to send
- * \param ttl Time To Live related to our probe
  * \return true if successful
  */
 
 bool send_ping_probes(
-    pt_loop_t         * loop,
-    ping_data_t       * ping_data,
-    probe_t           * probe_skel,
-    size_t              num_probes
+    pt_loop_t     * loop,
+    size_t        * pnum_sent,
+    probe_t       * probe_skel,
+    size_t          num_probes
 ) {
     size_t i;
     for (i = 0; i < num_probes; ++i) {
-        if (!(send_ping_probe(loop, ping_data, probe_skel, i + 1))) {
+        if (!(send_ping_probe(loop, pnum_sent, probe_skel, i + 1))) {
             return false;
         }
     }
@@ -853,8 +854,12 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
         case ALGORITHM_TERM:
             // The caller allows us to free ping's data
+            // We will copy ping's data in data_dup since the main program might
+            // desires to access the statistics that we will free. The duplicated
+            // data will be transparently freed once the main program handlers
+            // returns thanks to the ping_data_free callback.
             data = *pdata;
-            data_dup = ping_data_dup(data); // we have to make a copy of the data in order to be able to print statistics correctly
+            data_dup = ping_data_dup(data);
             pt_raise_event(loop, event_create(PING_PRINT_STATISTICS, data_dup, NULL, (ELEMENT_FREE) ping_data_free));
             ping_data_free(*pdata);
             *pdata = NULL;
@@ -870,7 +875,7 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
     // check if we can send another probe or if we have already sent the maximum number of probes
     if (num_probes_to_send > 0) {
-        send_ping_probes(loop, data, probe_skel, num_probes_to_send);
+        send_ping_probes(loop, &data->num_sent, probe_skel, num_probes_to_send);
         data->num_probes_in_flight += num_probes_to_send;
     } else {
         if (data->num_probes_in_flight == 0) { // we've recieved a response from all the probes we sent
