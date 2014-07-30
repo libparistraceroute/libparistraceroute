@@ -23,11 +23,11 @@ static bool     do_resolv           = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT;
 
 static option_t traceroute_options[] = {
     // action           short long                  metavar             help    data
-    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",        HELP_f, min_ttl},
-    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",          HELP_m, max_ttl},
-    {opt_store_0,       "n",  OPT_NO_LF,            OPT_NO_METAVAR,     HELP_n, &do_resolv},
-    {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES",      HELP_q, num_queries},
-    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_UNDISCOVERED", HELP_M, max_undiscovered},
+    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",        TRACEROUTE_HELP_f, min_ttl},
+    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",          TRACEROUTE_HELP_m, max_ttl},
+    {opt_store_0,       "n",  OPT_NO_LF,            OPT_NO_METAVAR,     TRACEROUTE_HELP_n, &do_resolv},
+    {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES",      TRACEROUTE_HELP_q, num_queries},
+    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_UNDISCOVERED", TRACEROUTE_HELP_M, max_undiscovered},
     END_OPT_SPECS
 };
 

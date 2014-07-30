@@ -198,7 +198,7 @@ void ping_dump_statistics(ping_data_t * ping_data) {
         }
 
         // TODO not yet implemented: time
-        printf("%zu packets transmitted, %zu recieved, %d%% packet loss, time = ?ms\n",
+        printf("%zu packets transmitted, %zu received, %d%% packet loss, time = ?ms\n",
                 ping_data->num_replies, ping_data->num_replies - ping_data->num_losses, percentage);
         printf("rtt max/min/avg/mdev = %.3lf/%.3lf/%.3lf/%.3lf ms\n", max, min, avg, mdev);
     }

@@ -21,11 +21,11 @@
 #define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED {OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT, 1, 255}
 #define OPTIONS_TRACEROUTE_NUM_QUERIES      {OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,      1, 255}
 
-#define HELP_f "Start from the MIN_TTL hop (instead from 1), MIN_TTL must be between 1 and 255."
-#define HELP_m "Set the max number of hops (MAX_TTL to be reached). Default is 30, MAX_TTL must be between 1 and 255."
-#define HELP_n "Do not resolve IP addresses to their domain names"
-#define HELP_q "Set the number of probes per hop (default: 3)."
-#define HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)."
+#define TRACEROUTE_HELP_f "Start from the MIN_TTL hop (instead from 1), MIN_TTL must be between 1 and 255."
+#define TRACEROUTE_HELP_m "Set the max number of hops (MAX_TTL to be reached). Default is 30, MAX_TTL must be between 1 and 255."
+#define TRACEROUTE_HELP_n "Do not resolve IP addresses to their domain names"
+#define TRACEROUTE_HELP_q "Set the number of probes per hop (default: 3)."
+#define TRACEROUTE_HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)."
 
 // Get the different values of traceroute options
 uint8_t options_traceroute_get_min_ttl();

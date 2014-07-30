@@ -40,10 +40,10 @@
 #define PING_HELP_T        "Use TCP. The destination port is set by default to 80."
 #define PING_HELP_U        "Use UDP. The destination port is set by default to 53."
 #define PING_HELP_k        "Send a TCP ACK packet. (Works only with TCP)"
+#define PING_HELP_PR       "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
 
-
-#define TEXT          "ping - verify the connection between two hosts."
-#define TEXT_OPTIONS  "Options:"
+#define TEXT               "ping - verify the connection between two hosts."
+#define TEXT_OPTIONS       "Options:"
 
 // Default values (based on modern traceroute for linux)
 
@@ -103,6 +103,7 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,       PING_HELP_U,       &is_udp},
     {opt_store_1,             "k",        OPT_NO_LF,           OPT_NO_METAVAR,       PING_HELP_k,       &is_tcp_ack},
     {opt_store_int,           "t",        OPT_NO_LF,           " TIME TO LIVE",      PING_HELP_t,       max_ttl},
+    {opt_store_choice,        OPT_NO_SF,  "--protocol",        "PROTOCOL",           PING_HELP_PR,      protocol_names},
 
     END_OPT_SPECS
 };
@@ -207,6 +208,24 @@ static bool check_options(
         && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
         && check_valid_flow_option(is_ipv6, set_flow_label)
         && check_valid_ack_option(is_tcp, is_tcp_ack);
+}
+
+/**
+ * \brief Check whether the paramater size is large enough to embed
+ *    all the requested headers (+2 bytes of payload if not ICMP
+ *    to embed the probe's identifier)
+ * \param is_icmp true if this is an ICMP probe, false otherwise
+ * \param headers_size The sum of the header size involved in the
+ *    probe packet.
+ * \param desired_size The requested whole packet size.
+ * \param pminimal_size A pointer to a pre-allocated size. It will
+ *    store the minimal allowed packet size;
+ * \return true if the desired_size is large enough.
+ */
+
+static bool check_packet_size(bool is_icmp, size_t headers_size, size_t desired_size, size_t * pminimal_size) {
+    *pminimal_size = is_icmp ? headers_size : headers_size + 2;
+    return desired_size >= *pminimal_size;
 }
 
 //---------------------------------------------------------------------------
@@ -314,8 +333,6 @@ int main(int argc, char ** argv)
     const char              * algorithm_name;
     const char              * protocol_name;
     bool                      use_icmp, use_udp, use_tcp;
-    layer_t                 * first_layer = NULL;
-    layer_t                 * layer_payload = NULL;
 
     // Prepare the commande line options
     if (!(options = init_options(version))) {
@@ -405,9 +422,6 @@ int main(int argc, char ** argv)
     }
     */
 
-     /*XXX UDP and TCP have to have a payload with size 2. However, this line of code shows that sth in the implementation
-           has to change XXX*/
-    probe_payload_resize(probe, packet_size[0] + 2 * (int)(is_tcp || is_udp));
 
     // ICMPv* do not support src_port and dst_port fields nor payload.
     if (use_tcp || use_udp) {
@@ -433,10 +447,18 @@ int main(int argc, char ** argv)
         );
     }
 
-    first_layer = probe_get_layer(probe, 0);
-    layer_payload = probe_get_layer_payload(probe);
+    // Resize the packet
+    {
+        size_t headers_size = probe_get_layer_payload(probe)->segment - probe_get_layer(probe, 0)->segment,
+               desired_size = (size_t) packet_size[0],
+               minimal_size;
+        if (!check_packet_size(is_icmp, headers_size, desired_size, &minimal_size)) {
+            fprintf(stderr, "Packet size (%lu) too small (try a value >= %lu)\n", desired_size, minimal_size);
+            goto ERR_INVALID_PACKET_SIZE;
+        }
+        probe_payload_resize(probe, desired_size - headers_size);
+    }
 
-    printf("%lu\n", layer_payload - first_layer);
 
     if (is_tcp) {
         int bit_value = 1;
@@ -492,6 +514,7 @@ ERR_INSTANCE:
     pt_loop_free(loop);
 ERR_LOOP_CREATE:
     probe_free(probe);
+ERR_INVALID_PACKET_SIZE:
 ERR_PROBE_CREATE:
 ERR_ADDRESS_IP_FROM_STRING:
 ERR_ADDRESS_GUESS_FAMILY:

@@ -27,19 +27,19 @@
 // Command line stuff
 //---------------------------------------------------------------------------
 
-#define HELP_4        "Use IPv4."
-#define HELP_6        "Use IPv6."
-#define HELP_a        "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
-#define HELP_d        "Print libparistraceroute debug information."
-#define HELP_p        "Set PORT as destination port (default: 33457)."
-#define HELP_s        "Set PORT as source port (default: 33456)."
-#define HELP_I        "Use ICMPv4/ICMPv6 for tracerouting."
-#define HELP_P        "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
-#define HELP_T        "Use TCP for tracerouting."
-#define HELP_U        "Use UDP for tracerouting. The destination port is set by default to 53."
-#define HELP_z        "Minimal time interval between probes (default 0).  If the value is more than 10, then it specifies a number in milliseconds, else it is a number of seconds (float point values allowed  too)"
-#define TEXT          "paris-traceroute - print the IP-level path toward a given IP host."
-#define TEXT_OPTIONS  "Options:"
+#define TRACEROUTE_HELP_4  "Use IPv4."
+#define TRACEROUTE_HELP_6  "Use IPv6."
+#define TRACEROUTE_HELP_a  "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
+#define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
+#define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
+#define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
+#define TRACEROUTE_HELP_I  "Use ICMPv4/ICMPv6 for tracerouting."
+#define TRACEROUTE_HELP_P  "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
+#define TRACEROUTE_HELP_T  "Use TCP for tracerouting."
+#define TRACEROUTE_HELP_U  "Use UDP for tracerouting. The destination port is set by default to 53."
+#define TRACEROUTE_HELP_z  "Minimal time interval between probes (default 0).  If the value is more than 10, then it specifies a number in milliseconds, else it is a number of seconds (float point values allowed  too)"
+#define TEXT               "paris-traceroute - print the IP-level path toward a given IP host."
+#define TEXT_OPTIONS       "Options:"
 
 // Default values (based on modern traceroute for linux)
 
@@ -81,17 +81,17 @@ struct opt_spec runnable_options[] = {
     // action                 sf          lf                   metavar             help          data
     {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,         OPT_NO_DATA},
     {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
-    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_4,       &is_ipv4},
-    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     HELP_6,       &is_ipv6},
-    {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        HELP_a,       algorithm_names},
-    {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     HELP_d,       &is_debug},
-    {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             HELP_p,       dst_port},
-    {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             HELP_s,       src_port},
-    {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             HELP_z,       send_time},
-    {opt_store_1,             "I",        "--icmp",            OPT_NO_METAVAR,     HELP_I,       &is_icmp},
-    {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         HELP_P,       protocol_names},
-    {opt_store_1,             "T",        "--tcp",             OPT_NO_METAVAR,     HELP_T,       &is_tcp},
-    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     HELP_U,       &is_udp},
+    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_4,       &is_ipv4},
+    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
+    {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
+    {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
+    {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             TRACEROUTE_HELP_p,       dst_port},
+    {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             TRACEROUTE_HELP_s,       src_port},
+    {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             TRACEROUTE_HELP_z,       send_time},
+    {opt_store_1,             "I",        "--icmp",            OPT_NO_METAVAR,     TRACEROUTE_HELP_I,       &is_icmp},
+    {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         TRACEROUTE_HELP_P,       protocol_names},
+    {opt_store_1,             "T",        "--tcp",             OPT_NO_METAVAR,     TRACEROUTE_HELP_T,       &is_tcp},
+    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     TRACEROUTE_HELP_U,       &is_udp},
     END_OPT_SPECS
 };
 
