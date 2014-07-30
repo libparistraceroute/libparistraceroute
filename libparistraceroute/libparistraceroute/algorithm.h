@@ -110,8 +110,7 @@ void       algorithm_instance_clear_events  (algorithm_instance_t * instance);
  * \param event The event that must be raised
  */
 
-// TODO rename pt_throw
-void pt_algorithm_throw(
+void pt_throw(
     struct pt_loop_s     * loop, 
     algorithm_instance_t * instance,
     event_t              * event
@@ -124,8 +123,7 @@ void pt_algorithm_throw(
  * \param instance The instance we are freeing
  */
 
-// TODO rename pt_stop_instance
-void pt_instance_stop(
+void pt_stop_instance(
     struct pt_loop_s     * loop,
     algorithm_instance_t * instance
 );
@@ -140,8 +138,7 @@ void pt_instance_stop(
  * \return A pointer to the instance, NULL otherwise. 
  */
 
-// TODO rename pt_add_instance
-algorithm_instance_t * pt_algorithm_add(
+algorithm_instance_t * pt_add_instance(
     struct pt_loop_s * loop,
     const char       * name,
     void             * options,
@@ -159,8 +156,7 @@ algorithm_instance_t * pt_algorithm_add(
  * \param level Unused
  */
 
-// TODO rename pt_process_instance
-void pt_process_algorithms_instance(
+void pt_process_instance(
     const void * node,
     VISIT        visit,
     int          level
@@ -173,8 +169,7 @@ void pt_process_algorithms_instance(
  * \param level Unused
  */
 
-// TODO rename pt_free_instance
-void pt_free_algorithms_instance(
+void pt_free_instance(
     const void * node,
     VISIT        visit,
     int          level
@@ -187,8 +182,7 @@ void pt_free_algorithms_instance(
  *    that dispatches the events related to this instance.
  */
 
-// TODO rename pt_instance_iter
-void pt_algorithm_instance_iter(
+void pt_instance_iter(
     struct pt_loop_s * loop,
     void (*action) (const void *, VISIT, int)
 );

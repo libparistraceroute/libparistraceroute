@@ -256,7 +256,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
             ping_dump_statistics(ping_data);
             }
 
-            pt_instance_stop(loop, event->issuer);
+            pt_stop_instance(loop, event->issuer);
             pt_loop_terminate(loop);
             break;
 
@@ -493,7 +493,7 @@ int main(int argc, char ** argv)
     printf(")\n");
 
     // Add an algorithm instance in the main loop
-    if (!pt_algorithm_add(loop, algorithm_name, algorithm_options, probe)) {
+    if (!pt_add_instance(loop, algorithm_name, algorithm_options, probe)) {
         fprintf(stderr, "E: Cannot add the chosen algorithm");
         goto ERR_INSTANCE;
     }

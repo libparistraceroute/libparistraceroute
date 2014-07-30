@@ -25,7 +25,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
             printf("> ALGORITHM_TERMINATED\n");
-            pt_instance_stop(loop, event->issuer); // release traceroute's data from the memory
+            pt_stop_instance(loop, event->issuer); // release traceroute's data from the memory
             pt_loop_terminate(loop);               // we've only run one 'traceroute' algorithm, so we can break the main loop
             break;
         case ALGORITHM_EVENT: // a traceroute-specific event has been raised
@@ -155,7 +155,7 @@ int main(int argc, char ** argv)
     probe_dump(probe);
 
     // Instanciate a 'traceroute' algorithm
-    if (!(instance = pt_algorithm_add(loop, "traceroute", &options, probe))) {
+    if (!(instance = pt_add_instance(loop, "traceroute", &options, probe))) {
         fprintf(stderr, "Cannot add 'traceroute' algorithm");
         goto ERR_INSTANCE;
     }

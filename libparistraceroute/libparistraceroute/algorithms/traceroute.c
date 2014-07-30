@@ -400,7 +400,7 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
     }
 
     // Forward event to the caller
-    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
+    pt_throw(loop, loop->cur_instance->caller, event);
 
     // Explore next hop
     if ((data->num_replies % options->num_probes) == 0) {

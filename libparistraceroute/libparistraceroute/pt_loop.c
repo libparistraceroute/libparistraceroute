@@ -124,7 +124,7 @@ static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_
     if (!event) return false;
 
     // Raise the event
-    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
+    pt_throw(loop, loop->cur_instance->caller, event);
     return true;
 }
 
@@ -163,7 +163,7 @@ static void pt_process_algorithms_terminate(const void * node, VISIT visit, int 
     algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
 
     // The pt_loop_t must send a TERM event to the current instance
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
+    pt_throw(NULL, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
 }
 
 //----------------------------------------------------------------
@@ -264,7 +264,7 @@ void pt_loop_free(pt_loop_t * loop)
         close(loop->efd);
 
         // Events are cleared while destroying algorithm instances
-        pt_algorithm_instance_iter(loop, pt_free_algorithms_instance);
+        pt_instance_iter(loop, pt_free_instance);
         free(loop);
     }
 }
@@ -352,7 +352,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 // We call pt_process_algorithms_iter() to find for which instance
                 // the event has been raised. Then we process this event thanks
                 // to pt_process_algorithms_instance() that calls the handler.
-                pt_algorithm_instance_iter(loop, pt_process_algorithms_instance);
+                pt_instance_iter(loop, pt_process_instance);
 
             } else if (cur_fd == loop->eventfd_user) {
 
@@ -372,7 +372,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 }
 
                 if (fdsi.ssi_signo == SIGINT || fdsi.ssi_signo == SIGQUIT) {
-                    pt_algorithm_instance_iter(loop, pt_process_algorithms_terminate);
+                    pt_instance_iter(loop, pt_process_algorithms_terminate);
                 } else {
                     perror("Read unexpected signal\n");
                 }
