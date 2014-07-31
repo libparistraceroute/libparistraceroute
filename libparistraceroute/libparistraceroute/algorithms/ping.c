@@ -765,15 +765,11 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             data        = *pdata;
             probe_reply = (probe_reply_t *) event->data;
             reply       = probe_reply->reply;
+            probe       = probe_reply->probe;
 
             ++(data->num_replies);
             --(data->num_probes_in_flight);
             data->last_time = reply->recv_time;
-
-            // If this corresponds to the 1st probe
-            if (data->num_replies == 1) {
-                data->start_time = probe_reply->probe->sending_time;
-            }
 
             // Notify the caller we've got a response
             if (destination_reached(options->dst_addr, reply)) {
@@ -813,11 +809,6 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             --(data->num_probes_in_flight);
             data->last_time = probe->sending_time + network_get_timeout(loop->network);
 
-            // If this corresponds to the 1st probe
-            if (data->num_replies == 1) {
-                data->start_time = probe->sending_time;
-            }
-
             // Notify the caller we've got a probe timeout
             pt_raise_event(loop, event_create(PING_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free));
 
@@ -843,6 +834,11 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
 
         default:
             break;
+    }
+
+    // If this corresponds to the 1st probe
+    if ((event->type == PROBE_REPLY || event->type == PROBE_TIMEOUT) && data->num_replies == 1) {
+        data->start_time = probe->sending_time;
     }
 
     // check if we can send another probe or if we have already sent the maximum number of probes
