@@ -480,7 +480,7 @@ static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pd
     /*
     // DEBUG
     probe_dump(skel);
-    printf("min_ttl = %d max_ttl = %d num_probes = %u dst_ip = %s bound = %d max_branch = %d\n",
+    printf("min_ttl = %d max_ttl = %d num_probes = %zu dst_ip = %s bound = %d max_branch = %d\n",
         options->traceroute_options.min_ttl,
         options->traceroute_options.max_ttl,
         options->traceroute_options.num_probes,
@@ -536,7 +536,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     mda_address_t      search_interface;
     mda_flow_t       * mda_flow;
     address_t          addr;
-    uint16_t           flow_id;
+    uint16_t           flow_id_u16;
     uint8_t            ttl;
     int                ret;
 
@@ -544,10 +544,10 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     reply = ((const probe_reply_t *) event->data)->reply;
 
     if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
-    if (!(probe_extract(probe, "flow_id", &flow_id))) goto ERR_EXTRACT_FLOW_ID;
+    if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
     if (!(probe_extract(reply, "src_ip",  &addr)))    goto ERR_EXTRACT_SRC_IP;
 
-    //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id);
+    //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id_u16);
 
     /* The couple probe-reply defines a link (origin, destination)
      *
@@ -576,7 +576,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     }
 
     search_ttl_flow.ttl = ttl - 1;
-    search_ttl_flow.flow_id = flow_id;
+    search_ttl_flow.flow_id = flow_id_u16;
     search_ttl_flow.result = NULL;
     ret = lattice_walk(data->lattice, mda_search_source, &search_ttl_flow, LATTICE_WALK_DFS);
     if (ret == LATTICE_INTERRUPT_ALL) {
@@ -621,13 +621,13 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     } else {
         // Delete flow in all siblings
         search_ttl_flow.ttl = ttl;
-        search_ttl_flow.flow_id = flow_id;
+        search_ttl_flow.flow_id = flow_id_u16;
         search_ttl_flow.result = NULL;
         lattice_walk(data->lattice, mda_delete_flow, &search_ttl_flow, LATTICE_WALK_DFS);
     }
 
     // Insert flow in the right interface
-    if (!(mda_flow = mda_flow_create(flow_id, MDA_FLOW_AVAILABLE))) {
+    if (!(mda_flow = mda_flow_create(flow_id_u16, MDA_FLOW_AVAILABLE))) {
         goto ERR_MDA_FLOW_CREATE;
     }
 
@@ -655,7 +655,8 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     lattice_elt_t         * source_elt;
     mda_interface_t       * source_interface;
     mda_ttl_flow_t          search_ttl_flow;
-    uintmax_t               flow_id;
+    //uintmax_t               flow_id;
+    uint16_t                flow_id_u16 = 0;
     uint8_t                 ttl;
     int                     ret;
     size_t                  i, num_next;
@@ -663,10 +664,10 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     probe = event->data;
 
     if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
-    if (!(probe_extract(probe, "flow_id", &flow_id))) goto ERR_EXTRACT_FLOW_ID;
+    if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
 
     search_ttl_flow.ttl = ttl - 1;
-    search_ttl_flow.flow_id = flow_id;
+    search_ttl_flow.flow_id = flow_id_u16;
     search_ttl_flow.result = NULL;
     ret = lattice_walk(data->lattice, mda_search_source, &search_ttl_flow, LATTICE_WALK_DFS);
     if (ret == LATTICE_INTERRUPT_ALL) {
@@ -677,7 +678,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
 
         // Mark the flow as timeout
         search_ttl_flow.ttl = ttl - 1;
-        search_ttl_flow.flow_id = flow_id;
+        search_ttl_flow.flow_id = flow_id_u16;
         search_ttl_flow.result = NULL;
         mda_timeout_flow(source_elt, &search_ttl_flow);
 
@@ -716,7 +717,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     } else {
         // Delete flow in all siblings
         search_ttl_flow.ttl = ttl;
-        search_ttl_flow.flow_id = flow_id;
+        search_ttl_flow.flow_id = flow_id_u16;
         search_ttl_flow.result = NULL;
 
         // Mark the flow as timeout
