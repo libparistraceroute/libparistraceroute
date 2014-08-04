@@ -341,6 +341,10 @@ static int mda_classify(lattice_elt_t * elt, mda_data_t * data)
     return 0;
 }
 
+//---------------------------------------------------------------------------
+// Callbacks lattice_walk
+//---------------------------------------------------------------------------
+
 static lattice_return_t mda_process_interface(lattice_elt_t * elt, void * data)
 {
     mda_data_t       * mda_data = data;
@@ -378,10 +382,6 @@ ERR_FIND_NEXT_HOPS:
 ERR_CLASSIFY:
     return LATTICE_ERROR;
 }
-
-//---------------------------------------------------------------------------
-// Callbacks lattice_walk
-//---------------------------------------------------------------------------
 
 static lattice_return_t mda_search_source(lattice_elt_t * elt, void * data)
 {
@@ -752,12 +752,10 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
 
     switch (event->type) {
         case ALGORITHM_INIT:
-            printf("Entered Algo init\n");
             mda_handler_init(loop, event, (mda_data_t **) pdata, skel, options);
             data = *pdata;
             break;
         case PROBE_REPLY:
-            printf("Probe Reply\n");
             data = *pdata;
             mda_handler_reply(loop, event, data, skel, options);
             break;
