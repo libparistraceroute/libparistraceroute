@@ -40,7 +40,7 @@
 #define PING_HELP_T        "Use TCP. The destination port is set by default to 80."
 #define PING_HELP_U        "Use UDP. The destination port is set by default to 53."
 #define PING_HELP_k        "Send a TCP ACK packet. (Works only with TCP)"
-#define PING_HELP_PR       "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
+#define PING_HELP_PR       "Use raw packet of protocol PROTOCOL for tracerouting (default: 'icmp'). Valid values are 'udp', 'icmp' and 'tcp'."
 
 #define TEXT               "ping - verify the connection between two hosts."
 #define TEXT_OPTIONS       "Options:"
