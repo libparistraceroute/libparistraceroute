@@ -358,8 +358,8 @@ int main(int argc, const char * argv[]) {
 
 //    sscanf(argv[1], "%Lf", &confidence);
 //    sscanf(argv[2], "%d", &interfaces);
-    confidence = .5;
-    interfaces = 128;
+    confidence = .01;
+    interfaces = 16;
     max_branch = 1;
     bound_t * bound = bound_create(confidence, interfaces, max_branch);
     bound_dump(bound);

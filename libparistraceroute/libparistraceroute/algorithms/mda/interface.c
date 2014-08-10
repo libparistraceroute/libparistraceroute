@@ -6,6 +6,33 @@
 
 #include "../../common.h"   // ELEMENT_FREE 
 
+mda_ttl_flow_t * mda_ttl_flow_create(uint8_t ttl, mda_flow_t * mda_flow) 
+{
+    mda_ttl_flow_t * mda_ttl_flow;
+
+    if (!(mda_ttl_flow = malloc(sizeof(mda_ttl_flow_t)))) {
+        goto ERR_MALLOC;
+    }    
+
+    mda_ttl_flow->ttl      = ttl;
+    mda_ttl_flow->mda_flow = mda_flow;
+
+    return mda_ttl_flow;
+
+ERR_MALLOC:
+    return NULL;
+}
+
+void mda_ttl_flow_free(mda_ttl_flow_t * mda_ttl_flow) 
+{
+    if (mda_ttl_flow) {
+        if (mda_ttl_flow->mda_flow) {
+            mda_flow_free(mda_ttl_flow->mda_flow);
+        }
+        free(mda_ttl_flow);
+    } 
+}
+
 mda_interface_t * mda_interface_create(const address_t * address)
 {
     mda_interface_t * mda_interface;
@@ -20,9 +47,12 @@ mda_interface_t * mda_interface_create(const address_t * address)
         }
     }
 
-    if (!(mda_interface->flows = dynarray_create())) {
+    if (!(mda_interface->ttl_flows = dynarray_create())) {
         goto ERR_FLOWS;
     }
+
+    memset(mda_interface->ttls, 0, MAX_TTLS);
+    mda_interface->num_ttls = 1;
 
     mda_interface->type = MDA_LB_TYPE_UNKNOWN;
     return mda_interface;
@@ -38,27 +68,34 @@ ERR_INTERFACE:
 void mda_interface_free(mda_interface_t * interface)
 {
     if (interface) {
-        dynarray_free(interface->flows, (ELEMENT_FREE) mda_flow_free);
+        dynarray_free(interface->ttl_flows, (ELEMENT_FREE) mda_ttl_flow_free);
         if (interface->address) address_free(interface->address);
         free(interface);
     }
 }
 
-bool mda_interface_add_flow_id(mda_interface_t * interface, uintmax_t flow_id, mda_flow_state_t state)
+bool mda_interface_add_flow_id(mda_interface_t * interface, uint8_t ttl, uintmax_t flow_id, mda_flow_state_t state)
 {
-    mda_flow_t * mda_flow;
+    mda_flow_t     * mda_flow;
+    mda_ttl_flow_t * mda_ttl_flow;
 
     if (!(mda_flow = mda_flow_create(flow_id, state))) {
         goto ERR_MDA_FLOW_CREATE;
     }
 
-    if (!(dynarray_push_element(interface->flows, mda_flow))) {
+    if (!(mda_ttl_flow = mda_ttl_flow_create(ttl, mda_flow))) {
+        goto ERR_TTL_FLOW_CREATE;
+    }
+
+    if (!(dynarray_push_element(interface->ttl_flows, mda_ttl_flow))) {
         goto ERR_DYNARRAY_PUSH_ELEMENT;
     }
 
     return true;
 
 ERR_DYNARRAY_PUSH_ELEMENT:
+    mda_ttl_flow_free(mda_ttl_flow);
+ERR_TTL_FLOW_CREATE:
     mda_flow_free(mda_flow);
 ERR_MDA_FLOW_CREATE:
     return false;
@@ -66,63 +103,73 @@ ERR_MDA_FLOW_CREATE:
 
 size_t mda_interface_get_num_flows(const mda_interface_t * interface, mda_flow_state_t state)
 {
-    const mda_flow_t * mda_flow;
-    size_t             i,
-                       num_flows = dynarray_get_size(interface->flows),
-                       num_flows_with_state = 0;
+    const mda_ttl_flow_t * mda_ttl_flow;
+    size_t                 i,
+                           num_flows = dynarray_get_size(interface->ttl_flows),
+                           num_flows_with_state = 0;
 
     for (i = 0; i < num_flows; i++) {
-        mda_flow = dynarray_get_ith_element(interface->flows, i);
-        if (mda_flow->state == state) num_flows_with_state++;
+        mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, i);
+        if (mda_ttl_flow->mda_flow->state == state) {
+            num_flows_with_state++;
+        }
     }
 
     return num_flows_with_state;
 }
 
-uintmax_t mda_interface_get_available_flow_id(mda_interface_t * interface, size_t num_siblings, mda_data_t * data)
+mda_ttl_flow_t * mda_interface_get_available_flow_id(mda_interface_t * interface, size_t num_siblings, mda_data_t * data)
 {
-    uintmax_t    flow_id;
-    mda_flow_t * mda_flow;
-    size_t       i, size = dynarray_get_size(interface->flows);
+    uintmax_t        flow_id;
+    mda_ttl_flow_t * mda_ttl_flow;
+    mda_flow_t *     mda_flow;
+    size_t           i, size = dynarray_get_size(interface->ttl_flows);
+    uint8_t          ttl;
 
     // Search in the flow list for the first available one
     for (i = 0; i < size; i++) {
-        mda_flow = dynarray_get_ith_element(interface->flows, i);
+        mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, i);
+        mda_flow = mda_ttl_flow->mda_flow;
         if (mda_flow->state == MDA_FLOW_AVAILABLE) {
             mda_flow->state = MDA_FLOW_UNAVAILABLE;
-            return mda_flow->flow_id;
+            return mda_ttl_flow;
         }
     }
 
-    if (num_siblings == 1) {
-        // If we are the only interface at our TTL, then all new flow_ids are
-        // available, and we can just add one to our flow list and mark it as
-        // unavailable. No need to send any probe to verify.
+    // TODO the num ttls restriction could be a problem
+    if (num_siblings == 1 && interface->num_ttls == 1) {
+        // If we are the only interface at our TTL and have only one possible
+        // ttl, then all new flow_ids are available, and we can just add one 
+        // to our flow list and mark it as unavailable. No need to send any 
+        // probe to verify.
 
         flow_id = ++data->last_flow_id; // mda_interface_get_new_flow_id(interface, data);
-        if (!mda_interface_add_flow_id(interface, flow_id, MDA_FLOW_UNAVAILABLE)) {
-            return 0; // error adding flow id to the list
+        ttl = interface->ttls[interface->num_ttls - 1];
+        if (!mda_interface_add_flow_id(interface, ttl, flow_id, MDA_FLOW_UNAVAILABLE)) {
+            return NULL; // error adding flow id to the list
         }
-        return flow_id;
+        return dynarray_get_ith_element(interface->ttl_flows, size);
     }
 
-    return 0;
+    return NULL;
 }
 
 static void flow_dump(const mda_interface_t * interface)
 {
     const  mda_flow_t * mda_flow;
+    const  mda_ttl_flow_t * mda_ttl_flow;
     size_t              i, size;
 
     if(!interface) {
         printf("(null)");
     } else {
-        size = dynarray_get_size(interface->flows);
+        size = dynarray_get_size(interface->ttl_flows);
         for (i = 0; i < size; i++) {
-            mda_flow = dynarray_get_ith_element(interface->flows, i);
-
+            mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, i);
+            mda_flow = mda_ttl_flow->mda_flow;
             printf(
-                " %c%ju%c",
+                " %d%c%ju%c",
+                mda_ttl_flow->ttl,
                 mda_flow_state_to_char(mda_flow),
                 mda_flow->flow_id,
                 i + 1 < size ? ',' : ' '
@@ -164,10 +211,15 @@ static inline void mda_hop_dump_with_resolv(const lattice_elt_t * elt) {
 
 void mda_link_dump(const mda_interface_t * link[2], bool do_resolv)
 {
-    char * hostname = NULL;
+    char *  hostname = NULL;
+    uint8_t ttl;
+    size_t  i;
 
     // Print TTL
-    printf("%hhu ", link[0]->ttl);
+    for (i = 0; i < link[0]->num_ttls; ++i) {
+        ttl = link[0]->ttls[i];
+        printf("%hhu ", ttl);
+    }
 
     // Print source of the link
     if (do_resolv && link[0]->address) {
