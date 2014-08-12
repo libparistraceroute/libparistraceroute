@@ -137,8 +137,8 @@ static bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_inte
     event_t          * mda_event;
     mda_interface_t ** link;
 
-    printf("New link found:\n");
-    printf("-------------------\n");
+    printf("New link found\n");
+    printf("----------------\n");
 
     if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
     link[0] = src;
@@ -248,7 +248,7 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
                  * explore hops at the same ttl : we should set one potential probe in
                  * flight for each interface ? or multiply the number of probes in
                  * flight by the number of interface (might overestimate ?)*/
-                ttl = interface->ttls[i % interface->num_ttls]; // Vary ttl over all possible
+                ttl = interface->ttl_set[i % interface->num_ttls]; // Vary ttl over all possible
                 probe = probe_dup(mda_data->skel);
                 flow_id = ++mda_data->last_flow_id;
                 mda_interface_add_flow_id(interface, ttl, flow_id, MDA_FLOW_TESTING); // TODO control returned value
@@ -398,7 +398,7 @@ static lattice_return_t mda_search_source(lattice_elt_t * elt, void * data)
     uint8_t             ttl;
 
     for (i = 0; i < interface->num_ttls; ++i) {
-        ttl = interface->ttls[i];
+        ttl = interface->ttl_set[i];
         if (ttl == search->ttl) {
             size = dynarray_get_size(interface->ttl_flows);
             for (j = 0; j < size; j++) {
@@ -414,7 +414,7 @@ static lattice_return_t mda_search_source(lattice_elt_t * elt, void * data)
 
             /**
              * Note: Awkward check is needed because in the case of nodes with
-             * multiple ttls, it is possible for a pair of nodes to have the
+             * multiple ttl_set, it is possible for a pair of nodes to have the
              * same ttl while simultaneously being in a parent/child
              * relationship. Thus, if the parent is searched unsuccessfuly at
              * the correct ttl, we still must search the child as it could
@@ -438,7 +438,7 @@ static lattice_return_t mda_delete_flow(lattice_elt_t * elt, void * data)
     uint8_t              ttl;
 
     for (i = 0; i < interface->num_ttls; ++i) {
-        ttl = interface->ttls[i];
+        ttl = interface->ttl_set[i];
         if (ttl == search->ttl) {
             size = dynarray_get_size(interface->ttl_flows);
             for (j = 0; j < size; j++) {
@@ -465,7 +465,7 @@ static lattice_return_t mda_timeout_flow(lattice_elt_t * elt, void * data)
     uint8_t              ttl;
 
     for (i = 0; i < interface->num_ttls; ++i) {
-        ttl = interface->ttls[i];
+        ttl = interface->ttl_set[i];
 
         if (ttl == search->ttl) {
             size = dynarray_get_size(interface->ttl_flows);
@@ -609,7 +609,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     } else {
         dest_elt = NULL;
         dest_interface = mda_interface_create(&addr);
-        dest_interface->ttls[0] = ttl; // This interface's first ttl (messy way of doing it: 
+        dest_interface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it: 
                                        // create technically makes first ttl 0, this overwrites).
     }
 
@@ -627,16 +627,16 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                 goto ERR_LATTICE_CONNECT;
             }
 
-            /* For every source ttl + 1 that is not contained in dest_interface ttls,
-             * add ttl + 1 (all possible ttls that can reach dest through
+            /* For every source ttl + 1 that is not contained in dest_interface ttl_set,
+             * add ttl + 1 (all possible ttl_set that can reach dest through
              * source)
              * TODO Messy, perhaps add a "contains" to dynarray?
              */
             for (i = 0; i < source_interface->num_ttls; ++i) {
-                src_ttl = source_interface->ttls[i];
+                src_ttl = source_interface->ttl_set[i];
                 bool contains = false;
                 for (j = 0; j < dest_interface->num_ttls; ++j) {
-                    if (src_ttl + 1 == dest_interface->ttls[j]) { 
+                    if (src_ttl + 1 == dest_interface->ttl_set[j]) { 
                         contains = true;
                         break;
                     }
@@ -644,9 +644,9 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                 
                 if (!contains) {
                     if (dest_interface->num_ttls == MAX_TTLS){
-                        fprintf(stderr, "Too many ttls! Increase MAX_TTLS\n");
+                        fprintf(stderr, "Too many ttl_set! Increase MAX_TTLS\n");
                     } else{
-                        dest_interface->ttls[dest_interface->num_ttls] = src_ttl + 1;
+                        dest_interface->ttl_set[dest_interface->num_ttls] = src_ttl + 1;
                         dest_interface->num_ttls++;
                     }
                 }
@@ -756,7 +756,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
             // one interface...
             if (source_interface->num_stars < options->traceroute_options.max_undiscovered) {
                 mda_interface_t * new_iface = mda_interface_create(NULL);
-                new_iface->ttls[0] = ttl; // This interface's first ttl (messy way of doing it: 
+                new_iface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it: 
                                           // create technically makes first ttl 0, this overwrites).
 
                 new_iface->num_stars = source_interface->num_stars + 1;

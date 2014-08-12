@@ -6,11 +6,9 @@
 
 #include "data.h"           // mda_data_t
 #include "flow.h"           // mda_flow_state_t
-#include "../../dynarray.h" // dynarray_t
+#include "ttl_flow.h"       // mda_ttl_flow_t
 #include "../../address.h"  // address_t
-
-#define MAX_TTLS 5 // Max ttls we assume can be associated with this interface
-                   // TODO Avoid hardcoding
+#include "../../dynarray.h" // dynarray_t
 
 typedef enum {
     MDA_LB_TYPE_UNKNOWN,             /**< IP hop state not yet classified  */
@@ -23,36 +21,20 @@ typedef enum {
 } mda_lb_type_t;
 
 typedef struct {
-    address_t   * address;          /**< Interface attached to this hop   */
-    size_t        sent,             /**< Number of probes to discover its next hops */
+    address_t   * address;           /**< Interface attached to this hop   */
+    size_t        sent,              /**< Number of probes to discover its next hops */
                   received,         
                   timeout,
-                  num_stars;        /**< Number of timeout for this hop         */
-    dynarray_t  * ttl_flows;        /**< ttl-flow_id tuples related to this hop */
-    uint8_t       ttls[MAX_TTLS];   /**< All ttls related to this hop           */
-    size_t        num_ttls;         /**< Number of ttls contained in this hop   */
+                  num_stars;         /**< Number of timeout for this hop          */
+    dynarray_t  * ttl_flows;         /**< ttl-flow_id tuples related to this hop  */
+    uint8_t       ttl_set[MAX_TTLS]; /**< The set of ttls that can reach this hop. 
+                                          This structure is used to improve 
+                                          efficiency later in the code.           */ 
+    size_t        num_ttls;          /**< Number of ttls contained in this hop    */
     bool          enumeration_done;
-    mda_lb_type_t type;             /**< Type of load balancer            */
+    mda_lb_type_t type;              /**< Type of load balancer            */
 } mda_interface_t;
 
-typedef struct {
-    uint8_t      ttl;
-    mda_flow_t * mda_flow;
-} mda_ttl_flow_t;
-
-/**
- * \brief Allocate new ttl/flow tuple
- * \param ttl The ttl for this tuple
- * \param mda_flow the flow for this tuple
- * \return A pointer to the ttl/flow tuple
- */
-
-mda_ttl_flow_t * mda_ttl_flow_create(uint8_t ttl, mda_flow_t * mda_flow);
-
-/**
- * \brief Free a given ttl/flow tuple
- * \param mda_ttl_flow The given tuple to free
- */
 
 void mda_ttl_flow_free(mda_ttl_flow_t * mda_ttl_flow);
 

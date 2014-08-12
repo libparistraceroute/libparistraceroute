@@ -217,15 +217,15 @@ bound_t * bound_create(double confidence, size_t max_interfaces, size_t max_bran
     // Create parrallel tables to store stopping points and associated
     // probabilities. Note: of size + 1 because table ranges from 0 - 16
     // (max_interfaces), which is size 17.
-    if (!(bound->nk_table = malloc((max_interfaces + 1) * sizeof(size_t)))) {
+    if (!(bound->nk_table = calloc((max_interfaces + 1), sizeof(size_t)))) {
         goto ERR_NK_TABLE_MALLOC;
     }
 
-    if (!(bound->pk_table = malloc((max_interfaces + 1) * sizeof(probability_t)))) {
+    if (!(bound->pk_table = calloc((max_interfaces + 1), sizeof(probability_t)))) {
         goto ERR_PK_TABLE_MALLOC;
     }
 
-    if (!(bound->pr_failure = malloc((max_interfaces + 1) * sizeof(probability_t)))) {
+    if (!(bound->pr_failure = calloc((max_interfaces + 1), sizeof(probability_t)))) {
         goto ERR_PR_FAILURE;
     }   
 
@@ -358,7 +358,7 @@ int main(int argc, const char * argv[]) {
 
 //    sscanf(argv[1], "%Lf", &confidence);
 //    sscanf(argv[2], "%d", &interfaces);
-    confidence = .01;
+    confidence = .05;
     interfaces = 16;
     max_branch = 1;
     bound_t * bound = bound_create(confidence, interfaces, max_branch);

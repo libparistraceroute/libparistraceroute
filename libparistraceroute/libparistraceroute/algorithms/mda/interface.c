@@ -6,33 +6,6 @@
 
 #include "../../common.h"   // ELEMENT_FREE 
 
-mda_ttl_flow_t * mda_ttl_flow_create(uint8_t ttl, mda_flow_t * mda_flow) 
-{
-    mda_ttl_flow_t * mda_ttl_flow;
-
-    if (!(mda_ttl_flow = malloc(sizeof(mda_ttl_flow_t)))) {
-        goto ERR_MALLOC;
-    }    
-
-    mda_ttl_flow->ttl      = ttl;
-    mda_ttl_flow->mda_flow = mda_flow;
-
-    return mda_ttl_flow;
-
-ERR_MALLOC:
-    return NULL;
-}
-
-void mda_ttl_flow_free(mda_ttl_flow_t * mda_ttl_flow) 
-{
-    if (mda_ttl_flow) {
-        if (mda_ttl_flow->mda_flow) {
-            mda_flow_free(mda_ttl_flow->mda_flow);
-        }
-        free(mda_ttl_flow);
-    } 
-}
-
 mda_interface_t * mda_interface_create(const address_t * address)
 {
     mda_interface_t * mda_interface;
@@ -51,7 +24,7 @@ mda_interface_t * mda_interface_create(const address_t * address)
         goto ERR_FLOWS;
     }
 
-    memset(mda_interface->ttls, 0, MAX_TTLS);
+    memset(mda_interface->ttl_set, 0, MAX_TTLS);
     mda_interface->num_ttls = 1;
 
     mda_interface->type = MDA_LB_TYPE_UNKNOWN;
@@ -136,7 +109,7 @@ mda_ttl_flow_t * mda_interface_get_available_flow_id(mda_interface_t * interface
         }
     }
 
-    // TODO the num ttls restriction could be a problem
+    // TODO the num ttl_set restriction could be a problem
     if (num_siblings == 1 && interface->num_ttls == 1) {
         // If we are the only interface at our TTL and have only one possible
         // ttl, then all new flow_ids are available, and we can just add one 
@@ -144,7 +117,7 @@ mda_ttl_flow_t * mda_interface_get_available_flow_id(mda_interface_t * interface
         // probe to verify.
 
         flow_id = ++data->last_flow_id; // mda_interface_get_new_flow_id(interface, data);
-        ttl = interface->ttls[interface->num_ttls - 1];
+        ttl = interface->ttl_set[interface->num_ttls - 1];
         if (!mda_interface_add_flow_id(interface, ttl, flow_id, MDA_FLOW_UNAVAILABLE)) {
             return NULL; // error adding flow id to the list
         }
@@ -217,7 +190,7 @@ void mda_link_dump(const mda_interface_t * link[2], bool do_resolv)
 
     // Print TTL
     for (i = 0; i < link[0]->num_ttls; ++i) {
-        ttl = link[0]->ttls[i];
+        ttl = link[0]->ttl_set[i];
         printf("%hhu ", ttl);
     }
 
