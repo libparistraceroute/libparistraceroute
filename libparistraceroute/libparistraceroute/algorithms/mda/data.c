@@ -25,7 +25,6 @@ mda_data_t * mda_data_create()
 
     // Options
     options_mda_init(&mda_options);
-    data->confidence = mda_options.bound;
 
     failure = PERCENT_TO_INVERSE_DECIMAL(mda_options.bound);
 

@@ -674,13 +674,6 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                 goto ERR_MDA_EVENT_NEW_LINK;
             }
         }
-
-    } else {
-        // Delete flow in all siblings. WHY???
-        search_ttl_flow.ttl = ttl;
-        search_ttl_flow.flow_id = flow_id_u16;
-        search_ttl_flow.result = NULL;
-        lattice_walk(data->lattice, mda_delete_flow, &search_ttl_flow, LATTICE_WALK_DFS);
     }
 
     // Insert flow in the right interface

@@ -10,7 +10,6 @@
 typedef struct {
     lattice_t    * lattice;      /**< Root of the lattice storing the interfaces */
     uintmax_t      last_flow_id;
-    unsigned int   confidence;
     address_t    * dst_ip;       /**< Destination IP */
     pt_loop_t    * loop;         /**< Main loop */
     probe_t      * skel;         /**< Probe skeleton */
