@@ -3,7 +3,7 @@
 
 rm -rf output.txt
 rm -rf log_fkrt.txt
-cd ../../paris-traceroute.fakeroute/fakeroute; fakeroute/fakeroute "-4" "random" > log_fkrt.txt &
+cd ../../paris-traceroute.fakeroute/fakeroute; fakeroute/fakeroute "-4" "--seed" > log_fkrt.txt &
 PID_FKRT=$!
 sleep 0.25
 cd ../../paris-traceroute.libparistraceroute/libparistraceroute; paris-traceroute/paris-traceroute "-a" "mda" "-n" "-B" $1 $2 > output.txt &
