@@ -1,6 +1,7 @@
 #ifndef MDA_DATA_H
 #define MDA_DATA_H
 
+#include "bound.h"          // bound_t
 #include "../../address.h"  // address_t
 #include "../../lattice.h"  // lattice_t
 #include "../../pt_loop.h"  // pt_loop_t
@@ -9,10 +10,10 @@
 typedef struct {
     lattice_t    * lattice;      /**< Root of the lattice storing the interfaces */
     uintmax_t      last_flow_id;
-    unsigned int   confidence;
     address_t    * dst_ip;       /**< Destination IP */
     pt_loop_t    * loop;         /**< Main loop */
     probe_t      * skel;         /**< Probe skeleton */
+    bound_t      * bound;        /**< Bound on probes to send */
 } mda_data_t;
 
 /**

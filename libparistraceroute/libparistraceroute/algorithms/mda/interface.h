@@ -6,8 +6,9 @@
 
 #include "data.h"           // mda_data_t
 #include "flow.h"           // mda_flow_state_t
-#include "../../dynarray.h" // dynarray_t
+#include "ttl_flow.h"       // mda_ttl_flow_t
 #include "../../address.h"  // address_t
+#include "../../dynarray.h" // dynarray_t
 
 typedef enum {
     MDA_LB_TYPE_UNKNOWN,             /**< IP hop state not yet classified  */
@@ -20,16 +21,22 @@ typedef enum {
 } mda_lb_type_t;
 
 typedef struct {
-    address_t    * address;          /**< Interface attached to this hop   */
-    size_t         sent,             /**< Number of probes to discover its next hops */
-                   received,         
-                   timeout,
-                   num_stars;        /**< Number of timeout for this hop   */
-    dynarray_t   * flows;            /**< Flow-IDs related to this hop     */
-    bool           enumeration_done;
-    mda_lb_type_t  type;             /**< Type of load balancer            */
-    unsigned int   ttl;              /**< Time to live related to this hop */
+    address_t   * address;           /**< Interface attached to this hop   */
+    size_t        sent,              /**< Number of probes to discover its next hops */
+                  received,         
+                  timeout,
+                  num_stars;         /**< Number of timeout for this hop          */
+    dynarray_t  * ttl_flows;         /**< ttl-flow_id tuples related to this hop  */
+    uint8_t       ttl_set[MAX_TTLS]; /**< The set of ttls that can reach this hop. 
+                                          This structure is used to improve 
+                                          efficiency later in the code.           */ 
+    size_t        num_ttls;          /**< Number of ttls contained in this hop    */
+    bool          enumeration_done;
+    mda_lb_type_t type;              /**< Type of load balancer            */
 } mda_interface_t;
+
+
+void mda_ttl_flow_free(mda_ttl_flow_t * mda_ttl_flow);
 
 /**
  * \brief Allocate a new mda_interface_t instance, which corresponds to
@@ -55,7 +62,7 @@ void mda_interface_free(mda_interface_t * interface);
  * \param flow_state The flow state.
  */
 
-bool mda_interface_add_flow_id(mda_interface_t * interface, uintmax_t flow_id, mda_flow_state_t state);
+bool mda_interface_add_flow_id(mda_interface_t * interface, uint8_t ttl, uintmax_t flow_id, mda_flow_state_t state);
 
 /**
  * \brief Retrieve the number of flows having a given state.
@@ -85,7 +92,7 @@ size_t mda_interface_get_num_flows(const mda_interface_t * interface, mda_flow_s
  * \return A flow-id > 0 if successful, 0 otherwise.
  */
 
-uintmax_t mda_interface_get_available_flow_id(mda_interface_t * interface, size_t num_siblings, mda_data_t * data);
+mda_ttl_flow_t * mda_interface_get_available_flow_id(mda_interface_t * interface, size_t num_siblings, mda_data_t * data);
 
 /**
  * \brief Print to the standard output the flow related to a given

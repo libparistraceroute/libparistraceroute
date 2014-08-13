@@ -26,9 +26,11 @@ lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la
 nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						address.h \
                         algorithm.h \
+						algorithms/mda/bound.h \
 						algorithms/mda/data.h \
 						algorithms/mda/flow.h \
 						algorithms/mda/interface.h \
+                        algorithms/mda/ttl_flow.h \
 						algorithms/mda.h \
 						algorithms/traceroute.h \
 						bitfield.h \
@@ -86,9 +88,11 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 					    address.c \
                         algorithm.c \
 						algorithms/mda.c \
+						algorithms/mda/bound.c \
 						algorithms/mda/data.c \
 						algorithms/mda/flow.c \
 						algorithms/mda/interface.c \
+                        algorithms/mda/ttl_flow.c \
 						algorithms/traceroute.c \
 						bitfield.c \
 						bits.c \
@@ -134,7 +138,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 ## Instruct libtool to include ABI version information in the generated shared
 ## library file (.so).  The library ABI version is defined in configure.ac, so
 ## that all version information is kept in one place.
-libparistraceroute_@LIBRARY_VERSION@_la_LDFLAGS = -version-info @API_VERSION@
+libparistraceroute_@LIBRARY_VERSION@_la_LDFLAGS = -lm -version-info @API_VERSION@
 
 ## Define the list of public header files and their install location.  The
 ## nobase_ prefix instructs Automake to not strip the directory part from each

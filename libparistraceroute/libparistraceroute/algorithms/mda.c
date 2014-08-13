@@ -25,19 +25,21 @@ typedef struct {
     uint8_t         ttl;
     uintmax_t       flow_id;
     lattice_elt_t * result;
-} mda_ttl_flow_t;
+} mda_search_data_t;
 
 //---------------------------------------------------------------------------
 // Options supported by mda.
 // mda also supports options supported by traceroute.
 //---------------------------------------------------------------------------
 
-static unsigned mda_values[7] = OPTIONS_MDA_BOUND_MAXBRANCH;
+static unsigned mda_values[10] = OPTIONS_MDA_BOUND_MAXBRANCH;
 
 // MDA options
+// TODO: Can only pass integer values for confidence (thus cannot, for
+// example, measure confidence of 99.9999%). Expand functionality.
 static option_t mda_opt_specs[] = {
-    // action           short long          metavar             help    variable
-    {opt_store_int_2,   "B",  "--mda",      "bound,max_branch", HELP_B, mda_values},
+    // action           short long          metavar                          help    variable
+    {opt_store_int_3,   "B",  "--mda",      "bound,max_branch,max_children", HELP_B, mda_values},
     END_OPT_SPECS
     // {opt_store_int, OPT_NO_SF, "confidence", "PERCENTAGE", "level of confidence", 0},
     // per dest
@@ -57,14 +59,19 @@ unsigned options_mda_get_max_branch() {
     return mda_values[3];
 }
 
-unsigned options_mda_get_is_set() {
+unsigned options_mda_get_max_children() {
     return mda_values[6];
+}
+
+unsigned options_mda_get_is_set() {
+    return mda_values[9];
 }
 
 void options_mda_init(mda_options_t * mda_options)
 {
-    mda_options->bound      = options_mda_get_bound();
-    mda_options->max_branch = options_mda_get_max_branch();
+    mda_options->bound        = options_mda_get_bound();
+    mda_options->max_branch   = options_mda_get_max_branch();
+    mda_options->max_children = options_mda_get_max_children();
 }
 
 inline mda_options_t mda_get_default_options() {
@@ -72,12 +79,14 @@ inline mda_options_t mda_get_default_options() {
     mda_options_t mda_options = {
          .traceroute_options = traceroute_get_default_options(),
          .bound              = 95,
-         .max_branch         = 5
+         .max_branch         = 16,
+         .max_children       = 128
     };
 
     return mda_options;
 }
 
+/*
 //---------------------------------------------------------------------------
 // Precomputed number of probes
 //---------------------------------------------------------------------------
@@ -86,12 +95,12 @@ inline mda_options_t mda_get_default_options() {
 // stopping points
 static int mda_stopping_points(unsigned int num_interfaces, unsigned int confidence)
 {
-    /*
+    *
      * number of probes (k) to send to rule out a load-balancer having n hops;
      * 95% confidence level first from 823-augustin-e2emon.pdf, then extended
      * with gmp-based code.
      * 99% confidence derived with gmp-based code.
-     */
+     *
     static const int k[][2] = {
         {   0,   0 }, {   0,   0 }, {   6,   8 }, {  11,  15 }, {  16,  21 },
         {  21,  28 }, {  27,  36 }, {  33,  43 }, {  38,  51 }, {  44,  58 },
@@ -121,6 +130,7 @@ static int mda_stopping_points(unsigned int num_interfaces, unsigned int confide
 
     return k[num_interfaces][(confidence == 95) ? 0 : 1];
 }
+*/
 
 static bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_interface_t * dst)
 {
@@ -170,10 +180,12 @@ ERR_LINK:
 static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data)
 {
     mda_interface_t * interface = lattice_elt_get_data(elt);
+    mda_ttl_flow_t  * mda_ttl_flow;
     /* Number of interfaces at the same TTL */
     size_t    num_nexthops = 0;
     probe_t * probe;
     uintmax_t flow_id = 0;
+    uint8_t   ttl;
     int       i = 0;
     int       to_send = 0;
     int       num_flows_missing = 0;
@@ -181,16 +193,15 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
     int       num_flows_testing = 0;
     int       num_siblings = 0;
 
-    //printf("Processing interface %s at ttl %hhu\n", interface->address, interface->ttl);
-
     // Determine the number of next hop interfaces
     num_nexthops = lattice_elt_get_num_next(elt);
 
     // ... and thus deduce how many packets we have to send
-    to_send = mda_stopping_points(MAX(num_nexthops + 1, 2), mda_data->confidence) - interface->sent;
+    /*to_send = mda_stopping_points(MAX(num_nexthops + 1, 2),
+     * mda_data->confidence) - interface->sent;*/
+    to_send = bound_get_nk(mda_data->bound, MAX(num_nexthops + 1, 2)) - interface->sent;
 
     //printf("find next hops of %s (to_send= %zu)\n", interface->address, to_send);
-
     //printf("Interface %s : to_send %d - sent %zu - received %zu\n", interface->address, to_send, interface->sent, interface->received);
     if ((to_send <= 0) && (interface->sent == interface->received + interface->timeout)) {
         return LATTICE_DONE; // Done enumerating, walking/DFS can continue
@@ -223,14 +234,12 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
                  * explore hops at the same ttl : we should set one potential probe in
                  * flight for each interface ? or multiply the number of probes in
                  * flight by the number of interface (might overestimate ?)*/
+                ttl = interface->ttl_set[i % interface->num_ttls]; // Vary ttl over all possible
                 probe = probe_dup(mda_data->skel);
                 flow_id = ++mda_data->last_flow_id;
-                mda_interface_add_flow_id(interface, flow_id, MDA_FLOW_TESTING); // TODO control returned value
-                probe_set_fields(
-                    probe, I8("ttl", interface->ttl),
-                    I16("flow_id", flow_id), // I16 casts flow_id into a uint16_t before memcpy
-                    NULL
-                ); // TODO control returned value, free fields
+                mda_interface_add_flow_id(interface, ttl, flow_id, MDA_FLOW_TESTING); // TODO control returned value
+                // I16 casts flow_id into a uint16_t before memcpy
+                probe_set_fields(probe, I8("ttl", ttl), I16("flow_id", flow_id), NULL); // TODO control returned value, free fields
                 pt_send_probe(mda_data->loop, probe); // TODO control returned value
             }
         }
@@ -249,26 +258,22 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
     // incremented TTL.
 
     for (i = 0; i < num_flows_avail; i++) {
-        // Get a new flow_id to send, or break/return
+        // Get a new ttl flow_id tuple to send, or break/return
         // TODO manage properly break/return
-        flow_id = mda_interface_get_available_flow_id(interface, num_siblings, mda_data);
-        if (flow_id == 0) {
+        mda_ttl_flow = mda_interface_get_available_flow_id(interface, num_siblings, mda_data);
+        if (!mda_ttl_flow) {
             fprintf(stderr, "Not enough flows found reaching: ");
             address_dump(interface->address);
             break;
         }
-
+        
+        flow_id = mda_ttl_flow->mda_flow->flow_id;
+        ttl     = mda_ttl_flow->ttl;
         // Send corresponding probe with ttl + 1
         if (!(probe = probe_dup(mda_data->skel))) {
             goto ERR_PROBE_DUP;
         }
-
-        probe_set_fields(
-            probe,
-            I16("flow_id", flow_id),
-            I8("ttl", interface->ttl + 1),
-            NULL
-        ); // TODO control returned value, free fields
+        probe_set_fields(probe, I16("flow_id", flow_id), I8("ttl", ttl + 1), NULL); // TODO control returned value, free fields
         pt_send_probe(mda_data->loop, probe);
         interface->sent++;
     }
@@ -290,6 +295,16 @@ static int mda_classify(lattice_elt_t * elt, mda_data_t * data)
 {
     mda_interface_t * interface = lattice_elt_get_data(elt);
     size_t            num_nexthops;
+
+    /*
+    char *addr = malloc(100);
+    if (interface->address) {
+        address_to_string(interface->address, &addr);
+    } else {
+        addr = "NULL";
+    }
+    printf("Classifying interface %s at ttl %hhu\n", addr, interface->ttl);
+    */
 
     // If the classification has already been done or started
     if (interface->type != MDA_LB_TYPE_UNKNOWN) {
@@ -316,6 +331,10 @@ static int mda_classify(lattice_elt_t * elt, mda_data_t * data)
     // ELSE remains MDA_LB_TYPE_UNKNOWN
     return 0;
 }
+
+//---------------------------------------------------------------------------
+// Callbacks lattice_walk
+//---------------------------------------------------------------------------
 
 static lattice_return_t mda_process_interface(lattice_elt_t * elt, void * data)
 {
@@ -355,72 +374,97 @@ ERR_CLASSIFY:
     return LATTICE_ERROR;
 }
 
-//---------------------------------------------------------------------------
-// Callbacks lattice_walk
-//---------------------------------------------------------------------------
-
 static lattice_return_t mda_search_source(lattice_elt_t * elt, void * data)
 {
-    mda_interface_t * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t  * search    = data;
-    mda_flow_t      * mda_flow;
-    size_t            i, size;
+    mda_interface_t   * interface = lattice_elt_get_data(elt);
+    mda_search_data_t * search    = data;
+    mda_flow_t        * mda_flow;
+    mda_ttl_flow_t    * mda_ttl_flow;
+    size_t              i, j, size;
+    uint8_t             ttl;
 
-    if (interface->ttl == search->ttl) {
-        size = dynarray_get_size(interface->flows);
-        for (i = 0; i < size; i++) {
-            mda_flow = dynarray_get_ith_element(interface->flows, i);
-            
-            if ((mda_flow->flow_id == search->flow_id)
-            &&  (mda_flow->state != MDA_FLOW_TESTING)) {
-                search->result = elt;
-                return LATTICE_INTERRUPT_ALL;
+    for (i = 0; i < interface->num_ttls; ++i) {
+        ttl = interface->ttl_set[i];
+        if (ttl == search->ttl) {
+            size = dynarray_get_size(interface->ttl_flows);
+            for (j = 0; j < size; j++) {
+                mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, j);
+                mda_flow = mda_ttl_flow->mda_flow;
+                if ((mda_flow->flow_id == search->flow_id) 
+                && (mda_ttl_flow->ttl == search->ttl)
+                &&  (mda_flow->state != MDA_FLOW_TESTING)) {
+                    search->result = elt;
+                    return LATTICE_INTERRUPT_ALL;
+                }
+            }
+
+            /**
+             * Note: Awkward check is needed because in the case of nodes with
+             * multiple ttl_set, it is possible for a pair of nodes to have the
+             * same ttl while simultaneously being in a parent/child
+             * relationship. Thus, if the parent is searched unsuccessfuly at
+             * the correct ttl, we still must search the child as it could
+             * have both the correct ttl and the correct flow_id. - T.D.
+             */
+            if (interface->num_ttls == 1) {
+                return LATTICE_INTERRUPT_NEXT; // don't process children
             }
         }
-
-        return LATTICE_INTERRUPT_NEXT; // don't process children
     }
-
     return LATTICE_CONTINUE; // continue until we reach the right ttl
 }
 
 static lattice_return_t mda_delete_flow(lattice_elt_t * elt, void * data)
 {
-    mda_interface_t * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t  * search    = data;
-    size_t            i, size;
+    mda_interface_t    * interface = lattice_elt_get_data(elt);
+    mda_search_data_t  * search    = data;
+    mda_flow_t         * mda_flow;
+    mda_ttl_flow_t     * mda_ttl_flow;
+    size_t               i, j, size;
+    uint8_t              ttl;
 
-    if (interface->ttl == search->ttl) {
-        size = dynarray_get_size(interface->flows);
-        for (i = 0; i < size; i++) {
-            mda_flow_t *flow = dynarray_get_ith_element(interface->flows, i);
-            if ((flow->flow_id == search->flow_id) && (flow->state == MDA_FLOW_TESTING)) {
-                dynarray_del_ith_element(interface->flows, i, (ELEMENT_FREE) mda_flow_free);
-                return LATTICE_INTERRUPT_ALL;
+    for (i = 0; i < interface->num_ttls; ++i) {
+        ttl = interface->ttl_set[i];
+        if (ttl == search->ttl) {
+            size = dynarray_get_size(interface->ttl_flows);
+            for (j = 0; j < size; j++) {
+                mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, j);
+                mda_flow     = mda_ttl_flow->mda_flow;
+                if ((mda_flow->flow_id == search->flow_id) && (mda_flow->state == MDA_FLOW_TESTING)) {
+                    dynarray_del_ith_element(interface->ttl_flows, j, (ELEMENT_FREE) mda_ttl_flow_free);
+                    return LATTICE_INTERRUPT_ALL;
+                }
             }
+            return LATTICE_INTERRUPT_NEXT; // don't process children
         }
-        return LATTICE_INTERRUPT_NEXT; // don't process children
     }
     return LATTICE_CONTINUE; // continue until we reach the right ttl
 }
 
 static lattice_return_t mda_timeout_flow(lattice_elt_t * elt, void * data)
 {
-    mda_interface_t * interface = lattice_elt_get_data(elt);
-    mda_ttl_flow_t  * search    = data;
+    mda_interface_t    * interface = lattice_elt_get_data(elt);
+    mda_search_data_t  * search    = data;
+    mda_flow_t         * mda_flow;
+    mda_ttl_flow_t     * mda_ttl_flow;
+    size_t               i, j, size;
+    uint8_t              ttl;
 
-    if (interface->ttl == search->ttl) {
-        unsigned int i, size;
+    for (i = 0; i < interface->num_ttls; ++i) {
+        ttl = interface->ttl_set[i];
 
-        size = dynarray_get_size(interface->flows);
-        for (i = 0; i < size; i++) {
-            mda_flow_t *flow = dynarray_get_ith_element(interface->flows, i);
-            if ((flow->flow_id == search->flow_id) && (flow->state == MDA_FLOW_UNAVAILABLE)) {
-                flow->state = MDA_FLOW_TIMEOUT;
-                return LATTICE_INTERRUPT_ALL;
+        if (ttl == search->ttl) {
+            size = dynarray_get_size(interface->ttl_flows);
+            for (j = 0; j < size; j++) {
+                mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, j);
+                mda_flow     = mda_ttl_flow->mda_flow;
+                if ((mda_flow->flow_id == search->flow_id) && (mda_flow->state == MDA_FLOW_UNAVAILABLE)) {
+                    mda_flow->state = MDA_FLOW_TIMEOUT;
+                    return LATTICE_INTERRUPT_ALL;
+                }
             }
+            return LATTICE_INTERRUPT_NEXT; // don't process children
         }
-        return LATTICE_INTERRUPT_NEXT; // don't process children
     }
     return LATTICE_CONTINUE; // continue until we reach the right ttl
 }
@@ -509,13 +553,15 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                      * dest_elt;
     mda_interface_t  * source_interface,
                      * dest_interface;
-    mda_ttl_flow_t     search_ttl_flow;
+    mda_search_data_t  search_ttl_flow;
     mda_address_t      search_interface;
+    mda_ttl_flow_t   * mda_ttl_flow;
     mda_flow_t       * mda_flow;
     address_t          addr;
     uint16_t           flow_id_u16;
-    uint8_t            ttl;
+    uint8_t            ttl, src_ttl;
     int                ret;
+    size_t             i, j;
 
     probe = ((const probe_reply_t *) event->data)->probe;
     reply = ((const probe_reply_t *) event->data)->reply;
@@ -549,7 +595,8 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     } else {
         dest_elt = NULL;
         dest_interface = mda_interface_create(&addr);
-        dest_interface->ttl = ttl;
+        dest_interface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it: 
+                                       // create technically makes first ttl 0, this overwrites).
     }
 
     search_ttl_flow.ttl = ttl - 1;
@@ -566,11 +613,30 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                 goto ERR_LATTICE_CONNECT;
             }
 
-            // An interface has the minimum TTL possible, in case of multiple
-            // previous hops
-            if (source_interface->ttl + 1 < dest_interface->ttl) {
-                dest_interface->ttl = source_interface->ttl + 1;
-            }
+            /* For every source ttl + 1 that is not contained in dest_interface ttl_set,
+             * add ttl + 1 (all possible ttl_set that can reach dest through
+             * source)
+             * TODO Messy, perhaps add a "contains" to dynarray?
+             */
+            for (i = 0; i < source_interface->num_ttls; ++i) {
+                src_ttl = source_interface->ttl_set[i];
+                bool contains = false;
+                for (j = 0; j < dest_interface->num_ttls; ++j) {
+                    if (src_ttl + 1 == dest_interface->ttl_set[j]) { 
+                        contains = true;
+                        break;
+                    }
+                }
+                
+                if (!contains) {
+                    if (dest_interface->num_ttls == MAX_TTLS){
+                        fprintf(stderr, "Too many ttl_set! Increase MAX_TTLS\n");
+                    } else{
+                        dest_interface->ttl_set[dest_interface->num_ttls] = src_ttl + 1;
+                        dest_interface->num_ttls++;
+                    }
+                }
+            }    
 
             /* dest_interface->num_stars = 0;
              *
@@ -594,13 +660,6 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                 goto ERR_MDA_EVENT_NEW_LINK;
             }
         }
-
-    } else {
-        // Delete flow in all siblings
-        search_ttl_flow.ttl = ttl;
-        search_ttl_flow.flow_id = flow_id_u16;
-        search_ttl_flow.result = NULL;
-        lattice_walk(data->lattice, mda_delete_flow, &search_ttl_flow, LATTICE_WALK_DFS);
     }
 
     // Insert flow in the right interface
@@ -608,14 +667,25 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
         goto ERR_MDA_FLOW_CREATE;
     }
 
-    if (!dynarray_push_element(dest_interface->flows, mda_flow)) {
+    if (!(mda_ttl_flow = mda_ttl_flow_create(ttl, mda_flow))) {
+        goto ERR_MDA_TTL_FLOW_CREATE;
+    }
+
+    if (!dynarray_push_element(dest_interface->ttl_flows, mda_ttl_flow)) {
         goto ERR_DYNARRAY_PUSH_ELEMENT;
     }
+
+    // Delete flow in all siblings. Right?
+    search_ttl_flow.ttl = ttl;
+    search_ttl_flow.flow_id = flow_id_u16;
+    search_ttl_flow.result = NULL;
+    lattice_walk(data->lattice, mda_delete_flow, &search_ttl_flow, LATTICE_WALK_DFS);
 
     return;
 
 ERR_DYNARRAY_PUSH_ELEMENT:
     mda_flow_free(mda_flow);
+ERR_MDA_TTL_FLOW_CREATE:
 ERR_MDA_FLOW_CREATE:
 ERR_MDA_EVENT_NEW_LINK:
 ERR_LATTICE_ADD_ELEMENT:
@@ -631,8 +701,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     probe_t               * probe;
     lattice_elt_t         * source_elt;
     mda_interface_t       * source_interface;
-    mda_ttl_flow_t          search_ttl_flow;
-    //uintmax_t               flow_id = 0;
+    mda_search_data_t       search_ttl_flow;
     uint16_t                flow_id_u16 = 0;
     uint8_t                 ttl;
     int                     ret;
@@ -650,7 +719,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     if (ret == LATTICE_INTERRUPT_ALL) {
         // Found
         source_elt = search_ttl_flow.result;
-        source_interface = lattice_elt_get_data(source_elt); // shit
+        source_interface = lattice_elt_get_data(source_elt);
         source_interface->timeout++;
 
         // Mark the flow as timeout
@@ -665,7 +734,9 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
             // one interface...
             if (source_interface->num_stars < options->traceroute_options.max_undiscovered) {
                 mda_interface_t * new_iface = mda_interface_create(NULL);
-                new_iface->ttl = ttl;
+                new_iface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it: 
+                                          // create technically makes first ttl 0, this overwrites).
+
                 new_iface->num_stars = source_interface->num_stars + 1;
 
                 if (!lattice_add_element(data->lattice, source_elt, new_iface)) {
