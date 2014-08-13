@@ -11,6 +11,7 @@
 #include <netinet/ip6.h>  // ip6_hdr
 #include <stdio.h>        // perror
 
+#include "../probe.h"
 #include "../field.h"
 #include "../protocol.h"
 
@@ -274,6 +275,44 @@ bool ipv6_instance_of(uint8_t * bytes) {
     return (bytes[0] >> 4) == 6;
 }
 
+/**
+ * \brief check whether the ipv6 protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
+bool ipv6_matches(const struct probe_s * _probe, const struct probe_s * _reply)
+{
+    const probe_t * probe = (const probe_t *) _probe,
+                  * reply = (const probe_t *) _reply;
+    address_t       probe_src_ip,
+                    probe_dst_ip,
+                    reply_src_ip,
+                    reply_dst_ip;
+
+    if (probe_extract(probe, "src_ip", &probe_src_ip)
+     && probe_extract(probe, "dst_ip", &probe_dst_ip)
+     && probe_extract(reply, "src_ip", &reply_src_ip)
+     && probe_extract(reply, "dst_ip", &reply_dst_ip)) {
+
+        if (!(!address_compare(&probe_src_ip, &reply_dst_ip) && (!address_compare(&probe_dst_ip, &reply_src_ip)))) {
+            // probe has most probably not reached its destination
+            if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
+             || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
+
+                if (probe_extract_ext(reply, "src_ip", 2, &reply_src_ip)
+                 && probe_extract_ext(reply, "dst_ip", 2, &reply_dst_ip)) {
+                    return !address_compare(&probe_src_ip, &reply_src_ip) && !address_compare(&probe_dst_ip, &reply_dst_ip);
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 static protocol_t ipv6 = {
     .name                 = "ipv6",
     .protocol             = IPPROTO_IPV6,
@@ -285,6 +324,7 @@ static protocol_t ipv6 = {
     .finalize             = ipv6_finalize,
     .instance_of          = ipv6_instance_of,
     .get_next_protocol    = protocol_get_next_protocol,
+    .matches              = ipv6_matches,
 };
 
 PROTOCOL_REGISTER(ipv6);

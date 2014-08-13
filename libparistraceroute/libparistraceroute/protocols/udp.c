@@ -1,5 +1,6 @@
 #include "use.h"
 
+#include <stdio.h>
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -8,6 +9,7 @@
 #include <netinet/udp.h>      // udphdr
 #include <netinet/in.h>       // IPPROTO_UDP = 17
 
+#include "../probe.h"
 #include "../protocol.h"      // csum
 
 #ifdef USE_IPV4
@@ -174,6 +176,45 @@ buffer_t * udp_create_pseudo_header(const uint8_t * ip_segment)
     return buffer;
 }
 
+/**
+ * \brief check whether the udp protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
+bool udp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
+{
+    const probe_t * probe = (const probe_t *) _probe,
+                  * reply = (const probe_t *) _reply;
+
+    uint16_t        probe_src_port = 0,
+                    probe_dst_port = 0,
+                    reply_src_port = 0,
+                    reply_dst_port = 0;
+    layer_t       * udp_layer      = NULL;
+
+    if (probe_extract(probe, "src_port", &probe_src_port)
+     && probe_extract(probe, "dst_port", &probe_dst_port)
+     && probe_extract(reply, "src_port", &reply_src_port)
+     && probe_extract(reply, "dst_port", &reply_dst_port)) {
+
+        if (probe_src_port == reply_dst_port && reply_src_port == probe_dst_port) {
+            return true;
+        } else { //it is not a UDP probe; is it an ICMP probe?
+            if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
+             || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
+
+                if (!(udp_layer = probe_get_layer(reply, 3)) || strcmp(udp_layer->protocol->name, "udp")) {
+                    return false;
+                }
+                return (probe_src_port == reply_src_port) && (probe_dst_port == reply_dst_port);
+            }
+        }
+    }
+    return false;
+}
+
 static protocol_t udp = {
     .name                 = "udp",
     .protocol             = IPPROTO_UDP, 
@@ -184,6 +225,7 @@ static protocol_t udp = {
     .write_default_header = udp_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = udp_get_header_size,
+    .matches              = udp_matches,
 };
 
 PROTOCOL_REGISTER(udp);

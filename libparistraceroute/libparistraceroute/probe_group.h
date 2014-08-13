@@ -11,18 +11,17 @@ typedef tree_t tree_probe_t;
 typedef enum {
     DOUBLE,                 /**< The node stores a double.      */
     PROBE                   /**< The node stores a (probe_t *). */
-} tree_node_tag_t;
+} tree_node_probe_tag_t;
 
 typedef union {
     double    delay;        /**< Value of a data as a double.  */
     probe_t * probe;        /**< Pointer to probe_t instance.  */
-} tree_node_data_t;
+} tree_node_probe_data_t;
 
 typedef struct {
-    tree_node_tag_t  tag;   /**< Tag to know the type of data stored in the node. */
-    tree_node_data_t data;  /**< Data stored in the node. */
+    tree_node_probe_tag_t  tag;   /**< Tag to know the type of data stored in the node. */
+    tree_node_probe_data_t data;  /**< Data stored in the node. */
 } tree_node_probe_t;
-
 
 typedef struct {
     tree_probe_t * tree_probes;          /**< Point to the tree of probes (if any), NULL otherwise. */

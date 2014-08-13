@@ -38,6 +38,7 @@ void tree_node_free_impl(tree_node_t * node, void (*callback_free)(void * elemen
         // recursion has already done children's resource release.
         dynarray_free(node->children, NULL);
     }
+
     if (callback_free && node->data) callback_free(node->data);
     free(node);
 }

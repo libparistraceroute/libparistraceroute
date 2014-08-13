@@ -269,12 +269,18 @@ bool address_resolv(const address_t * address, char ** phostname, int mask_cache
 {
     struct hostent * hp;
     bool             found = false;
+    const void *    data;
 
     if (!address) goto ERR_INVALID_PARAMETER;
 
 #ifdef USE_CACHE
     if (cache_ip_hostname && (mask_cache & CACHE_READ)) {
-        found = map_find(cache_ip_hostname, address, phostname);
+        found = map_find(cache_ip_hostname, address, &data); //phostname);
+        if (found) {
+            // We've to strdup the cached value, otherwise the function
+            // calling address_resolv will erase this cached value.
+            *phostname = strdup(data);
+        }
     }
 #endif
 
