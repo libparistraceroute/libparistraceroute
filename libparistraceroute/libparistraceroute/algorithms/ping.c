@@ -20,18 +20,18 @@
 //-----------------------------------------------------------------
 
 // Bounded integer parameters
-static bool              do_resolv           = OPTIONS_PING_DO_RESOLV_DEFAULT;
-static bool              show_timestamp      = OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT;
-static bool              is_quiet            = OPTIONS_PING_IS_QUIET_DEFAULT;
-static unsigned int      count[3]            = OPTIONS_PING_COUNT;
+static bool         do_resolv      = OPTIONS_PING_DO_RESOLV_DEFAULT;
+static bool         show_timestamp = OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT;
+static bool         is_quiet       = OPTIONS_PING_IS_QUIET_DEFAULT;
+static unsigned int count[3]       = OPTIONS_PING_COUNT;
 
 static option_t ping_options[] = {
-    // action              short       long                 metavar             help          data
-    {opt_store_int,        "c",        OPT_NO_LF,           " COUNT",           PING_HELP_c,  &count},
-    {opt_store_1,          "D",        OPT_NO_LF,           OPT_NO_METAVAR,     PING_HELP_D,  &show_timestamp},
-    {opt_store_0,          "n",        OPT_NO_LF,           OPT_NO_METAVAR,     PING_HELP_n,  &do_resolv},
-    {opt_store_1,          "q",        OPT_NO_LF,           OPT_NO_METAVAR,     PING_HELP_q,  &is_quiet},
-    {opt_help,             "v",        OPT_NO_LF,           OPT_NO_METAVAR,     OPT_NO_HELP,  OPT_NO_DATA},
+    // action       short long       metavar         help         data
+    {opt_store_int, "c",  OPT_NO_LF, " COUNT",       PING_HELP_c, &count},
+    {opt_store_1,   "D",  OPT_NO_LF, OPT_NO_METAVAR, PING_HELP_D, &show_timestamp},
+    {opt_store_0,   "n",  OPT_NO_LF, OPT_NO_METAVAR, PING_HELP_n, &do_resolv},
+    {opt_store_1,   "q",  OPT_NO_LF, OPT_NO_METAVAR, PING_HELP_q, &is_quiet},
+    {opt_help,      "v",  OPT_NO_LF, OPT_NO_METAVAR, OPT_NO_HELP, OPT_NO_DATA},
     END_OPT_SPECS
 };
 
@@ -61,23 +61,23 @@ void options_ping_init(
     double           interval,
     uint8_t          max_ttl)
 {
-    ping_options->count            = options_ping_get_count();
-    ping_options->dst_addr         = address;
-    ping_options->interval         = interval;
-    ping_options->show_timestamp   = options_ping_get_show_timestamp();
-    ping_options->is_quiet         = options_ping_get_is_quiet();
-    ping_options->do_resolv        = options_ping_get_do_resolv();
-    ping_options->max_ttl          = max_ttl;
+    ping_options->count          = options_ping_get_count();
+    ping_options->dst_addr       = address;
+    ping_options->interval       = interval;
+    ping_options->show_timestamp = options_ping_get_show_timestamp();
+    ping_options->is_quiet       = options_ping_get_is_quiet();
+    ping_options->do_resolv      = options_ping_get_do_resolv();
+    ping_options->max_ttl        = max_ttl;
 }
 
 inline ping_options_t ping_get_default_options() {
     ping_options_t ping_options = {
-        .dst_addr         = NULL,
-        .do_resolv        = OPTIONS_PING_DO_RESOLV_DEFAULT,
-        .interval         = OPTIONS_PING_INTERVAL_DEFAULT,
-        .count            = OPTIONS_PING_COUNT_DEFAULT,
-        .show_timestamp   = OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT,
-        .is_quiet         = OPTIONS_PING_IS_QUIET_DEFAULT,
+        .dst_addr       = NULL,
+        .do_resolv      = OPTIONS_PING_DO_RESOLV_DEFAULT,
+        .interval       = OPTIONS_PING_INTERVAL_DEFAULT,
+        .count          = OPTIONS_PING_COUNT_DEFAULT,
+        .show_timestamp = OPTIONS_PING_SHOW_TIMESTAMP_DEFAULT,
+        .is_quiet       = OPTIONS_PING_IS_QUIET_DEFAULT,
     };
     return ping_options;
 };
@@ -94,9 +94,9 @@ inline ping_options_t ping_get_default_options() {
  */
 
 static double compute_minimum(dynarray_t * array) {
-    size_t array_length = dynarray_get_size(array);
-    double current_min  = 0;
-    unsigned int i      = 1;
+    size_t   array_length = dynarray_get_size(array);
+    double   current_min  = 0;
+    unsigned i;
 
     if (array_length != 0) {
         current_min = *((double*) dynarray_get_ith_element(array, 0));
@@ -116,9 +116,9 @@ static double compute_minimum(dynarray_t * array) {
  */
 
 static double compute_maximum(dynarray_t * array) {
-    size_t array_length = dynarray_get_size(array);
-    double current_max  = 0;
-    unsigned int i      = 1;
+    size_t   array_length = dynarray_get_size(array);
+    double   current_max  = 0;
+    unsigned i;
 
     if (array_length != 0) {
         current_max = *((double*) dynarray_get_ith_element(array, 0));
@@ -138,18 +138,17 @@ static double compute_maximum(dynarray_t * array) {
  */
 
 static double compute_mean(dynarray_t * array) {
-    size_t       array_length = dynarray_get_size(array);
-    double       sum          = 0;
-    unsigned int i            = 0;
+    size_t   array_length = dynarray_get_size(array);
+    double   sum          = 0;
+    unsigned i;
 
     if (array_length != 0) {
         for (i = 0; i < array_length; i++) {
             sum += *((double *) dynarray_get_ith_element(array, i));
         }
-        return sum / array_length;
-    } else {
-        return 0;
+        sum /= array_length;
     }
+    return sum;
 }
 
 /**
@@ -159,30 +158,27 @@ static double compute_mean(dynarray_t * array) {
  */
 
 static double compute_mean_deviation(dynarray_t * array) {
-    size_t       array_length = dynarray_get_size(array);
-    double       sum          = 0;
-    double       mean         = compute_mean(array);
-    unsigned int i            = 0;
+    size_t   array_length = dynarray_get_size(array);
+    double   sum          = 0;
+    double   mean         = compute_mean(array);
+    unsigned i;
 
     if (array_length != 0) {
         for (i = 0; i < array_length; i++) {
             sum += fabs(*((double *) dynarray_get_ith_element(array, i)) - mean);
         }
-        return sum / array_length;
-    } else {
-        return 0;
+        sum /= array_length;
     }
+    return sum;
 }
 
 /**
  * \brief print the computed statistics
  * \param ping_data pointer to a ping_data_t instance containing the data of the algorithm
  */
+
 void ping_dump_statistics(ping_data_t * ping_data) {
-    double max        = 0,
-           min        = 0,
-           avg        = 0,
-           mdev       = 0;
+    double max, min, avg, mdev;
 
     if (ping_data == NULL || ping_data->rtt_results == NULL) {
         fprintf(stderr, "An error occured while computing statistics...\n");
@@ -215,20 +211,26 @@ void ping_dump_statistics(ping_data_t * ping_data) {
  */
 
 static bool destination_network_unreachable(const probe_t * reply) {
-    uint8_t version = 0,
-            code    = 0,
-            type    = 0;
+    bool    ret = false;
+    uint8_t code, type, version;
 
-    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
-        && probe_extract(reply, "type", &type)) {
-
-        if (version == 4) {
-            return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_HOST);
-        } else {
-            return (type == ICMP6_DST_UNREACH) && (code == ICMP6_DST_UNREACH_ADDR);
+    if (probe_extract(reply, "version", &version)
+     && probe_extract(reply, "code",    &code)
+     && probe_extract(reply, "type",    &type)
+    ) {
+        switch (version){
+            case 4:
+                ret = (type == ICMP_UNREACH && code == ICMP_UNREACH_HOST);
+                break;
+            case 6:
+                ret = (type == ICMP6_DST_UNREACH && code == ICMP6_DST_UNREACH_ADDR);
+                break;
+            default:
+                fprintf(stderr, "destination_network_unreachable: invalid version = %d\n", version);
+                break;
         }
     }
-    return false;
+    return ret;
 }
 
 /**
@@ -242,9 +244,10 @@ static bool destination_host_unreachable(const probe_t *reply) {
             code    = 0,
             type    = 0;
 
-    if (probe_extract(reply, "version", &version) && probe_extract(reply, "code", &code)
-        && probe_extract(reply, "type", &type)) {
-
+    if (probe_extract(reply, "version", &version)
+     && probe_extract(reply, "code",    &code)
+     && probe_extract(reply, "type",    &type)
+    ) {
         if (version == 4) {
             return (type == ICMP_UNREACH) && (code == ICMP_UNREACH_NET);
         } else {
@@ -775,8 +778,8 @@ int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t 
             if (destination_reached(options->dst_addr, reply)) {
                 pt_raise_event(loop, event_create(PING_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
             } else {
-                  ++(data->num_losses);
-                  if (destination_network_unreachable(reply)) {
+                ++(data->num_losses);
+                if (destination_network_unreachable(reply)) {
                     pt_raise_event(loop, event_create(PING_DST_NET_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
                 } else if (destination_host_unreachable(reply)) {
                     pt_raise_event(loop, event_create(PING_DST_HOST_UNREACHABLE, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));

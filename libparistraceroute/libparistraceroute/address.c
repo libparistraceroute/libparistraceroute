@@ -276,8 +276,11 @@ bool address_resolv(const address_t * address, char ** phostname, int mask_cache
 #ifdef USE_CACHE
     if (cache_ip_hostname && (mask_cache & CACHE_READ)) {
         found = map_find(cache_ip_hostname, address, &data); //phostname);
-        if (found)
+        if (found) {
+            // We've to strdup the cached value, otherwise the function
+            // calling address_resolv will erase this cached value.
             *phostname = strdup(data);
+        }
     }
 #endif
 

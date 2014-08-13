@@ -286,18 +286,15 @@ const char * get_ip_protocol_name(int family) {
             fprintf(stderr, "get_ip_protocol_name: Internet family not supported (%d)\n", family);
             break;
     }
-
     return NULL;
 }
 
 const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
     if (use_tcp) {
         return "tcp";
-    }
-    else if (use_udp) {
+    } else if (use_udp) {
         return "udp";
-    }
-    else if (use_icmp) {
+    } else if (use_icmp) {
         switch (family) {
             case AF_INET:
                 return "icmpv4";
@@ -308,7 +305,6 @@ const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use
                 break;
         }
     }
-
     return NULL;
 }
 
@@ -467,8 +463,7 @@ int main(int argc, char ** argv)
 
         if (is_tcp_ack) {
             probe_set_field(probe, BITS("ack", 1, &bit_value));
-        }
-        else  {
+        } else {
             probe_set_field(probe, BITS("syn", 1, &bit_value));
         }
     }
@@ -505,7 +500,6 @@ int main(int argc, char ** argv)
     }
 
     exit_code = EXIT_SUCCESS;
-
 
     // Leave the program
 ERR_PT_LOOP:

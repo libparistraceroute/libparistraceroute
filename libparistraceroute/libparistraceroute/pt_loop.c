@@ -14,7 +14,6 @@
 #include <netinet/in.h>    // IPPROTO_ICMP, IPPROTO_ICMPV6
 
 #include "pt_loop.h"
-
 #include "algorithm.h"
 
 #define MAXEVENTS 100
@@ -114,14 +113,17 @@ ERR_SIGNALFD:
  */
 
 static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
+    event_t * event;
+
     // Allocate the event
-    event_t * event = event_create(
+    if (!(event = event_create(
         type,
         nested_event,
         loop->cur_instance,
         nested_event ? (ELEMENT_FREE) event_free : NULL
-    );
-    if (!event) return false;
+    ))) {
+        return false;
+    }
 
     // Raise the event
     pt_throw(loop, loop->cur_instance->caller, event);
@@ -135,9 +137,9 @@ static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_
  */
 
 static int pt_loop_process_user_events(pt_loop_t * loop) {
-    event_t      ** events        = pt_loop_get_user_events(loop);
-    size_t          i, num_events = pt_loop_get_num_user_events(loop);
-    uint64_t        ret;
+    event_t  ** events        = pt_loop_get_user_events(loop);
+    size_t      i, num_events = pt_loop_get_num_user_events(loop);
+    uint64_t    ret;
 
     for (i = 0; i < num_events; i++) {
         if (read(loop->eventfd_user, &ret, sizeof(ret)) == -1) {
@@ -218,7 +220,7 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
     }
 
     loop->user_data = user_data;
-    loop->stop = PT_LOOP_CONTINUE;
+    loop->status = PT_LOOP_CONTINUE;
     loop->next_algorithm_id = 1; // 0 means unaffected ?
     loop->cur_instance = NULL;
     loop->algorithm_instances_root = NULL;
@@ -327,23 +329,23 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 continue;
             }
 
-            if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_sendq_fd) {
+            if (loop->status != PT_LOOP_INTERRUPTED && cur_fd == network_sendq_fd) {
                 if (!network_process_sendq(loop->network)) {
                     if (loop->network->is_verbose) fprintf(stderr, "pt_loop: Can't send packet\n");
                 }
-            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_recvq_fd) {
+            } else if (loop->status != PT_LOOP_INTERRUPTED && cur_fd == network_recvq_fd) {
                 if (!network_process_recvq(loop->network)) {
                     if (loop->network->is_verbose) fprintf(stderr, "pt_loop: Cannot fetch packet\n");
                 }
-            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_group_timerfd) {
+            } else if (loop->status != PT_LOOP_INTERRUPTED && cur_fd == network_group_timerfd) {
                  //printf("pt_loop processing scheduled probes\n");
                 network_process_scheduled_probe(loop->network);
 #ifdef USE_IPV4
-            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_icmpv4_sockfd) {
+            } else if (loop->status != PT_LOOP_INTERRUPTED && cur_fd == network_icmpv4_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMP);
 #endif
 #ifdef USE_IPV6
-            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_icmpv6_sockfd) {
+            } else if (loop->status != PT_LOOP_INTERRUPTED && cur_fd == network_icmpv6_sockfd) {
                 network_process_sniffer(loop->network, IPPROTO_ICMPV6);
 #endif
             } else if (cur_fd == loop->eventfd_algorithm) {
@@ -362,7 +364,7 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 // Flush the queue
                 pt_loop_clear_user_events(loop);
 
-            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == loop->sfd) {
+            } else if (loop->status != PT_LOOP_INTERRUPTED && cur_fd == loop->sfd) {
 
                 // Handling signals (ctrl-c, etc.)
                 s = read(loop->sfd, &fdsi, sizeof(struct signalfd_siginfo));
@@ -376,10 +378,10 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 } else {
                     perror("Read unexpected signal\n");
                 }
-                loop->stop = PT_LOOP_INTERRUPTED;
+                loop->status = PT_LOOP_INTERRUPTED;
                 break;
 
-            } else if (loop->stop != PT_LOOP_INTERRUPTED && cur_fd == network_timerfd) {
+            } else if (loop->status != PT_LOOP_INTERRUPTED && cur_fd == network_timerfd) {
 
                 // Timer managing timeout in network layer has expired
                 // At least one probe has expired
@@ -388,10 +390,10 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 }
             }
         }
-    } while (loop->stop == PT_LOOP_CONTINUE || loop->stop == PT_LOOP_INTERRUPTED);
+    } while (loop->status == PT_LOOP_CONTINUE || loop->status == PT_LOOP_INTERRUPTED);
 
     // Process internal events
-    return loop->stop == PT_LOOP_TERMINATE ? 0 : -1;
+    return loop->status == PT_LOOP_TERMINATE ? 0 : -1;
 }
 
 bool pt_send_probe(pt_loop_t * loop, probe_t * probe) {
@@ -403,7 +405,7 @@ bool pt_send_probe(pt_loop_t * loop, probe_t * probe) {
 }
 
 void pt_loop_terminate(pt_loop_t * loop) {
-    loop->stop = PT_LOOP_TERMINATE;
+    loop->status = PT_LOOP_TERMINATE;
 }
 
 bool pt_raise_event(pt_loop_t * loop, event_t * event) {
