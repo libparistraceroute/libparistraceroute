@@ -1,16 +1,16 @@
 #include "flow.h"
 
 #include <stdlib.h>
-#include <errno.h>
 
 mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state)
 {
     mda_flow_t * mda_flow;
 
-    if ((mda_flow = calloc(1, sizeof(mda_flow_t)))) {
+    if ((mda_flow = malloc(sizeof(mda_flow_t)))) {
         mda_flow->flow_id = flow_id;
         mda_flow->state = state;
     }
+
     return mda_flow;
 }
 
