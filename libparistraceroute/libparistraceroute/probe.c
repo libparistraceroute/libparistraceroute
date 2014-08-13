@@ -50,14 +50,6 @@ static bool probe_update_length(probe_t * probe);
 //-----------------------------------------------------------
 
 /**
- * \brief Retrieve the layer related to the payload from a probe
- * \param probe The queried probe
- * \return The corresponding layer, NULL if i is invalid.
- */
-
-static layer_t * probe_get_layer_payload(const probe_t * probe);
-
-/**
  * \brief Add a layer in the probe. Fields 'length', 'checksum' and
  *    so on are not recomputed.
  * \param layer The layer we're adding to the probe. It is not duplicated.
@@ -234,7 +226,7 @@ layer_t * probe_get_layer(const probe_t * probe, size_t i) {
     return dynarray_get_ith_element(probe->layers, i);
 }
 
-static layer_t * probe_get_layer_payload(const probe_t * probe) {
+layer_t * probe_get_layer_payload(const probe_t * probe) {
     size_t    num_layers = probe_get_num_layers(probe);
     layer_t * last_layer;
 

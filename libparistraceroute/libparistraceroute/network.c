@@ -10,6 +10,7 @@
 #include <arpa/inet.h>   // htons
 #include <limits.h>      // INT_MAX
 
+#include "protocol.h"    // struct probe_s
 #include "network.h"
 #include "common.h"
 #include "packet.h"
@@ -233,8 +234,42 @@ static bool network_update_next_timeout(network_t * network)
  *   this reply.
  */
 
+/* // XXX this commented function can probably be removed
+bool probe_match(const probe_t * probe, const probe_t * reply)
+{
+    // XXX Only matching ICMP echo reply at the moment
+    uint8_t type;
+    if (!(probe_extract_ext(reply, "type", 1, &type))) {
+        printf("Cannot extract type from probe... continueing\n");
+        return false;
+    }
+    return (type == 0); // ECHO REPLY
+}
+*/
+
+bool probe_match(const struct probe_s * probe, const struct probe_s * reply)
+{
+    size_t    num_layers       = probe_get_num_layers((const probe_t *)probe);
+    size_t    i                = 0;
+    layer_t * layer_to_analyse = NULL;
+
+    for (i = 0; i < num_layers - 1; i++)
+    {
+        layer_to_analyse = probe_get_layer((const probe_t *)probe, i);
+        if (layer_to_analyse->protocol->matches != NULL) {
+            if (!layer_to_analyse->protocol->matches(probe, reply)) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
 static probe_t * network_get_matching_probe(network_t * network, const probe_t * reply)
 {
+
     // Suppose we perform a traceroute measurement thanks to IPv4/UDP packet
     // We encode in the IPv4 checksum the ID of the probe.
     // Then, we should sniff an IPv4/ICMP/IPv4/UDP packet.
@@ -246,9 +281,11 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     probe_t  * probe;
     size_t     i, num_flying_probes;
 
+    // XXX
+    /*
     // Fetch the tag from the reply. Its the 3rd checksum field.
     if (!(reply_extract_tag(reply, &tag_reply))) {
-        // This is not an IP/ICMP/IP/* reply :(
+        // This is not an IP / ICMP / IP / * reply :(
         if (network->is_verbose) fprintf(stderr, "Can't retrieve tag from reply\n");
         return NULL;
     }
@@ -263,6 +300,21 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
             if (tag_reply == tag_probe) break;
         }
     }
+    */
+
+    // XXX BEGIN Harcoded ICMP response (JA 17/07/2014)
+    tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++;
+
+    num_flying_probes = dynarray_get_size(network->probes);
+    for (i = 0; i < num_flying_probes; i++) {
+        probe = dynarray_get_ith_element(network->probes, i);
+
+        // Reply / probe comparison. In our probe packet, the probe ID
+        // is stored in the checksum of the (first) IP layer.
+        if (probe_match((const struct probe_s *)probe, (const struct probe_s *)reply))
+            break;
+    }
+    // XXX END Hardcoded ICMP response
 
     // No match found if we reached the end of the array
     if (i == num_flying_probes) {
@@ -637,7 +689,7 @@ bool network_process_recvq(network_t * network)
     probe_reply_set_reply(probe_reply, reply);
 
     // Notify the instance which has build the probe that we've got the corresponding reply
-    pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL)); // TODO probe_reply_free frees only the reply
+    pt_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL)); // TODO probe_reply_free frees only the reply
     return true;
 
 ERR_PROBE_REPLY_CREATE:
@@ -674,7 +726,7 @@ bool network_drop_expired_flying_probe(network_t * network)
             if (network_get_probe_timeout(network, probe) - EXTRA_DELAY > 0) break;
 
             // This probe has expired, raise a PROBE_TIMEOUT event.
-            pt_algorithm_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
+            pt_throw(NULL, probe->caller, event_create(PROBE_TIMEOUT, probe, NULL, NULL)); //(ELEMENT_FREE) probe_free));
         }
 
         // Delete the i oldest probes, which have expired.

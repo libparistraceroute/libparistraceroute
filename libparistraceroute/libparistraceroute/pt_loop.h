@@ -1,6 +1,20 @@
 #ifndef PT_LOOP_H
 #define PT_LOOP_H
 
+/**
+ * \file pt_loop.h
+ * \brief Main loop managing events.
+ *
+ * pt_loop aims at processing events triggered:
+ * - by the user:
+ *      ctrl c...
+ * - by libparistraceroute:
+ *      reply handled,
+ *      timeout...
+ * -  by the algorithms built above libparistraceroute:
+ *      see libparistraceroute/algorithms/
+ */
+
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
@@ -9,35 +23,42 @@
 #include "network.h"
 #include "event.h"
 
-#define PT_LOOP_CONTINUE  0
-#define PT_LOOP_TERMINATE 1
+typedef enum pt_loop_status_e {
+    PT_LOOP_CONTINUE,    /**< Process and wait for next events */
+    PT_LOOP_TERMINATE,   /**< Stop properly the pt_loop */
+    PT_LOOP_INTERRUPTED  /**< Abrupt interruption (ctrl c): process last pending events, ignore new events. */
+} pt_loop_status_t;
 
 typedef struct pt_loop_s {
     // Network
-    network_t            * network;                  /**< The network layer */
+    network_t                   * network;                  /**< The network layer */
 
     // Algorithms
-    void                 * algorithm_instances_root;
-    unsigned int           next_algorithm_id;
-    int                    eventfd_algorithm;
+    void                        * algorithm_instances_root;
+    unsigned int                  next_algorithm_id;
+    int                           eventfd_algorithm;
 
     // User
-    int                    eventfd_user;             /**< User notification */
-    dynarray_t           * events_user;              /**< User events queue (events raised from the library to a program */
+    int                           eventfd_user;             /**< User notification */
+    int                           eventfd_terminate;        /**< This eventfd_terminate is set when the pt_loop_t must break */
+    dynarray_t                  * events_user;              /**< User events queue (events raised from the library to a program */
 
     void (*handler_user)(
         struct pt_loop_s *,
-        event_t *,
-        void *
-    );                                               /**< Points to a user-defined handler called whenever the library raised an event for a program */
-    void                 * user_data;                /**< Data shared by the all algorithms running thanks to this pt_loop */
+        event_t          *,
+        void             *
+    );                                                      /**< Points to a user-defined handler called whenever the library
+                                                                 raised an event for a program. */
+    void                        * user_data;                /**< Data shared by the all algorithms running thanks to this pt_loop. */
 
-    int                    stop;                     /**< State of the loop. The loop remains active while stop == PT_LOOP_CONTINUE */
+    pt_loop_status_t              status;                   /**< State of the loop. See pt_loop_status_t for further details. */
+
     // Signal data
-    int                    sfd;                      // signalfd
+    int                           sfd;                      // signalfd
+
     // Epoll data
-    int                    efd;
-    struct epoll_event   * epoll_events;
+    int                           efd;
+    struct epoll_event          * epoll_events;
     struct algorithm_instance_s * cur_instance;
 } pt_loop_t;
 
@@ -70,30 +91,7 @@ void pt_loop_free(pt_loop_t * loop);
  *    - the user-defined handler (see pt_loop_create())
  *    - a handler implemented in an algorithm module (algorithm and network events)
  *
- *  Typical usage:
- *
- *   int status;
- *   pt_loop_t * loop = pt_loop_create(handler_user)
- *   if (!loop) {
- *      // error
- *      ...
- *   }
- *
- *   // Instanciate algorithm(s)
- *   ...
- *
- *   // The main loop
- *   do {
- *       status = pt_loop(loop, 0);
- *   } while(status > 0);
- *
- *   if (status == 0) {
- *       // success
- *       ...
- *   } else {
- *       // failure
- *       ...
- *   }
+ * Example: See libparistraceroute/paris-traceroute/paris-traceroute.c.
  *
  * \param loop The libparistraceroute loop 
  * \param timeout The interval of time during 
@@ -136,14 +134,14 @@ size_t pt_loop_get_num_user_events(pt_loop_t * loop);
 bool pt_send_probe(pt_loop_t * loop, probe_t * probe);
 
 /**
- * \brief Stop the main loop
+ * \brief Stop the main loop. It is usually used to break the pt_loop call in the main program.
  * \param loop The main loop
  */
 
 void pt_loop_terminate(pt_loop_t * loop);
 
 /**
- * \brief Raise an ALGORITHM_EVENT event to the calling instance (if any).
+ * \brief (Used by algorithm) Notify pt_loop that the algorithm has raised a algorithm specific event.
  * \param loop The main loop
  * \param event The event nested in the ALGORITHM_EVENT event we will raise
  * \return true iif successful
@@ -152,7 +150,7 @@ void pt_loop_terminate(pt_loop_t * loop);
 bool pt_raise_event(pt_loop_t * loop, event_t * event);
 
 /**
- * \brief Raise an ALGORITHM_ERROR event to the calling instance (if any).
+ * \brief (Used by algorithm) Notify pt_loop that the algorithm has an error has occured.
  * \param loop The main loop
  * \return true iif successful
  */
@@ -160,7 +158,7 @@ bool pt_raise_event(pt_loop_t * loop, event_t * event);
 bool pt_raise_error(pt_loop_t * loop);
 
 /**
- * \brief Raise an ALGORITHM_TERMINATED event to the calling instance (if any).
+ * \brief (Used by algorithm) Notify pt_loop that the algorithm has terminated.
  * \param loop The main loop
  * \return true iif successful
  */

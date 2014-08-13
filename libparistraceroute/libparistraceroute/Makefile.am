@@ -32,6 +32,7 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
 						algorithms/mda/interface.h \
                         algorithms/mda/ttl_flow.h \
 						algorithms/mda.h \
+                        algorithms/ping.h \
 						algorithms/traceroute.h \
 						bitfield.h \
 						bits.h \
@@ -93,6 +94,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
 						algorithms/mda/flow.c \
 						algorithms/mda/interface.c \
                         algorithms/mda/ttl_flow.c \
+                        algorithms/ping.c \
 						algorithms/traceroute.c \
 						bitfield.c \
 						bits.c \

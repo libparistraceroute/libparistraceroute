@@ -102,28 +102,28 @@ void       algorithm_instance_clear_events  (algorithm_instance_t * instance);
 //--------------------------------------------------------------------
 
 /**
- * \brief Throw an event to the libparistraceroute loop or to an instance
+ * \brief Throw an event from the loop to a given algorithm_instance_t
  * \param loop The libparistraceroute loop.
  *    Pass NULL if this event is raised for an instance.
  * \param instance The instance that must receives the event.
- *    Pass NULL if this event has to be sent to the loop.
+ *    Pass NULL if this event has to be sent to the user program.
  * \param event The event that must be raised
  */
 
-void pt_algorithm_throw(
+void pt_throw(
     struct pt_loop_s     * loop, 
     algorithm_instance_t * instance,
     event_t              * event
 );
 
 /**
- * \brief Notify the caller the algorithm instance will be freed,
- *   then unregister the instance from the loop and free
- *   algorithm instance's data.
+ * \brief Send a TERM event to the algorithm (to make it release its data from the
+ *    memory and unregister this algorithm from the pt_loop_t.
+ * \param loop The main loop
  * \param instance The instance we are freeing
  */
 
-void pt_instance_stop(
+void pt_stop_instance(
     struct pt_loop_s     * loop,
     algorithm_instance_t * instance
 );
@@ -131,14 +131,14 @@ void pt_instance_stop(
 /**
  * \brief Add a new algorithm instance in the libparistraceroute loop.
  * \param loop The libparistraceroute loop
- * \param name Name of the algorithm (for instance 'traceroute').
+ * \param name Name of the corresponding algorithm (for instance 'traceroute').
  * \param options Options passed to this instance.
  * \param probe_skel Probe skeleton that constrains the way the packets
  *   produced by this instance will be forged.
  * \return A pointer to the instance, NULL otherwise. 
  */
 
-algorithm_instance_t * pt_algorithm_add(
+algorithm_instance_t * pt_add_instance(
     struct pt_loop_s * loop,
     const char       * name,
     void             * options,
@@ -156,7 +156,7 @@ algorithm_instance_t * pt_algorithm_add(
  * \param level Unused
  */
 
-void pt_process_algorithms_instance(
+void pt_process_instance(
     const void * node,
     VISIT        visit,
     int          level
@@ -169,7 +169,7 @@ void pt_process_algorithms_instance(
  * \param level Unused
  */
 
-void pt_free_algorithms_instance(
+void pt_free_instance(
     const void * node,
     VISIT        visit,
     int          level
@@ -182,7 +182,7 @@ void pt_free_algorithms_instance(
  *    that dispatches the events related to this instance.
  */
 
-void pt_algorithm_instance_iter(
+void pt_instance_iter(
     struct pt_loop_s * loop,
     void (*action) (const void *, VISIT, int)
 );

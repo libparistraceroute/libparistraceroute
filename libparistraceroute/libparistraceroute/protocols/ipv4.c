@@ -4,6 +4,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <stdbool.h>      // bool
 #include <unistd.h>       // close()
 #include <stddef.h>       // offsetof()
@@ -11,6 +12,8 @@
 #include <arpa/inet.h>    // inet_pton()
 #include <netinet/ip.h>   // iphdr
 #include <netinet/in.h>   // IPPROTO_IPIP, INET_ADDRSTRLEN
+
+#include "../probe.h"
 
 #include "../field.h"     // field_t
 #include "../protocol.h"  // csum
@@ -252,6 +255,44 @@ bool ipv4_instance_of(uint8_t * bytes) {
         && version == IPV4_DEFAULT_VERSION; 
 }
 
+/**
+ * \brief check whether the ipv4 protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
+bool ipv4_matches(const struct probe_s * _probe, const struct probe_s * _reply)
+{
+    const probe_t * probe = (const probe_t *) _probe,
+                  * reply = (const probe_t *) _reply;
+    address_t       probe_src_ip,
+                    probe_dst_ip,
+                    reply_src_ip,
+                    reply_dst_ip;
+
+    if (probe_extract(probe, "src_ip", &probe_src_ip)
+     && probe_extract(probe, "dst_ip", &probe_dst_ip)
+     && probe_extract(reply, "src_ip", &reply_src_ip)
+     && probe_extract(reply, "dst_ip", &reply_dst_ip)) {
+
+        if (!(!address_compare(&probe_src_ip, &reply_dst_ip) && (!address_compare(&probe_dst_ip, &reply_src_ip)))) {
+            // probe has most probably not reached its destination
+            if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
+             || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
+
+                if (probe_extract_ext(reply, "src_ip", 2, &reply_src_ip)
+                 && probe_extract_ext(reply, "dst_ip", 2, &reply_dst_ip)) {
+                    return !address_compare(&probe_src_ip, &reply_src_ip) && !address_compare(&probe_dst_ip, &reply_dst_ip);
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 static protocol_t ipv4 = {
     .name                 = "ipv4",
     .protocol             = IPPROTO_IPIP, // XXX only IP over IP (encapsulation). Beware probe.c, icmpv4_get_next_protocol_id 
@@ -263,6 +304,7 @@ static protocol_t ipv4 = {
     .finalize             = ipv4_finalize,
     .instance_of          = ipv4_instance_of,
     .get_next_protocol    = protocol_get_next_protocol,
+    .matches              = ipv4_matches,
 };
 
 PROTOCOL_REGISTER(ipv4);

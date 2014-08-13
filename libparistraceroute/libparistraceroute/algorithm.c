@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <search.h>
@@ -215,7 +216,7 @@ inline unsigned int algorithm_instance_get_num_events(algorithm_instance_t * ins
 // pt_loop: user interface 
 //--------------------------------------------------------------------
 
-void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
+void pt_process_instance(const void * node, VISIT visit, int level)
 {
     algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
     size_t                 i, num_events;
@@ -245,7 +246,7 @@ void pt_process_algorithms_instance(const void * node, VISIT visit, int level)
     algorithm_instance_clear_events(instance);
 }
 
-void pt_free_algorithms_instance(
+void pt_free_instance(
     const void * node,
     VISIT        visit,
     int          level
@@ -256,7 +257,7 @@ void pt_free_algorithms_instance(
 
 // Notify the called algorithm that it can start
 
-algorithm_instance_t * pt_algorithm_add(
+algorithm_instance_t * pt_add_instance(
     struct pt_loop_s * loop,
     const char       * name,
     void             * options,
@@ -283,7 +284,7 @@ algorithm_instance_t * pt_algorithm_add(
     }
 
     // We need to queue a new event for the algorithm: it has been started
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL, NULL, NULL));
+    pt_throw(NULL, instance, event_create(ALGORITHM_INIT, NULL, NULL, NULL));
 
     // Add this algorithms to the list of handled algorithms
     pt_algorithm_instance_add(loop, instance);
@@ -296,12 +297,12 @@ ERR_ALGORITHM_NOT_FOUND:
     return NULL;
 }
 
-void pt_instance_stop(
+void pt_stop_instance(
         struct pt_loop_s     * loop,
         algorithm_instance_t * instance
 ) {
     // Notify the caller that this instance will be freed
-    pt_algorithm_throw(NULL, instance, event_create(ALGORITHM_TERMINATED, NULL, NULL, NULL));
+    pt_throw(NULL, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
 
     // Unregister this instance from the loop
     pt_algorithm_instance_del(loop, instance);
@@ -310,23 +311,22 @@ void pt_instance_stop(
     algorithm_instance_free(instance);
 }
 
-void pt_algorithm_throw(
+void pt_throw(
     pt_loop_t            * loop,
     algorithm_instance_t * instance,
     event_t              * event
 ) {
-    //int ret;
     if (event) {
         if (instance) {
             // Enqueue an algorithm event
             dynarray_push_element(instance->events, event);
             eventfd_write(instance->loop->eventfd_algorithm, 1);
-           // printf("ret1 = %d\n", ret);
         } else if (loop) {
             // Enqueue an user event
             dynarray_push_element(loop->events_user, event);
             eventfd_write(loop->eventfd_user, 1);
-            //printf("ret2 = %d\n", ret);
+        } else {
+            fprintf(stderr, "pt_algorithm_throw: event ignored\n");
         }
     }
 }
@@ -335,7 +335,7 @@ void pt_algorithm_throw(
 // Internal usage (see pt_loop.c) 
 //--------------------------------------------------------------------
 
-inline void pt_algorithm_instance_iter(
+inline void pt_instance_iter(
     pt_loop_t * loop,
     void     (* action) (const void *, VISIT, int))
 {

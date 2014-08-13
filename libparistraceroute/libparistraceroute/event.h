@@ -25,16 +25,17 @@
 typedef enum {
     // Events raised by the network layer
     // Such events are dispatched to the appropriate algorithm instances
-    PROBE_REPLY,           /**< A reply has been sniffed           */
-    PROBE_TIMEOUT,         /**< No reply sniffed for a given probe */
+    PROBE_REPLY,               /**< A reply has been sniffed           */
+    PROBE_TIMEOUT,             /**< No reply sniffed for a given probe */
 
     // Events handled the algorithm layer
-    ALGORITHM_INIT,        /**< An algorithm can start             */
-    ALGORITHM_TERMINATED,  /**< An algorithm must terminate        */
+    ALGORITHM_INIT,            /**< An algorithm can start             */
+    ALGORITHM_TERM,            /**< An algorithm must terminate        */
 
     // Events raised by the algorithm layer
-    ALGORITHM_EVENT,       /**< An algorithm has raised an event   */
-    ALGORITHM_ERROR        /**< An error has occured               */
+    ALGORITHM_EVENT,           /**< An algorithm has raised an event   */
+    ALGORITHM_HAS_TERMINATED,  /**< An algorithm must terminate        */
+    ALGORITHM_ERROR            /**< An error has occured               */
 } event_type_t;
 
 /**

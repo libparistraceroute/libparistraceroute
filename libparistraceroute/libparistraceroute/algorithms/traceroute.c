@@ -23,11 +23,11 @@ static bool     do_resolv           = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT;
 
 static option_t traceroute_options[] = {
     // action           short long                  metavar             help    data
-    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",        HELP_f, min_ttl},
-    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",          HELP_m, max_ttl},
-    {opt_store_0,       "n",  OPT_NO_LF,            OPT_NO_METAVAR,     HELP_n, &do_resolv},
-    {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES",      HELP_q, num_queries},
-    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_UNDISCOVERED", HELP_M, max_undiscovered},
+    {opt_store_int_lim, "f",  "--first",            "FIRST_TTL",        TRACEROUTE_HELP_f, min_ttl},
+    {opt_store_int_lim, "m",  "--max-hops",         "MAX_TTL",          TRACEROUTE_HELP_m, max_ttl},
+    {opt_store_0,       "n",  OPT_NO_LF,            OPT_NO_METAVAR,     TRACEROUTE_HELP_n, &do_resolv},
+    {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES",      TRACEROUTE_HELP_q, num_queries},
+    {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_UNDISCOVERED", TRACEROUTE_HELP_M, max_undiscovered},
     END_OPT_SPECS
 };
 
@@ -108,7 +108,8 @@ ERR_MALLOC:
 static void traceroute_data_free(traceroute_data_t * traceroute_data) {
     if (traceroute_data) {
         if (traceroute_data->probes) {
-            dynarray_free(traceroute_data->probes, (ELEMENT_FREE) probe_free);
+            // TODO this will provoke a double free
+            // dynarray_free(traceroute_data->probes, (ELEMENT_FREE) probe_free);
         }
         free(traceroute_data);
     }
@@ -383,12 +384,13 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
             pt_raise_event(loop, event_create(TRACEROUTE_STAR, probe, NULL, (ELEMENT_FREE) probe_free));
             break;
 
-        case ALGORITHM_TERMINATED:
+        case ALGORITHM_TERM:
 
             // The caller allows us to free traceroute's data
             traceroute_data_free(*pdata);
             *pdata = NULL;
-            break;
+            has_terminated = true;
+            goto HAS_TERMINATED;
 
         case ALGORITHM_ERROR:
             goto FAILURE;
@@ -398,7 +400,7 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
     }
 
     // Forward event to the caller
-    pt_algorithm_throw(loop, loop->cur_instance->caller, event);
+    pt_throw(loop, loop->cur_instance->caller, event);
 
     // Explore next hop
     if ((data->num_replies % options->num_probes) == 0) {
@@ -434,6 +436,8 @@ int traceroute_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, pr
         }
 
     }
+
+HAS_TERMINATED:
     // Notify the caller the algorithm has terminated. The caller can still
     // use traceroute's data. It has to run pt_instance_free once this
     // data if no more needed.

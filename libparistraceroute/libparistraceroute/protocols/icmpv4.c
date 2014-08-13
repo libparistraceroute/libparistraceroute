@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -9,6 +10,7 @@
 
 #include "../protocol.h"
 #include "../layer.h"
+#include "../probe.h"
 
 #define ICMPV4_FIELD_TYPE             "type"
 #define ICMPV4_FIELD_CODE             "code"
@@ -124,6 +126,45 @@ const protocol_t * icmpv4_get_next_protocol(const layer_t * icmpv4_layer) {
     return next_protocol;
 }
 
+/**
+ * \brief check whether the icmpv4 protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
+bool icmpv4_matches(const struct probe_s * _probe, const struct probe_s * _reply)
+{
+    uint8_t         reply_type = 0,
+                    reply_code = 0,
+                    probe_type = 0,
+                    probe_code = 0;
+    layer_t       * icmp_layer = NULL;
+    const probe_t * probe      = (const probe_t *) _probe;
+    const probe_t * reply      = (const probe_t *) _reply;
+
+    if (probe_extract(reply, "type", &reply_type)
+     && probe_extract(probe, "type", &probe_type)
+     && probe_extract(probe, "code", &probe_code)) {
+
+        if (reply_type == ICMP_ECHOREPLY) {
+            return true;
+        }
+
+        if (!(icmp_layer = probe_get_layer(reply, 3)) || strcmp(icmp_layer->protocol->name, "icmpv4")) {
+            return false;
+        }
+
+        if (probe_extract_ext(reply, "type", 3, &reply_type) && probe_extract_ext(reply, "code", 3, &reply_code)) {
+            return (probe_type == reply_type) && (probe_code == reply_code);
+        }
+    }
+    return false;
+}
+
+
+
+
 static protocol_t icmpv4 = {
     .name                 = "icmpv4",
     .protocol             = IPPROTO_ICMP,
@@ -132,6 +173,7 @@ static protocol_t icmpv4 = {
     .write_default_header = icmpv4_write_default_header, // TODO generic
     .get_header_size      = icmpv4_get_header_size,
     .get_next_protocol    = icmpv4_get_next_protocol,
+    .matches              = icmpv4_matches,
 };
 
 PROTOCOL_REGISTER(icmpv4);

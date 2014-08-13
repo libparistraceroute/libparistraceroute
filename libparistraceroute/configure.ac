@@ -18,6 +18,7 @@ AC_SUBST(API_VERSION)
 # AC_CANONICAL_SYSTEM
 
 # Check if the source folder is available
+AC_CONFIG_SRCDIR([ping/ping.c])
 AC_CONFIG_SRCDIR([paris-traceroute/paris-traceroute.c])
 AC_CONFIG_SRCDIR([traceroute/traceroute.c])
 
@@ -277,6 +278,7 @@ AC_CONFIG_FILES(
     [libparistraceroute/libparistraceroute-$LIBRARY_VERSION.pc:libparistraceroute/libparistraceroute.pc.in]
 	[libparistraceroute/Makefile]
 	[paris-traceroute/Makefile]
+    [ping/Makefile]
 	[traceroute/Makefile]
 	[man/Makefile]
 	[doc/Makefile]

@@ -1,5 +1,6 @@
 #include "use.h"
 
+#include <stdio.h>
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
@@ -9,6 +10,7 @@
 #include <netinet/tcp.h>      // tcphdr
 #include <netinet/in.h>       // IPPROTO_TCP == 6
 
+#include "../probe.h"
 #include "../protocol.h"      // csum
 #include "../bits.h"
 
@@ -332,6 +334,44 @@ buffer_t * tcp_create_pseudo_header(const uint8_t * ip_segment)
     return buffer;
 }
 
+/**
+ * \brief check whether the tcp protocols of 2 probes match
+ * \param _probe the probe to analyse
+ * \param _reply the reply to the probe to analyse
+ * \true if protocols match, false otherwise
+ */
+
+bool tcp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
+{
+    const probe_t * probe = (const probe_t *) _probe,
+                  * reply = (const probe_t *) _reply;
+    uint16_t        probe_src_port = 0,
+                    probe_dst_port = 0,
+                    reply_src_port = 0,
+                    reply_dst_port = 0;
+    layer_t       * tcp_layer      = NULL;
+
+    if (probe_extract(probe, "src_port", &probe_src_port)
+     && probe_extract(probe, "dst_port", &probe_dst_port)
+     && probe_extract(reply, "src_port", &reply_src_port)
+     && probe_extract(reply, "dst_port", &reply_dst_port)) {
+
+        if (probe_src_port == reply_dst_port && reply_src_port == probe_dst_port) {
+            return true;
+        } else { // it is not a TCP probe; is it an ICMP probe?
+            if (!strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv4")
+             || !strcmp((probe_get_layer(reply, 1))->protocol->name, "icmpv6")) {
+
+                if (!(tcp_layer = probe_get_layer(reply, 3)) || strcmp(tcp_layer->protocol->name, "tcp")) {
+                    return false;
+                }
+                return (probe_src_port == reply_src_port) && (probe_dst_port == reply_dst_port);
+            }
+        }
+    }
+    return false;
+}
+
 static protocol_t tcp = {
     .name                 = "tcp",
     .protocol             = IPPROTO_TCP, 
@@ -342,6 +382,7 @@ static protocol_t tcp = {
     .write_default_header = tcp_write_default_header, // TODO generic
   //.socket_type          = NULL,
     .get_header_size      = tcp_get_header_size,
+    .matches              = tcp_matches,
 };
 
 PROTOCOL_REGISTER(tcp);
