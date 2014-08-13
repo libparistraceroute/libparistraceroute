@@ -430,7 +430,7 @@ int main(int argc, char ** argv)
     // Set network options (network and verbose)
     options_network_init(loop->network, is_debug);
 
-    printf("traceroute to %s (", dst_ip);
+    printf("%s to %s (", algorithm_name, dst_ip);
     address_dump(&dst_addr);
     printf("), %u hops max, %u bytes packets\n",
         ptraceroute_options->max_ttl,

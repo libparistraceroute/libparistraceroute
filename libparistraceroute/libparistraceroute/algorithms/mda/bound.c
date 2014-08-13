@@ -149,7 +149,6 @@ static double node_confidence(double graph_confidence, size_t max_branch)
     double power = 1.0 / max_branch;
     
     ret = pow((1 - graph_confidence), power); 
-    printf("%lf, %zu - %lf\n", graph_confidence, max_branch, 1 - ret);
     return 1 - ret;
 } 
 
