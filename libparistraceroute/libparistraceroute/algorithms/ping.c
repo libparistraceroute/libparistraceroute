@@ -736,9 +736,9 @@ bool send_ping_probes(
 // TODO remove opts parameter and define pt_loop_get_cur_options()
 int ping_loop_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * probe_skel, void * opts)
 {
-    ping_data_t          * data = NULL;                    // Current state of the algorithm instance
+    ping_data_t          * data     = NULL;                // Current state of the algorithm instance
     ping_data_t          * data_dup = NULL;                // Copy of the current stata
-    probe_t              * probe;                          // Probe
+    probe_t              * probe    = NULL;                // Probe
     const probe_t        * reply;                          // Reply
     probe_reply_t        * probe_reply;                    // (Probe, Reply) pair
     ping_options_t       * options = opts;                 // Options passed to this instance
