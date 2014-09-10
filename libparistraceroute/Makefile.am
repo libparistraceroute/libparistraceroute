@@ -10,11 +10,8 @@ dist_noinst_SCRIPTS = \
 	autogen.sh \
 	clean.sh
 
-EXTRA_DIST = \
-	compil_lines.txt
-
 # Distribute Debian package files.
-EXTRA_DIST += \
+EXTRA_DIST = \
 	debian/changelog \
 	debian/compat \
 	debian/control \
