@@ -20,3 +20,6 @@ paris_traceroute_CFLAGS = \
 
 paris_traceroute_LDADD = \
 	../libparistraceroute/libparistraceroute-@LIBRARY_VERSION@.la
+
+install-bin: install
+

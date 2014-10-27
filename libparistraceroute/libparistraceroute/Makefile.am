@@ -173,6 +173,15 @@ libparistraceroute_@LIBRARY_VERSION@_la_LDFLAGS = -lm -version-info @API_VERSION
 pkgconfigdir = $(libdir)/pkgconfig
 nodist_pkgconfig_DATA = libparistraceroute-@LIBRARY_VERSION@.pc
 
+## Define an independent executable script for inclusion in the distribution
+## archive.  However, it will not be installed on an end user's system due to
+## the noinst_ prefix.
+#dist_noinst_SCRIPTS = autogen.sh
+
+install-dev: install-data
+
+install-lib: install-exec
+
 # Dead code.
 EXTRA_DIST = \
 	algorithms/node_query.c \

@@ -1,3 +1,5 @@
-EXTRA_DIST = \
-	schema-function.png \
-	schema-working.png
+@SET_MAKE@
+
+#EXTRA_DIST = \
+#	schema-function.png \
+#	schema-working.png

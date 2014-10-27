@@ -1,0 +1,16 @@
+%packager               Jordan Augé
+%distribution           Fedora
+%vendor                 UPMC/LIP6
+
+%_signature gpg
+%_gpg_path ~/.gnupg
+%_gpg_name TopHat team
+%_gpgbin /usr/bin/gpg
+
+%_topdir                %(echo `pwd`)/paris-traceroute-rpm/libparistraceroute-1_0-1-1.0/packages/rpm/
+%_builddir              %{_topdir}/BUILD
+%_sourcedir             %{_topdir}/SOURCES
+%_specdir               %{_topdir}/SPECS
+%_rpmdir                %{_topdir}/RPMS
+%_srcrpmdir             %{_topdir}/SRPMS
+%_rpmfilename           %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
