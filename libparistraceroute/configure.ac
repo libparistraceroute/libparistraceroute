@@ -5,14 +5,14 @@
 #
 
 # Initial information about the project
-AC_INIT([paris-traceroute], [0.1], [paris-traceroute@googlegroups.com])
+AC_INIT([paris-traceroute], [0.9], [paris-traceroute@googlegroups.com])
 
 # Define these substitions here to keep all version information in one place.
 # For information on how to properly maintain the library version information,
 # refer to the libtool manual, section "Updating library version information":
 # http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 API_VERSION=1:0:0
-AC_SUBST([LIBRARY_VERSION], [1.0])
+AC_SUBST([LIBRARY_VERSION], [0.9])
 AC_SUBST(API_VERSION)
 
 # AC_CANONICAL_SYSTEM
