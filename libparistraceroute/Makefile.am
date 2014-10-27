@@ -40,12 +40,21 @@ install-bin:
 install-lib:
 	cd libparistraceroute && $(MAKE) $(AM_MAKEFLAGS) install-lib
 
-rpm:
+rpm-prepare:
 	$(MAKE) distdir ; \
 	tar cvjf $(PACKAGE)-$(VERSION).tar.bz2 $(PACKAGE)-$(VERSION) ; \
 	$(RM) -rf $(PACKAGE)-$(VERSION) ; \
-	cp $(PACKAGE)-$(VERSION).tar.bz2 packages/rpm/SOURCES/ ; \
-	rpmbuild -ba --nodeps --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
-	rpmbuild -ba --nodeps --clean --rmsource packages/rpm/SPECS/libparistraceroute.spec ; \
+	cp $(PACKAGE)-$(VERSION).tar.bz2 packages/rpm/SOURCES/ ;
+
+rpm-i386: rpm-prepare
+	rpmbuild -ba --nodeps --target=i386 --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild -ba --nodeps --target=i386 --clean --rmsource packages/rpm/SPECS/libparistraceroute.spec ;
+
+rpm-x86_64: rpm-prepare
+	rpmbuild -ba --nodeps --target=x86_64 --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild -ba --nodeps --target=x86_64 --clean --rmsource packages/rpm/SPECS/libparistraceroute.spec ;
+
+rpm-clean:
 	rm -f $(PACKAGE)-$(VERSION).tar.bz2
 
+rpm: rpm-i386 rpm-x86_64 rpm-clean
