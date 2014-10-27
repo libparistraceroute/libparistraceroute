@@ -40,21 +40,41 @@ install-bin:
 install-lib:
 	cd libparistraceroute && $(MAKE) $(AM_MAKEFLAGS) install-lib
 
+rpm:    rpm-prepare rpm-i386 rpm-x86_64 rpm-clean
+
 rpm-prepare:
-	$(MAKE) distdir ; \
-	tar cvjf $(PACKAGE)-$(VERSION).tar.bz2 $(PACKAGE)-$(VERSION) ; \
-	$(RM) -rf $(PACKAGE)-$(VERSION) ; \
-	cp $(PACKAGE)-$(VERSION).tar.bz2 packages/rpm/SOURCES/ ;
+	if [ ! -d packages/rpm/RPMS ]; then \
+	    mkdir -p packages/rpm/RPMS/i386 ; \
+	    mkdir -p packages/rpm/RPMS/x86_64 ; \
+	fi
+	if [ ! -d packages/rpm/SRPMS ]; then \
+	    mkdir -p packages/rpm/SRPMS ; \
+	fi
+	if [ ! -d packages/rpm/SOURCES ]; then \
+	    mkdir -p packages/rpm/SOURCES ; \
+	fi
+	if [ ! -d packages/rpm/BUILD ]; then \
+	    mkdir -p packages/rpm/BUILD ; \
+	fi
+	if [ ! -d packages/rpm/BUILDROOT ]; then \
+	    mkdir -p packages/rpm/BUILDROOT ; \
+	fi
+	$(MAKE) dist-bzip2 ; \
+	mv $(PACKAGE)-$(VERSION).tar.bz2 packages/rpm/SOURCES/ ;
 
-rpm-i386: rpm-prepare
-	rpmbuild -ba --nodeps --target=i386 --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
-	rpmbuild -ba --nodeps --target=i386 --clean --rmsource packages/rpm/SPECS/libparistraceroute.spec ;
-
-rpm-x86_64: rpm-prepare
-	rpmbuild -ba --nodeps --target=x86_64 --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
-	rpmbuild -ba --nodeps --target=x86_64 --clean --rmsource packages/rpm/SPECS/libparistraceroute.spec ;
+rpm-host:
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --clean packages/rpm/SPECS/libparistraceroute.spec ;
+rpm-x86_64:
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=x86_64-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=x86_64-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec ;
+rpm-i386:
+	setarch i386 rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=i386-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	setarch i386 rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=i386-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec ;
+rpm-sparc:
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=sparc-gnu-linux --clean packages/rpm/SPECS/$(PACKAGE).spec ; \
+	rpmbuild --define '_topdir $(PWD)/packages/rpm' -ba --target=sparc-gnu-linux --clean packages/rpm/SPECS/libparistraceroute.spec ;
 
 rpm-clean:
-	rm -f $(PACKAGE)-$(VERSION).tar.bz2
+	rm -rf packages/rpm/SOURCES/*
 
-rpm: rpm-i386 rpm-x86_64 rpm-clean
