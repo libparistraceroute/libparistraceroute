@@ -451,7 +451,7 @@ int main(int argc, char ** argv)
                desired_size = (size_t) packet_size[0],
                minimal_size;
         if (!check_packet_size(is_icmp, headers_size, desired_size, &minimal_size)) {
-            fprintf(stderr, "Packet size (%lu) too small (try a value >= %lu)\n", desired_size, minimal_size);
+            fprintf(stderr, "Packet size (%zu) too small (try a value >= %zu)\n", desired_size, minimal_size);
             goto ERR_INVALID_PACKET_SIZE;
         }
         probe_payload_resize(probe, desired_size - headers_size);

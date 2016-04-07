@@ -1,2 +1,3 @@
 # html/* files are generated thanks to doxygen
 html
+doxygen_sqlite3.db
