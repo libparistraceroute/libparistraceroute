@@ -24,53 +24,54 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 lib_LTLIBRARIES = libparistraceroute-@LIBRARY_VERSION@.la
 
 nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
-						address.h \
+                        address.h \
                         algorithm.h \
-						algorithms/mda/bound.h \
-						algorithms/mda/data.h \
-						algorithms/mda/flow.h \
-						algorithms/mda/interface.h \
+                        algorithms/mda/bound.h \
+                        algorithms/mda/data.h \
+                        algorithms/mda/flow.h \
+                        algorithms/mda/interface.h \
                         algorithms/mda/ttl_flow.h \
-						algorithms/mda.h \
+                        algorithms/mda.h \
                         algorithms/ping.h \
-						algorithms/traceroute.h \
-						bitfield.h \
-						bits.h \
-						buffer.h \
-						common.h \
-						containers/object.h \
-						containers/map.h \
-						containers/pair.h \
-						containers/set.h \
-						dynarray.h \
-						event.h \
-						field.h \
+                        algorithms/traceroute.h \
+                        bitfield.h \
+                        bits.h \
+                        buffer.h \
+                        common.h \
+                        containers/object.h \
+                        containers/map.h \
+                        containers/pair.h \
+                        containers/set.h \
+                        dynarray.h \
+                        event.h \
+                        field.h \
                         group.h \
                         generator.h \
-						layer.h \
-						lattice.h \
-						list.h \
-						metafield.h \
-						network.h \
-						optparse.h \
+                        layer.h \
+                        lattice.h \
+                        list.h \
+                        metafield.h \
+                        network.h \
+                        optparse.h \
                         options.h \
-						packet.h \
-						probe.h \
+                        packet.h \
+                        probe.h \
                         probe_group.h \
-						protocol.h \
-						protocol_field.h \
-						protocols/ipv4_pseudo_header.h \
-						protocols/ipv6_pseudo_header.h \
-						pt_loop.h \
-						queue.h \
-						sniffer.h \
-						socketpool.h \
+                        protocol.h \
+                        protocol_field.h \
+                        protocols/ipv4_pseudo_header.h \
+                        protocols/ipv6_pseudo_header.h \
+                        pt_loop.h \
+                        queue.h \
+                        sniffer.h \
+                        socketpool.h \
                         tree.h \
                         use.h \
-                        vector.h
+                        vector.h \
+                        whois.h
 
 nodist_nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS = \
-	config.h
+    config.h
 
 # where to install the headers on the system
 libparistraceroute_@LIBRARY_VERSION@_ladir = $(includedir)/paristraceroute
@@ -86,56 +87,57 @@ libparistraceroute_@LIBRARY_VERSION@_ladir = $(includedir)/paristraceroute
 # the list of header files that belong to the library (to be installed later)
 libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         $(libparistraceroute_la_HEADERS) \
-					    address.c \
+                        address.c \
                         algorithm.c \
-						algorithms/mda.c \
-						algorithms/mda/bound.c \
-						algorithms/mda/data.c \
-						algorithms/mda/flow.c \
-						algorithms/mda/interface.c \
+                        algorithms/mda.c \
+                        algorithms/mda/bound.c \
+                        algorithms/mda/data.c \
+                        algorithms/mda/flow.c \
+                        algorithms/mda/interface.c \
                         algorithms/mda/ttl_flow.c \
                         algorithms/ping.c \
-						algorithms/traceroute.c \
-						bitfield.c \
-						bits.c \
-						buffer.c \
-						common.c \
-						containers/object.c \
-						containers/map.c \
-						containers/pair.c \
-						containers/set.c \
-						dynarray.c \
-						event.c \
-						field.c \
+                        algorithms/traceroute.c \
+                        bitfield.c \
+                        bits.c \
+                        buffer.c \
+                        common.c \
+                        containers/object.c \
+                        containers/map.c \
+                        containers/pair.c \
+                        containers/set.c \
+                        dynarray.c \
+                        event.c \
+                        field.c \
                         group.c \
                         generator.c \
                         generators/uniform.c \
-						lattice.c \
-						layer.c \
-						list.c \
-						metafield.c \
-						network.c \
-						optparse.c \
+                        lattice.c \
+                        layer.c \
+                        list.c \
+                        metafield.c \
+                        network.c \
+                        optparse.c \
                         options.c \
-						packet.c \
-						probe.c \
+                        packet.c \
+                        probe.c \
                         probe_group.c \
-						protocol.c \
-						protocols/icmpv4.c \
-						protocols/icmpv6.c \
-						protocols/ipv4.c \
-						protocols/ipv4_pseudo_header.c \
-						protocols/ipv6.c \
-						protocols/ipv6_pseudo_header.c \
-						protocols/tcp.c \
-						protocols/udp.c \
-						protocol_field.c \
-						pt_loop.c \
-						queue.c \
-						sniffer.c \
-						socketpool.c \
+                        protocol.c \
+                        protocols/icmpv4.c \
+                        protocols/icmpv6.c \
+                        protocols/ipv4.c \
+                        protocols/ipv4_pseudo_header.c \
+                        protocols/ipv6.c \
+                        protocols/ipv6_pseudo_header.c \
+                        protocols/tcp.c \
+                        protocols/udp.c \
+                        protocol_field.c \
+                        pt_loop.c \
+                        queue.c \
+                        sniffer.c \
+                        socketpool.c \
                         tree.c \
-                        vector.c
+                        vector.c \
+                        whois.c
 
 ## Instruct libtool to include ABI version information in the generated shared
 ## library file (.so).  The library ABI version is defined in configure.ac, so
@@ -184,5 +186,5 @@ install-lib: install-exec
 
 # Dead code.
 EXTRA_DIST = \
-	algorithms/node_query.c \
-	metafields/flow_id.c
+    algorithms/node_query.c \
+    metafields/flow_id.c

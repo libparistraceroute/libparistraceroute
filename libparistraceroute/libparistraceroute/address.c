@@ -269,7 +269,7 @@ bool address_resolv(const address_t * address, char ** phostname, int mask_cache
 {
     struct hostent * hp;
     bool             found = false;
-    const void *    data;
+    const void     * data;
 
     if (!address) goto ERR_INVALID_PARAMETER;
 

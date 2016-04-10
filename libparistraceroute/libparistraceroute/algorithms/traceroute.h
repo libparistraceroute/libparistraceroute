@@ -15,12 +15,14 @@
 #define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT   3
 #define OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT        3
 #define OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT          true
+#define OPTIONS_TRACEROUTE_RESOLV_ASN_DEFAULT         false
 
 #define OPTIONS_TRACEROUTE_MIN_TTL          {OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,          1, 255}
 #define OPTIONS_TRACEROUTE_MAX_TTL          {OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,          1, 255}
 #define OPTIONS_TRACEROUTE_MAX_UNDISCOVERED {OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT, 1, 255}
 #define OPTIONS_TRACEROUTE_NUM_QUERIES      {OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT,      1, 255}
 
+#define TRACEROUTE_HELP_A "Perform AS path lookups in routing registries and print results directly after the corresponding addresses."
 #define TRACEROUTE_HELP_f "Start from the MIN_TTL hop (instead from 1), MIN_TTL must be between 1 and 255."
 #define TRACEROUTE_HELP_m "Set the max number of hops (MAX_TTL to be reached). Default is 30, MAX_TTL must be between 1 and 255."
 #define TRACEROUTE_HELP_n "Do not resolve IP addresses to their domain names"
@@ -33,6 +35,7 @@ uint8_t options_traceroute_get_max_ttl();
 uint8_t options_traceroute_get_num_queries();
 uint8_t options_traceroute_get_max_undiscovered();
 bool    options_traceroute_get_do_resolv();
+bool    options_traceroute_get_resolv_asn();
 
 /*
  * Principle: (from man page)
@@ -67,12 +70,13 @@ bool    options_traceroute_get_do_resolv();
 //--------------------------------------------------------------------
 
 typedef struct {
-    uint8_t           min_ttl;          /**< Minimum ttl at which to send probes */
-    uint8_t           max_ttl;          /**< Maximum ttl at which to send probes */
-    size_t            num_probes;       /**< Number of probes per hop            */
-    size_t            max_undiscovered; /**< Maximum number of consecutives undiscovered hops */
-    const address_t * dst_addr;         /**< The target IP */
-    bool              do_resolv;        /**< Resolv each discovered IP hop */
+    uint8_t           min_ttl;          /**< Minimum ttl at which to send probes. */
+    uint8_t           max_ttl;          /**< Maximum ttl at which to send probes. */
+    size_t            num_probes;       /**< Number of probes per hop.            */
+    size_t            max_undiscovered; /**< Maximum number of consecutives undiscovered hops. */
+    const address_t * dst_addr;         /**< The target IP. */
+    bool              do_resolv;        /**< Resolv each discovered IP hop. */
+    bool              resolv_asn;       /**< Perform AS path lookups for each discovered IP hop. */
 } traceroute_options_t;
 
 const option_t * traceroute_get_options();
