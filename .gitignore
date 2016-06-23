@@ -31,3 +31,76 @@
 # Debug files
 *.dSYM/
 *.su
+
+
+# Build
+
+*.o
+*.lo
+.DS_Store
+*.a
+*.la
+*.Po
+clean
+
+# Editors
+
+*~
+*.swp
+*.so
+.exrc
+
+# Makefile
+
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+compile
+config.guess
+config.log
+config.status
+config.sub
+configure
+depcomp
+install-sh
+libparistraceroute/config.h
+libparistraceroute/stamp-h1
+libparistraceroute/config.h.in
+libtool
+ltmain.sh
+m4/
+missing
+libparistraceroute/.deps/
+libparistraceroute/algorithms/.deps/
+libparistraceroute/algorithms/.dirstamp
+libparistraceroute/algorithms/mda/.deps/
+libparistraceroute/algorithms/mda/.dirstamp
+libparistraceroute/containers/.deps/
+libparistraceroute/containers/.dirstamp
+libparistraceroute/generators/.deps/
+libparistraceroute/generators/.dirstamp
+libparistraceroute/protocols/.deps/
+libparistraceroute/protocols/.dirstamp
+
+# Binary
+
+libparistraceroute/test
+paris-traceroute/paris-traceroute
+traceroute/traceroute
+
+.libs
+*.pc
+
+# Packages
+
+packages/
+*.dsc
+*.deb
+*.tar.gz
+*.changes
+
+# Patches
+
+*.diff
+*.patch
