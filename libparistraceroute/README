@@ -1,0 +1,3 @@
+Minimum files
+-------------
+autogen.sh  configure.ic  doc man Makefile.am libparistraceroute paris-traceroute ping traceroute
