@@ -3,11 +3,17 @@
 libparistraceroute is a library written in C dedicated to active network measurements.
 Some example are also provided, such as paris-ping and the new implementation of paris-traceroute.
 
-## Building
+## Installation 
 
-On Ubuntu Xenial 16.04 (and probably other Debian derived distributions):
+Installation steps are detailed here:
 
-    $ sudo apt-get install build-essential autoconf libtool
-    $ ./autogen.sh
-    $ ./configure
-    $ make
+    https://github.com/libparistraceroute/libparistraceroute/wiki/Installation
+
+We recommend that you use the installation with git to use the last version of libparistraceroute.
+
+## Documentation
+
+For further details about libparistraceroute, we refer the reader to the wiki:
+
+    https://github.com/libparistraceroute/libparistraceroute/wiki/
+
