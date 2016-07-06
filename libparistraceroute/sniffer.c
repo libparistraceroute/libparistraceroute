@@ -237,6 +237,8 @@ static bool rebuild_ipv6_header(
                     tcl = *(uint8_t *) CMSG_DATA(cmsg);
                     *((uint32_t *) &(ip6_header->ip6_ctlun.ip6_un1.ip6_un1_flow)) |= htonl(tcl << 8);
                     break;
+                case IPV6_HOPOPTS:
+                    break; //TODO handle this case properly
                 default:
                     // This should never occur
                     fprintf(stderr, "Unhandled cmsg of type %d\n", cmsg->cmsg_type);
