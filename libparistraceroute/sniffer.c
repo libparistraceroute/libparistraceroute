@@ -6,7 +6,7 @@
 #include <string.h>      // memcpy, memset
 #include <unistd.h>      // fnctl
 #include <fcntl.h>       // fnctl
-#include <sys/socket.h>  // socket, bind, 
+#include <sys/socket.h>  // socket, bind,
 #include <sys/types.h>   // socket, bind
 #include <arpa/inet.h>
 #include <netinet/in.h>  // IPPROTO_ICMP, IPPROTO_ICMPV6
@@ -61,7 +61,7 @@ static bool create_icmpv4_socket(sniffer_t * sniffer, uint16_t port)
     if (fcntl(sniffer->icmpv4_sockfd, F_SETFD, O_NONBLOCK) == -1) {
         goto ERR_FCNTL;
     }
-	
+
 	// Bind it to 0.0.0.0
 	memset(&saddr, 0, sizeof(struct sockaddr_in));
 	saddr.sin_family      = AF_INET;
@@ -111,7 +111,7 @@ static bool create_icmpv6_socket(sniffer_t * sniffer, uint16_t port)
     // - TCL
     // - Hoplimit
     // http://h71000.www7.hp.com/doc/731final/tcprn/v53_relnotes_025.html
-    // http://livre.g6.asso.fr/index.php/L'impl%C3%A9mentation
+	// http://livre.g6.asso.fr/index.php?title=L%27impl%C3%A9mentation&oldid=2961
 
     if ((setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO,  &on, sizeof(on)) == -1) // struct in6_pktinfo
     ||  (setsockopt(sniffer->icmpv6_sockfd, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &on, sizeof(on)) == -1) // int
@@ -190,7 +190,7 @@ int sniffer_get_icmpv6_sockfd(sniffer_t *sniffer) {
 
 /**
  * \brief Rebuild the missing parts of an IPv6 header.
- * \param ip6_header The IPv6 header we want to complete. 
+ * \param ip6_header The IPv6 header we want to complete.
  * \param msghdr
  * \param from
  * \param num_bytes The size in bytes of the IPv6 header
@@ -209,7 +209,7 @@ static bool rebuild_ipv6_header(
     uint32_t             tcl;
 
     // Now we can rebuild the IPv6 layer
-    // ip_version (hardcoded), traffic class (updated later), flow label (hardcoded) 
+    // ip_version (hardcoded), traffic class (updated later), flow label (hardcoded)
     ip6_header->ip6_ctlun.ip6_un1.ip6_un1_flow = htonl(0x60000000);
 
     // length
@@ -225,7 +225,7 @@ static bool rebuild_ipv6_header(
     for (cmsg = CMSG_FIRSTHDR(msg); cmsg; cmsg = CMSG_NXTHDR(msg, cmsg)) {
         if (cmsg->cmsg_level == IPPROTO_IPV6) {
             switch (cmsg->cmsg_type) {
-                // Possible values: http://www.lehman.cuny.edu/cgi-bin/man-cgi?socket.h+3
+                // Possible values: /usr/include/linux/in6.h
                 case IPV6_PKTINFO: // dst_ip
                     pktinfo = (struct in6_pktinfo *) CMSG_DATA(cmsg);
                     memcpy(&(ip6_header->ip6_dst), &(pktinfo->ipi6_addr), sizeof(struct in6_addr));
@@ -233,12 +233,16 @@ static bool rebuild_ipv6_header(
                 case IPV6_HOPLIMIT: // ttl
                     ip6_header->ip6_ctlun.ip6_un1.ip6_un1_hlim = *(uint8_t *) CMSG_DATA(cmsg);
                     break;
+				case IPV6_RTHDR:
+                    break; //TODO handle this case properly, see RFC 2292
+                case IPV6_HOPOPTS:
+                    break; //TODO handle this case properly, see RFC 2292
+                case IPV6_DSTOPTS:
+                    break; //TODO handle this case properly, see RFC 2292
                 case IPV6_TCLASS: // traffic class
                     tcl = *(uint8_t *) CMSG_DATA(cmsg);
                     *((uint32_t *) &(ip6_header->ip6_ctlun.ip6_un1.ip6_un1_flow)) |= htonl(tcl << 8);
                     break;
-                case IPV6_HOPOPTS:
-                    break; //TODO handle this case properly
                 default:
                     // This should never occur
                     fprintf(stderr, "Unhandled cmsg of type %d\n", cmsg->cmsg_type);
@@ -259,7 +263,7 @@ static bool rebuild_ipv6_header(
  * \brief Fetch an IPv6/ICMPv6 packet from an IPv6 socket
  * \param ipv6_sockfd An IPv6 socket which is sniffing an ICMPv6 packet
  * \param bytes A preallocated buffer in which we write the full IPv6 packet.
- * \param len The size of the preallocated buffer 
+ * \param len The size of the preallocated buffer
  * \param flags
  */
 
@@ -271,7 +275,7 @@ static ssize_t recv_icmpv6(int ipv6_sockfd, void * bytes, size_t len, int flags)
 
     struct iovec iov = {
         .iov_base = ((uint8_t *) bytes) + sizeof(struct ip6_hdr),
-        .iov_len  = len - sizeof(struct ip6_hdr) 
+        .iov_len  = len - sizeof(struct ip6_hdr)
     };
 
     struct msghdr msg = {
