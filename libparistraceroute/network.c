@@ -334,10 +334,11 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
 
     dynarray_del_ith_element(network->probes, i, NULL);
 
-    // The matching probe is the oldest one, update the timer
-    // according to the next probe timeout.
-    if (i == 0) {
-        if (!(network_update_next_timeout(network))) {
+    // The matching probe is the oldest one and there are other probes, update
+    // the timer according to the next unexpired probe timeout.
+    if (i == 0 && num_flying_probes - 1 > 0) {
+        // We just reduced the number of probes by 1
+        if (!(network_drop_expired_flying_probe(network))) {
             fprintf(stderr, "Error while updating timeout\n");
         }
     }
