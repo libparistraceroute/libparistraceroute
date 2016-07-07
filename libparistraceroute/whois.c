@@ -129,7 +129,7 @@ bool whois_query(
 
     // Connect to whois remote server.
     if (connect(sockfd, sa, socket_len) < 0) {
-        fprintf(stderr, "whois_query: %s", strerror(errno));
+        fprintf(stderr, "whois_query: %s\n", strerror(errno));
         goto ERR_CONNECT;
     }
 

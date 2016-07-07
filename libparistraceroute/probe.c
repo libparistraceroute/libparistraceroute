@@ -188,7 +188,7 @@ bool probe_update_checksum(probe_t * probe)
             if (layer->protocol->create_pseudo_header) {
                 if (i == 0) {
                     // This layer has no previous layer which is required to compute its checksum.
-                    fprintf(stderr, "No previous layer which is required to compute '%s' checksum", layer->protocol->name);
+                    fprintf(stderr, "No previous layer which is required to compute '%s' checksum\n", layer->protocol->name);
                     errno = EINVAL;
                     return false;
                 } else {
@@ -211,7 +211,7 @@ bool probe_update_checksum(probe_t * probe)
 
             // Update the checksum of this layer
             if (!layer->protocol->write_checksum(layer->segment, pseudo_header)) {
-                fprintf(stderr, "Error while updating checksum (layer %s)", layer->protocol->name);
+                fprintf(stderr, "Error while updating checksum (layer %s)\n", layer->protocol->name);
                 return false;
             }
 
@@ -512,7 +512,7 @@ probe_t * probe_wrap_packet(packet_t * packet)
         segment += segment_size;
         remaining_size -= segment_size;
         if (remaining_size < 0) {
-            fprintf(stderr, "probe_wrap_packet: Truncated packet");
+            fprintf(stderr, "probe_wrap_packet: Truncated packet\n");
             goto ERR_TRUNCATED_PACKET;
         }
 
@@ -587,7 +587,7 @@ bool probe_set_protocols(probe_t * probe, const char * name1, ...)
     va_copy(args2, args);
     for (name = name1; name; name = va_arg(args2, char *)) {
         if (!(protocol = protocol_search(name))) {
-            fprintf(stderr, "Cannot found %s protocol, known protocols are:", name);
+            fprintf(stderr, "Cannot find %s protocol, known protocols are:", name);
             protocols_dump();
             goto ERR_PROTOCOL_SEARCH;
         }

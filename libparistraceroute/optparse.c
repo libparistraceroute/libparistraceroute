@@ -325,7 +325,7 @@ int opt_store_int_lim(char *arg, void *data)
         opt_err("the value of %s must be an integer");
     if (errno == ERANGE || val < p[1] || val > p[2]) {
         opt_err_pfx();
-        fprintf(stderr, "the value of %s must be in the range %d to %d",
+        fprintf(stderr, "the value of %s must be in the range %d to %d\n",
                 opt_name(), p[1], p[2]);
         opt_err_sfx();
     }
@@ -372,7 +372,7 @@ int opt_store_double_lim(char *arg, void *data)
         opt_err("the value of %s must be a number");
     if (errno == ERANGE || val < p[1] || val > p[2]) {
         opt_err_pfx();
-        fprintf(stderr, "the value of %s must be in the range %g to %g",
+        fprintf(stderr, "the value of %s must be in the range %g to %g\n",
                 opt_name(), p[1], p[2]);
         opt_err_sfx();
     }
@@ -433,7 +433,7 @@ int opt_store_int_2(char *arg, void *data){
         opt_err("the first value of %s must be an integer");
     if (errno == ERANGE || val1 < p[1] || val1 > p[2]) {
         opt_err_pfx();
-        fprintf(stderr, "the first value of %s must be in the range %d to %d",
+        fprintf(stderr, "the first value of %s must be in the range %d to %d\n",
                 opt_name(), p[1], p[2]);
         opt_err_sfx();
     }
@@ -445,7 +445,7 @@ int opt_store_int_2(char *arg, void *data){
         opt_err("the second value of %s must be an integer");
     if (errno == ERANGE || val2 < p[4] || val2 > p[5]) {
         opt_err_pfx();
-        fprintf(stderr, "the second value of %s must be in the range %d to %d",
+        fprintf(stderr, "the second value of %s must be in the range %d to %d\n",
                 opt_name(), p[4], p[5]);
         opt_err_sfx();
     }
@@ -490,7 +490,7 @@ int opt_store_int_3(char *arg, void *data){
         opt_err("the first value of %s must be an integer");
     if (errno == ERANGE || val1 < p[1] || val1 > p[2]) {
         opt_err_pfx();
-        fprintf(stderr, "the first value of %s must be in the range %d to %d",
+        fprintf(stderr, "the first value of %s must be in the range %d to %d\n",
                 opt_name(), p[1], p[2]);
         opt_err_sfx();
     }
@@ -502,7 +502,7 @@ int opt_store_int_3(char *arg, void *data){
         opt_err("the second value of %s must be an integer");
     if (errno == ERANGE || val2 < p[4] || val2 > p[5]) {
         opt_err_pfx();
-        fprintf(stderr, "the second value of %s must be in the range %d to %d",
+        fprintf(stderr, "the second value of %s must be in the range %d to %d\n",
                 opt_name(), p[4], p[5]);
         opt_err_sfx();
     }
@@ -514,7 +514,7 @@ int opt_store_int_3(char *arg, void *data){
         opt_err("the third value of %s must be an integer");
     if (errno == ERANGE || val2 < p[7] || val2 > p[8]) {
         opt_err_pfx();
-        fprintf(stderr, "the second value of %s must be in the range %d to %d",
+        fprintf(stderr, "the second value of %s must be in the range %d to %d\n",
                 opt_name(), p[7], p[8]);
         opt_err_sfx();
     }
@@ -538,7 +538,7 @@ static void badchoice(const char **choices, const char *arg)
         return;
     }
     opt_err_pfx();
-    fprintf(stderr, "invalid choice '%s' for option %s",
+    fprintf(stderr, "invalid choice '%s' for option %s\n",
             arg, opt_name());
     opt_err_sfx();
 }

@@ -259,7 +259,7 @@ size_t address_get_size(const address_t * address) {
         case AF_INET:  return sizeof(ipv4_t);
         case AF_INET6: return sizeof(ipv6_t);
         default:
-            fprintf(stderr, "address_get_size: Invalid family");
+            fprintf(stderr, "address_get_size: Invalid family\n");
             break;
     }
     return 0;

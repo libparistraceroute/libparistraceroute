@@ -50,7 +50,7 @@ ERR_MALLOC:
 }
 
 set_t * set_dup(const set_t * set) {
-    fprintf(stderr, "set_dup: not yet implemented");
+    fprintf(stderr, "set_dup: not yet implemented\n");
     return NULL;
 }
 
