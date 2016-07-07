@@ -4,7 +4,7 @@
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
 #include <stdbool.h>          // bool
-#include <stdint.h>           // uint*_t, UINT16_MAX 
+#include <stdint.h>           // uint*_t, UINT16_MAX
 #include <errno.h>            // ERRNO, EINVAL
 #include <stddef.h>           // offsetof()
 #include <netinet/tcp.h>      // tcphdr
@@ -23,7 +23,7 @@
 #endif
 
 // Default values
-#define TCP_DEFAULT_SRC_PORT           2222 
+#define TCP_DEFAULT_SRC_PORT           2222
 #define TCP_DEFAULT_DST_PORT           3333
 #define TCP_DEFAULT_WINDOW_SIZE        5840  // In [2, 65535]
 #define TCP_DEFAULT_DATA_OFFSET        5    // Size of the TCP header in words (= 4 bytes). Must be greater or equal than 5.
@@ -36,7 +36,7 @@
 #define TCP_DEFAULT_SYN                0
 #define TCP_DEFAULT_FIN                0
 
-// The following offsets cannot be retrieved with offsetof() so they are hardcoded 
+// The following offsets cannot be retrieved with offsetof() so they are hardcoded
 // - 12th byte
 #define TCP_OFFSET_DATA_OFFSET         12
 #define TCP_OFFSET_IN_BITS_DATA_OFFSET 0
@@ -60,7 +60,7 @@
 #define TCP_FIELD_SEQ_NUM              "seq_num"
 #define TCP_FIELD_ACK_NUM              "ack_num"
 #define TCP_FIELD_DATA_OFFSET          "data_offset"
-#define TCP_FIELD_RESERVED             "reserved"    // 000 
+#define TCP_FIELD_RESERVED             "reserved"    // 000
 #define TCP_FIELD_NS                   "ns"          // Nonce
 #define TCP_FIELD_CWR                  "cwr"         // Congestion Window Reduced
 #define TCP_FIELD_ECE                  "ece"         // ECN Echo
@@ -94,17 +94,19 @@
 #    define DATA_OFFSET doff
 #    define WINDOW_SIZE window
 #    define CHECKSUM    check
-#    define URGENT_PTR  urg_ptr 
+#    define URGENT_PTR  urg_ptr
 #endif
 
 /**
- * \brief Retrieve the size of an TCP header 
+ * \brief Retrieve the size of an TCP header
  * \param tcp_segment Address of an TCP header or NULL
  * \return The size of an TCP header
  */
 
 size_t tcp_get_header_size(const uint8_t * tcp_segment) {
-    return (tcp_segment[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2;
+    return tcp_segment ?
+		(tcp_segment[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2 :
+		0;
 }
 
 /**
@@ -143,26 +145,26 @@ static protocol_field_t tcp_fields[] = {
         .type            = TYPE_BITS,
         .size_in_bits    = 3,
         .offset          = TCP_OFFSET_DATA_OFFSET,
-        .offset_in_bits  = TCP_OFFSET_IN_BITS_RESERVED, 
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_RESERVED,
     }, {
         .key             = TCP_FIELD_NS,
         .type            = TYPE_BITS,
         .size_in_bits    = 1,
         .offset          = TCP_OFFSET_DATA_OFFSET,
-        .offset_in_bits  = TCP_OFFSET_IN_BITS_NS, 
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_NS,
     // 13th byte (TCP_OFFSET_MASK)
     }, {
         .key             = TCP_FIELD_CWR,
         .type            = TYPE_BITS,
         .size_in_bits    = 1,
         .offset          = TCP_OFFSET_MASK,
-        .offset_in_bits  = TCP_OFFSET_IN_BITS_CWR, 
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_CWR,
     }, {
         .key             = TCP_FIELD_ECE,
         .type            = TYPE_BITS,
         .size_in_bits    = 1,
         .offset          = TCP_OFFSET_MASK,
-        .offset_in_bits  = TCP_OFFSET_IN_BITS_ECE, 
+        .offset_in_bits  = TCP_OFFSET_IN_BITS_ECE,
     }, {
         .key             = TCP_FIELD_URG,
         .type            = TYPE_BITS,
@@ -173,7 +175,7 @@ static protocol_field_t tcp_fields[] = {
         .key             = TCP_FIELD_ACK,
         .type            = TYPE_BITS,
         .size_in_bits    = 1,
-        .offset          = TCP_OFFSET_MASK, 
+        .offset          = TCP_OFFSET_MASK,
         .offset_in_bits  = TCP_OFFSET_IN_BITS_ACK,
     }, {
         .key             = TCP_FIELD_PSH,
@@ -185,7 +187,7 @@ static protocol_field_t tcp_fields[] = {
         .key             = TCP_FIELD_RST,
         .type            = TYPE_BITS,
         .size_in_bits    = 1,
-        .offset          = TCP_OFFSET_MASK, 
+        .offset          = TCP_OFFSET_MASK,
         .offset_in_bits  = TCP_OFFSET_IN_BITS_RST,
     }, {
         .key             = TCP_FIELD_SYN,
@@ -197,7 +199,7 @@ static protocol_field_t tcp_fields[] = {
         .key             = TCP_FIELD_FIN,
         .type            = TYPE_BITS,
         .size_in_bits    = 1,
-        .offset          = TCP_OFFSET_MASK, 
+        .offset          = TCP_OFFSET_MASK,
         .offset_in_bits  = TCP_OFFSET_IN_BITS_FIN,
 #endif
     }, {
@@ -247,7 +249,7 @@ uint8_t tcp_make_mask(
 size_t tcp_write_default_header(uint8_t * tcp_segment) {
     struct tcphdr * tcp_header = (struct tcphdr *) tcp_segment;
     size_t          size       = TCP_DEFAULT_DATA_OFFSET << 2;
-    
+
     if (tcp_segment) {
         memset(tcp_segment, 0, size);
         tcp_header->DATA_OFFSET = TCP_DEFAULT_DATA_OFFSET;
@@ -277,14 +279,14 @@ size_t tcp_write_default_header(uint8_t * tcp_segment) {
  *    contain the content of an ipv4_pseudo_header_t or an ipv6_pseudo_header_t
  *    structure.
  * \sa http://www.networksorcery.com/enp/protocol/tcp.htm#Checksum
- * \return true if everything is fine, false otherwise  
+ * \return true if everything is fine, false otherwise
  */
 
 bool tcp_write_checksum(uint8_t * tcp_segment, buffer_t * ip_psh)
 {
     struct tcphdr * tcp_header = (struct tcphdr *) tcp_segment;
     size_t          size_ip    = buffer_get_size(ip_psh),
-                    size_tcp   = tcp_get_header_size(tcp_segment) + 2, // hardcoded payload size 
+                    size_tcp   = tcp_get_header_size(tcp_segment) + 2, // hardcoded payload size
                     size_psh   = size_ip + size_tcp;
     uint8_t       * psh;
 
@@ -374,7 +376,7 @@ bool tcp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 
 static protocol_t tcp = {
     .name                 = "tcp",
-    .protocol             = IPPROTO_TCP, 
+    .protocol             = IPPROTO_TCP,
     .write_checksum       = tcp_write_checksum,
     .create_pseudo_header = tcp_create_pseudo_header,
     .fields               = tcp_fields,
