@@ -26,9 +26,6 @@ void event_free(event_t * event)
         if (event->data && event->data_free) {
             event->data_free(event->data);
         }
-        ///////////// TODO
-        //free(event);
-        event->data = NULL; // DEBUG
-        ///////////// TODO
+        free(event);
     }
 }
