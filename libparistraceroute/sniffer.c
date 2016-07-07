@@ -251,7 +251,7 @@ static bool rebuild_ipv6_header(
             }
         } else {
             // This should never occur
-            fprintf(stderr, "Ignoring msg (level = %d\n)", cmsg->cmsg_level);
+            fprintf(stderr, "Ignoring msg (level = %d)\n", cmsg->cmsg_level);
             ret = false;
         }
     }

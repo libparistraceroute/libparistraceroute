@@ -47,7 +47,7 @@ bool protocol_field_set(const protocol_field_t * protocol_field, uint8_t * segme
 #endif
         case TYPE_STRING:
         default:
-            fprintf(stderr, "protocol_field_set: Type not supported");
+            fprintf(stderr, "protocol_field_set: Type not supported\n");
             ret = false;
             break;
     }

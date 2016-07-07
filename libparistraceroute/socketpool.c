@@ -124,7 +124,7 @@ bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * pa
             break;
 #endif
         default:
-            fprintf(stderr, "socketpool_send_packet: Address family not supported");
+            fprintf(stderr, "socketpool_send_packet: Address family not supported\n");
             goto ERR_INVALID_FAMILY;
     }
 
