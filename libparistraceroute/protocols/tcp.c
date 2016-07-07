@@ -98,16 +98,6 @@
 #endif
 
 /**
- * \brief Retrieve the size of an TCP header 
- * \param tcp_segment Address of an TCP header or NULL
- * \return The size of an TCP header
- */
-
-size_t tcp_get_header_size(const uint8_t * tcp_segment) {
-    return (tcp_segment[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2;
-}
-
-/**
  * TCP fields
  * Note: TCP has no "length" field. The size of the payload is
  * deduced from the IP layer.
@@ -267,6 +257,20 @@ size_t tcp_write_default_header(uint8_t * tcp_segment) {
     }
 
     return size;
+}
+
+/**
+ * \brief Retrieve the size of an TCP header
+ * \param tcp_segment Address of an TCP header or NULL
+ * \return The size of an TCP header
+ */
+
+size_t tcp_get_header_size(const uint8_t * tcp_segment) {
+    if (tcp_segment) {
+        return (tcp_segment[TCP_OFFSET_DATA_OFFSET] & 0xf0) >> 2;
+    } else {
+        return tcp_write_default_header(NULL);
+    }
 }
 
 /**
