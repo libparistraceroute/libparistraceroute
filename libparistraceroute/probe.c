@@ -488,8 +488,7 @@ probe_t * probe_wrap_packet(packet_t * packet)
     }
 
     // Clear the probe
-    // The actual value of probe->packet is not freed since it
-    // can pointed by another probe_t instance.
+    packet_free(probe->packet);
     probe->packet = packet;
     probe_layers_clear(probe);
 

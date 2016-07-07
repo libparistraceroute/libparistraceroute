@@ -146,6 +146,9 @@ bool address_guess_family(const char * str_ip, int * pfamily) {
 
     // We retrieve family from the first result
     *pfamily = result->ai_family;
+
+    freeaddrinfo(result);
+
     return true;
 
 ERR_NO_RESULT:
