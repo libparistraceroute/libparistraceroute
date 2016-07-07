@@ -38,10 +38,10 @@
 #    define LENGTH   uh_ulen
 #    define CHECKSUM uh_sum
 #else
-#    define SRC_PORT source 
-#    define DST_PORT dest 
+#    define SRC_PORT source
+#    define DST_PORT dest
 #    define LENGTH   len
-#    define CHECKSUM check 
+#    define CHECKSUM check
 #endif
 
 /**
@@ -80,13 +80,13 @@ static struct udphdr udp_default = {
 };
 
 /**
- * \brief Retrieve the size of an UDP header 
- * \param udp_segment Address of an UDP header or NULL
- * \return The size of an UDP header
+ * \brief Retrieve the size of an UDP header
+ * \param udp_segment Address of an UDP header or NULL.
+ * \return The size of an UDP header, 0 if udp_segment is NULL.
  */
 
 size_t udp_get_header_size(const uint8_t * udp_segment) {
-    return sizeof(struct udphdr);
+    return udp_segment ? sizeof(struct udphdr) : 0;
 }
 
 /**
@@ -114,7 +114,7 @@ size_t udp_write_default_header(uint8_t * udp_segment) {
  *    contain the content of an ipv4_pseudo_header_t or an ipv6_pseudo_header_t
  *    structure.
  * \sa http://www.networksorcery.com/enp/protocol/udp.htm#Checksum
- * \return true if everything is fine, false otherwise  
+ * \return true if everything is fine, false otherwise
  */
 
 bool udp_write_checksum(uint8_t * udp_segment, buffer_t * ip_psh)
@@ -217,7 +217,7 @@ bool udp_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 
 static protocol_t udp = {
     .name                 = "udp",
-    .protocol             = IPPROTO_UDP, 
+    .protocol             = IPPROTO_UDP,
     .write_checksum       = udp_write_checksum,
     .create_pseudo_header = udp_create_pseudo_header,
     .fields               = udp_fields,

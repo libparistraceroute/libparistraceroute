@@ -99,8 +99,8 @@
 
 /**
  * \brief Retrieve the size of an TCP header
- * \param tcp_segment Address of an TCP header or NULL
- * \return The size of an TCP header
+ * \param tcp_segment Address of an TCP header or NULL.
+ * \return The size of an TCP header, 0 if tcp_segment is NULL.
  */
 
 size_t tcp_get_header_size(const uint8_t * tcp_segment) {

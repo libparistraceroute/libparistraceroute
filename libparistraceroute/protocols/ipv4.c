@@ -20,7 +20,7 @@
 #include "../bits.h"      // byte_* // TODO to remove
 
 // Field names
-#define IPV4_FIELD_VERSION           "version" 
+#define IPV4_FIELD_VERSION           "version"
 #define IPV4_FIELD_IHL               "ihl"
 #define IPV4_FIELD_TOS               "tos"
 #define IPV4_FIELD_LENGTH            "length"
@@ -33,19 +33,19 @@
 #define IPV4_FIELD_DST_IP            "dst_ip"
 
 // Default field values
-#define IPV4_DEFAULT_VERSION         4 
+#define IPV4_DEFAULT_VERSION         4
 #define IPV4_DEFAULT_IHL             5
 #define IPV4_DEFAULT_TOS             0
 #define IPV4_DEFAULT_LENGTH          0
 #define IPV4_DEFAULT_IDENTIFICATION  1
 #define IPV4_DEFAULT_FRAGOFF         0
-#define IPV4_DEFAULT_TTL             255 
+#define IPV4_DEFAULT_TTL             255
 #define IPV4_DEFAULT_PROTOCOL        IPPROTO_IPIP
 #define IPV4_DEFAULT_CHECKSUM        0
 #define IPV4_DEFAULT_SRC_IP          0 // See ipv4_get_default_src_ip()
 #define IPV4_DEFAULT_DST_IP          0 // Must be set by the user (see network.c)
 
-// The following offsets cannot be retrieved with offsetof() so they are hardcoded 
+// The following offsets cannot be retrieved with offsetof() so they are hardcoded
 #ifdef USE_BITS
 #    define IPV4_OFFSET_VERSION          0
 #    define IPV4_OFFSET_IN_BITS_VERSION  0
@@ -72,7 +72,7 @@ bool ipv4_get_default_src_ip(uint32_t dst_ipv4, uint32_t * psrc_ipv4) {
     addr.sin_addr.s_addr = dst_ipv4;
 
     if (connect(sockfd, (struct sockaddr *) &addr, addrlen) == -1) {
-        goto ERR_CONNECT; 
+        goto ERR_CONNECT;
     }
 
     if (getsockname(sockfd, (struct sockaddr *) &name, &addrlen) == -1) {
@@ -91,7 +91,7 @@ ERR_SOCKET:
 }
 
 /**
- * \brief Fill the unset parts of the IPv4 layer to coherent values 
+ * \brief Fill the unset parts of the IPv4 layer to coherent values
  * \param ipv4_header The IP header that must be updated
  * \return true iif successful
  */
@@ -115,9 +115,9 @@ bool ipv4_finalize(uint8_t * ipv4_header)
 //-----------------------------------------------------------
 
 /**
- * \brief Retrieve the size of an IPv4 header 
+ * \brief Retrieve the size of an IPv4 header
  * \param ipv4_header (unused) Address of an IPv4 header or NULL.
- * \return The size of an IPv4 header
+ * \return The size of an IPv4 header, 0 if ipv4_header is NULL.
  */
 
 size_t ipv4_get_header_size(const uint8_t * ipv4_header) {
@@ -128,10 +128,11 @@ size_t ipv4_get_header_size(const uint8_t * ipv4_header) {
         bits_extract(ipv4_header, IPV4_OFFSET_IN_BITS_IHL, 4, &ihl);
         size  = 4 * ihl;
     } else {
-        size = sizeof(struct iphdr);
+        //size = sizeof(struct iphdr);
+        size = 0;
     }
 
-    return size; 
+    return size;
 }
 
 /**
@@ -140,7 +141,7 @@ size_t ipv4_get_header_size(const uint8_t * ipv4_header) {
  * \param ipv4_header An initialized IPv4 header. Checksum may be
  *    not initialized, will be ignored, and overwritten
  * \param psh (Unused) You may pass NULL.
- * \return true iif successful 
+ * \return true iif successful
  */
 
 bool ipv4_write_checksum(uint8_t * ipv4_header, buffer_t * psh) {
@@ -252,7 +253,7 @@ size_t ipv4_write_default_header(uint8_t * ipv4_header) {
 bool ipv4_instance_of(uint8_t * bytes) {
     uint8_t version;
     return bits_extract(bytes, IPV4_OFFSET_IN_BITS_VERSION, 4, &version)
-        && version == IPV4_DEFAULT_VERSION; 
+        && version == IPV4_DEFAULT_VERSION;
 }
 
 /**
@@ -295,7 +296,7 @@ bool ipv4_matches(const struct probe_s * _probe, const struct probe_s * _reply)
 
 static protocol_t ipv4 = {
     .name                 = "ipv4",
-    .protocol             = IPPROTO_IPIP, // XXX only IP over IP (encapsulation). Beware probe.c, icmpv4_get_next_protocol_id 
+    .protocol             = IPPROTO_IPIP, // XXX only IP over IP (encapsulation). Beware probe.c, icmpv4_get_next_protocol_id
     .write_checksum       = ipv4_write_checksum,
     .create_pseudo_header = NULL,
     .fields               = ipv4_fields,

@@ -42,10 +42,10 @@ static protocol_field_t icmpv4_fields[] = {
     }, {
         .key    = ICMPV4_FIELD_BODY,
         .type   = TYPE_UINT16,
-        .offset = offsetof(struct icmphdr, un), // XXX union type 
+        .offset = offsetof(struct icmphdr, un), // XXX union type
         // optional = 0
     },
-    // TODO Multiple possibilities for the last field ! 
+    // TODO Multiple possibilities for the last field !
     // e.g. "protocol" when we repeat some packet header for example
     END_PROTOCOL_FIELDS
 };
@@ -62,13 +62,13 @@ static struct icmphdr icmpv4_default = {
 };
 
 /**
- * \brief Retrieve the size of an ICMP header 
- * \param icmpv4_segment Address of an ICMP header or NULL
- * \return The size of an ICMP header
+ * \brief Retrieve the size of an ICMP header
+ * \param icmpv4_segment Address of an ICMP header or NULL.
+ * \return The size of an ICMP header, 0 if icmpv4_segment is NULL.
  */
 
 size_t icmpv4_get_header_size(const uint8_t * icmpv4_segment) {
-    return sizeof(struct icmphdr);
+    return icmpv4_segment ? sizeof(struct icmphdr) : 0;
 }
 
 /**
@@ -88,7 +88,7 @@ size_t icmpv4_write_default_header(uint8_t * icmpv4_segment) {
  * \brief Compute and write the checksum related to an ICMP header
  * \param icmpv4_segment A pre-allocated ICMP header. The ICMP checksum
  *    stored in this buffer is updated by this function.
- * \param ipv4_psh Pass NULL 
+ * \param ipv4_psh Pass NULL
  * \sa http://www.networksorcery.com/enp/protocol/icmp.htm#Checksum
  * \return true if everything is ok, false otherwise
  */

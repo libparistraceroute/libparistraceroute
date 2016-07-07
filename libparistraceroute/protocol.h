@@ -23,26 +23,26 @@ struct probe_s;
 
 typedef struct protocol_s {
     const char * name; /**< Name of the protocol */
-    
+
     /**
      * Identifier of the protocol :
      * http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
      */
 
     uint8_t protocol;
-    
+
     /**
      * Pointer to a function that will return the number of fields this protocol has
      */
 
     //size_t (*get_num_fields)(void);
-    
+
     /**
      * \brief Points to a callback which updates the checksum of the segment related to
      *    this protocol.
      * \param buf Pointer to the protocol's segment
      * \param psh Pointer to the corresponding pseudo header (pass NULL if not needed)
-     * \return true if success, false otherwise 
+     * \return true if success, false otherwise
      */
 
     bool (*write_checksum)(uint8_t * buf, buffer_t * psh);
@@ -57,16 +57,16 @@ typedef struct protocol_s {
      */
 
     buffer_t * (*create_pseudo_header)(const uint8_t * segment);
-    
+
     /**
      * Pointer to a protocol_field_t structure holding the header fields
      */
 
     protocol_field_t * fields;
-    
-    /** 
+
+    /**
      * \brief Points to a callback which writes the default header
-     *   into a pre-allocated buffer. 
+     *   into a pre-allocated buffer.
      * \param header The target buffer. You may pass NULL if you want
      *   to retrieve the size (in bytes) of the default header
      * \return The size of the default header.
@@ -76,16 +76,14 @@ typedef struct protocol_s {
 
     /**
      * \brief Points to a callback which returns the size of a header.
-     * \param A pointer to the header we want to get size. You may pass
-     *    NULL to retrieve the default size or if the size of the header
-     *    is always equal to the same value.
-     * \return The header size
+     * \param header A pointer to the header we want to get size.
+     * \return The header size. Returns 0 if header == NULL.
      */
 
     size_t (*get_header_size)(const uint8_t * header);
 
     /**
-     * \brief Set unset parts of a header to coherent values 
+     * \brief Set unset parts of a header to coherent values
      * \param header The header that must be updated
      * \return true iif successful
      */
@@ -127,7 +125,7 @@ typedef struct protocol_s {
 const protocol_t * protocol_search(const char * name);
 
 /**
- * \brief Search a registered protocol in the library according to its ID 
+ * \brief Search a registered protocol in the library according to its ID
  * \param name The ID of the protocol (for example 17 corrresponds to UDP)
  * \return A pointer to the corresponding protocol if any, NULL othewise
  */
@@ -146,7 +144,7 @@ void protocol_register(protocol_t *protocol);
  * \brief Apply a function to every field in a protocol
  * \param protocol Pointer to a protocol_t structure describing the
  *    protocol to iterate over
- * \param data User data pass to the callback 
+ * \param data User data pass to the callback
  * \param callback Pointer to a function call whenever a protocol_field_t
  *    of the protocol_t instance is visited. This callback receives a
  *    pointer to the current protocol_field_t and to data.
@@ -165,7 +163,7 @@ const protocol_field_t * protocol_get_field(const protocol_t * protocol, const c
 
 /**
  * \brief Calculate an Internet checksum.
- * \param bytes Bytes used to compute the checksum 
+ * \param bytes Bytes used to compute the checksum
  * \param size Number of bytes to consider
  * \return The corresponding checksum
  */
@@ -180,7 +178,7 @@ uint16_t csum(const uint16_t * buf, size_t size);
 void protocol_dump(const protocol_t * protocol);
 
 /**
- * \brief Print every protocol managed by libparistraceroute 
+ * \brief Print every protocol managed by libparistraceroute
  */
 
 void protocols_dump();

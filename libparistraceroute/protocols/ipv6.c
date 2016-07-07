@@ -44,10 +44,10 @@
 #define IPV6_DEFAULT_SRC_IP          0, 0, 0, 0
 #define IPV6_DEFAULT_DST_IP          0, 0, 0, 0
 
-// The following offsets cannot be retrieved with offsetof() so they are hardcoded 
+// The following offsets cannot be retrieved with offsetof() so they are hardcoded
 #ifdef USE_BITS
 #    define IPV6_OFFSET_VERSION                0
-#    define IPV6_OFFSET_IN_BITS_VERSION        0 
+#    define IPV6_OFFSET_IN_BITS_VERSION        0
 #    define IPV6_OFFSET_TRAFFIC_CLASS          0
 #    define IPV6_OFFSET_IN_BITS_TRAFFIC_CLASS  4
 #    define IPV6_OFFSET_FLOW_LABEL             1
@@ -57,7 +57,7 @@
 
 field_t * ipv6_get_length(const uint8_t * ipv6_segment) {
     const struct ip6_hdr * ipv6_header = (const struct ip6_hdr *) ipv6_segment;
-    return I16("length", ntohs(ipv6_header->ip6_plen) + sizeof(struct ip6_hdr)); 
+    return I16("length", ntohs(ipv6_header->ip6_plen) + sizeof(struct ip6_hdr));
 }
 
 bool ipv6_set_length(uint8_t * ipv6_segment, const field_t * field) {
@@ -74,19 +74,19 @@ static protocol_field_t ipv6_fields[] = {
 #ifdef USE_BITS
         .key            = IPV6_FIELD_VERSION,
         .type           = TYPE_BITS,
-        .offset         = IPV6_OFFSET_VERSION, 
+        .offset         = IPV6_OFFSET_VERSION,
         .offset_in_bits = IPV6_OFFSET_IN_BITS_VERSION,
         .size_in_bits   = 4,
     }, {
         .key            = IPV6_FIELD_TRAFFIC_CLASS,
         .type           = TYPE_BITS,
-        .offset         = IPV6_OFFSET_TRAFFIC_CLASS, 
+        .offset         = IPV6_OFFSET_TRAFFIC_CLASS,
         .offset_in_bits = IPV6_OFFSET_IN_BITS_TRAFFIC_CLASS,
         .size_in_bits   = 4,
     }, {
         .key            = IPV6_FIELD_FLOW_LABEL,
         .type           = TYPE_BITS,
-        .offset         = IPV6_OFFSET_FLOW_LABEL, 
+        .offset         = IPV6_OFFSET_FLOW_LABEL,
         .offset_in_bits = IPV6_OFFSET_IN_BITS_FLOW_LABEL,
         .size_in_bits   = 20,
     }, {
@@ -129,7 +129,7 @@ static protocol_field_t ipv6_fields[] = {
     END_PROTOCOL_FIELDS
 };
 
-// Default IPv6 values 
+// Default IPv6 values
 static const struct ip6_hdr ipv6_default = {
     .ip6_plen           = IPV6_DEFAULT_PAYLOAD_LENGTH,
     .ip6_nxt            = IPV6_DEFAULT_NEXT_HEADER,
@@ -201,13 +201,13 @@ bool ipv6_finalize(uint8_t * ipv6_header) {
 }
 
 /**
- * \brief Retrieve the size of an IPv6 header
- * \param ipv6_header Address of an IPv6 header or NULL
- * \return The size of an IPv6 header
+ * \brief Retrieve the size of an IPv6 header.
+ * \param ipv6_header Address of an IPv6 header or NULL.
+ * \return The size of an IPv6 header, O if ipv6_header is NULL.
  */
 
 size_t ipv6_get_header_size(const uint8_t * ipv6_header) {
-    return sizeof(struct ip6_hdr);
+    return ipv6_header ? sizeof(struct ip6_hdr) : 0;
 }
 
 /**
@@ -228,7 +228,7 @@ static uint32_t ipv6_make_flow(uint8_t version, uint8_t traffic_class, uint32_t 
     return htonl(
         (version       << 28) |
         (traffic_class << 20) |
-        (flow_label)  
+        (flow_label)
     );
 }
 

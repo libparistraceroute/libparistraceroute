@@ -6,7 +6,7 @@
 #include <stddef.h>        // offsetof()
 #include <netinet/icmp6.h> // icmp6_hdr
 #include <netinet/ip6.h>   // ip6_hdr
-#include <netinet/in.h>    // IPPROTO_ICMPV6 
+#include <netinet/in.h>    // IPPROTO_ICMPV6
 #include <arpa/inet.h>
 
 #include "../probe.h"
@@ -26,7 +26,7 @@
 
 // ICMP fields
 static protocol_field_t icmpv6_fields[] = {
-    {   
+    {
         .key    = ICMPV6_FIELD_TYPE,
         .type   = TYPE_UINT8,
         .offset = offsetof(struct icmp6_hdr, icmp6_type),
@@ -43,7 +43,7 @@ static protocol_field_t icmpv6_fields[] = {
         .type   = TYPE_UINT32,
         .offset = offsetof(struct icmp6_hdr, icmp6_dataun), // XXX union type
     },
-    // TODO Multiple possibilities for the last field ! 
+    // TODO Multiple possibilities for the last field !
     // e.g. "protocol" when we repeat some packet header for example
     END_PROTOCOL_FIELDS
 };
@@ -59,11 +59,11 @@ static struct icmp6_hdr icmpv6_default = {
 /**
  * \brief Retrieve the size of an ICMP6 header
  * \param icmpv6_segment (unused) Address of an ICMPv6 header or NULL.
- * \return The size of an ICMP6 header
+ * \return The size of an ICMP6 header, 0 if icmpv6_segment is NULL.
  */
 
 size_t icmpv6_get_header_size(const uint8_t * icmpv6_segment) {
-    return sizeof(struct icmp6_hdr);
+    return icmpv6_segment ? sizeof(struct icmp6_hdr) : 0;
 }
 
 /**
@@ -76,14 +76,14 @@ size_t icmpv6_get_header_size(const uint8_t * icmpv6_segment) {
 size_t icmpv6_write_default_header(uint8_t * icmpv6_segment) {
     size_t size = sizeof(struct icmp6_hdr);
     if (icmpv6_segment) memcpy(icmpv6_segment, &icmpv6_default, size);
-    return size; 
+    return size;
 }
 
 /**
  * \brief Compute and write the checksum related to an ICMPv6 header.
  * \param icmpv6_header A pre-allocated ICMPv6 header.
  * \param ipv6_psh The pseudo header.
- * \return true iif successful. 
+ * \return true iif successful.
  */
 
 bool icmpv6_write_checksum(uint8_t * icmpv6_segment, buffer_t * ipv6_psh)
@@ -100,7 +100,7 @@ bool icmpv6_write_checksum(uint8_t * icmpv6_segment, buffer_t * ipv6_psh)
         errno = EINVAL;
         return false;
     }
-    
+
     // Allocate the buffer which will contains the pseudo header
     if (!(psh = malloc(size_psh))) {
         return false;
