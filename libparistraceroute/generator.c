@@ -39,7 +39,7 @@ generator_t * generator_create_by_name(const char * name)
     const generator_t * search;
 
     if (!(search = generator_search(name))) {
-        fprintf(stderr, "Unknown generator %s", name);
+        fprintf(stderr, "Unknown generator %s\n", name);
         goto ERR_SEARCH;
     }
 

@@ -72,7 +72,7 @@ field_t * field_create_address(const char * key, const address_t * address) {
             field =  field_create(TYPE_IPV6, key, &address->ip.ipv6);
             break;
         default:
-            fprintf(stderr, "field_create_address: Invalid family address (family = %d)", address->family);
+            fprintf(stderr, "field_create_address: Invalid family address (family = %d)\n", address->family);
             break;
     }
 
@@ -285,7 +285,7 @@ void value_dump(const value_t * value, fieldtype_t type) {
             break;
         case TYPE_UINT128:
         default:
-            fprintf(stderr, "value_dump: type not supported (%d) (%s)", type, field_type_to_string(type));
+            fprintf(stderr, "value_dump: type not supported (%d) (%s)\n", type, field_type_to_string(type));
             break;
     }
 }
