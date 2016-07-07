@@ -499,7 +499,12 @@ probe_t * probe_wrap_packet(packet_t * packet)
 
     // Push layers
     for (protocol = get_first_protocol(packet); protocol; protocol = protocol->get_next_protocol(layer)) {
-        segment_size = protocol->get_header_size(segment);
+        if (remaining_size < protocol->write_default_header(NULL)) {
+            // Not enough bytes left for the header, packet is truncated
+            segment_size = remaining_size;
+        } else {
+            segment_size = protocol->get_header_size(segment);
+        }
 
         if (!(layer = layer_create_from_segment(protocol, segment, segment_size))) {
             goto ERR_CREATE_LAYER;
