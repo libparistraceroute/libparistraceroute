@@ -336,9 +336,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
 
     // The matching probe is the oldest one and there are other probes, update
     // the timer according to the next unexpired probe timeout.
-    if (i == 0 && num_flying_probes > 1) {
-        // We just decremented the number of probes, so num_flying_probes
-		// must be compared to 1, not to 0.
+    if (i == 0) {
         if (!(network_drop_expired_flying_probe(network))) {
             fprintf(stderr, "Error while updating timeout\n");
         }
