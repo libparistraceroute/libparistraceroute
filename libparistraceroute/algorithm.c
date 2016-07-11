@@ -63,7 +63,7 @@ static algorithm_instance_t * pt_algorithm_instance_add(
 
 /**
  * \brief Unregister an algorithm instance in the main loop.
- *    Its data must be previously freed by using algorithm_instance_free 
+ *    Its data must be previously freed by using algorithm_instance_free
  * \param instance The instance that we register
  */
 
@@ -140,7 +140,7 @@ static algorithm_instance_t * algorithm_instance_create(
 static void algorithm_instance_free(algorithm_instance_t * instance)
 {
     if (instance) {
-        dynarray_free(instance->events, (ELEMENT_FREE) event_free);
+        algorithm_instance_clear_events(instance);
         free(instance);
     }
 }
@@ -204,7 +204,7 @@ inline event_t ** algorithm_instance_get_events(algorithm_instance_t * instance)
 
 inline void algorithm_instance_clear_events(algorithm_instance_t * instance) {
     if (instance) {
-        dynarray_clear(instance->events, (void (*)(void*)) event_free);
+        dynarray_clear(instance->events, (ELEMENT_FREE) event_free);
     }
 }
 
@@ -213,7 +213,7 @@ inline unsigned int algorithm_instance_get_num_events(algorithm_instance_t * ins
 }
 
 //--------------------------------------------------------------------
-// pt_loop: user interface 
+// pt_loop: user interface
 //--------------------------------------------------------------------
 
 void pt_process_instance(const void * node, VISIT visit, int level)
@@ -222,7 +222,7 @@ void pt_process_instance(const void * node, VISIT visit, int level)
     size_t                 i, num_events;
     uint64_t               ret;
     ssize_t                count;
-    
+
     // Save temporarily this algorithm context
     instance->loop->cur_instance = instance;
 
@@ -270,7 +270,7 @@ algorithm_instance_t * pt_add_instance(
     if (!(algorithm = algorithm_search(name))) {
         goto ERR_ALGORITHM_NOT_FOUND;
     }
-    
+
     // If the probe skeleton does not exist, create it.
     if (!probe_skel) {
         probe_skel = probe_create();
@@ -280,7 +280,7 @@ algorithm_instance_t * pt_add_instance(
 
     // Create a new instance of a running algorithm
     if (!(instance = algorithm_instance_create(loop, algorithm, options, probe_skel))) {
-        goto ERR_INSTANCE; 
+        goto ERR_INSTANCE;
     }
 
     // We need to queue a new event for the algorithm: it has been started
@@ -332,7 +332,7 @@ void pt_throw(
 }
 
 //--------------------------------------------------------------------
-// Internal usage (see pt_loop.c) 
+// Internal usage (see pt_loop.c)
 //--------------------------------------------------------------------
 
 inline void pt_instance_iter(

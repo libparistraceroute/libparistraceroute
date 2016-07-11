@@ -26,6 +26,7 @@ void event_free(event_t * event)
         if (event->data && event->data_free) {
             event->data_free(event->data);
         }
-        free(event);
+        // TODO: trigger a double free. Ex: paris-traceroute -n 8.8.8.8
+        // free(event);
     }
 }

@@ -689,7 +689,11 @@ bool network_process_recvq(network_t * network)
     probe_reply_set_reply(probe_reply, reply);
 
     // Notify the instance which has build the probe that we've got the corresponding reply
-    pt_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+
+    // TODO this provokes a double free:
+    //pt_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
+    pt_throw(NULL, probe->caller, event_create(PROBE_REPLY, probe_reply, NULL, NULL));
+
     // TODO probe_reply_free frees only the reply but probe_reply_deep_free cannot be used as other things may have references to its contents.
     return true;
 
