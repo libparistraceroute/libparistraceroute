@@ -12,17 +12,12 @@
 #include <sys/socket.h>              // gai_strerror, AF_INET, AF_INET6
 #include <netdb.h>                   // gai_strerror
 
-#include "common.h"                  // ELEMENT_DUMP
-#include "optparse.h"                // opt_*()
 #include "pt_loop.h"                 // pt_loop_t
 #include "probe.h"                   // probe_t
-#include "lattice.h"                 // lattice_t
-#include "algorithms/mda.h"          // mda_*_t
-#include "algorithm.h"               // algorithm_instance_t
+#include "algorithm.h"               // pt_stop_instance
 #include "algorithms/ping.h"         // ping_options_t
-#include "address.h"                 // address_to_string
+#include "address.h"                 // address_t
 #include "options.h"                 // options_*
-#include "layer.h"
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -483,7 +478,7 @@ int main(int argc, char ** argv)
     // Set network options (network and verbose)
     options_network_init(loop->network, false);
 
-    printf("ping to %s (", dst_ip);
+    printf("paris-ping to %s (", dst_ip);
     address_dump(&dst_addr);
     printf(")\n");
 

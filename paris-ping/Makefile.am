@@ -8,17 +8,19 @@ AUTOMAKE_OPTIONS = foreign
 #
 
 # the program to build (the names of the final binaries)
-bin_PROGRAMS = ping
+bin_PROGRAMS = paris-ping
 
 # list of sources for the paris-traceroute binary
-ping_SOURCES = \
-	ping.c
+paris_ping_SOURCES = \
+	paris-ping.c
 
-ping_CFLAGS = \
+paris_ping_CFLAGS = \
 	$(AM_CFLAGS) \
 	-I$(srcdir)/../libparistraceroute
 
-ping_LDADD = \
+paris_ping_LDADD = \
 	../libparistraceroute/libparistraceroute-@LIBRARY_VERSION@.la
-ping_LDFLAGS = -L../libparistraceroute
-ping_DEPENDENCIES =
+
+install-bin: install
+
+
