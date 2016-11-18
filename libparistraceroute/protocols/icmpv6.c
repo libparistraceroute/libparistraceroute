@@ -1,3 +1,6 @@
+#include "../use.h"       // USE_BITS
+
+#ifdef USE_IPV6
 #include <stdio.h>
 #include <stdlib.h>        // malloc()
 #include <string.h>        // memcpy()
@@ -186,3 +189,4 @@ static protocol_t icmpv6 = {
 };
 
 PROTOCOL_REGISTER(icmpv6);
+#endif

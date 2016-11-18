@@ -1,3 +1,5 @@
+#include "use.h"
+
 #include "config.h"
 #include "whois.h"
 
@@ -78,8 +80,12 @@ bool whois_query(
     int    sockfd, read_size; //, total_size = 0;
 
     struct sockaddr     * sa;
+#ifdef USE_IPV4
     struct sockaddr_in    sa4;
+#endif
+#ifdef USE_IPV6
     struct sockaddr_in6   sa6;
+#endif
     size_t socket_len;
 
     int    family = server_address->family;

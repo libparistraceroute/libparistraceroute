@@ -65,12 +65,16 @@ field_t * field_create_address(const char * key, const address_t * address) {
     field_t * field = NULL;
 
     switch (address->family) {
+#ifdef USE_IPV4
         case AF_INET:
             field = field_create(TYPE_IPV4, key, &address->ip.ipv4);
             break;
+#endif
+#ifdef USE_IPV6
         case AF_INET6:
             field =  field_create(TYPE_IPV6, key, &address->ip.ipv6);
             break;
+#endif
         default:
             fprintf(stderr, "field_create_address: Invalid family address (family = %d)\n", address->family);
             break;
@@ -79,13 +83,17 @@ field_t * field_create_address(const char * key, const address_t * address) {
     return field;
 }
 
+#ifdef USE_IPV4
 field_t * field_create_ipv4(const char * key, ipv4_t ipv4) {
     return field_create(TYPE_IPV4, key, &ipv4);
 }
+#endif
 
+#ifdef USE_IPV6
 field_t * field_create_ipv6(const char * key, ipv6_t ipv6) {
     return field_create(TYPE_IPV6, key, &ipv6);
 }
+#endif
 
 #ifdef USE_BITS
 // TODO factorize with field_create
@@ -182,10 +190,14 @@ size_t field_get_size(const field_t * field) {
 
 size_t field_get_type_size(fieldtype_t type) {
     switch (type) {
+#ifdef USE_IPV4
         case TYPE_IPV4:
             return sizeof(ipv4_t);
+#endif
+#ifdef USE_IPV6
         case TYPE_IPV6:
             return sizeof(ipv6_t);
+#endif
         case TYPE_BITS:
             return sizeof(uint8_t);
         case TYPE_UINT8:

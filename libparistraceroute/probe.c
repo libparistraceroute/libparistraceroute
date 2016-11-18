@@ -1006,16 +1006,20 @@ bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, v
 
         // Hack to convert ipv*_t extracted into address_t value.
         switch (protocol_field->type) {
+#ifdef USE_IPV4
             case TYPE_IPV4:
                 memset(value, 0, sizeof(address_t));
                 ((address_t *) value)->family = AF_INET;
                 value = &((address_t *) value)->ip.ipv4;
                 break;
+#endif
+#ifdef USE_IPV6
             case TYPE_IPV6:
                 memset(value, 0, sizeof(address_t));
                 ((address_t *) value)->family = AF_INET6;
                 value = &((address_t *) value)->ip.ipv6;
                 break;
+#endif
             default: break;
         }
 
