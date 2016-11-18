@@ -46,7 +46,7 @@
  * \param port The listening port
  * \return true iif successful
  */
-
+#ifdef USE_IPV4
 static bool create_icmpv4_socket(sniffer_t * sniffer, uint16_t port)
 {
 	struct sockaddr_in saddr;
@@ -81,6 +81,7 @@ ERR_FCNTL:
 ERR_SOCKET:
     return false;
 }
+#endif
 
 /**
  * \brief Initialize an ICMPv6 raw socket in a sniffer_t instance
@@ -88,7 +89,7 @@ ERR_SOCKET:
  * \param port The listening port
  * \return true iif successful
  */
-
+#ifdef USE_IPV6
 static bool create_icmpv6_socket(sniffer_t * sniffer, uint16_t port)
 {
     struct in6_addr anyaddr = IN6ADDR_ANY_INIT;
@@ -144,7 +145,7 @@ ERR_FCNTL:
 ERR_SOCKET:
     return false;
 }
-
+#endif
 
 sniffer_t * sniffer_create(void * recv_param, bool (*recv_callback)(packet_t *, void *))
 {
@@ -154,15 +155,24 @@ sniffer_t * sniffer_create(void * recv_param, bool (*recv_callback)(packet_t *, 
     // requires root privileges
 	// Can we set port to 0 to capture all packets wheter ICMP, UDP or TCP?
     if (!(sniffer = malloc(sizeof(sniffer_t)))) goto ERR_MALLOC;
+#ifdef USE_IPV4
     if (!create_icmpv4_socket(sniffer, 0))      goto ERR_CREATE_ICMPV4_SOCKET;
+#endif
+#ifdef USE_IPV6
     if (!create_icmpv6_socket(sniffer, 0))      goto ERR_CREATE_ICMPV6_SOCKET;
+#endif
     sniffer->recv_param = recv_param;
     sniffer->recv_callback = recv_callback;
     return sniffer;
-
+#ifdef USE_IPV6
 ERR_CREATE_ICMPV6_SOCKET:
+#ifdef USE_IPV4
     close(sniffer->icmpv4_sockfd);
+#endif
+#endif
+#ifdef USE_IPV4
 ERR_CREATE_ICMPV4_SOCKET:
+#endif
     free(sniffer);
 ERR_MALLOC:
     return NULL;
@@ -171,8 +181,12 @@ ERR_MALLOC:
 void sniffer_free(sniffer_t * sniffer)
 {
     if (sniffer) {
+#ifdef USE_IPV4
         close(sniffer->icmpv4_sockfd);
+#endif
+#ifdef USE_IPV6
         close(sniffer->icmpv6_sockfd);
+#endif
         free(sniffer);
     }
 }

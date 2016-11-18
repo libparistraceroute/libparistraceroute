@@ -323,12 +323,16 @@ buffer_t * tcp_create_pseudo_header(const uint8_t * ip_segment)
     // TODO Duplicated from packet.c (see packet_guess_address_family)
     // TODO we should use instanceof
     switch (ip_segment[0] >> 4) {
+#ifdef USE_IPV4
         case 4:
             buffer = ipv4_pseudo_header_create(ip_segment);
             break;
+#endif
+#ifdef USE_IPV6
         case 6:
             buffer = ipv6_pseudo_header_create(ip_segment);
             break;
+#endif
         default:
             break;
     }

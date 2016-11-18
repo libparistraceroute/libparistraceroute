@@ -69,9 +69,15 @@ socketpool_t * socketpool_create() {
 #endif
     return socketpool;
 
+#ifdef USE_IPV6
 ERR_CREATE_RAW_SOCKET_IPV6:
+#ifdef USE_IPV4
     close(socketpool->ipv4_sockfd);
+#endif
+#endif
+#ifdef USE_IPV4
 ERR_CREATE_RAW_SOCKET_IPV4:
+#endif
     free(socketpool);
 ERR_MALLOC:
     return NULL;

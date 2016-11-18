@@ -189,14 +189,18 @@ int address_compare(const address_t * x, const address_t * y) {
     address_size = address_get_size(x);
 
     switch (x->family) {
+#ifdef USE_IPV4
         case AF_INET:
             px = (const uint8_t *) &x->ip.ipv4;
             py = (const uint8_t *) &y->ip.ipv4;
             break;
+#endif
+#ifdef USE_IPV6
         case AF_INET6:
             px = (const uint8_t *) &x->ip.ipv6;
             py = (const uint8_t *) &y->ip.ipv6;
             break;
+#endif
     }
 
     for (i = 0; (i < address_size) && (*px++ == *py++); i++);
@@ -206,8 +210,12 @@ int address_compare(const address_t * x, const address_t * y) {
 int address_to_string(const address_t * address, char ** pbuffer)
 {
     struct sockaddr     * sa;
+#ifdef USE_IPV4
     struct sockaddr_in    sa4;
+#endif
+#ifdef USE_IPV6
     struct sockaddr_in6   sa6;
+#endif
     socklen_t             socket_size;
     int                   ret = -1;
     size_t                buffer_size;
@@ -259,8 +267,12 @@ ERR_MALLOC:
 
 size_t address_get_size(const address_t * address) {
     switch (address->family) {
+#ifdef USE_IPV4
         case AF_INET:  return sizeof(ipv4_t);
+#endif
+#ifdef USE_IPV6
         case AF_INET6: return sizeof(ipv6_t);
+#endif
         default:
             fprintf(stderr, "address_get_size: Invalid family\n");
             break;

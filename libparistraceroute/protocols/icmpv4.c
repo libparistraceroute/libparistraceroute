@@ -1,3 +1,6 @@
+#include "../use.h"       // USE_BITS
+
+#ifdef USE_IPV4
 #include <stdio.h>
 #include <stdlib.h>           // malloc()
 #include <string.h>           // memcpy()
@@ -177,3 +180,4 @@ static protocol_t icmpv4 = {
 };
 
 PROTOCOL_REGISTER(icmpv4);
+#endif
