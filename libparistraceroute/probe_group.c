@@ -249,6 +249,8 @@ void probe_group_iter_next_scheduled_probes(
         } else if (is_probe(child) && get_node_delay(child) == delay) {
             if (callback) callback(param_callback, child, i);
             num_children = tree_node_get_num_children(node);
+
+			// See https://github.com/libparistraceroute/libparistraceroute/pull/19
             i = -1;
         } else probe_group_iter_next_scheduled_probes(child, callback, param_callback);
     }
@@ -256,11 +258,7 @@ void probe_group_iter_next_scheduled_probes(
 
 
 double probe_group_get_next_delay(const probe_group_t * probe_group) {
-    if (!(probe_group)) goto ERR_PROBE_GROUP;
-    return get_node_delay(tree_get_root(probe_group->tree_probes));
-
-ERR_PROBE_GROUP:
-    return -1;
+    return probe_group ? get_node_delay(tree_get_root(probe_group->tree_probes)) : -1;
 }
 
 void probe_group_dump(const probe_group_t * probe_group) {
