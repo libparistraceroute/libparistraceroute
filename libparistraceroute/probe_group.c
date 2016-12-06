@@ -249,7 +249,7 @@ void probe_group_iter_next_scheduled_probes(
         } else if (is_probe(child) && get_node_delay(child) == delay) {
             if (callback) callback(param_callback, child, i);
             num_children = tree_node_get_num_children(node);
-            i = 0;
+            i = -1;
         } else probe_group_iter_next_scheduled_probes(child, callback, param_callback);
     }
 }
