@@ -85,7 +85,7 @@ void  probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node) 
         }
     } else {
         if (probe_group_get_next_delay(probe_group) < DBL_MAX) {
-            if (probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group) < 0) {
+            if (probe_group_get_next_delay(probe_group) - probe_group_get_last_delay(probe_group) <= 0) {
                 probe_group_set_last_delay(probe_group, 0);
             }
 
