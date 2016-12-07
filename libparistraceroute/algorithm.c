@@ -301,9 +301,6 @@ void pt_stop_instance(
         struct pt_loop_s     * loop,
         algorithm_instance_t * instance
 ) {
-    // Notify the caller that this instance will be freed
-    pt_throw(NULL, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
-
     // Unregister this instance from the loop
     pt_algorithm_instance_del(loop, instance);
 
