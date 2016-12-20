@@ -224,6 +224,9 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
             // Tell to the algorithm it can free its data
             pt_stop_instance(loop, event->issuer);
 
+            // Remove the application from the loop.
+            pt_del_instance(loop, event->issuer);
+
             // Kill the loop
             pt_loop_terminate(loop);
             break;

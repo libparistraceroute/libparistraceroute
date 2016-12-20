@@ -13,18 +13,60 @@
 #include <signal.h>        // SIGINT, SIGQUIT
 #include <netinet/in.h>    // IPPROTO_ICMP, IPPROTO_ICMPV6
 
+#include "probe.h"         // probe_t
 #include "pt_loop.h"
 #include "algorithm.h"
 
 #define MAXEVENTS 100
+
+static pt_loop_t * s_loop = NULL; // Needed while we use twalk.
 
 //----------------------------------------------------------------
 // Static functions
 //----------------------------------------------------------------
 
 /**
- * \brief (Internal usage) Release from the memory loop->user_events;
- * \param loop The main loop
+ * \brief process algorithm events (internal usage, see visitor for twalk)
+ * \param node Current instance
+ * \param visit Unused
+ * \param level Unused
+ */
+
+static void pt_process_instance(
+    const void * node,
+    VISIT        visit,
+    int          level
+);
+
+/**
+ * \brief Free algorithm instances (internal usage, see visitor for twalk)
+ * \param node Current instance
+ * \param visit Unused
+ * \param level Unused
+ */
+
+static void pt_free_instance(
+    const void * node,
+    VISIT        visit,
+    int          level
+);
+
+/**
+ * \brief process algorithm events (internal usage, see visitor for twalk)
+ * \param loop The libparistraceroute loop
+ * \param action A pointer to a function that process the current instance, e.g.
+ *    that dispatches the events related to this instance.
+ */
+
+static void pt_instance_iter(
+    struct pt_loop_s * loop,
+    void (*action) (const void *, VISIT, int)
+);
+
+
+/**
+ * \brief (Internal usage) Release from the memory loop->user_events.
+ * \param loop The main loop.
  */
 
 static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
@@ -32,10 +74,10 @@ static inline void pt_loop_clear_user_events(pt_loop_t * loop) {
 }
 
 /**
- * \brief Register a file descriptor in Paris Traceroute loop
- * \param loop The main loop
- * \param fd A file descriptor
- * \return true iif successfull
+ * \brief Register a file descriptor in Paris Traceroute loop.
+ * \param loop The main loop.
+ * \param fd A file descriptor.
+ * \return true iif successful.
  */
 
 static bool register_efd(pt_loop_t * loop, int fd) {
@@ -62,8 +104,8 @@ ERR_FD:
 }
 
 /**
- * \brief Prepare a EFD_SEMAPHORE event_fd
- * \return The correspnding file descriptor, -1 in case of failure
+ * \brief Prepare a EFD_SEMAPHORE event_fd.
+ * \return The corresponding file descriptor, -1 in case of failure.
  */
 
 static inline int make_event_fd() {
@@ -76,7 +118,8 @@ static inline int make_event_fd() {
 }
 
 /**
- * \brief Prepare a signal file descriptor used to handle SIGINT and SIGQUIT signals
+ * \brief Prepare a signal file descriptor used to handle SIGINT and
+ *   SIGQUIT signals.
  * \return The correspnding file descriptor, -1 in case of failure
  */
 
@@ -107,9 +150,9 @@ ERR_SIGNALFD:
 }
 
 /**
- * \brief Create an ALGORITHM* event carrying a nested user event.
- * \param loop The main loop
- * \param type Type of event
+ * \brief Create an ALGORITHM_* event carrying a nested user event.
+ * \param loop The main loop.
+ * \param type Type of event.
  */
 
 static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_event) {
@@ -131,9 +174,9 @@ static bool pt_raise_impl(pt_loop_t * loop, event_type_t type, event_t * nested_
 }
 
 /**
- * \brief Process every pending user events (e.g. pt_loop_get_num_user_events(loop) events)
- * \param loop The main loop
- * \return true iif successfull
+ * \brief Process every pending user events (e.g. pt_loop_get_num_user_events(loop) events).
+ * \param loop The main loop.
+ * \return true iif successful.
  */
 
 static int pt_loop_process_user_events(pt_loop_t * loop) {
@@ -155,10 +198,10 @@ static int pt_loop_process_user_events(pt_loop_t * loop) {
 
 /**
  * \brief Called when pt_loop handles a SIGINT|SIGQUIT to notify algorithms
- *   they must terminate.
- * \param node The current algorithm_instance_t
- * \param visit
- * \param level
+ *   they must terminate. Sends a ALGORITHM_TERM event to each running instance.
+ * \param node The current algorithm_instance_t.
+ * \param visit (unused).
+ * \param level (unused).
  */
 
 static void pt_process_algorithms_terminate(const void * node, VISIT visit, int level) {
@@ -287,6 +330,63 @@ inline size_t pt_loop_get_num_user_events(pt_loop_t * loop) {
     return loop->events_user->size;
 }
 
+inline void pt_instance_iter(
+    pt_loop_t * loop,
+    void     (* action) (const void *, VISIT, int))
+{
+    twalk(loop->algorithm_instances_root, action);
+}
+
+void pt_process_instance(const void * node, VISIT visit, int level)
+{
+    algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
+    size_t                 i, num_events;
+    uint64_t               ret;
+    ssize_t                count;
+
+    // Save temporarily this algorithm context.
+    instance->loop->cur_instance = instance;
+
+    // Execute algorithm handler for each events.
+    num_events = dynarray_get_size(instance->events);
+    for (i = 0; i < num_events; i++) {
+        event_t * event;
+
+        count = read(instance->loop->eventfd_algorithm, &ret, sizeof(ret));
+        if (count == -1) return;
+
+        event = dynarray_get_ith_element(instance->events, i);
+        instance->algorithm->handler(
+            instance->loop, event,
+            &instance->data,
+            instance->probe_skel,
+            instance->options
+        );
+
+        // Next events for this instance are ignored.
+        if (event->type == ALGORITHM_TERM) {
+            break;
+        }
+    }
+
+    // Restore the algorithm context
+    instance->loop->cur_instance = NULL;
+
+    // Flush events queue
+    algorithm_instance_clear_events(instance);
+}
+
+// Notify the called algorithm that it can start
+
+void pt_free_instance(
+    const void * node,
+    VISIT        visit,
+    int          level
+) {
+    algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
+    algorithm_instance_free(instance); // No notification
+}
+
 int pt_loop(pt_loop_t *loop, unsigned int timeout)
 {
     int n, i, cur_fd;
@@ -358,7 +458,12 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
                 // We call pt_process_algorithms_iter() to find for which instance
                 // the event has been raised. Then we process this event thanks
                 // to pt_process_algorithms_instance() that calls the handler.
+
+                // << This must be thread safe!!
+                s_loop = loop;
                 pt_instance_iter(loop, pt_process_instance);
+                s_loop = NULL;
+                // >> This must be thread safe!!
 
             } else if (cur_fd == loop->eventfd_user) {
 

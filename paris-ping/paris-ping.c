@@ -225,7 +225,6 @@ static bool check_packet_size(bool is_icmp, size_t headers_size, size_t desired_
 
 //---------------------------------------------------------------------------
 // Command-line
-
 // libparistraceroute translation
 //---------------------------------------------------------------------------
 
@@ -248,10 +247,11 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
             ping_data = event->issuer->data;
 
             if (ping_data != NULL) { // to prevent to print statistics twice and to print an error-message
-            ping_dump_statistics(ping_data);
+                ping_dump_statistics(ping_data);
             }
 
             pt_stop_instance(loop, event->issuer);
+            pt_del_instance(loop, event->issuer);
             pt_loop_terminate(loop);
             break;
 

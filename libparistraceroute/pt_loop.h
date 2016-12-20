@@ -63,14 +63,20 @@ typedef struct pt_loop_s {
 } pt_loop_t;
 
 /**
- * \brief Create the paristraceroute loop
+ * \brief Create the event loop. The loop is typically created in the main()
+ *    of an application and stopped once libparistraceroute is not anymore
+ *    needed. The library raise some event to the application via its user
+ *    handler.
  * \param handler_user A pointer to a function declared in the user's program
- *   called whenever a event concerning the user arises. This handler 
+ *   called whenever a event concerning the user arises. This handler
  *   - receives a pointer to the libparistraceroute loop,
  *   - must return a value
- *     < 0: if the libparistraceroute loop has to be stopped (failure) 
+ *     < 0: if the libparistraceroute loop has to be stopped (failure)
  *     = 0: if the libparistraceroute loop has to be stopped (success)
- *     > 0: if the libparistraceroute loop has to continue   (pending) 
+ *     > 0: if the libparistraceroute loop has to continue   (pending)
+ * \param user_data A pointer forwarded by the loop to user_handler.
+ *    This pointer offers an opportunity to pass data from the main() to
+ *    the handler_user function.
  * \return A pointer to a loop if successfull, NULL otherwise.
  */
 
@@ -78,7 +84,7 @@ pt_loop_t * pt_loop_create(void (*handler_user)(pt_loop_t *, event_t *, void *),
 
 /**
  * \brief Close properly the paristraceroute loop
- * \param loop The libparistraceroute loop 
+ * \param loop The libparistraceroute loop
  */
 
 void pt_loop_free(pt_loop_t * loop);
@@ -93,8 +99,8 @@ void pt_loop_free(pt_loop_t * loop);
  *
  * Example: See libparistraceroute/paris-traceroute/paris-traceroute.c.
  *
- * \param loop The libparistraceroute loop 
- * \param timeout The interval of time during 
+ * \param loop The libparistraceroute loop
+ * \param timeout The interval of time during
  * \return The loop status. This is the min value among the values returned
  *    by the handlers called during the interval.
  *
@@ -128,7 +134,7 @@ size_t pt_loop_get_num_user_events(pt_loop_t * loop);
  * \param probe Pointer to the probe to use
  * \param callback Function pointer to a callback function
  *     (Does not appear to be used currently)
- * \return true iif successful 
+ * \return true iif successful
  */
 
 bool pt_send_probe(pt_loop_t * loop, probe_t * probe);
