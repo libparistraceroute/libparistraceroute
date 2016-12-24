@@ -368,8 +368,9 @@ void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
 		//  - Apple: same as NetBSD?
 		//  Bug? On NetBSD, the IP length seems incorrect
 #if defined __APPLE__ || __NetBSD__ || __FreeBSD__
-		uint16_t ip_len = read16(recv_bytes, 2);
-		writebe16(recv_bytes, 2, ip_len);
+		//uint16_t ip_len = read16(recv_bytes, 2);
+		//writebe16(recv_bytes, 2, ip_len);
+        printf("sniffer_process_packets: something unclear here\n");
 #endif
 		if (sniffer->recv_callback != NULL) {
             packet = packet_create_from_bytes(recv_bytes, num_bytes);

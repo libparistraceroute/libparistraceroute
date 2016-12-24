@@ -6,7 +6,7 @@
 #include <string.h>           // memcpy
 #include <stddef.h>           // offsetof
 #include <arpa/inet.h>        // ntohs, htonl
-#include <netinet/ip6.h>      // ip6_hdr
+#include "os/netinet/ip6.h"   // ip6_hdr
 
 #include <stdio.h>
 #include "buffer.h"

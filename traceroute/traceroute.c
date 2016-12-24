@@ -1,6 +1,7 @@
-#include <stdlib.h> // malloc
-#include <stdio.h>  // perror
-#include <string.h> // memcpy
+#include <stdlib.h>     // malloc
+#include <stdio.h>      // perror
+#include <string.h>     // memcpy
+#include <sys/socket.h> // AF_INET*
 
 #include "address.h"
 #include "pt_loop.h"

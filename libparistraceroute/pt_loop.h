@@ -15,9 +15,6 @@
  *      see libparistraceroute/algorithms/
  */
 
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
-
 // Do not include "algorithm.h" to avoid mutual inclusion
 #include "probe.h"
 #include "network.h"

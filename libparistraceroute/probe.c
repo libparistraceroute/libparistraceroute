@@ -1,17 +1,18 @@
 #include "use.h"
 #include "config.h"
 
-#include <stdlib.h>          // malloc, free
-#include <stdio.h>           // perror
-#include <errno.h>           // errno, EINVAL
-#include <stdarg.h>          // va_start, va_copy, va_arg
-#include <string.h>          // memcpy
+#include <stdlib.h>         // malloc, free
+#include <stdio.h>          // perror
+#include <errno.h>          // errno, EINVAL
+#include <stdarg.h>         // va_start, va_copy, va_arg
+#include <string.h>         // memcpy
+#include <sys/socket.h>     // AF_INET*
 
-#include "probe.h"
-#include "buffer.h"          // buffer_t
-#include "protocol.h"        // protocol_t
-#include "common.h"          // ELEMENT_FREE
-#include "generator.h"       // generator_*
+#include "probe.h"          // probe_t
+#include "buffer.h"         // buffer_t
+#include "protocol.h"       // protocol_t
+#include "common.h"         // ELEMENT_FREE
+#include "generator.h"      // generator_*
 
 //-----------------------------------------------------------
 // Probe consistency

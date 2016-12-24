@@ -2,14 +2,14 @@
 
 #ifdef USE_IPV6
 #include <stdio.h>
-#include <stdlib.h>        // malloc()
-#include <string.h>        // memcpy()
-#include <stdbool.h>       // bool
-#include <errno.h>         // ERRNO, EINVAL
-#include <stddef.h>        // offsetof()
-#include <netinet/icmp6.h> // icmp6_hdr
-#include <netinet/ip6.h>   // ip6_hdr
-#include <netinet/in.h>    // IPPROTO_ICMPV6
+#include <stdlib.h>             // malloc()
+#include <string.h>             // memcpy()
+#include <stdbool.h>            // bool
+#include <errno.h>              // ERRNO, EINVAL
+#include <stddef.h>             // offsetof()
+#include "os/netinet/icmp6.h"   // icmp6_hdr
+#include <netinet/ip6.h>        // ip6_hdr
+#include <netinet/in.h>         // IPPROTO_ICMPV6
 #include <arpa/inet.h>
 
 #include "../probe.h"

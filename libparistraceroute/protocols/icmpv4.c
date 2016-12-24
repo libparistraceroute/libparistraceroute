@@ -2,13 +2,13 @@
 
 #ifdef USE_IPV4
 #include <stdio.h>
-#include <stdlib.h>           // malloc()
-#include <string.h>           // memcpy()
-#include <stdbool.h>          // bool
-#include <errno.h>            // ERRNO, EINVAL
-#include <stddef.h>           // offsetof()
-#include <netinet/ip_icmp.h>  // ICMP_ECHO
-#include <netinet/in.h>       // IPPROTO_ICMP = 1
+#include <stdlib.h>                 // malloc()
+#include <string.h>                 // memcpy()
+#include <stdbool.h>                // bool
+#include <errno.h>                  // ERRNO, EINVAL
+#include <stddef.h>                 // offsetof()
+#include "os/netinet/ip_icmp.h"     // ICMP_ECHO
+#include <netinet/in.h>             // IPPROTO_ICMP = 1
 #include <arpa/inet.h>
 
 #include "../protocol.h"
@@ -33,21 +33,24 @@ static protocol_field_t icmpv4_fields[] = {
     {
         .key    = ICMPV4_FIELD_TYPE,
         .type   = TYPE_UINT8,
-        .offset = offsetof(struct icmphdr, type),
+        .offset = offsetof(struct icmphdr, ICMPV4_TYPE),
     }, {
         .key    = ICMPV4_FIELD_CODE,
         .type   = TYPE_UINT8,
-        .offset = offsetof(struct icmphdr, code),
+        .offset = offsetof(struct icmphdr, ICMPV4_CODE),
     }, {
         .key    = ICMPV4_FIELD_CHECKSUM,
         .type   = TYPE_UINT16,
-        .offset = offsetof(struct icmphdr, checksum),
-    }, {
+        .offset = offsetof(struct icmphdr, ICMPV4_CHECKSUM),
+    },
+#ifdef LINUX
+    {
         .key    = ICMPV4_FIELD_BODY,
         .type   = TYPE_UINT16,
         .offset = offsetof(struct icmphdr, un), // XXX union type
         // optional = 0
     },
+#endif
     // TODO Multiple possibilities for the last field !
     // e.g. "protocol" when we repeat some packet header for example
     END_PROTOCOL_FIELDS
@@ -58,10 +61,18 @@ static protocol_field_t icmpv4_fields[] = {
  */
 
 static struct icmphdr icmpv4_default = {
+    /*
     .type           = ICMPV4_DEFAULT_TYPE,
     .code           = ICMPV4_DEFAULT_CODE,
     .checksum       = ICMPV4_DEFAULT_CHECKSUM,
     .un.gateway     = ICMPV4_DEFAULT_BODY // XXX union type
+    */
+    .ICMPV4_TYPE        = ICMPV4_DEFAULT_TYPE,
+    .ICMPV4_CODE        = ICMPV4_DEFAULT_CODE,
+    .ICMPV4_CHECKSUM    = ICMPV4_DEFAULT_CHECKSUM,
+#ifdef LINUX
+    .un.gateway     = ICMPV4_DEFAULT_BODY // XXX union type
+#endif
 };
 
 /**
@@ -107,8 +118,8 @@ bool icmpv4_write_checksum(uint8_t * icmpv4_segment, buffer_t * ipv4_psh)
     }
 
     // The ICMPv4 checksum must be set to 0 before its calculation
-    icmpv4_header->checksum = 0;
-    icmpv4_header->checksum = csum((uint16_t *) icmpv4_segment, sizeof(struct icmphdr));
+    icmpv4_header->ICMPV4_CHECKSUM = 0;
+    icmpv4_header->ICMPV4_CHECKSUM = csum((uint16_t *) icmpv4_segment, sizeof(struct icmphdr));
     return true;
 }
 

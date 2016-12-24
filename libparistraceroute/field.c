@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>     // AF_INET*
 
 #include "field.h"
 #include "generator.h"
@@ -238,10 +239,10 @@ bool field_match(const field_t * field1, const field_t * field2) {
 const char * field_type_to_string(fieldtype_t type) {
     switch (type) {
 #ifdef USE_IPV4
-        case TYPE_IPV4:      return "ipv4"; 
+        case TYPE_IPV4:      return "ipv4";
 #endif
 #ifdef USE_IPV6
-        case TYPE_IPV6:      return "ipv6"; 
+        case TYPE_IPV6:      return "ipv6";
 #endif
         case TYPE_BITS:      return "bits";
         case TYPE_UINT8:     return "uint8";

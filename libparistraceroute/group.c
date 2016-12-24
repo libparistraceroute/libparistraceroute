@@ -1,8 +1,8 @@
 #include "config.h"
 
-#include <stdlib.h>      // malloc ...
-#include <sys/timerfd.h> // timerfd_create, timerfd_settime
-#include <stdio.h>       //fprintf
+#include <stdlib.h>             // malloc ...
+#include "os/sys/timerfd.h"     // timerfd_create, timerfd_settime
+#include <stdio.h>              //fprintf
 
 #include "group.h"
 #include "common.h"
@@ -21,11 +21,11 @@ ERR_TIMERFD :
 ERR_PROBES :
     free(group);
 ERR_GROUP :
-    return NULL; 
+    return NULL;
 }
 
 void group_free(group_t * group)
-{ 
+{
     if (group) {
         dynarray_free(group->probes, (ELEMENT_FREE) probe_free);
         close(group->timerfd);
@@ -44,13 +44,13 @@ probe_t * group_get_probe(const group_t * group, size_t i) {
 }
 
 bool group_add_probe(group_t * group, probe_t * probe) {
-    
+
     if (!(group && probe)) return false;
     return dynarray_push_element(group->probes, (void *) probe);
 }
 
 bool group_add_n_probes(group_t * group, probe_t * probes, size_t n) {
-   
+
     bool   ret = true;
     size_t i;
 
@@ -64,14 +64,14 @@ bool group_set_timer(group_t * group) {
     struct itimerspec new_value;
     double delay;
     time_t delay_sec;
-    
+
     if (!(group->delay_callback)) {
         fprintf(stderr, "No delay callback has been defined\n");
         return false;
     }
-    delay = group->delay_callback(NULL);    
+    delay = group->delay_callback(NULL);
     delay_sec = (time_t) delay;
-    new_value.it_value.tv_sec = delay_sec; 
+    new_value.it_value.tv_sec = delay_sec;
     new_value.it_value.tv_nsec = 1000000 * (delay_sec - delay);
     new_value.it_interval.tv_sec = 0;
     new_value.it_interval.tv_nsec = 0;

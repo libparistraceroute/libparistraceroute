@@ -6,8 +6,8 @@
 #include <stdbool.h>          // bool
 #include <errno.h>            // ERRNO, EINVAL
 #include <stddef.h>           // offsetof()
-#include <netinet/udp.h>      // udphdr
-#include <netinet/in.h>       // IPPROTO_UDP = 17
+#include "os/netinet/udp.h"   // udphdr
+#include "os/netinet/in.h"    // IPPROTO_UDP = 17
 
 #include "../probe.h"
 #include "../protocol.h"      // csum
@@ -31,6 +31,7 @@
 // XXX mandatory fields ?
 // XXX UDP parsing missing
 
+/*
 // BSD/Linux abstraction
 #ifdef __FAVOR_BSD
 #    define SRC_PORT uh_sport
@@ -43,6 +44,7 @@
 #    define LENGTH   len
 #    define CHECKSUM check
 #endif
+*/
 
 /**
  * UDP fields
@@ -147,7 +149,7 @@ bool udp_write_checksum(uint8_t * udp_segment, buffer_t * ip_psh)
     memset(psh + size_ip + offsetof(struct udphdr, CHECKSUM), 0, sizeof(uint16_t));
 
     // Compute the checksum
-    udp_header->check = csum((const uint16_t *) psh, size_psh);
+    udp_header->CHECKSUM = csum((const uint16_t *) psh, size_psh);
     free(psh);
     return true;
 }

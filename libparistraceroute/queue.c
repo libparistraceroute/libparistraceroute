@@ -1,8 +1,8 @@
 #include "config.h"
 
-#include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <stdlib.h>         // malloc, free
+#include <unistd.h>         // read
+#include "os/sys/eventfd.h" // event_fd
 
 #include "queue.h"
 

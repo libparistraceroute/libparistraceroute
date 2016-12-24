@@ -1,20 +1,21 @@
 #include "use.h"
 #include "config.h"
 
-#include <search.h>        // VISIT
-#include <stdbool.h>       // bool
-#include <stdio.h>         // perror
-#include <stdlib.h>        // malloc, free
-#include <string.h>        // memset
-#include <errno.h>         // perror
-#include <unistd.h>        // close
-#include <sys/epoll.h>     // epoll_ctl
-#include <sys/signalfd.h>  // eventfd
-#include <signal.h>        // SIGINT, SIGQUIT
-#include <netinet/in.h>    // IPPROTO_ICMP, IPPROTO_ICMPV6
+#include <search.h>             // VISIT
+#include <stdbool.h>            // bool
+#include <stdio.h>              // perror
+#include <stdlib.h>             // malloc, free
+#include <string.h>             // memset
+#include <errno.h>              // perror
+#include <unistd.h>             // close
+#include <signal.h>             // SIGINT, SIGQUIT
+#include "os/sys/epoll.h"       // epoll_ctl
+#include "os/sys/eventfd.h"     // eventfd
+#include "os/sys/signalfd.h"    // signalfd
+#include "os/netinet/in.h"      // IPPROTO_ICMP, IPPROTO_ICMPV6
 
-#include "probe.h"         // probe_t
-#include "pt_loop.h"
+#include "probe.h"              // probe_t
+#include "pt_loop.h"            // pt_loop.h
 #include "algorithm.h"
 
 #define MAXEVENTS 100

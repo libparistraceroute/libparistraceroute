@@ -1,9 +1,9 @@
 #include "config.h"
 
-#include <search.h> // tsearch, twalk, tdestroy, tdelete
-#include <stdlib.h> // malloc, free
-#include <stdio.h>  // printf
-#include <assert.h> // assert
+#include "os/search.h"  // tsearch, twalk, tdestroy, tdelete
+#include <stdlib.h>     // malloc, free
+#include <stdio.h>      // printf
+#include <assert.h>     // assert
 
 #include "set.h"    // set_t
 
@@ -57,7 +57,7 @@ set_t * set_dup(const set_t * set) {
 void set_free(set_t * set) {
     if (set) {
 #ifdef _GNU_SOURCE
-        tdestroy(set->root, set->dummy_element->free ? set->dummy_element->free : nothing_to_free); 
+        tdestroy(set->root, set->dummy_element->free ? set->dummy_element->free : nothing_to_free);
 #else
 #    warning set_free cannot call tdestroy()
 #endif

@@ -1,19 +1,19 @@
 #include "ping.h"
 
-#include <errno.h>            // errno, EINVAL
-#include <stdlib.h>           // malloc
-#include <stdio.h>            // fprintf
-#include <string.h>           // memset()
-#include <math.h>             // abs(), ceil()
-#include <netinet/ip_icmp.h>  // icmpv4 constants
-#include <netinet/icmp6.h>    // icmpv6 constants
+#include <errno.h>              // errno, EINVAL
+#include <stdlib.h>             // malloc
+#include <stdio.h>              // fprintf
+#include <string.h>             // memset()
+#include <math.h>               // abs(), ceil()
+#include "os/netinet/ip_icmp.h" // icmpv4 constants
+#include "os/netinet/icmp6.h"   // icmpv6 constants
 
 #include "../probe.h"
 #include "../event.h"
 #include "../algorithm.h"
-#include "../address.h"       // address_resolv
-#include "../common.h"        // get_timestamp
-#include "../network.h"       // options_network_get_timeout
+#include "../address.h"         // address_resolv
+#include "../common.h"          // get_timestamp
+#include "../network.h"         // options_network_get_timeout
 
 //-----------------------------------------------------------------
 // Ping options

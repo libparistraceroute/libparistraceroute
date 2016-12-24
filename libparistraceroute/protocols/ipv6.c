@@ -1,15 +1,18 @@
-#include "../use.h"       // USE_BITS
+#include "../use.h"         // USE_BITS
 
 #ifdef USE_IPV6
 
 #include "config.h"
 
-#include <stddef.h>       // offsetof()
-#include <string.h>       // memcpy(), memset()
-#include <unistd.h>       // close()
-#include <netinet/in.h>   // IPPROTO_UDP
-#include <netinet/ip6.h>  // ip6_hdr
-#include <stdio.h>        // perror
+#include <stddef.h>         // offsetof()
+#include <stdio.h>          // perror
+#include <string.h>         // memcpy(), memset()
+#include <unistd.h>         // close()
+#include <sys/types.h>      // socket()
+#include <sys/socket.h>     // socket()
+
+#include "os/netinet/in.h"  // IPPROTO_UDP
+#include "os/netinet/ip6.h" // ip6_hdr
 
 #include "../probe.h"
 #include "../field.h"
@@ -186,7 +189,8 @@ bool ipv6_finalize(uint8_t * ipv6_header) {
     // If at least one byte of the src_ip is not null, we suppose
     // that the src_ip has been set...
     for (i = 0; i < 8 && !do_update_src_ip; i++) {
-        if (iph->ip6_src.__in6_u.__u6_addr16[i] != 0) {
+        //if (iph->ip6_src.__in6_u.__u6_addr16[i] != 0) {
+        if (iph->ip6_src.s6_addr16[i] != 0) {
             do_update_src_ip = false;
             break;
         }

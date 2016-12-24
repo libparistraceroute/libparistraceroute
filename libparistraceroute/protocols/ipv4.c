@@ -5,19 +5,20 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <stdbool.h>      // bool
-#include <unistd.h>       // close()
-#include <stddef.h>       // offsetof()
-#include <string.h>       // memcpy()
-#include <arpa/inet.h>    // inet_pton()
-#include <netinet/ip.h>   // iphdr
-#include <netinet/in.h>   // IPPROTO_IPIP, INET_ADDRSTRLEN
+#include <stdbool.h>        // bool
+#include <unistd.h>         // close()
+#include <stddef.h>         // offsetof()
+#include <string.h>         // memcpy()
+#include <arpa/inet.h>      // inet_pton()
+#include "os/netinet/ip.h"  // iphdr
+#include <netinet/in.h>     // IPPROTO_IPIP, INET_ADDRSTRLEN
+#include <sys/socket.h>     // AF_INET
 
 #include "../probe.h"
 
-#include "../field.h"     // field_t
-#include "../protocol.h"  // csum
-#include "../bits.h"      // byte_* // TODO to remove
+#include "../field.h"       // field_t
+#include "../protocol.h"    // csum
+#include "../bits.h"        // byte_* // TODO to remove
 
 // Field names
 #define IPV4_FIELD_VERSION           "version"

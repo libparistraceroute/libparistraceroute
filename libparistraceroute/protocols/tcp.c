@@ -7,8 +7,8 @@
 #include <stdint.h>           // uint*_t, UINT16_MAX
 #include <errno.h>            // ERRNO, EINVAL
 #include <stddef.h>           // offsetof()
-#include <netinet/tcp.h>      // tcphdr
-#include <netinet/in.h>       // IPPROTO_TCP == 6
+#include "os/netinet/tcp.h"   // tcphdr
+#include "os/netinet/in.h"    // IPPROTO_TCP == 6
 
 #include "../probe.h"
 #include "../protocol.h"      // csum
@@ -77,6 +77,7 @@
 #define TCP_FIELD_OPTIONS              "options" // if data offset > 5, padded at the end with 0 if necessary
 
 // BSD/Linux abstraction
+/*
 #ifdef __FAVOR_BSD
 #    define SRC_PORT    th_sport
 #    define DST_PORT    th_dport
@@ -96,6 +97,7 @@
 #    define CHECKSUM    check
 #    define URGENT_PTR  urg_ptr
 #endif
+*/
 
 /**
  * \brief Retrieve the size of an TCP header
@@ -308,10 +310,10 @@ bool tcp_write_checksum(uint8_t * tcp_segment, buffer_t * ip_psh)
     memcpy(psh + size_ip, tcp_segment, size_tcp);
 
     // Overrides the TCP checksum in psh with zeros
-    memset(psh + size_ip + offsetof(struct tcphdr, check), 0, sizeof(uint16_t));
+    memset(psh + size_ip + offsetof(struct tcphdr, CHECKSUM), 0, sizeof(uint16_t));
 
     // Compute the checksum
-    tcp_header->check = csum((const uint16_t *) psh, size_psh);
+    tcp_header->CHECKSUM = csum((const uint16_t *) psh, size_psh);
     free(psh);
     return true;
 }

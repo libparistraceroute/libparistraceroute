@@ -1,11 +1,12 @@
 #include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <errno.h>          // errno
+#include "os/sys/eventfd.h" // eventfd_*
+#include <search.h>         // tsearch
+#include <stdlib.h>         // malloc, free
+#include <stdio.h>          // fprintf
+#include <string.h>         // strcmp
 #include <unistd.h>
-#include <string.h>
-#include <search.h>
-#include <errno.h>
 
 #include "algorithm.h"
 #include "dynarray.h"

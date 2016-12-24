@@ -54,6 +54,20 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         network.h \
                         optparse.h \
                         options.h \
+                        os/netinet/ip_icmp.h \
+                        os/netinet/icmp6.h \
+                        os/netinet/ip.h \
+                        os/netinet/in.h \
+                        os/netinet/ip6.h \
+                        os/netinet/tcp.h \
+                        os/netinet/udp.h \
+                        os/sys/eventfd.h \
+                        os/sys/eventpoll.h \
+                        os/sys/epoll.h \
+                        os/sys/timerfd.h \
+                        os/sys/signalfd.h \
+                        os/os.h \
+                        os/search.h \
                         packet.h \
                         probe.h \
                         probe_group.h \
@@ -118,6 +132,11 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         network.c \
                         optparse.c \
                         options.c \
+                        os/sys/epoll.c \
+                        os/sys/eventfd.c \
+                        os/sys/signalfd.c \
+                        os/sys/timerfd.c \
+                        os/search.c \
                         packet.c \
                         probe.c \
                         probe_group.c \

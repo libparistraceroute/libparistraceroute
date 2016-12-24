@@ -1,7 +1,6 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#include <sys/eventfd.h>
 #include <stdbool.h>
 
 #include "list.h"
@@ -29,7 +28,7 @@ void queue_free(queue_t * queue, void (*element_free) (void * element));
  * \brief Push an element in the queue
  * \param queue Points to the impacted queue instance
  * \param element Points to the pushed element
- * \return true iif successfull 
+ * \return true iif successfull
  */
 
 bool queue_push_element(queue_t * queue, void * element);

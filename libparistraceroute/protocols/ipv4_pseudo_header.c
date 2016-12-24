@@ -3,7 +3,7 @@
 
 #include "ipv4_pseudo_header.h"
 
-#include <netinet/ip.h>       // ip_hdr
+#include "os/netinet/ip.h"    // ip_hdr
 #include <arpa/inet.h>        // htons
 
 buffer_t * ipv4_pseudo_header_create(const uint8_t * ipv4_segment)
@@ -11,7 +11,7 @@ buffer_t * ipv4_pseudo_header_create(const uint8_t * ipv4_segment)
     const struct iphdr * ip_hdr = (const struct iphdr *) ipv4_segment;
     buffer_t           * ipv4_psh;
     ipv4_pseudo_header_t ipv4_pseudo_header; // TODO we should directly points to ipv4_psh's bytes to avoid one copy
-    
+
     if (!(ipv4_psh = buffer_create())) {
         goto ERR_BUFFER_CREATE;
     }
@@ -26,7 +26,7 @@ buffer_t * ipv4_pseudo_header_create(const uint8_t * ipv4_segment)
     ipv4_pseudo_header.ip_dst   = ip_hdr->daddr;
     ipv4_pseudo_header.zero     = 0;
     ipv4_pseudo_header.protocol = ip_hdr->protocol;
-    ipv4_pseudo_header.size     = size; 
+    ipv4_pseudo_header.size     = size;
 
     // Prepare and return the corresponding buffer
     if (!buffer_write_bytes(ipv4_psh, (uint8_t *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header_t))) {
