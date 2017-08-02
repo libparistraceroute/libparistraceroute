@@ -10,6 +10,10 @@
 #include <netinet/in.h> // INET_ADDRSTRLEN, INET6_ADDRSTRLEN
 #include <arpa/inet.h>  // inet_pton
 
+#ifndef AI_IDN
+#    define AI_IDN        0x0000
+#endif
+
 #include "address.h"
 
 #ifdef USE_CACHE
@@ -36,8 +40,6 @@ static void __cache_ip_hostname_free() {
 }
 
 #endif
-
-#define AI_IDN        0x0040
 
 static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
     if (inet_ntop(family, ip, buffer, buffer_len)) {
