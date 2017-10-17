@@ -19,7 +19,7 @@ AC_SUBST(API_VERSION)
 
 # Check if the source folder is available
 AC_CONFIG_SRCDIR([paris-ping/paris-ping.c])
-AC_CONFIG_SRCDIR([paris-traceroute/paris-traceroute.c])
+#AC_CONFIG_SRCDIR([paris-traceroute/paris-traceroute.c])
 AC_CONFIG_SRCDIR([traceroute/traceroute.c])
 
 # automake initialization
@@ -277,7 +277,6 @@ AC_CONFIG_FILES(
 	[Makefile]
     [libparistraceroute/libparistraceroute-$LIBRARY_VERSION.pc:libparistraceroute/libparistraceroute.pc.in]
 	[libparistraceroute/Makefile]
-	[paris-traceroute/Makefile]
     [paris-ping/Makefile]
 	[traceroute/Makefile]
 	[man/Makefile]

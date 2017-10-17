@@ -12,8 +12,13 @@
 #include <sys/socket.h>              // gai_strerror, AF_INET, AF_INET6
 #include <netdb.h>                   // gai_strerror
 
+#include <iostream>
+#include <sstream>
+
+
+extern "C" {
 #include "common.h"                  // ELEMENT_DUMP
-#include "optparse.h"                // opt_*()
+#include "optparse.h"               // opt_*()
 #include "pt_loop.h"                 // pt_loop_t
 #include "probe.h"                   // probe_t
 #include "lattice.h"                 // lattice_t
@@ -22,7 +27,12 @@
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "address.h"                 // address_to_string
 #include "options.h"                 // options_*
+}
 
+#include "StdCapture.hpp"
+#include "OutputParser.hpp"
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/prettywriter.h>
 //---------------------------------------------------------------------------
 // Command line stuff
 //---------------------------------------------------------------------------
@@ -31,6 +41,7 @@
 #define TRACEROUTE_HELP_6  "Use IPv6."
 #define TRACEROUTE_HELP_a  "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
 #define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
+#define TRACEROUTE_HELP_o  "Set output format"
 #define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
 #define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
 #define TRACEROUTE_HELP_I  "Use ICMPv4/ICMPv6 for tracerouting."
@@ -51,48 +62,56 @@
 #define TCP_DEFAULT_DST_PORT  16963
 #define TCP_DST_PORT_USING_T  80
 
-const char * algorithm_names[] = {
-    "paris-traceroute", // default value
-    "mda",
-    NULL
+const char *algorithm_names[] = {
+        "paris-traceroute", // default value
+        "mda",
+        NULL
 };
 
-static bool is_ipv4  = false;
-static bool is_ipv6  = false;
-static bool is_tcp   = false;
-static bool is_udp   = false;
-static bool is_icmp  = false;
+const char *output_format_names[] = {
+        "", //default value is traceroute format
+        "json",
+        "xml"
+};
+
+static bool is_ipv4 = false;
+static bool is_ipv6 = false;
+static bool is_tcp = false;
+static bool is_udp = false;
+static bool is_icmp = false;
 static bool is_debug = false;
 
-const char * protocol_names[] = {
-    "udp", // default value
-    "icmp",
-    "tcp",
-    NULL
+
+const char *protocol_names[] = {
+        "udp", // default value
+        "icmp",
+        "tcp",
+        NULL
 };
 
 // Bounded integer parameters
 //                              def     min  max         option_enabled
-static int    dst_port[4]    = {33457,  0,   UINT16_MAX, 0};
-static int    src_port[4]    = {33456,  0,   UINT16_MAX, 0};
-static double send_time[4]   = {1,      1,   DBL_MAX,    0};
+static int dst_port[4] = {33457, 0, UINT16_MAX, 0};
+static int src_port[4] = {33456, 0, UINT16_MAX, 0};
+static double send_time[4] = {1, 1, DBL_MAX, 0};
 
 struct opt_spec runnable_options[] = {
-    // action                 sf          lf                   metavar             help          data
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,         OPT_NO_DATA},
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
-    {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_4,       &is_ipv4},
-    {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
-    {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
-    {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
-    {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             TRACEROUTE_HELP_p,       dst_port},
-    {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             TRACEROUTE_HELP_s,       src_port},
-    {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             TRACEROUTE_HELP_z,       send_time},
-    {opt_store_1,             "I",        "--icmp",            OPT_NO_METAVAR,     TRACEROUTE_HELP_I,       &is_icmp},
-    {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         TRACEROUTE_HELP_P,       protocol_names},
-    {opt_store_1,             "T",        "--tcp",             OPT_NO_METAVAR,     TRACEROUTE_HELP_T,       &is_tcp},
-    {opt_store_1,             "U",        "--udp",             OPT_NO_METAVAR,     TRACEROUTE_HELP_U,       &is_udp},
-    END_OPT_SPECS
+        // action                 sf          lf                   metavar             help          data
+        {opt_text, OPT_NO_SF, OPT_NO_LF, OPT_NO_METAVAR, TEXT, OPT_NO_DATA},
+        {opt_text, OPT_NO_SF, OPT_NO_LF, OPT_NO_METAVAR, TEXT_OPTIONS, OPT_NO_DATA},
+        {opt_store_1, "4", OPT_NO_LF, OPT_NO_METAVAR, TRACEROUTE_HELP_4, &is_ipv4},
+        {opt_store_1, "6", OPT_NO_LF, OPT_NO_METAVAR, TRACEROUTE_HELP_6, &is_ipv6},
+        {opt_store_choice, "a", "--algorithm", "ALGORITHM", TRACEROUTE_HELP_a, algorithm_names},
+        {opt_store_1, "d", "--debug", OPT_NO_METAVAR, TRACEROUTE_HELP_d, &is_debug},
+        {opt_store_choice, "o", "--output", "OUTPUT", TRACEROUTE_HELP_o, output_format_names},
+        {opt_store_int_lim_en, "p", "--dst-port", "PORT", TRACEROUTE_HELP_p, dst_port},
+        {opt_store_int_lim_en, "s", "--src-port", "PORT", TRACEROUTE_HELP_s, src_port},
+        {opt_store_double_lim_en, "z", OPT_NO_LF, "WAIT", TRACEROUTE_HELP_z, send_time},
+        {opt_store_1, "I", "--icmp", OPT_NO_METAVAR, TRACEROUTE_HELP_I, &is_icmp},
+        {opt_store_choice, "P", "--protocol", "PROTOCOL", TRACEROUTE_HELP_P, protocol_names},
+        {opt_store_1, "T", "--tcp", OPT_NO_METAVAR, TRACEROUTE_HELP_T, &is_tcp},
+        {opt_store_1, "U", "--udp", OPT_NO_METAVAR, TRACEROUTE_HELP_U, &is_udp},
+        END_OPT_SPECS
 };
 
 /**
@@ -100,8 +119,8 @@ struct opt_spec runnable_options[] = {
  * \return A pointer to the corresponding options_t instance if successfull, NULL otherwise
  */
 
-static options_t * init_options(char * version) {
-    options_t * options;
+static options_t *init_options(char *version) {
+    options_t *options;
 
     // Building the command line options
     if (!(options = options_create(NULL))) {
@@ -112,10 +131,10 @@ static options_t * init_options(char * version) {
     options_add_optspecs(options, traceroute_get_options());
     options_add_optspecs(options, mda_get_options());
     options_add_optspecs(options, network_get_options());
-    options_add_common  (options, version);
+    options_add_common(options, version);
     return options;
 
-ERR_OPTIONS_CREATE:
+    ERR_OPTIONS_CREATE:
     return NULL;
 }
 
@@ -123,8 +142,7 @@ ERR_OPTIONS_CREATE:
 // Options checking
 //---------------------------------------------------------------------------
 
-static bool check_ip_version(bool is_ipv4, bool is_ipv6)
-{
+static bool check_ip_version(bool is_ipv4, bool is_ipv6) {
     // The user may omit -4 and -6 but cannot set the both
     // options simultaneously.
     if (is_ipv4 && is_ipv6) {
@@ -135,13 +153,12 @@ static bool check_ip_version(bool is_ipv4, bool is_ipv6)
     return true;
 }
 
-static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * protocol_name)
-{
+static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char *protocol_name) {
     unsigned check = 0;
 
     if (is_icmp) check += 1;
-    if (is_udp)  check += 1;
-    if (is_tcp)  check += 1;
+    if (is_udp) check += 1;
+    if (is_tcp) check += 1;
 
     if (check > 1) {
         fprintf(stderr, "E: Cannot use simultaneously icmp tcp and udp tracerouting\n");
@@ -151,8 +168,7 @@ static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * 
     return true;
 }
 
-static bool check_ports(bool is_icmp, int dst_port_enabled, int src_port_enabled)
-{
+static bool check_ports(bool is_icmp, int dst_port_enabled, int src_port_enabled) {
     if (is_icmp && (dst_port_enabled || src_port_enabled)) {
         fprintf(stderr, "E: Cannot use --src-port or --dst-port when using icmp tracerouting\n");
         return false;
@@ -161,8 +177,7 @@ static bool check_ports(bool is_icmp, int dst_port_enabled, int src_port_enabled
     return true;
 }
 
-static bool check_algorithm(const char * algorithm_name)
-{
+static bool check_algorithm(const char *algorithm_name) {
     if (options_mda_get_is_set()) {
         if (strcmp(algorithm_name, "mda") != 0) {
             fprintf(stderr, "You cannot pass options related to mda when using another algorithm\n");
@@ -173,20 +188,20 @@ static bool check_algorithm(const char * algorithm_name)
 }
 
 static bool check_options(
-    bool         is_icmp,
-    bool         is_tcp,
-    bool         is_udp,
-    bool         is_ipv4,
-    bool         is_ipv6,
-    int          dst_port_enabled,
-    int          src_port_enabled,
-    const char * protocol_name,
-    const char * algorithm_name
+        bool is_icmp,
+        bool is_tcp,
+        bool is_udp,
+        bool is_ipv4,
+        bool is_ipv6,
+        int dst_port_enabled,
+        int src_port_enabled,
+        const char *protocol_name,
+        const char *algorithm_name
 ) {
     return check_ip_version(is_ipv4, is_ipv6)
-        && check_protocol(is_icmp, is_tcp, is_udp, protocol_name)
-        && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
-        && check_algorithm(algorithm_name);
+           && check_protocol(is_icmp, is_tcp, is_udp, protocol_name)
+           && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
+           && check_algorithm(algorithm_name);
 }
 
 //---------------------------------------------------------------------------
@@ -201,14 +216,13 @@ static bool check_options(
  *   all the algorithms instances running in this loop.
  */
 
-void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
-{
-    traceroute_event_t         * traceroute_event;
-    const traceroute_options_t * traceroute_options;
-    const traceroute_data_t    * traceroute_data;
-    mda_event_t                * mda_event;
-    mda_data_t                 * mda_data;
-    const char                 * algorithm_name;
+void loop_handler(pt_loop_t *loop, event_t *event, void *user_data) {
+    traceroute_event_t *traceroute_event;
+    const traceroute_options_t *traceroute_options;
+    const traceroute_data_t *traceroute_data;
+    mda_event_t *mda_event;
+    mda_data_t *mda_data;
+    const char *algorithm_name;
 
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
@@ -243,9 +257,9 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
                         break;
                 }
             } else if (strcmp(algorithm_name, "traceroute") == 0) {
-                traceroute_event   = event->data;
+                traceroute_event = event->data;
                 traceroute_options = event->issuer->options;
-                traceroute_data    = event->issuer->data;
+                traceroute_data = event->issuer->data;
 
                 // Forward this event to the default traceroute handler
                 // See libparistraceroute/algorithms/traceroute.c
@@ -258,7 +272,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     event_free(event);
 }
 
-const char * get_ip_protocol_name(int family) {
+const char *get_ip_protocol_name(int family) {
     switch (family) {
         case AF_INET:
             return "ipv4";
@@ -272,7 +286,7 @@ const char * get_ip_protocol_name(int family) {
     return NULL;
 }
 
-const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
+const char *get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
     if (use_icmp) {
         switch (family) {
             case AF_INET:
@@ -296,24 +310,26 @@ const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use
 // Main program
 //---------------------------------------------------------------------------
 
-int main(int argc, char ** argv)
-{
-    int                       exit_code = EXIT_FAILURE;
-    char                    * version = strdup("version 1.0");
-    const char              * usage = "usage: %s [options] host\n";
-    void                    * algorithm_options;
-    traceroute_options_t      traceroute_options;
-    traceroute_options_t    * ptraceroute_options;
-    mda_options_t             mda_options;
-    probe_t                 * probe;
-    pt_loop_t               * loop;
-    int                       family;
-    address_t                 dst_addr;
-    options_t               * options;
-    char                    * dst_ip;
-    const char              * algorithm_name;
-    const char              * protocol_name;
-    bool                      use_icmp, use_udp, use_tcp;
+int main(int argc, char **argv) {
+
+
+    int exit_code = EXIT_FAILURE;
+    char *version = strdup("version 1.0");
+    const char *usage = "usage: %s [options] host\n";
+    void *algorithm_options;
+    traceroute_options_t traceroute_options;
+    traceroute_options_t *ptraceroute_options;
+    mda_options_t mda_options;
+    probe_t *probe;
+    pt_loop_t *loop;
+    int family;
+    address_t dst_addr;
+    options_t *options;
+    char *dst_ip;
+    const char *algorithm_name;
+    const char *protocol_name;
+    const char *output_format;
+    bool use_icmp, use_udp, use_tcp;
 
     // Prepare the commande line options
     if (!(options = init_options(version))) {
@@ -328,18 +344,25 @@ int main(int argc, char ** argv)
     }
 
     // We assume that the target IP address is always the last argument
-    dst_ip         = argv[argc - 1];
+    dst_ip = argv[argc - 1];
     algorithm_name = algorithm_names[0];
-    protocol_name  = protocol_names[0];
+    protocol_name = protocol_names[0];
+    output_format = output_format_names[0];
 
     // Checking if there is any conflicts between options passed in the commandline
-    if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
+    if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name,
+                       algorithm_name)) {
         goto ERR_CHECK_OPTIONS;
     }
 
     use_icmp = is_icmp || strcmp(protocol_name, "icmp") == 0;
-    use_tcp  = is_tcp  || strcmp(protocol_name, "tcp")  == 0;
-    use_udp  = is_udp  || strcmp(protocol_name, "udp")  == 0;
+    use_tcp = is_tcp || strcmp(protocol_name, "tcp") == 0;
+    use_udp = is_udp || strcmp(protocol_name, "udp") == 0;
+
+    if (strcmp(output_format, "json") == 0) {
+        StdCapture::Init();
+        StdCapture::BeginCapture();
+    }
 
     // If not any ip version is set, call address_guess_family.
     // If only one is set to true, set family to AF_INET or AF_INET6
@@ -360,22 +383,22 @@ int main(int argc, char ** argv)
 
     // Probe skeleton definition: IPv4/UDP probe targetting 'dst_ip'
     if (!(probe = probe_create())) {
-        fprintf(stderr,"E: Cannot create probe skeleton");
+        fprintf(stderr, "E: Cannot create probe skeleton");
         goto ERR_PROBE_CREATE;
     }
 
     // Prepare the probe skeleton
     probe_set_protocols(
-        probe,
-        get_ip_protocol_name(family),                          // "ipv4"   | "ipv6"
-        get_protocol_name(family, use_icmp, use_tcp, use_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
-        NULL
+            probe,
+            get_ip_protocol_name(family),                          // "ipv4"   | "ipv6"
+            get_protocol_name(family, use_icmp, use_tcp, use_udp), // "icmpv4" | "icmpv6" | "tcp" | "udp"
+            NULL
     );
 
     probe_set_field(probe, ADDRESS("dst_ip", &dst_addr));
 
     if (send_time[3]) {
-        if(send_time[0] <= 10) { // seconds
+        if (send_time[0] <= 10) { // seconds
             probe_set_delay(probe, DOUBLE("delay", send_time[0]));
         } else { // milli-seconds
             probe_set_delay(probe, DOUBLE("delay", 0.001 * send_time[0]));
@@ -385,7 +408,7 @@ int main(int argc, char ** argv)
     // ICMPv* do not support src_port and dst_port fields nor payload.
     if (!use_icmp) {
         uint16_t sport = 0,
-                 dport = 0;
+                dport = 0;
 
         if (use_udp) {
             // Option -U sets port to 53 (DNS) if dst_port is not explicitely set
@@ -399,10 +422,10 @@ int main(int argc, char ** argv)
 
         // Update ports
         probe_set_fields(
-            probe,
-            I16("src_port", sport),
-            I16("dst_port", dport),
-            NULL
+                probe,
+                I16("src_port", sport),
+                I16("dst_port", dport),
+                NULL
         );
 
         // Resize payload (it will be use to set our customized checksum in the {TCP, UDP} layer)
@@ -411,14 +434,14 @@ int main(int argc, char ** argv)
 
     // Algorithm options (dedicated options)
     if (strcmp(algorithm_name, "paris-traceroute") == 0) {
-        traceroute_options  = traceroute_get_default_options();
+        traceroute_options = traceroute_get_default_options();
         ptraceroute_options = &traceroute_options;
-        algorithm_options   = &traceroute_options;
-        algorithm_name      = "traceroute";
+        algorithm_options = &traceroute_options;
+        algorithm_name = "traceroute";
     } else if ((strcmp(algorithm_name, "mda") == 0) || options_mda_get_is_set()) {
-        mda_options         = mda_get_default_options();
+        mda_options = mda_get_default_options();
         ptraceroute_options = &mda_options.traceroute_options;
-        algorithm_options   = &mda_options;
+        algorithm_options = &mda_options;
         options_mda_init(&mda_options);
     } else {
         fprintf(stderr, "E: Unknown algorithm");
@@ -440,8 +463,8 @@ int main(int argc, char ** argv)
     printf("%s to %s (", algorithm_name, dst_ip);
     address_dump(&dst_addr);
     printf("), %u hops max, %u bytes packets\n",
-        ptraceroute_options->max_ttl,
-        (unsigned int)packet_get_size(probe->packet)
+           ptraceroute_options->max_ttl,
+           (unsigned int) packet_get_size(probe->packet)
     );
 
     // Add an algorithm instance in the main loop
@@ -452,28 +475,42 @@ int main(int argc, char ** argv)
 
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop, 0) < 0) {
+        std::cout << "Waiting...\n";
         fprintf(stderr, "E: Main loop interrupted");
         goto ERR_PT_LOOP;
     }
     exit_code = EXIT_SUCCESS;
+    if (strcmp(output_format, "json") == 0) {
+        StdCapture::EndCapture();
+        std::cout << StdCapture::GetCapture() << "\n";
+        OutputParser parser;
+        rapidjson::Document json = parser.toJson(StdCapture::GetCapture());
 
+        rapidjson::StringBuffer buffer;
+
+        buffer.Clear();
+
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+        json.Accept(writer);
+        std::cout << buffer.GetString();
+    }
     // Leave the program
-ERR_PT_LOOP:
-ERR_INSTANCE:
+    ERR_PT_LOOP:
+    ERR_INSTANCE:
     // pt_loop_free() automatically removes algorithms instances,
     // probe_replies and events from the memory.
     // Options and probe must be manually removed.
     pt_loop_free(loop);
-ERR_LOOP_CREATE:
-ERR_UNKNOWN_ALGORITHM:
+    ERR_LOOP_CREATE:
+    ERR_UNKNOWN_ALGORITHM:
     probe_free(probe);
-ERR_PROBE_CREATE:
-ERR_ADDRESS_IP_FROM_STRING:
-ERR_ADDRESS_GUESS_FAMILY:
+    ERR_PROBE_CREATE:
+    ERR_ADDRESS_IP_FROM_STRING:
+    ERR_ADDRESS_GUESS_FAMILY:
     if (errno) perror(gai_strerror(errno));
-ERR_CHECK_OPTIONS:
-ERR_OPT_PARSE:
-ERR_INIT_OPTIONS:
+    ERR_CHECK_OPTIONS:
+    ERR_OPT_PARSE:
+    ERR_INIT_OPTIONS:
     free(version);
     exit(exit_code);
 }

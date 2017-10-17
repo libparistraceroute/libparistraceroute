@@ -3,7 +3,7 @@
 
 #include "flow.h"           // mda_flow_state_t
 
-#define MAX_TTLS 5 // Max ttls we assume can be associated with this interface
+#define MAX_TTLS 255 // Max ttls we assume can be associated with this interface
                    // TODO Avoid hardcoding
 
 typedef struct {

@@ -1,0 +1,5 @@
+sample number: 50
+run number by sample: 1000
+mean estimated of failure: 0.06878
+interval :0.00186510203369
+confidenceInterval: interval of confidence with 0.95: [0.0669148979663, 0.0706451020337]
