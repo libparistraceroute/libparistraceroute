@@ -3,6 +3,7 @@
 #include <stdlib.h>                  // malloc...
 #include <stdio.h>                   // perror, printf
 #include <stdbool.h>                 // bool
+#include <stddef.h>                  // size_t
 #include <errno.h>                   // errno
 #include <libgen.h>                  // basename
 #include <string.h>                  // strcmp
@@ -30,6 +31,7 @@
 #define TRACEROUTE_HELP_4  "Use IPv4."
 #define TRACEROUTE_HELP_6  "Use IPv6."
 #define TRACEROUTE_HELP_a  "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
+#define TRACEROUTE_HELP_o  "Set the output of traceroute algorithm to output (default: 'standard traceroute format')"
 #define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
 #define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
 #define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
@@ -55,6 +57,12 @@ const char * algorithm_names[] = {
     "paris-traceroute", // default value
     "mda",
     NULL
+};
+
+const char * output_names[] = {
+    "standard-traceroute-format", // default value
+    "json",
+    "xml"
 };
 
 static bool is_ipv4  = false;
@@ -84,6 +92,7 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_4,       &is_ipv4},
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
+    {opt_store_choice,        "o",        "--output",          "OUTPUT",           TRACEROUTE_HELP_o,       output_names},
     {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
     {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             TRACEROUTE_HELP_p,       dst_port},
     {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             TRACEROUTE_HELP_s,       src_port},
@@ -189,6 +198,79 @@ static bool check_options(
         && check_algorithm(algorithm_name);
 }
 
+/**
+ * Json handler to ouput the traceroute output in a json format according to RIPE format.
+ * 
+ * 
+**/
+void traceroute_json_handler(
+    pt_loop_t                  * loop,
+    traceroute_event_t         * traceroute_event,
+    const traceroute_options_t * traceroute_options,
+    const traceroute_data_t    * traceroute_data
+) {
+    const probe_t * probe;
+    const probe_t * reply;
+    static size_t   num_probes_printed = 0;
+
+    switch (traceroute_event->type) {
+        case TRACEROUTE_PROBE_REPLY:
+
+            // Retrieve the probe and its corresponding reply
+            probe = ((const probe_reply_t *) traceroute_event->data)->probe;
+            reply = ((const probe_reply_t *) traceroute_event->data)->reply;
+
+            // Print TTL and discovered IP if this is the first probe related to this TTL
+            if (num_probes_printed % traceroute_options->num_probes == 0) {
+              /*  ttl_dump(probe);
+                discovered_ip_dump(reply, traceroute_options->do_resolv, traceroute_options->resolv_asn);
+           */ 
+                if(probe->packet->dst_ip == reply->packet->dst_ip ){
+                    
+                }
+            }
+
+            // Print delay
+//             delay_dump(probe, reply);
+            fflush(stdout);
+            num_probes_printed++;
+            break;
+
+        case TRACEROUTE_STAR:
+            probe = (const probe_t *) traceroute_event->data;
+            if (num_probes_printed % traceroute_options->num_probes == 0) {
+//                 ttl_dump(probe);
+            }
+            printf(" *");
+            num_probes_printed++;
+            break;
+
+        case TRACEROUTE_ICMP_ERROR:
+            printf(" !");
+            num_probes_printed++;
+            break;
+
+        case TRACEROUTE_DESTINATION_REACHED:
+        case TRACEROUTE_TOO_MANY_STARS:
+        case TRACEROUTE_MAX_TTL_REACHED:
+        default:
+            break;
+    }
+
+    if (num_probes_printed % traceroute_options->num_probes == 0) {
+        printf("\n");
+    }
+}
+
+
+/**
+ * struct used to pass some user data to loop handler.
+ */
+typedef struct{
+    const char * output_format;
+}user_data;
+
+
 //---------------------------------------------------------------------------
 // Command-line / libparistraceroute translation
 //---------------------------------------------------------------------------
@@ -197,11 +279,11 @@ static bool check_options(
  * \brief Handle events raised by libparistraceroute.
  * \param loop The main loop.
  * \param event The event raised by libparistraceroute.
- * \param user_data Points to user data, shared by
+ * \param u_data Points to user data, shared by
  *   all the algorithms instances running in this loop.
  */
 
-void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
+void loop_handler(pt_loop_t * loop, event_t * event, void * u_data)
 {
     traceroute_event_t         * traceroute_event;
     const traceroute_options_t * traceroute_options;
@@ -209,7 +291,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
     mda_event_t                * mda_event;
     mda_data_t                 * mda_data;
     const char                 * algorithm_name;
-
+    
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
             algorithm_name = event->issuer->algorithm->name;
@@ -247,9 +329,14 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
                 traceroute_options = event->issuer->options;
                 traceroute_data    = event->issuer->data;
 
-                // Forward this event to the default traceroute handler
+                // Forward this event to the default traceroute handler if no special ouput format is specified, otherwise go forward // to the specified handler.
                 // See libparistraceroute/algorithms/traceroute.c
-                traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
+                if(strcmp(((user_data*)u_data)->output_format, "json")==0) {
+                    traceroute_json_handler(loop, traceroute_event, traceroute_options, traceroute_data);
+                } else if(strcmp(((user_data*)u_data)->output_format, "standard-traceroute-format")==0) {
+                    traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
+                }
+                
             }
             break;
         default:
@@ -292,6 +379,7 @@ const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use
     return NULL;
 }
 
+
 //---------------------------------------------------------------------------
 // Main program
 //---------------------------------------------------------------------------
@@ -313,6 +401,7 @@ int main(int argc, char ** argv)
     char                    * dst_ip;
     const char              * algorithm_name;
     const char              * protocol_name;
+    const char              * output_name;
     bool                      use_icmp, use_udp, use_tcp;
 
     // Prepare the commande line options
@@ -331,7 +420,8 @@ int main(int argc, char ** argv)
     dst_ip         = argv[argc - 1];
     algorithm_name = algorithm_names[0];
     protocol_name  = protocol_names[0];
-
+    output_name    = output_names[0];
+    
     // Checking if there is any conflicts between options passed in the commandline
     if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
         goto ERR_CHECK_OPTIONS;
@@ -428,8 +518,11 @@ int main(int argc, char ** argv)
     // Algorithm options (common options)
     options_traceroute_init(ptraceroute_options, &dst_addr);
 
+    // Create user_data struct
+    user_data user_d = {output_name};
+    
     // Create libparistraceroute loop
-    if (!(loop = pt_loop_create(loop_handler, NULL))) {
+    if (!(loop = pt_loop_create(loop_handler, &user_d))) {
         fprintf(stderr, "E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
