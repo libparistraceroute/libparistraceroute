@@ -23,6 +23,7 @@
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "address.h"                 // address_to_string
 #include "options.h"                 // options_*
+#include "containers/map.h"
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -205,54 +206,39 @@ static bool check_options(
 **/
 void traceroute_json_handler(
     pt_loop_t                  * loop,
-    traceroute_event_t         * traceroute_event,
+    mda_event_t         * mda_event,
     const traceroute_options_t * traceroute_options,
-    const traceroute_data_t    * traceroute_data
+    map_t* current_replies_by_hop
+    //const traceroute_data_t    * traceroute_data no need of this one
 ) {
-    const probe_t * probe;
-    const probe_t * reply;
+    probe_t * probe;
+    probe_t * reply;
     static size_t   num_probes_printed = 0;
 
-    switch (traceroute_event->type) {
-        case TRACEROUTE_PROBE_REPLY:
+    switch (mda_event->type) {
+        case MDA_PROBE_REPLY:
 
             // Retrieve the probe and its corresponding reply
-            probe = ((const probe_reply_t *) traceroute_event->data)->probe;
-            reply = ((const probe_reply_t *) traceroute_event->data)->reply;
-
-            // Print TTL and discovered IP if this is the first probe related to this TTL
-            if (num_probes_printed % traceroute_options->num_probes == 0) {
-              /*  ttl_dump(probe);
-                discovered_ip_dump(reply, traceroute_options->do_resolv, traceroute_options->resolv_asn);
-           */ 
-                if(probe->packet->dst_ip == reply->packet->dst_ip ){
-                    
+            probe = ((const probe_reply_t *) mda_event->data)->probe;
+            reply = ((const probe_reply_t *) mda_event->data)->reply;
+            
+            int* ttl_probe = malloc(sizeof(int));
+            *ttl_probe = 0;
+            if(probe_extract(probe, "ttl", ttl_probe)){
+                vector_t* replies_ttl;
+                printf("Received this response for ttl : %d\n", *ttl_probe);
+                // Check if we already have this ttl in the map.
+                if(map_find(current_replies_by_hop,ttl_probe,&replies_ttl)){
+                    //We already have the element, just push this new reply related to this probe.
+                    vector_push_element(replies_ttl,reply);
+                    free(ttl_probe);
+                }else{
+                    replies_ttl = vector_create(sizeof(probe_t),probe_dup, probe_free,NULL);
+                    vector_push_element(replies_ttl, reply);
+                    map_update(current_replies_by_hop, ttl_probe, replies_ttl);  
                 }
             }
-
-            // Print delay
-//             delay_dump(probe, reply);
-            fflush(stdout);
-            num_probes_printed++;
             break;
-
-        case TRACEROUTE_STAR:
-            probe = (const probe_t *) traceroute_event->data;
-            if (num_probes_printed % traceroute_options->num_probes == 0) {
-//                 ttl_dump(probe);
-            }
-            printf(" *");
-            num_probes_printed++;
-            break;
-
-        case TRACEROUTE_ICMP_ERROR:
-            printf(" !");
-            num_probes_printed++;
-            break;
-
-        case TRACEROUTE_DESTINATION_REACHED:
-        case TRACEROUTE_TOO_MANY_STARS:
-        case TRACEROUTE_MAX_TTL_REACHED:
         default:
             break;
     }
@@ -262,14 +248,70 @@ void traceroute_json_handler(
     }
 }
 
+/**
+ * Dup function for int pointer
+ */
+int* int_dup(int* i){
+    int *j = malloc(sizeof(int*));
+    *j = *i;
+    return j;
+}
+
+
+/**
+ * Callback for int key for comparison function in the map.
+ */
+int compare(const int * element1, const int * element2){
+    if(*element1 < *element2){
+        return -1;
+    } else if (*element1 > *element2){
+        return 1;
+    }
+    return 0;
+}
 
 /**
  * struct used to pass some user data to loop handler.
  */
 typedef struct{
     const char * output_format;
+    map_t * replies_by_hop; 
 }user_data;
 
+/**
+ * Print the output of the mda to json.
+ */
+void print_to_json(map_t * replies_by_hop){
+//     char * output = "{";
+    
+    //Iterate over the hops
+    for(int i = 1;;++i){
+        vector_t* replies_by_hop_i = NULL;
+        if(map_find(replies_by_hop, &i, &replies_by_hop_i)){
+            for(int j = 0; j < replies_by_hop_i->num_cells; ++j){
+                probe_t * reply = vector_get_ith_element(replies_by_hop_i, j);
+                
+                uint16_t src_port = 0;
+                uint16_t dst_port = 0;
+                address_t reply_from_address;
+                uint16_t flow_id = 0;
+                
+                
+                probe_extract(reply,"src_port", &src_port);
+                probe_extract(reply,"dst_port", &dst_port);
+                probe_extract(reply,"src_ip", &reply_from_address);
+                probe_extract(reply,"flow_id", &flow_id);
+                
+                
+                
+                printf("Found a hop %d response %d!\n", i, j);
+            }
+        }else{
+            break;
+        }
+        
+    }
+}
 
 //---------------------------------------------------------------------------
 // Command-line / libparistraceroute translation
@@ -292,6 +334,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * u_data)
     mda_data_t                 * mda_data;
     const char                 * algorithm_name;
     
+    user_data                  * user_d = (user_data*) u_data;
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
             algorithm_name = event->issuer->algorithm->name;
@@ -301,6 +344,10 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * u_data)
                 lattice_dump(mda_data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump);
                 printf("\n");
                 mda_data_free(mda_data);
+                
+                if(strcmp(user_d->output_format, "json") == 0){
+                    print_to_json(user_d->replies_by_hop);
+                }
             }
 
             // Tell to the algorithm it can free its data
@@ -321,6 +368,12 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * u_data)
                     case MDA_NEW_LINK:
                         mda_link_dump(mda_event->data, traceroute_options->do_resolv);
                         break;
+                    case MDA_PROBE_REPLY:
+                        
+                        if(strcmp(user_d->output_format, "json")==0) {
+                            traceroute_json_handler(loop, mda_event, traceroute_options,user_d->replies_by_hop);
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -331,11 +384,11 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * u_data)
 
                 // Forward this event to the default traceroute handler if no special ouput format is specified, otherwise go forward // to the specified handler.
                 // See libparistraceroute/algorithms/traceroute.c
-                if(strcmp(((user_data*)u_data)->output_format, "json")==0) {
-                    traceroute_json_handler(loop, traceroute_event, traceroute_options, traceroute_data);
-                } else if(strcmp(((user_data*)u_data)->output_format, "standard-traceroute-format")==0) {
+//                 if(strcmp(((user_data*)u_data)->output_format, "json")==0) {
+//                     traceroute_json_handler(loop, traceroute_event, traceroute_options);
+//                 } else if(strcmp(((user_data*)u_data)->output_format, "standard-traceroute-format")==0) {
                     traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
-                }
+//                 }
                 
             }
             break;
@@ -518,8 +571,19 @@ int main(int argc, char ** argv)
     // Algorithm options (common options)
     options_traceroute_init(ptraceroute_options, &dst_addr);
 
+    
     // Create user_data struct
-    user_data user_d = {output_name};
+    user_data user_d;
+    user_d.output_format = output_name;
+    user_d.replies_by_hop = NULL;
+    
+    //Create a dummy object with no elements, just put the callbacks.
+//     object_t * dummy_key = object_create(NULL,NULL, free, NULL, less) ;
+//     object_t * dummy_value = object_create(NULL,NULL,vector_free,NULL,NULL); 
+    
+    if(strcmp(output_name, "json")==0){
+        user_d.replies_by_hop = map_create(int_dup,free,NULL,compare,vector_dup,vector_free,NULL);
+    }
     
     // Create libparistraceroute loop
     if (!(loop = pt_loop_create(loop_handler, &user_d))) {
@@ -550,6 +614,11 @@ int main(int argc, char ** argv)
     }
     exit_code = EXIT_SUCCESS;
 
+    
+    // Free the allocated memory used for output
+    if(user_d.replies_by_hop != NULL){
+        map_free(user_d.replies_by_hop);
+    }
     // Leave the program
 ERR_PT_LOOP:
 ERR_INSTANCE:

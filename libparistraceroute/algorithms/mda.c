@@ -549,6 +549,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     // manage this XXX
     const probe_t    * probe,
                      * reply;
+    probe_reply_t    * probe_reply;     // (Probe, Reply) pair
     lattice_elt_t    * source_elt,
                      * dest_elt;
     mda_interface_t  * source_interface,
@@ -570,6 +571,12 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
     if (!(probe_extract(reply, "src_ip",  &addr)))        goto ERR_EXTRACT_SRC_IP;
 
+    
+    //Raise an event to save which header tuple has matched which interface.
+    probe_reply = (probe_reply_t *) event->data;
+    event_t* mda_event = event_create(MDA_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free); 
+    pt_raise_event(loop, mda_event);
+    
     //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id_u16);
 
     /* The couple probe-reply defines a link (origin, destination)
@@ -595,6 +602,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     } else {
         dest_elt = NULL;
         dest_interface = mda_interface_create(&addr);
+
         dest_interface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it: 
                                        // create technically makes first ttl 0, this overwrites).
     }

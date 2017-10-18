@@ -20,32 +20,35 @@ static void vector_initialize(vector_t * vector) {
     vector->max_cells = VECTOR_SIZE_INIT;
 }
 
-vector_t * vector_create_impl(size_t size, void (* callback_free)(void *), void (* callback_dump)(const void *)) {
+vector_t * vector_create_impl(size_t size,void* (* callback_dup)(const void *), void (* callback_free)(void *), void (* callback_dump)(const void *)) {
     vector_t * vector = malloc(size);
     if (vector) {
         vector->cell_size = size;
         vector->cells = calloc(VECTOR_SIZE_INIT, vector->cell_size);
         vector->cells_free = callback_free;
         vector->cells_dump = callback_dump;
+        vector->cells_dup = callback_dup;
         vector_initialize(vector);
     }
     return vector;
 }
 
-void vector_free(vector_t * vector, void (* element_free)(void * element)) {
+void vector_free(vector_t * vector) {
     size_t i;
     void * element;
 
     if (vector) {
         if (vector->cells) {
-            if (element_free) {
+            if (vector->cells_free) {
                 for(i = 0; i < vector->num_cells; i++) {
                     if ((element = vector_get_ith_element_impl(vector, i))) {
-                        element_free(element);
+                        vector->cells_free(element);
                     }
                 }
+            }else{
+                free(vector->cells);
             }
-            free(vector->cells);
+            
         }
         free(vector);
     }
@@ -140,4 +143,14 @@ void vector_dump(vector_t * vector) {
     for(i = 0; i < vector_get_num_cells(vector); i++) {
         vector->cells_dump(vector_get_ith_element_impl(vector, i));
     }
+}
+
+vector_t * vector_dup(const vector_t* vector){
+    vector_t* copy = vector_create(vector->cell_size,vector->cells_dup, vector->cells_free, vector->cells_dump);
+    size_t i;
+    for(i = 0; i < vector->num_cells; ++i){
+        vector_push_element(copy, vector->cells_dup(vector_get_ith_element(vector, i)));
+    }
+    return copy;
+    
 }
