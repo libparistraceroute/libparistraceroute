@@ -285,10 +285,17 @@ void print_to_json(map_t * replies_by_hop){
 //     char * output = "{";
     
     //Iterate over the hops
+    char json_output[100*256*OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT] = "[";
     for(int i = 1;;++i){
         vector_t* replies_by_hop_i = NULL;
+        char json_replies_i[100*256] = "{\"hop\":";
         if(map_find(replies_by_hop, &i, &replies_by_hop_i)){
+            char shop[2];
+            sprintf(shop,"%d",i);
+            strcat(json_replies_i, shop);
+            strcat(json_replies_i, ",\"result\":[");
             for(int j = 0; j < replies_by_hop_i->num_cells; ++j){
+                char json_reply[256] = "{";
                 probe_t * reply = vector_get_ith_element(replies_by_hop_i, j);
                 
                 uint16_t src_port = 0;
@@ -296,21 +303,58 @@ void print_to_json(map_t * replies_by_hop){
                 address_t reply_from_address;
                 uint16_t flow_id = 0;
                 
-                
                 probe_extract(reply,"src_port", &src_port);
                 probe_extract(reply,"dst_port", &dst_port);
                 probe_extract(reply,"src_ip", &reply_from_address);
                 probe_extract(reply,"flow_id", &flow_id);
+                char ksrc_port[25] = "\"src_port\":";
+                char kdst_port[25] = "\"dst_port\":";
+                char kflow_id[25] = "\"flow_id\":"; 
+                char from[30] = "\"from\":";
                 
+                char vsrc_port[8];
+                char vdst_port[8];
+                char vflow_id[8];
+                char *saddress[16]; 
+                sprintf(vsrc_port,"%d",src_port);
+                sprintf(vdst_port,"%d",dst_port);
+                sprintf(vflow_id,"%d",flow_id);
+                strcat(ksrc_port,vsrc_port);
+                strcat(kdst_port, vdst_port);
+                strcat(kflow_id, vflow_id);
+                address_to_string(&reply_from_address, saddress);
+                strcat(from, "\"");
+                strcat(from,saddress[0]);
+                strcat(from, "\"");
                 
-                
-                printf("Found a hop %d response %d!\n", i, j);
+                strcat(json_reply, from);
+                strcat(json_reply, ",");
+                strcat(json_reply, ksrc_port);
+                strcat(json_reply, ",");
+                strcat(json_reply, kdst_port);
+                strcat(json_reply, ",");
+                strcat(json_reply, kflow_id);
+                strcat(json_reply, "}");
+//                 printf("Found a hop %d response %d!\n", i, j);
+                strcat(json_replies_i, json_reply);
+                //Check if its the last response for this hop.
+                if(j != replies_by_hop_i->num_cells - 1){
+                    strcat(json_replies_i, ",");
+                }
             }
+            strcat(json_replies_i, "]}");
         }else{
             break;
         }
-        
+        if(i != 1 && strlen(json_output) > 2){
+                strcat(json_output, ",");
+        }
+        strcat(json_output, json_replies_i);
     }
+    strcat(json_output, "]");
+    printf("Json output : \n");
+    printf("%s\n", json_output);
+    
 }
 
 //---------------------------------------------------------------------------
@@ -617,7 +661,8 @@ int main(int argc, char ** argv)
     
     // Free the allocated memory used for output
     if(user_d.replies_by_hop != NULL){
-        map_free(user_d.replies_by_hop);
+        //Leak here because of double free on probes...
+        //map_free(user_d.replies_by_hop);
     }
     // Leave the program
 ERR_PT_LOOP:
