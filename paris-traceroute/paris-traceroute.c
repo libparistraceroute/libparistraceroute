@@ -24,6 +24,7 @@
 #include "address.h"                 // address_to_string
 #include "options.h"                 // options_*
 #include "containers/map.h"
+#include "vector.h"
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -199,6 +200,32 @@ static bool check_options(
         && check_algorithm(algorithm_name);
 }
 
+static inline double delay_probe_reply(const probe_t * probe, const probe_t * reply) {
+    double send_time = probe_get_sending_time(probe),
+           recv_time = probe_get_recv_time(reply);
+//     printf("  %-5.3lfms  ", 1000 * (recv_time - send_time));
+    return 1000 * (recv_time - send_time);
+}
+
+typedef struct {
+    probe_t * reply;
+    double delay;
+} enriched_reply_t;
+
+enriched_reply_t* enriched_reply_shallow_copy(const enriched_reply_t* reply){
+    enriched_reply_t* reply_dup = malloc(sizeof(enriched_reply_t));
+    reply_dup->reply = reply->reply;
+    reply_dup->delay = reply->delay;
+    return reply_dup;
+}
+
+void vector_enriched_reply_free(vector_t* vector){
+    for(int i = 0; i < vector->num_cells; ++i){
+        free(vector_get_ith_element(vector, i));
+    }
+    free(vector);
+}
+
 /**
  * Json handler to ouput the traceroute output in a json format according to RIPE format.
  * 
@@ -222,21 +249,28 @@ void traceroute_json_handler(
             probe = ((const probe_reply_t *) mda_event->data)->probe;
             reply = ((const probe_reply_t *) mda_event->data)->reply;
             
-            int* ttl_probe = malloc(sizeof(int));
+            //Managed by the container that uses it.
+            enriched_reply_t* enriched_reply = malloc(sizeof(enriched_reply_t));
+            enriched_reply->reply = reply;
+            enriched_reply->delay = delay_probe_reply(probe, reply);
+            
+            uint8_t* ttl_probe = malloc(sizeof(int));
             *ttl_probe = 0;
             if(probe_extract(probe, "ttl", ttl_probe)){
                 vector_t* replies_ttl;
-                printf("Received this response for ttl : %d\n", *ttl_probe);
+//                 printf("Received this response for ttl : %d\n", *ttl_probe);
                 // Check if we already have this ttl in the map.
                 if(map_find(current_replies_by_hop,ttl_probe,&replies_ttl)){
                     //We already have the element, just push this new reply related to this probe.
-                    vector_push_element(replies_ttl,reply);
-                    free(ttl_probe);
+                    vector_push_element(replies_ttl,enriched_reply);
                 }else{
-                    replies_ttl = vector_create(sizeof(probe_t),probe_dup, probe_free,NULL);
-                    vector_push_element(replies_ttl, reply);
-                    map_update(current_replies_by_hop, ttl_probe, replies_ttl);  
+                    replies_ttl = vector_create(sizeof(enriched_reply_t),enriched_reply_shallow_copy, free,NULL);
+//                     printf("SIZE OF enriched_reply : %lu\n", sizeof(enriched_reply_t));
+                    vector_push_element(replies_ttl, enriched_reply);
+                    map_update(current_replies_by_hop, ttl_probe, replies_ttl);
                 }
+                free(ttl_probe);
+                free(enriched_reply);
             }
             break;
         default:
@@ -261,7 +295,7 @@ int* int_dup(int* i){
 /**
  * Callback for int key for comparison function in the map.
  */
-int compare(const int * element1, const int * element2){
+int compare(const uint8_t * element1, const uint8_t * element2){
     if(*element1 < *element2){
         return -1;
     } else if (*element1 > *element2){
@@ -277,7 +311,6 @@ typedef struct{
     const char * output_format;
     map_t * replies_by_hop; 
 }user_data;
-
 /**
  * Print the output of the mda to json.
  */
@@ -295,47 +328,60 @@ void print_to_json(map_t * replies_by_hop){
             strcat(json_replies_i, shop);
             strcat(json_replies_i, ",\"result\":[");
             for(int j = 0; j < replies_by_hop_i->num_cells; ++j){
-                char json_reply[256] = "{";
-                probe_t * reply = vector_get_ith_element(replies_by_hop_i, j);
+                char json_reply[300] = "{";
+                enriched_reply_t * enriched_reply = vector_get_ith_element(replies_by_hop_i, j);
+                probe_t* reply = enriched_reply->reply;
                 
                 uint16_t src_port = 0;
                 uint16_t dst_port = 0;
                 address_t reply_from_address;
                 uint16_t flow_id = 0;
-                
+                uint8_t ttl_reply = 0;
+                                
                 probe_extract(reply,"src_port", &src_port);
                 probe_extract(reply,"dst_port", &dst_port);
                 probe_extract(reply,"src_ip", &reply_from_address);
                 probe_extract(reply,"flow_id", &flow_id);
+                probe_extract(reply,"ttl", &ttl_reply);
                 char ksrc_port[25] = "\"src_port\":";
                 char kdst_port[25] = "\"dst_port\":";
                 char kflow_id[25] = "\"flow_id\":"; 
                 char from[30] = "\"from\":";
+                char kttl_reply[10] = "\"ttl\":";
+                char delay[20] = "\"rtt\":";
                 
                 char vsrc_port[8];
                 char vdst_port[8];
                 char vflow_id[8];
-                char *saddress[16]; 
+                char *saddress[16];
+                char vttl_reply[4];
+                char vdelay[8];
                 sprintf(vsrc_port,"%d",src_port);
                 sprintf(vdst_port,"%d",dst_port);
                 sprintf(vflow_id,"%d",flow_id);
+                sprintf(vttl_reply,"%d",ttl_reply);
+                sprintf(vdelay,"%5.3lf",enriched_reply->delay);
                 strcat(ksrc_port,vsrc_port);
                 strcat(kdst_port, vdst_port);
                 strcat(kflow_id, vflow_id);
+                strcat(kttl_reply, vttl_reply);
+                strcat(delay, vdelay);
                 address_to_string(&reply_from_address, saddress);
                 strcat(from, "\"");
                 strcat(from,saddress[0]);
                 strcat(from, "\"");
-                
                 strcat(json_reply, from);
+                strcat(json_reply, ",");
+                strcat(json_reply, kttl_reply);
                 strcat(json_reply, ",");
                 strcat(json_reply, ksrc_port);
                 strcat(json_reply, ",");
                 strcat(json_reply, kdst_port);
                 strcat(json_reply, ",");
+                strcat(json_reply, delay);
+                strcat(json_reply, ",");
                 strcat(json_reply, kflow_id);
                 strcat(json_reply, "}");
-//                 printf("Found a hop %d response %d!\n", i, j);
                 strcat(json_replies_i, json_reply);
                 //Check if its the last response for this hop.
                 if(j != replies_by_hop_i->num_cells - 1){
@@ -425,15 +471,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * u_data)
                 traceroute_event   = event->data;
                 traceroute_options = event->issuer->options;
                 traceroute_data    = event->issuer->data;
-
-                // Forward this event to the default traceroute handler if no special ouput format is specified, otherwise go forward // to the specified handler.
-                // See libparistraceroute/algorithms/traceroute.c
-//                 if(strcmp(((user_data*)u_data)->output_format, "json")==0) {
-//                     traceroute_json_handler(loop, traceroute_event, traceroute_options);
-//                 } else if(strcmp(((user_data*)u_data)->output_format, "standard-traceroute-format")==0) {
-                    traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
-//                 }
-                
+                traceroute_handler(loop, traceroute_event, traceroute_options, traceroute_data);
             }
             break;
         default:
@@ -626,7 +664,7 @@ int main(int argc, char ** argv)
 //     object_t * dummy_value = object_create(NULL,NULL,vector_free,NULL,NULL); 
     
     if(strcmp(output_name, "json")==0){
-        user_d.replies_by_hop = map_create(int_dup,free,NULL,compare,vector_dup,vector_free,NULL);
+        user_d.replies_by_hop = map_create(int_dup,free,NULL,compare,vector_shallow_dup,vector_enriched_reply_free,NULL);
     }
     
     // Create libparistraceroute loop

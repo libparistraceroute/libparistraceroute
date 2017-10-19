@@ -24,8 +24,8 @@ typedef struct {
     size_t    cell_size;  /**< The size of each cell caontianed in the vectore */
     size_t    num_cells;  /**< number of options containeted in the current vector */
     size_t    max_cells;  /**< maximum number of options contained in the vector */
+    void*  (* cells_dup)(const void *);
     void   (* cells_free)(void *);
-    void*   (* cells_dup)(const void *);
     void   (* cells_dump)(const void *); 
 } vector_t;
 
@@ -51,9 +51,11 @@ void vector_dump(vector_t * vector);
 /**
  * \brief Free a vector instance 
  * \param vector A vector_t instance
+ * \param element_free Pointer to a function used to free up element resources
+ *     (can be NULL)
  */
 
-void vector_free(vector_t * vector);
+void vector_free(vector_t * vector, void (* element_free)(void * element));
 
 /**
  * \brief Add a new element at the end of the vector.
@@ -121,10 +123,17 @@ void * vector_get_ith_element(const vector_t * vector, size_t i);
 
 
 /**
- * \brief Duplicate the vector (used as a dup function for the container asking for it like map) 
+ * \brief Duplicate the vector and the elements (used as a dup function for the container asking for it like map) 
  * \param vector the vector to be duplicated
  * \return the new vector with the different values
  */
-vector_t * vector_dup(const vector_t* vector);
+vector_t * vector_deep_dup(const vector_t* vector);
+
+/**
+ * \brief Duplicate the vector and share elements with source (used as a dup function for the container asking for it like map) 
+ * \param vector the vector to be duplicated
+ * \return the new vector with the different values
+ */
+vector_t * vector_shallow_dup(const vector_t* vector);
 
 #endif
