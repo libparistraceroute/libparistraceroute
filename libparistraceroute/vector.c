@@ -152,7 +152,7 @@ vector_t * vector_deep_dup(const vector_t* vector){
     return copy;
 }
 
-vector_t * vector_shallow_dup(const vector_t* vector){
+vector_t * vector_dup(const vector_t* vector){
     vector_t* copy = vector_create(vector->cell_size,vector->cells_dup, vector->cells_free, vector->cells_dump);
     size_t i;
     for(i = 0; i < vector->num_cells; ++i){

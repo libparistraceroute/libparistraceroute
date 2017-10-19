@@ -47,6 +47,7 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         field.h \
                         group.h \
                         generator.h \
+                        int.h\
                         layer.h \
                         lattice.h \
                         list.h \
@@ -125,6 +126,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         group.c \
                         generator.c \
                         generators/uniform.c \
+                        int.c\
                         lattice.c \
                         layer.c \
                         list.c \

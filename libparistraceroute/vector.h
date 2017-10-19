@@ -134,6 +134,6 @@ vector_t * vector_deep_dup(const vector_t* vector);
  * \param vector the vector to be duplicated
  * \return the new vector with the different values
  */
-vector_t * vector_shallow_dup(const vector_t* vector);
+vector_t * vector_dup(const vector_t* vector);
 
 #endif
