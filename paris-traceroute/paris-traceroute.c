@@ -188,19 +188,18 @@ static bool check_options(
     bool         is_ipv6,
     int          dst_port_enabled,
     int          src_port_enabled,
-    const char *protocol_name,
-    const char *algorithm_name
+    const char * protocol_name,
+    const char * algorithm_name
 ) {
     return check_ip_version(is_ipv4, is_ipv6)
-           && check_protocol(is_icmp, is_tcp, is_udp, protocol_name)
-           && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
-           && check_algorithm(algorithm_name);
+        && check_protocol(is_icmp, is_tcp, is_udp, protocol_name)
+        && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
+        && check_algorithm(algorithm_name);
 }
 
 static inline double delay_probe_reply(const probe_t *probe, const probe_t *reply) {
     double send_time = probe_get_sending_time(probe),
            recv_time = probe_get_recv_time(reply);
-//     printf("  %-5.3lfms  ", 1000 * (recv_time - send_time));
     return 1000 * (recv_time - send_time);
 }
 
@@ -229,10 +228,10 @@ void vector_enriched_reply_free(vector_t *vector) {
  *
 **/
 void traceroute_json_handler(
-    pt_loop_t                   *loop,
-    mda_event_t          *mda_event,
+    pt_loop_t                  *loop,
+    mda_event_t                *mda_event,
     const traceroute_options_t *traceroute_options,
-    map_t *current_replies_by_hop
+    map_t                      *current_replies_by_hop
     //const traceroute_data_t    * traceroute_data no need of this one
 ) {
     probe_t *probe;
@@ -284,7 +283,7 @@ void traceroute_json_handler(
  */
 typedef struct {
     const char *output_format;
-    map_t *replies_by_hop;
+    map_t      *replies_by_hop;
 } user_data;
 /**
  * Print the output of the mda to json.
