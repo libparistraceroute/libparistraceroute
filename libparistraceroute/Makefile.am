@@ -42,6 +42,7 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         containers/map.h \
                         containers/pair.h \
                         containers/set.h \
+                        containers/vector.h \
                         dynarray.h \
                         event.h \
                         field.h \
@@ -82,7 +83,6 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         socketpool.h \
                         tree.h \
                         use.h \
-                        vector.h \
                         whois.h
 
 nodist_nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS = \
@@ -120,6 +120,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         containers/map.c \
                         containers/pair.c \
                         containers/set.c \
+                        containers/vector.c \
                         dynarray.c \
                         event.c \
                         field.c \
@@ -157,7 +158,6 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         sniffer.c \
                         socketpool.c \
                         tree.c \
-                        vector.c \
                         whois.c
 
 ## Instruct libtool to include ABI version information in the generated shared

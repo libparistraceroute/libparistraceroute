@@ -1,9 +1,9 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include <stdbool.h>   // bool
-#include "optparse.h"  // optspec
-#include "vector.h"    // vector
+#include <stdbool.h>            // bool
+#include "optparse.h"           // optspec
+#include "containers/vector.h"  // vector
 
 #define END_OPT_SPECS { .action = NULL}
 

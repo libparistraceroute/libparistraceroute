@@ -6,7 +6,7 @@
 #include "mda/interface.h"
 #include "traceroute.h"
 #include "../optparse.h"
-#include "../vector.h"
+#include "../containers/vector.h"
 
 //mda command line help messages
 #define HELP_B "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
