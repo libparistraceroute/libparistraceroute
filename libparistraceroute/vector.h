@@ -31,15 +31,15 @@ typedef struct {
 
 /**
  * \brief Create a vector structure.
- * \param size of cells cantained in the vector
- * \param callback_free a function used to free the vector
- * \param callback_dump a function used to dump the vector 
+ * \param cell_size Size of a cell contained in the vector.
+ * \param callback_free A function used to free the vector.
+ * \param callback_dump A function used to dump the vector.
  * \return A vector_t structure representing an empty vector
  */
 
-vector_t * vector_create_impl(size_t size,void* (* callback_dup)(const void *), void (* callback_free)(void *), void (* callback_dump)(const void *));
+vector_t * vector_create_impl(size_t cell_size, void * (*callback_dup)(const void *), void (*callback_free)(void *), void (*callback_dump)(const void *));
 
-#define vector_create(s,dup, free, dump) vector_create_impl(s,(ELEMENT_DUP) dup,  (ELEMENT_FREE) free, (ELEMENT_DUMP) dump)
+#define vector_create(s, dup, free, dump) vector_create_impl(s, (ELEMENT_DUP) dup, (ELEMENT_FREE) free, (ELEMENT_DUMP) dump)
 
 /** 
   * \biref Dump a vector instance
@@ -55,7 +55,7 @@ void vector_dump(vector_t * vector);
  *     (can be NULL)
  */
 
-void vector_free(vector_t * vector, void (* element_free)(void * element));
+void vector_free(vector_t * vector, void (*element_free)(void * element));
 
 /**
  * \brief Add a new element at the end of the vector.
@@ -123,17 +123,18 @@ void * vector_get_ith_element(const vector_t * vector, size_t i);
 
 
 /**
- * \brief Duplicate the vector and the elements (used as a dup function for the container asking for it like map) 
- * \param vector the vector to be duplicated
- * \return the new vector with the different values
+ * @brief Duplicate the vector and the elements (used as a dup function for the container asking for it like map) 
+ * @param vector the vector to be duplicated
+ * @return the new vector with the different values
  */
 vector_t * vector_deep_dup(const vector_t* vector);
 
 /**
- * \brief Duplicate the vector and share elements with source (used as a dup function for the container asking for it like map) 
- * \param vector the vector to be duplicated
- * \return the new vector with the different values
+ * @brief Duplicate the vector and share elements with source (used as a dup function for the container asking for it like map) 
+ * @param vector the vector to be duplicated
+ * @return the new vector with the different values
  */
 vector_t * vector_dup(const vector_t* vector);
 
 #endif
+

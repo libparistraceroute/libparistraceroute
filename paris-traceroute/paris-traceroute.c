@@ -56,13 +56,13 @@
 #define TCP_DEFAULT_DST_PORT  16963
 #define TCP_DST_PORT_USING_T  80
 
-const char *algorithm_names[] = {
+const char * algorithm_names[] = {
     "paris-traceroute", // default value
     "mda",
     NULL
 };
 
-const char *output_names[] = {
+const char * output_names[] = {
     "standard", // default value
     "json",
     "xml"
@@ -75,7 +75,7 @@ static bool is_udp   = false;
 static bool is_icmp  = false;
 static bool is_debug = false;
 
-const char *protocol_names[] = {
+const char * protocol_names[] = {
     "udp", // default value
     "icmp",
     "tcp",
@@ -112,8 +112,8 @@ struct opt_spec runnable_options[] = {
  * \return A pointer to the corresponding options_t instance if successfull, NULL otherwise
  */
 
-static options_t *init_options(char *version) {
-    options_t *options;
+static options_t * init_options(char * version) {
+    options_t * options;
 
     // Building the command line options
     if (!(options = options_create(NULL))) {
@@ -124,7 +124,7 @@ static options_t *init_options(char *version) {
     options_add_optspecs(options, traceroute_get_options());
     options_add_optspecs(options, mda_get_options());
     options_add_optspecs(options, network_get_options());
-    options_add_common(options, version);
+    options_add_common  (options, version);
     return options;
 
 ERR_OPTIONS_CREATE:
@@ -146,7 +146,7 @@ static bool check_ip_version(bool is_ipv4, bool is_ipv6) {
     return true;
 }
 
-static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char *protocol_name) {
+static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * protocol_name) {
     unsigned check = 0;
 
     if (is_icmp) check += 1;
@@ -170,7 +170,7 @@ static bool check_ports(bool is_icmp, int dst_port_enabled, int src_port_enabled
     return true;
 }
 
-static bool check_algorithm(const char *algorithm_name) {
+static bool check_algorithm(const char * algorithm_name) {
     if (options_mda_get_is_set()) {
         if (strcmp(algorithm_name, "mda") != 0) {
             fprintf(stderr, "You cannot pass options related to mda when using another algorithm\n");
@@ -197,25 +197,25 @@ static bool check_options(
         && check_algorithm(algorithm_name);
 }
 
-static inline double delay_probe_reply(const probe_t *probe, const probe_t *reply) {
+static inline double delay_probe_reply(const probe_t *probe, const probe_t * reply) {
     double send_time = probe_get_sending_time(probe),
            recv_time = probe_get_recv_time(reply);
     return 1000 * (recv_time - send_time);
 }
 
 typedef struct {
-    probe_t *reply;
-    double delay;
+    probe_t * reply;
+    double    delay;
 } enriched_reply_t;
 
-enriched_reply_t *enriched_reply_shallow_copy(const enriched_reply_t *reply) {
-    enriched_reply_t *reply_dup = malloc(sizeof(enriched_reply_t));
+enriched_reply_t * enriched_reply_shallow_copy(const enriched_reply_t * reply) {
+    enriched_reply_t * reply_dup = malloc(sizeof(enriched_reply_t));
     reply_dup->reply = reply->reply;
     reply_dup->delay = reply->delay;
     return reply_dup;
 }
 
-void vector_enriched_reply_free(vector_t *vector) {
+void vector_enriched_reply_free(vector_t * vector) {
     for (int i = 0; i < vector->num_cells; ++i) {
         free(vector_get_ith_element(vector, i));
     }
@@ -228,15 +228,14 @@ void vector_enriched_reply_free(vector_t *vector) {
  *
 **/
 void traceroute_json_handler(
-    pt_loop_t                  *loop,
-    mda_event_t                *mda_event,
-    const traceroute_options_t *traceroute_options,
-    map_t                      *current_replies_by_hop
+    pt_loop_t                  * loop,
+    mda_event_t                * mda_event,
+    const traceroute_options_t * traceroute_options,
+    map_t                      * current_replies_by_hop
     //const traceroute_data_t    * traceroute_data no need of this one
 ) {
-    probe_t *probe;
-    probe_t *reply;
-    static size_t   num_probes_printed = 0;
+    probe_t * probe;
+    probe_t * reply;
 
     switch (mda_event->type) {
         case MDA_PROBE_REPLY:
@@ -246,11 +245,11 @@ void traceroute_json_handler(
             reply = ((const probe_reply_t *) mda_event->data)->reply;
 
             //Managed by the container that uses it.
-            enriched_reply_t *enriched_reply = malloc(sizeof(enriched_reply_t));
+            enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
             enriched_reply->reply = reply;
             enriched_reply->delay = delay_probe_reply(probe, reply);
 
-            uint8_t *ttl_probe = malloc(sizeof(uint8_t));
+            uint8_t * ttl_probe = malloc(sizeof(uint8_t));
             *ttl_probe = 0;
             if (probe_extract(probe, "ttl", ttl_probe)) {
                 vector_t *replies_ttl;
@@ -272,28 +271,24 @@ void traceroute_json_handler(
         default:
             break;
     }
-
-    if (num_probes_printed % traceroute_options->num_probes == 0) {
-        printf("\n");
-    }
 }
 
 /**
  * struct used to pass some user data to loop handler.
  */
 typedef struct {
-    const char *output_format;
-    map_t      *replies_by_hop;
+    const char * output_format;
+    map_t      * replies_by_hop;
 } user_data;
 /**
  * Print the output of the mda to json.
  */
-void print_to_json(map_t *replies_by_hop) {
+void print_to_json(map_t  *replies_by_hop) {
 
-    char *json_output;
+    char * json_output;
     size_t size;
 
-    FILE *json_stream = open_memstream(&json_output, &size);
+    FILE * json_stream = open_memstream(&json_output, &size);
 
     fprintf(json_stream, "[");
     for (int i = 1; i < options_traceroute_get_max_ttl(); ++i) {
@@ -337,15 +332,13 @@ void print_to_json(map_t *replies_by_hop) {
                     fprintf(json_stream, ",");
                 }
             }
-            fprintf(json_stream, "]}");
-            fprintf(json_stream, ",");
+            fprintf(json_stream, "]},");
         }
 
     }
     fflush(json_stream);
     //Remove last ","
     json_output[strlen(json_output) - 1] = ']';
-    printf("Json output : \n");
     printf("%s\n", json_output);
     fclose(json_stream);
 
@@ -363,15 +356,15 @@ void print_to_json(map_t *replies_by_hop) {
  *   all the algorithms instances running in this loop.
  */
 
-void loop_handler(pt_loop_t *loop, event_t *event, void *u_data) {
-    traceroute_event_t          *traceroute_event;
-    const traceroute_options_t *traceroute_options;
-    const traceroute_data_t     *traceroute_data;
-    mda_event_t                 *mda_event;
-    mda_data_t                  *mda_data;
-    const char                  *algorithm_name;
+void loop_handler(pt_loop_t * loop, event_t * event, void * u_data) {
+    traceroute_event_t          * traceroute_event;
+    const traceroute_options_t  * traceroute_options;
+    const traceroute_data_t     * traceroute_data;
+    mda_event_t                 * mda_event;
+    mda_data_t                  * mda_data;
+    const char                  * algorithm_name;
 
-    user_data                   *user_d = (user_data *) u_data;
+    user_data                   * user_d = (user_data *) u_data;
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
             algorithm_name = event->issuer->algorithm->name;
@@ -427,7 +420,7 @@ void loop_handler(pt_loop_t *loop, event_t *event, void *u_data) {
     event_free(event);
 }
 
-const char *get_ip_protocol_name(int family) {
+const char * get_ip_protocol_name(int family) {
     switch (family) {
         case AF_INET:
             return "ipv4";
@@ -441,7 +434,7 @@ const char *get_ip_protocol_name(int family) {
     return NULL;
 }
 
-const char *get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
+const char * get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_udp) {
     if (use_icmp) {
         switch (family) {
             case AF_INET:
@@ -468,21 +461,21 @@ const char *get_protocol_name(int family, bool use_icmp, bool use_tcp, bool use_
 
 int main(int argc, char **argv) {
     int                       exit_code = EXIT_FAILURE;
-    char                     *version = strdup("version 1.0");
-    const char               *usage = "usage: %s [options] host\n";
-    void                     *algorithm_options;
+    char                    * version = strdup("version 1.0");
+    const char              * usage = "usage: %s [options] host\n";
+    void                    * algorithm_options;
     traceroute_options_t      traceroute_options;
-    traceroute_options_t     *ptraceroute_options;
+    traceroute_options_t    * ptraceroute_options;
     mda_options_t             mda_options;
-    probe_t                  *probe;
-    pt_loop_t                *loop;
+    probe_t                 * probe;
+    pt_loop_t               * loop;
     int                       family;
     address_t                 dst_addr;
-    options_t                *options;
-    char                     *dst_ip;
-    const char               *algorithm_name;
-    const char               *protocol_name;
-    const char               *output_name;
+    options_t               * options;
+    char                    * dst_ip;
+    const char              * algorithm_name;
+    const char              * protocol_name;
+    const char              * output_name;
     bool                      use_icmp, use_udp, use_tcp;
 
     // Prepare the commande line options

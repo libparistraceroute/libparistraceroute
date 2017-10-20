@@ -20,7 +20,12 @@ static void vector_initialize(vector_t * vector) {
     vector->max_cells = VECTOR_SIZE_INIT;
 }
 
-vector_t * vector_create_impl(size_t size,void* (* callback_dup)(const void *), void (* callback_free)(void *), void (* callback_dump)(const void *)) {
+vector_t * vector_create_impl(
+    size_t size,
+    void * (*callback_dup)(const void *), 
+    void   (*callback_free)(void *),
+    void   (*callback_dump)(const void *)
+) {
     vector_t * vector = malloc(sizeof(vector_t));
     if (vector) {
         vector->cell_size = size;
@@ -33,7 +38,7 @@ vector_t * vector_create_impl(size_t size,void* (* callback_dup)(const void *), 
     return vector;
 }
 
-void vector_free(vector_t * vector, void (* element_free)(void * element)) {
+void vector_free(vector_t * vector, void (*element_free)(void * element)) {
     size_t i;
     void * element;
 
