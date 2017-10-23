@@ -399,10 +399,8 @@ void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
 
                 uint16_t src_port = 0;
                 uint16_t dst_port = 0;
-                address_t reply_from_address;
                 uint16_t flow_id = 0;
 
-                probe_extract(star, "src_ip", &reply_from_address);
                 probe_extract(star, "src_port", &src_port);
                 probe_extract(star, "dst_port", &dst_port);
                 probe_extract(star, "flow_id", &flow_id);
