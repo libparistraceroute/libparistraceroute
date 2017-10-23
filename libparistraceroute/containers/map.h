@@ -72,6 +72,16 @@ map_t * make_map(const object_t * dummy_key, const object_t * dummy_data);
 
 void map_free(map_t * map);
 
+
+/**
+ * @brief Give the number of elements in the map
+ * 
+ * @param map 
+ * @return long unsigned int
+ */
+size_t map_size(const map_t * map);
+
+
 /**
  * \brief Print a map_t instance in the standard output.
  * \param set A map_t instance.

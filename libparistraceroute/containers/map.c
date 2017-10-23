@@ -164,3 +164,7 @@ void map_dump(const map_t * map) {
     set_dump(map->set);
 }
 
+size_t map_size(const map_t * map){
+    return set_size(map->set);
+}
+

@@ -306,14 +306,6 @@ typedef struct {
  */
 
 void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
-    size_t num_relevant_hops = 0;
-    // TODO implement map_size() and set_size()
-    for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
-        vector_t * replies_by_hop_i = NULL;
-        if (map_find(replies_by_hop, &i, &replies_by_hop_i)) {
-            num_relevant_hops++;
-        }
-    }
 
     fprintf(f_json, "[");
     for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
@@ -357,7 +349,7 @@ void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
                 }
             }
             fprintf(f_json, "]}");
-            if (i < num_relevant_hops) {
+            if (i < map_size(replies_by_hop)) {
                 fprintf(f_json, ",");
             } else {
                 //Ensure that the result is flushed, even in debug mode.

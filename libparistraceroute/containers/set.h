@@ -7,6 +7,7 @@
 typedef struct {
     void     * root;          /**< tree of element   */
     object_t * dummy_element; /**< object_t<element> */
+    size_t     size;          /** Current number of elements in the set */
 } set_t;
 
 /**
@@ -56,6 +57,15 @@ set_t * set_dup(const set_t * set);
  */
 
 void set_free(set_t * set);
+
+
+/**
+ * @brief Give the current number of elements of the set
+ * 
+ * @param set
+ * @return long unsigned int
+ */
+size_t set_size(set_t * set);
 
 /**
  * \brief Print a set_t instance in the standard output.
