@@ -228,6 +228,17 @@ void vector_enriched_reply_free(vector_t * vector) {
     free(vector);
 }
 
+void map_probe_free(map_t * map){
+    
+    for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
+        vector_t * replies_by_hop_i = NULL;
+        if (map_find(map, &i, &replies_by_hop_i)) {
+            //Only free the vector and not the probes
+            free(replies_by_hop_i);
+        }
+    }
+}
+
 /**
  * Json handler to ouput the traceroute output in a json format according to RIPE format.
  */
@@ -266,7 +277,9 @@ void traceroute_json_handler(
                 } else {
                     replies_ttl = vector_create(sizeof(enriched_reply_t), enriched_reply_shallow_copy, free, NULL);
                     vector_push_element(replies_ttl, enriched_reply);
+                    //map_update duplicate the value and the key passed in arg, so free the vector after the call to map_update
                     map_update(current_replies_by_hop, ttl_probe, replies_ttl);
+                    free(replies_ttl);
                 }
                 free(ttl_probe);
                 free(enriched_reply);
@@ -346,7 +359,11 @@ void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
             fprintf(f_json, "]}");
             if (i < num_relevant_hops) {
                 fprintf(f_json, ",");
-            } else break;
+            } else {
+                //Ensure that the result is flushed, even in debug mode.
+                fprintf(f_json,"]\n");      
+                break;  
+            } 
         }
     }
 }
@@ -659,7 +676,7 @@ int main(int argc, char **argv) {
     if (user_data.format == FORMAT_JSON) {
         //Leak here because of double free on probes...
         //map_free(user_data.replies_by_hop);
-        // TODO Kevin: just free the map without freeing the probe, supposed to be freed elsewhere.
+        map_probe_free(user_data.replies_by_hop);
     }
 
     // Leave the program
