@@ -308,7 +308,7 @@ void traceroute_json_handler(
                     stars_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
                     vector_push_element(stars_ttl, probe);
                     //map_update duplicate the value and the key passed in arg, so free the vector after the call to map_update
-                    map_update(current_replies_by_hop, ttl_probe, stars_ttl);
+                    map_update(current_stars_by_hop, ttl_probe, stars_ttl);
                     free(stars_ttl);
                 }
             }
