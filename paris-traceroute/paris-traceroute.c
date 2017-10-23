@@ -240,6 +240,16 @@ void map_probe_free(map_t * map){
 }
 
 /**
+ * @brief Structure used to pass some user data to loop handler.
+ */
+
+typedef struct {
+    format_t   format;
+    map_t    * replies_by_hop;
+    map_t    * stars_by_hop;
+} user_data_t;
+
+/**
  * Json handler to ouput the traceroute output in a json format according to RIPE format.
  */
 
@@ -247,11 +257,16 @@ void traceroute_json_handler(
     pt_loop_t                  * loop,
     mda_event_t                * mda_event,
     const traceroute_options_t * traceroute_options,
-    map_t                      * current_replies_by_hop
+    user_data_t                * user_data
 ) {
     probe_t * probe;
     probe_t * reply;
 
+    map_t   * current_replies_by_hop = user_data->replies_by_hop;
+    map_t   * current_stars_by_hop   = user_data->stars_by_hop;
+    
+    uint8_t * ttl_probe = malloc(sizeof(uint8_t));
+            * ttl_probe = 0;
     switch (mda_event->type) {
         case MDA_PROBE_REPLY:
 
@@ -264,11 +279,8 @@ void traceroute_json_handler(
             enriched_reply->reply = reply;
             enriched_reply->delay = delay_probe_reply(probe, reply);
 
-            uint8_t * ttl_probe = malloc(sizeof(uint8_t));
-            *ttl_probe = 0;
-
             if (probe_extract(probe, "ttl", ttl_probe)) {
-                vector_t *replies_ttl;
+                vector_t * replies_ttl;
 
                 // Check if we already have this ttl in the map.
                 if (map_find(current_replies_by_hop, ttl_probe, &replies_ttl)) {
@@ -281,23 +293,33 @@ void traceroute_json_handler(
                     map_update(current_replies_by_hop, ttl_probe, replies_ttl);
                     free(replies_ttl);
                 }
-                free(ttl_probe);
                 free(enriched_reply);
+            }
+            break;
+        case MDA_PROBE_TIMEOUT:
+            probe = (probe_t *) mda_event->data;
+            if(probe_extract(probe,"ttl", ttl_probe)){
+                vector_t * stars_ttl;
+                // Check if we already have this ttl in the map.
+                if (map_find(current_stars_by_hop, ttl_probe, &stars_ttl)) {
+                    //We already have the element, just push this new reply related to this probe.
+                    vector_push_element(stars_ttl, probe);
+                } else {
+                    stars_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
+                    vector_push_element(stars_ttl, probe);
+                    //map_update duplicate the value and the key passed in arg, so free the vector after the call to map_update
+                    map_update(current_replies_by_hop, ttl_probe, stars_ttl);
+                    free(stars_ttl);
+                }
             }
             break;
         default:
             break;
     }
+    free(ttl_probe);
 }
 
-/**
- * @brief Structure used to pass some user data to loop handler.
- */
 
-typedef struct {
-    format_t   format;
-    map_t    * replies_by_hop;
-} user_data_t;
 
 /**
  * Print the output of the mda to json.
@@ -307,7 +329,7 @@ typedef struct {
 
 void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
 
-    fprintf(f_json, "[");
+    fprintf(f_json, "\"results\":[");
     for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
         vector_t * replies_by_hop_i = NULL;
 
@@ -360,8 +382,62 @@ void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
     }
 }
 
+void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
+
+    fprintf(f_json, "\"stars\":[");
+    for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
+        vector_t * starts_by_hop_i = NULL;
+
+        if (map_find(stars_by_hop, &i, &starts_by_hop_i)) {
+            fprintf(f_json, "{\"hop\":");
+            fprintf(f_json, "%zu,", i);
+            fprintf(f_json, "\"result\":[");
+            for (size_t j = 0; j < starts_by_hop_i->num_cells; ++j) {
+
+                fprintf(f_json, "{");
+                probe_t * star = vector_get_ith_element(starts_by_hop_i, j);
+
+                uint16_t src_port = 0;
+                uint16_t dst_port = 0;
+                address_t reply_from_address;
+                uint16_t flow_id = 0;
+
+                probe_extract(star, "src_ip", &reply_from_address);
+                probe_extract(star, "src_port", &src_port);
+                probe_extract(star, "dst_port", &dst_port);
+                probe_extract(star, "flow_id", &flow_id);
+                
+
+
+                fprintf(f_json, "\"src_port\":%-10hu,", src_port);
+                fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
+                fprintf(f_json, "\"flow_id\":%-10hu,", flow_id);
+                fprintf(f_json, "}");
+
+                // Check if its the last response for this hop.
+                if (j != starts_by_hop_i->num_cells - 1) {
+                    fprintf(f_json, ",");
+                }
+            }
+            fprintf(f_json, "]}");
+            if (i < map_size(stars_by_hop)) {
+                fprintf(f_json, ",");
+            } else {
+                //Ensure that the result is flushed, even in debug mode.
+                fprintf(f_json,"]\n");      
+                break;  
+            } 
+        }
+    }
+}
+
 void reply_to_json_dump(const map_t * replies_by_hop) {
     reply_to_json(replies_by_hop, stdout);
+    fflush(stdout);
+}
+
+void starts_to_json_dump(const map_t * stars_by_hop){
+    stars_to_json(stars_by_hop, stdout);
     fflush(stdout);
 }
 
@@ -402,7 +478,14 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         fprintf(stderr, "loop_handler: Format XML not yet implemented\n");
                         break;
                     case FORMAT_JSON:
+                        printf("{");
                         reply_to_json_dump(user_data->replies_by_hop);
+                        
+                        if(map_size(user_data->stars_by_hop) > 0){
+                            printf(",");
+                            starts_to_json_dump(user_data->stars_by_hop);
+                        }
+                        printf("}\n");
                         break;
                 }
 
@@ -431,7 +514,12 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         break;
                     case MDA_PROBE_REPLY:
                         if (user_data->format == FORMAT_JSON) {
-                            traceroute_json_handler(loop, mda_event, traceroute_options, user_data->replies_by_hop);
+                            traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
+                        }
+                        break;
+                    case MDA_PROBE_TIMEOUT:
+                        if (user_data->format == FORMAT_JSON) {
+                            traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
                         }
                         break;
                     default:
@@ -633,6 +721,7 @@ int main(int argc, char **argv) {
     //Create a dummy object with no elements, just put the callbacks.
     if (user_data.format == FORMAT_JSON) {
         user_data.replies_by_hop = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, vector_enriched_reply_free, NULL);
+        user_data.stars_by_hop = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, free, NULL);
     }
 
     // Create libparistraceroute loop
@@ -669,6 +758,7 @@ int main(int argc, char **argv) {
         //Leak here because of double free on probes...
         //map_free(user_data.replies_by_hop);
         map_probe_free(user_data.replies_by_hop);
+        map_probe_free(user_data.stars_by_hop);
     }
 
     // Leave the program

@@ -23,7 +23,8 @@ typedef struct {
 
 typedef enum {
     MDA_NEW_LINK,
-    MDA_PROBE_REPLY
+    MDA_PROBE_REPLY, 
+    MDA_PROBE_TIMEOUT
 } mda_event_type_t;
 
 typedef struct {

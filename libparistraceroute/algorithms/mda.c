@@ -716,10 +716,14 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     size_t                  i, num_next;
 
     probe = event->data;
-
+    
     if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
     if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
-
+    
+    //Raise an event to save which header tuple has timedout.
+    event_t* mda_event = event_create(MDA_PROBE_TIMEOUT, probe, NULL, (ELEMENT_FREE) probe_free); 
+    pt_raise_event(loop, mda_event);
+    
     search_ttl_flow.ttl = ttl - 1;
     search_ttl_flow.flow_id = flow_id_u16;
     search_ttl_flow.result = NULL;
