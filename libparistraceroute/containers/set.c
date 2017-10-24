@@ -38,14 +38,15 @@ set_t * make_set(const object_t * dummy_element) {
     assert(dummy_element);
     assert(dummy_element->compare);
     assert(dummy_element->dup);
-    
-    set = set_create_impl(dummy_element->dup, dummy_element->free, dummy_element->dump, dummy_element->compare);
+
+    if (!(set = set_create_impl(dummy_element->dup, dummy_element->free, dummy_element->dump, dummy_element->compare))) goto ERR_SET_CREATE;
     if (!(set->dummy_element = object_dup(dummy_element))) goto ERR_OBJECT_DUP;
-    
+
     return set;
 
 ERR_OBJECT_DUP:
     free(set);
+ERR_SET_CREATE:
     return NULL;
 }
 

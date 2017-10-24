@@ -25,7 +25,7 @@
 #include "options.h"                 // options_*
 #include "containers/map.h"          // map_t
 #include "containers/vector.h"       // vector_t
-#include "int.h"
+#include "int.h"                     // uint8_compare, uint8_dup
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -38,6 +38,7 @@
 #define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
 #define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
 #define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
+#define TRACEROUTE_HELP_S  "Print discovered IP by increasing TTL (enabled by default)."
 #define TRACEROUTE_HELP_I  "Use ICMPv4/ICMPv6 for tracerouting."
 #define TRACEROUTE_HELP_P  "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
 #define TRACEROUTE_HELP_T  "Use TCP for tracerouting."
@@ -65,7 +66,6 @@ const char * algorithm_names[] = {
 typedef enum format_t {
     FORMAT_DEFAULT,
     FORMAT_JSON,
-    FORMAT_JSON_STREAM,
     FORMAT_XML
 } format_t;
 
@@ -82,6 +82,7 @@ static bool is_tcp   = false;
 static bool is_udp   = false;
 static bool is_icmp  = false;
 static bool is_debug = false;
+static bool sorted_print = false;
 
 const char * protocol_names[] = {
     "udp", // default value
@@ -105,6 +106,7 @@ struct opt_spec runnable_options[] = {
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
     {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
     {opt_store_choice,        "F",        "--format",          "FORMAT",           TRACEROUTE_HELP_F,       format_names},
+    {opt_store_1,             "S",        "--sorted-print",    OPT_NO_METAVAR,     TRACEROUTE_HELP_S,       &sorted_print},
     {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             TRACEROUTE_HELP_p,       dst_port},
     {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             TRACEROUTE_HELP_s,       src_port},
     {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             TRACEROUTE_HELP_z,       send_time},
@@ -157,9 +159,9 @@ static bool check_ip_version(bool is_ipv4, bool is_ipv6) {
 static bool check_protocol(bool is_icmp, bool is_tcp, bool is_udp, const char * protocol_name) {
     unsigned check = 0;
 
-    if (is_icmp) check += 1;
-    if (is_udp)  check += 1;
-    if (is_tcp)  check += 1;
+    if (is_icmp) check++;
+    if (is_udp)  check++;
+    if (is_tcp)  check++;
 
     if (check > 1) {
         fprintf(stderr, "E: Cannot use simultaneously icmp tcp and udp tracerouting\n");
@@ -254,7 +256,8 @@ void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json);
 
 void star_to_json(const probe_t * star, FILE * f_json);
 //Akward variable for first probe or star recieved for json compliance
-bool is_first_probe_star = true;
+bool is_first_probe_star = true; // TODO : to put in user_data
+
 /**
  * Json handler to ouput the traceroute output in a json format according to RIPE format.
  */
@@ -270,7 +273,7 @@ void traceroute_json_handler(
 
     map_t   * current_replies_by_hop = user_data->replies_by_hop;
     map_t   * current_stars_by_hop   = user_data->stars_by_hop;
-    
+
     uint8_t * ttl_probe = malloc(sizeof(uint8_t));
             * ttl_probe = 0;
     switch (mda_event->type) {
@@ -283,62 +286,79 @@ void traceroute_json_handler(
             enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
             enriched_reply->reply = reply;
             enriched_reply->delay = delay_probe_reply(probe, reply);
-            if(user_data->format == FORMAT_JSON){
 
-                if (probe_extract(probe, "ttl", ttl_probe)) {
-                    vector_t * replies_ttl;
+            switch (user_data->format) {
+                case FORMAT_JSON:
+                    if (sorted_print) {
+                        if (probe_extract(probe, "ttl", ttl_probe)) {
+                            vector_t * replies_ttl;
 
-                    // Check if we already have this ttl in the map.
-                    if (map_find(current_replies_by_hop, ttl_probe, &replies_ttl)) {
-                        // We already have the element, just push this new reply related to this probe.
-                        vector_push_element(replies_ttl, enriched_reply);
+                            // Check if we already have this ttl in the map.
+                            if (map_find(current_replies_by_hop, ttl_probe, &replies_ttl)) {
+                                // We already have the element, just push this new reply related to this probe.
+                                vector_push_element(replies_ttl, enriched_reply);
+                            } else {
+                                replies_ttl = vector_create(sizeof(enriched_reply_t), enriched_reply_shallow_copy, free, NULL);
+                                vector_push_element(replies_ttl, enriched_reply);
+                                // map_update duplicates the value and the key passed in arg, so free the vector after the call to map_update
+                                map_update(current_replies_by_hop, ttl_probe, replies_ttl);
+                                free(replies_ttl);
+                            }
+                            free(enriched_reply);
+                        }
                     } else {
-                        replies_ttl = vector_create(sizeof(enriched_reply_t), enriched_reply_shallow_copy, free, NULL);
-                        vector_push_element(replies_ttl, enriched_reply);
-                        // map_update duplicates the value and the key passed in arg, so free the vector after the call to map_update
-                        map_update(current_replies_by_hop, ttl_probe, replies_ttl);
-                        free(replies_ttl);
+                        if(is_first_probe_star){
+                            fprintf(stdout, "[");
+                            is_first_probe_star = false;
+                        }else{
+                            fprintf(stdout, ",");
+                        }
+                        reply_to_json(enriched_reply, stdout);
+                        fflush(stdout);
                     }
-                    free(enriched_reply);
-                }
-            } else if (user_data->format == FORMAT_JSON_STREAM){
-                if(is_first_probe_star){
-                    fprintf(stdout, "[");
-                    is_first_probe_star = false;
-                }else{
-                    fprintf(stdout, ",");
-                }     
-                reply_to_json(enriched_reply, stdout);
-                fflush(stdout);
+                    break;
+                case FORMAT_XML:
+                    fprintf(stderr, "Not yet implemented");
+                    break;
+                case FORMAT_DEFAULT: break;
             }
             break;
+
         case MDA_PROBE_TIMEOUT:
             probe = (probe_t *) mda_event->data;
-            if(user_data->format == FORMAT_JSON){
-                if(probe_extract(probe, "ttl", ttl_probe)){
-                    vector_t * stars_ttl;
-                    // Check if we already have this ttl in the map.
-                    if (map_find(current_stars_by_hop, ttl_probe, &stars_ttl)) {
-                        // We already have the element, just push this new reply related to this probe.
-                        vector_push_element(stars_ttl, probe);
+
+            switch (user_data->format) {
+                case FORMAT_JSON:
+                    if (sorted_print) {
+                        if (probe_extract(probe, "ttl", ttl_probe)) {
+                            vector_t * stars_ttl;
+                            // Check if we already have this ttl in the map.
+                            if (map_find(current_stars_by_hop, ttl_probe, &stars_ttl)) {
+                                // We already have the element, just push this new reply related to this probe.
+                                vector_push_element(stars_ttl, probe);
+                            } else {
+                                stars_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
+                                vector_push_element(stars_ttl, probe);
+                                // map_update duplicates the value and the key passed in arg, so free the vector after the call to map_update
+                                map_update(current_stars_by_hop, ttl_probe, stars_ttl);
+                                free(stars_ttl);
+                            }
+                        }
                     } else {
-                        stars_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
-                        vector_push_element(stars_ttl, probe);
-                        // map_update duplicates the value and the key passed in arg, so free the vector after the call to map_update
-                        map_update(current_stars_by_hop, ttl_probe, stars_ttl);
-                        free(stars_ttl);
+                        if (is_first_probe_star) {
+                            fprintf(stdout, "[");
+                            is_first_probe_star = false;
+                        } else {
+                            fprintf(stdout, ",");
+                        }
+                        star_to_json(probe, stdout);
+                        fflush(stdout);
                     }
-                }
-            } else if(user_data->format == FORMAT_JSON_STREAM){
-                if(is_first_probe_star){
-                    fprintf(stdout, "[");
-                    is_first_probe_star = false;
-                }else{
-                    fprintf(stdout, ",");
-                }
-                star_to_json(probe, stdout);
-                
-                fflush(stdout);
+                    break;
+                case FORMAT_XML:
+                    fprintf(stderr, "Not yet implemented");
+                    break;
+                case FORMAT_DEFAULT: break;
             }
             break;
         default:
@@ -351,7 +371,7 @@ void traceroute_json_handler(
 
 /**
  * @brief Print a reply to json
- * 
+ *
  * @param reply p_reply:...
  * @param f_json p_f_json:...
  */
@@ -414,9 +434,9 @@ void replies_to_json(const map_t * replies_by_hop, FILE * f_json) {
                 fprintf(f_json, ",");
             } else {
                 //Ensure that the result is flushed, even in debug mode.
-                fprintf(f_json,"]\n");      
-                break;  
-            } 
+                fprintf(f_json,"]\n");
+                break;
+            }
         }
     }
 }
@@ -465,9 +485,9 @@ void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
                 fprintf(f_json, ",");
             } else {
                 //Ensure that the result is flushed, even in debug mode.
-                fprintf(f_json,"]\n");      
-                break;  
-            } 
+                fprintf(f_json,"]\n");
+                break;
+            }
         }
     }
 }
@@ -519,17 +539,19 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         fprintf(stderr, "loop_handler: Format XML not yet implemented\n");
                         break;
                     case FORMAT_JSON:
-                        printf("{");
-                        replies_to_json_dump(user_data->replies_by_hop);
-                        
-                        if(map_size(user_data->stars_by_hop) > 0){
-                            printf(",");
-                            starts_to_json_dump(user_data->stars_by_hop);
+                        if (sorted_print) {
+                            printf("{");
+                            replies_to_json_dump(user_data->replies_by_hop);
+
+                            if(map_size(user_data->stars_by_hop) > 0){
+                                printf(",");
+                                starts_to_json_dump(user_data->stars_by_hop);
+                            }
+                            printf("}\n");
+                        } else {
+                            printf("]\n");
                         }
-                        printf("}\n");
                         break;
-                    case FORMAT_JSON_STREAM:
-                        printf("]\n");
                 }
 
                 mda_data_free(mda_data);
@@ -557,10 +579,8 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         break;
                     case MDA_PROBE_REPLY:
                         switch (user_data->format){
+                            case FORMAT_XML:
                             case FORMAT_JSON:
-                                traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
-                                break;
-                            case FORMAT_JSON_STREAM:
                                 traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
                                 break;
                             default:
@@ -569,10 +589,8 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         break;
                     case MDA_PROBE_TIMEOUT:
                         switch (user_data->format){
+                            case FORMAT_XML:
                             case FORMAT_JSON:
-                                traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
-                                break;
-                            case FORMAT_JSON_STREAM:
                                 traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
                                 break;
                             default:
@@ -772,11 +790,10 @@ int main(int argc, char **argv) {
     user_data_t user_data;
     user_data.format = !strcmp("json", format_name) ? FORMAT_JSON :
                        !strcmp("xml", format_name)  ? FORMAT_XML :
-                       !strcmp("json-stream", format_name) ? FORMAT_JSON_STREAM:
                        FORMAT_DEFAULT;
     user_data.replies_by_hop = NULL;
 
-    //Create a dummy object with no elements, just put the callbacks.
+    // Create a dummy object with no elements, just put the callbacks.
     if (user_data.format == FORMAT_JSON) {
         user_data.replies_by_hop = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, vector_enriched_reply_free, NULL);
         user_data.stars_by_hop = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, free, NULL);

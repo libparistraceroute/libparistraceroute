@@ -7,7 +7,7 @@
  * @return The new allocated pointer.
  */
 
-uint8_t *uint8_dup(uint8_t *i);
+uint8_t * uint8_dup(uint8_t * i);
 
 /**
  * @brief Callback for int key for comparison function in the map.
@@ -16,6 +16,6 @@ uint8_t *uint8_dup(uint8_t *i);
  * @return int
  */
 
-int uint8_compare(const uint8_t *element1, const uint8_t *element2);
+int uint8_compare(const uint8_t * element1, const uint8_t * element2);
 
 #endif
