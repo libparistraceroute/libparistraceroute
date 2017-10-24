@@ -298,6 +298,8 @@ void traceroute_json_handler(
             break;
         case MDA_PROBE_TIMEOUT:
             probe = (probe_t *) mda_event->data;
+            u_int16_t src_port = 0;
+            probe_extract(probe, "src_port", & src_port);
             if(probe_extract(probe,"ttl", ttl_probe)){
                 vector_t * stars_ttl;
                 // Check if we already have this ttl in the map.
@@ -409,7 +411,7 @@ void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
 
                 fprintf(f_json, "\"src_port\":%-10hu,", src_port);
                 fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
-                fprintf(f_json, "\"flow_id\":%-10hu,", flow_id);
+                fprintf(f_json, "\"flow_id\":%-10hu", flow_id);
                 fprintf(f_json, "}");
 
                 // Check if its the last response for this hop.
