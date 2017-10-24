@@ -61,7 +61,6 @@ void set_free(set_t * set);
 
 /**
  * @brief Give the current number of elements of the set
- * 
  * @param set
  * @return long unsigned int
  */

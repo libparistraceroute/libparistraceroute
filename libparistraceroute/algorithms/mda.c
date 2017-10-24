@@ -714,9 +714,8 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     uint8_t                 ttl;
     int                     ret;
     size_t                  i, num_next;
-
-    probe = event->data;
     
+    probe = event->data;
     if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
     if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
     

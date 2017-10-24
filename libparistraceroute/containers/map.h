@@ -75,7 +75,6 @@ void map_free(map_t * map);
 
 /**
  * @brief Give the number of elements in the map
- * 
  * @param map 
  * @return long unsigned int
  */

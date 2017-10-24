@@ -38,16 +38,14 @@ set_t * make_set(const object_t * dummy_element) {
     assert(dummy_element);
     assert(dummy_element->compare);
     assert(dummy_element->dup);
-
-    if (!(set = malloc(sizeof(set_t))))                    goto ERR_MALLOC;
+    
+    set = set_create_impl(dummy_element->dup, dummy_element->free, dummy_element->dump, dummy_element->compare);
     if (!(set->dummy_element = object_dup(dummy_element))) goto ERR_OBJECT_DUP;
-    set->size = 0;
-    set->root = NULL;
+    
     return set;
 
 ERR_OBJECT_DUP:
     free(set);
-ERR_MALLOC:
     return NULL;
 }
 

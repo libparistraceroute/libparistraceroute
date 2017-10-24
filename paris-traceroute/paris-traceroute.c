@@ -34,7 +34,7 @@
 #define TRACEROUTE_HELP_4  "Use IPv4."
 #define TRACEROUTE_HELP_6  "Use IPv6."
 #define TRACEROUTE_HELP_a  "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
-#define TRACEROUTE_HELP_F  "Set the output format of paris-traceroute (default: 'default')"
+#define TRACEROUTE_HELP_F  "Set the output format of paris-traceroute (default: 'default'), possibilities are json, json-stream"
 #define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
 #define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
 #define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
@@ -65,12 +65,14 @@ const char * algorithm_names[] = {
 typedef enum format_t {
     FORMAT_DEFAULT,
     FORMAT_JSON,
+    FORMAT_JSON_STREAM,
     FORMAT_XML
 } format_t;
 
 const char * format_names[] = {
     "default", // default value
     "json",
+    "json-stream",
     "xml"
 };
 
@@ -229,7 +231,6 @@ void vector_enriched_reply_free(vector_t * vector) {
 }
 
 void map_probe_free(map_t * map){
-    
     for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
         vector_t * replies_by_hop_i = NULL;
         if (map_find(map, &i, &replies_by_hop_i)) {
@@ -249,6 +250,11 @@ typedef struct {
     map_t    * stars_by_hop;
 } user_data_t;
 
+void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json);
+
+void star_to_json(const probe_t * star, FILE * f_json);
+//Akward variable for first probe or star recieved for json compliance
+bool is_first_probe_star = true;
 /**
  * Json handler to ouput the traceroute output in a json format according to RIPE format.
  */
@@ -269,50 +275,70 @@ void traceroute_json_handler(
             * ttl_probe = 0;
     switch (mda_event->type) {
         case MDA_PROBE_REPLY:
-
             // Retrieve the probe and its corresponding reply
             probe = ((const probe_reply_t *) mda_event->data)->probe;
             reply = ((const probe_reply_t *) mda_event->data)->reply;
 
-            //Managed by the container that uses it.
+            // Managed by the container that uses it.
             enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
             enriched_reply->reply = reply;
             enriched_reply->delay = delay_probe_reply(probe, reply);
+            if(user_data->format == FORMAT_JSON){
 
-            if (probe_extract(probe, "ttl", ttl_probe)) {
-                vector_t * replies_ttl;
+                if (probe_extract(probe, "ttl", ttl_probe)) {
+                    vector_t * replies_ttl;
 
-                // Check if we already have this ttl in the map.
-                if (map_find(current_replies_by_hop, ttl_probe, &replies_ttl)) {
-                    //We already have the element, just push this new reply related to this probe.
-                    vector_push_element(replies_ttl, enriched_reply);
-                } else {
-                    replies_ttl = vector_create(sizeof(enriched_reply_t), enriched_reply_shallow_copy, free, NULL);
-                    vector_push_element(replies_ttl, enriched_reply);
-                    //map_update duplicate the value and the key passed in arg, so free the vector after the call to map_update
-                    map_update(current_replies_by_hop, ttl_probe, replies_ttl);
-                    free(replies_ttl);
+                    // Check if we already have this ttl in the map.
+                    if (map_find(current_replies_by_hop, ttl_probe, &replies_ttl)) {
+                        // We already have the element, just push this new reply related to this probe.
+                        vector_push_element(replies_ttl, enriched_reply);
+                    } else {
+                        replies_ttl = vector_create(sizeof(enriched_reply_t), enriched_reply_shallow_copy, free, NULL);
+                        vector_push_element(replies_ttl, enriched_reply);
+                        // map_update duplicates the value and the key passed in arg, so free the vector after the call to map_update
+                        map_update(current_replies_by_hop, ttl_probe, replies_ttl);
+                        free(replies_ttl);
+                    }
+                    free(enriched_reply);
                 }
-                free(enriched_reply);
+            } else if (user_data->format == FORMAT_JSON_STREAM){
+                if(is_first_probe_star){
+                    fprintf(stdout, "[");
+                    is_first_probe_star = false;
+                }else{
+                    fprintf(stdout, ",");
+                }     
+                reply_to_json(enriched_reply, stdout);
+                fflush(stdout);
             }
             break;
         case MDA_PROBE_TIMEOUT:
             probe = (probe_t *) mda_event->data;
-            u_int16_t src_port = 0;
-            probe_extract(probe, "src_port", & src_port);
-            if(probe_extract(probe,"ttl", ttl_probe)){
-                vector_t * stars_ttl;
-                // Check if we already have this ttl in the map.
-                if (map_find(current_stars_by_hop, ttl_probe, &stars_ttl)) {
-                    //We already have the element, just push this new reply related to this probe.
-                    vector_push_element(stars_ttl, probe);
-                } else {
-                    stars_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
-                    vector_push_element(stars_ttl, probe);
-                    //map_update duplicate the value and the key passed in arg, so free the vector after the call to map_update
-                    map_update(current_stars_by_hop, ttl_probe, stars_ttl);
-                    free(stars_ttl);
+            if(user_data->format == FORMAT_JSON){
+                if(probe_extract(probe, "ttl", ttl_probe)){
+                    vector_t * stars_ttl;
+                    // Check if we already have this ttl in the map.
+                    if (map_find(current_stars_by_hop, ttl_probe, &stars_ttl)) {
+                        // We already have the element, just push this new reply related to this probe.
+                        vector_push_element(stars_ttl, probe);
+                    } else {
+                        stars_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
+                        vector_push_element(stars_ttl, probe);
+                        // map_update duplicates the value and the key passed in arg, so free the vector after the call to map_update
+                        map_update(current_stars_by_hop, ttl_probe, stars_ttl);
+                        free(stars_ttl);
+                    }
                 }
+            } else if(user_data->format == FORMAT_JSON_STREAM){
+                if(is_first_probe_star){
+                    fprintf(stdout, "[");
+                    is_first_probe_star = false;
+                }else{
+                    fprintf(stdout, ",");
+                }
+                star_to_json(probe, stdout);
+                
+                fflush(stdout);
             }
             break;
         default:
@@ -324,12 +350,46 @@ void traceroute_json_handler(
 
 
 /**
+ * @brief Print a reply to json
+ * 
+ * @param reply p_reply:...
+ * @param f_json p_f_json:...
+ */
+void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json){
+    probe_t *reply = enriched_reply->reply;
+
+    uint16_t src_port = 0;
+    uint16_t dst_port = 0;
+    address_t reply_from_address;
+    uint16_t flow_id = 0;
+    uint8_t ttl_reply = 0;
+
+    probe_extract(reply, "src_ip", &reply_from_address);
+    probe_extract(reply, "src_port", &src_port);
+    probe_extract(reply, "dst_port", &dst_port);
+    probe_extract(reply, "flow_id", &flow_id);
+    probe_extract(reply, "ttl", &ttl_reply);
+    char *saddress[16];
+    address_to_string(&reply_from_address, saddress);
+
+    fprintf(f_json, "{");
+    fprintf(f_json, "\"type\":\"reply\",");
+    fprintf(f_json, "\"from\":\"%s\",", saddress[0]);
+    fprintf(f_json, "\"src_port\":%-10hu,", src_port);
+    fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
+    fprintf(f_json, "\"flow_id\":%-10hu,", flow_id);
+    fprintf(f_json, "\"ttl\":%-10hhu,", ttl_reply);
+    fprintf(f_json, "\"rtt\":%5.3lf", enriched_reply->delay);
+    fprintf(f_json, "}\n");
+}
+
+/**
  * Print the output of the mda to json.
  * @param out The output file descriptor (e.g. stdout)
  * @param replies_by_hop A map which associates for each TTL the corresponding replies.
  */
 
-void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
+void replies_to_json(const map_t * replies_by_hop, FILE * f_json) {
 
     fprintf(f_json, "\"results\":[");
     for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
@@ -341,31 +401,8 @@ void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
             fprintf(f_json, "\"result\":[");
             for (size_t j = 0; j < replies_by_hop_i->num_cells; ++j) {
 
-                fprintf(f_json, "{");
-                enriched_reply_t *enriched_reply = vector_get_ith_element(replies_by_hop_i, j);
-                probe_t *reply = enriched_reply->reply;
-
-                uint16_t src_port = 0;
-                uint16_t dst_port = 0;
-                address_t reply_from_address;
-                uint16_t flow_id = 0;
-                uint8_t ttl_reply = 0;
-
-                probe_extract(reply, "src_ip", &reply_from_address);
-                probe_extract(reply, "src_port", &src_port);
-                probe_extract(reply, "dst_port", &dst_port);
-                probe_extract(reply, "flow_id", &flow_id);
-                probe_extract(reply, "ttl", &ttl_reply);
-                char *saddress[16];
-                address_to_string(&reply_from_address, saddress);
-
-                fprintf(f_json, "\"from\":\"%s\",", saddress[0]);
-                fprintf(f_json, "\"src_port\":%-10hu,", src_port);
-                fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
-                fprintf(f_json, "\"flow_id\":%-10hu,", flow_id);
-                fprintf(f_json, "\"ttl\":%-10hhu,", ttl_reply);
-                fprintf(f_json, "\"rtt\":%5.3lf", enriched_reply->delay);
-                fprintf(f_json, "}");
+                enriched_reply_t * enriched_reply = vector_get_ith_element(replies_by_hop_i, j);
+                reply_to_json(enriched_reply, f_json);
 
                 // Check if its the last response for this hop.
                 if (j != replies_by_hop_i->num_cells - 1) {
@@ -384,6 +421,26 @@ void reply_to_json(const map_t * replies_by_hop, FILE * f_json) {
     }
 }
 
+void star_to_json(const probe_t * star, FILE * f_json){
+    uint8_t  ttl = 0;
+    uint16_t src_port = 0;
+    uint16_t dst_port = 0;
+    uint16_t flow_id  = 0;
+
+    probe_extract(star, "ttl", &ttl);
+    probe_extract(star, "src_port", &src_port);
+    probe_extract(star, "dst_port", &dst_port);
+    probe_extract(star, "flow_id", &flow_id);
+
+    fprintf(f_json, "{");
+    fprintf(f_json, "\"type\":\"star\",");
+    fprintf(f_json, "\"ttl\":%-10hhu,", ttl);
+    fprintf(f_json, "\"src_port\":%-10hu,", src_port);
+    fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
+    fprintf(f_json, "\"flow_id\":%-10hu", flow_id);
+    fprintf(f_json, "}\n");
+}
+
 void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
 
     fprintf(f_json, "\"stars\":[");
@@ -396,24 +453,8 @@ void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
             fprintf(f_json, "\"result\":[");
             for (size_t j = 0; j < starts_by_hop_i->num_cells; ++j) {
 
-                fprintf(f_json, "{");
                 probe_t * star = vector_get_ith_element(starts_by_hop_i, j);
-
-                uint16_t src_port = 0;
-                uint16_t dst_port = 0;
-                uint16_t flow_id = 0;
-
-                probe_extract(star, "src_port", &src_port);
-                probe_extract(star, "dst_port", &dst_port);
-                probe_extract(star, "flow_id", &flow_id);
-                
-
-
-                fprintf(f_json, "\"src_port\":%-10hu,", src_port);
-                fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
-                fprintf(f_json, "\"flow_id\":%-10hu", flow_id);
-                fprintf(f_json, "}");
-
+                star_to_json(star, f_json);
                 // Check if its the last response for this hop.
                 if (j != starts_by_hop_i->num_cells - 1) {
                     fprintf(f_json, ",");
@@ -431,8 +472,8 @@ void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
     }
 }
 
-void reply_to_json_dump(const map_t * replies_by_hop) {
-    reply_to_json(replies_by_hop, stdout);
+void replies_to_json_dump(const map_t * replies_by_hop) {
+    replies_to_json(replies_by_hop, stdout);
     fflush(stdout);
 }
 
@@ -479,7 +520,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         break;
                     case FORMAT_JSON:
                         printf("{");
-                        reply_to_json_dump(user_data->replies_by_hop);
+                        replies_to_json_dump(user_data->replies_by_hop);
                         
                         if(map_size(user_data->stars_by_hop) > 0){
                             printf(",");
@@ -487,6 +528,8 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         }
                         printf("}\n");
                         break;
+                    case FORMAT_JSON_STREAM:
+                        printf("]\n");
                 }
 
                 mda_data_free(mda_data);
@@ -513,13 +556,27 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         }
                         break;
                     case MDA_PROBE_REPLY:
-                        if (user_data->format == FORMAT_JSON) {
-                            traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
+                        switch (user_data->format){
+                            case FORMAT_JSON:
+                                traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
+                                break;
+                            case FORMAT_JSON_STREAM:
+                                traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
+                                break;
+                            default:
+                                break;
                         }
                         break;
                     case MDA_PROBE_TIMEOUT:
-                        if (user_data->format == FORMAT_JSON) {
-                            traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
+                        switch (user_data->format){
+                            case FORMAT_JSON:
+                                traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
+                                break;
+                            case FORMAT_JSON_STREAM:
+                                traceroute_json_handler(loop, mda_event, traceroute_options, user_data);
+                                break;
+                            default:
+                                break;
                         }
                         break;
                     default:
@@ -715,6 +772,7 @@ int main(int argc, char **argv) {
     user_data_t user_data;
     user_data.format = !strcmp("json", format_name) ? FORMAT_JSON :
                        !strcmp("xml", format_name)  ? FORMAT_XML :
+                       !strcmp("json-stream", format_name) ? FORMAT_JSON_STREAM:
                        FORMAT_DEFAULT;
     user_data.replies_by_hop = NULL;
 
