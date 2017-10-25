@@ -247,17 +247,21 @@ void map_probe_free(map_t * map){
  */
 
 typedef struct {
-    format_t   format;
-    map_t    * replies_by_hop;
-    map_t    * stars_by_hop;
+    format_t    format;
+    map_t      * replies_by_hop;
+    map_t      * stars_by_hop;
+    //Akward variable for first probe or star recieved for json compliance
+    bool         is_first_probe_star;
+    address_t    source;
+    const char * destination;
+    const char * protocol;
 } user_data_t;
 
 void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json);
 
 void star_to_json(const probe_t * star, FILE * f_json);
-//Akward variable for first probe or star recieved for json compliance
-bool is_first_probe_star = true; // TODO : to put in user_data
 
+void mda_infos_dump(const user_data_t * user_data);
 /**
  * Json handler to ouput the traceroute output in a json format according to RIPE format.
  */
@@ -291,6 +295,11 @@ void traceroute_json_handler(
                 case FORMAT_JSON:
                     if (sorted_print) {
                         if (probe_extract(probe, "ttl", ttl_probe)) {
+                            if(user_data->is_first_probe_star){
+                                //Fill the source field of mda metadata
+                                probe_extract(probe, "src_ip", &user_data->source); 
+                                user_data->is_first_probe_star = false;
+                            }
                             vector_t * replies_ttl;
 
                             // Check if we already have this ttl in the map.
@@ -307,9 +316,12 @@ void traceroute_json_handler(
                             free(enriched_reply);
                         }
                     } else {
-                        if(is_first_probe_star){
-                            fprintf(stdout, "[");
-                            is_first_probe_star = false;
+                        if(user_data->is_first_probe_star){
+                            fprintf(stdout, "{");
+                            probe_extract(probe, "src_ip", &user_data->source);
+                            mda_infos_dump(user_data);
+                            fprintf(stdout, "\"results\": [");
+                            user_data->is_first_probe_star = false;
                         }else{
                             fprintf(stdout, ",");
                         }
@@ -331,6 +343,11 @@ void traceroute_json_handler(
                 case FORMAT_JSON:
                     if (sorted_print) {
                         if (probe_extract(probe, "ttl", ttl_probe)) {
+                            if(user_data->is_first_probe_star){
+                                //Fill the source field of mda metadata
+                                probe_extract(probe, "src_ip", &user_data->source); 
+                                user_data->is_first_probe_star = false;
+                            }
                             vector_t * stars_ttl;
                             // Check if we already have this ttl in the map.
                             if (map_find(current_stars_by_hop, ttl_probe, &stars_ttl)) {
@@ -345,9 +362,12 @@ void traceroute_json_handler(
                             }
                         }
                     } else {
-                        if (is_first_probe_star) {
-                            fprintf(stdout, "[");
-                            is_first_probe_star = false;
+                        if (user_data->is_first_probe_star) {
+                            fprintf(stdout, "{");
+                            probe_extract(probe, "src_ip", &user_data->source);
+                            mda_infos_dump(user_data);
+                            fprintf(stdout, "\"results\": [");
+                            user_data->is_first_probe_star = false;
                         } else {
                             fprintf(stdout, ",");
                         }
@@ -389,7 +409,7 @@ void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json){
     probe_extract(reply, "dst_port", &dst_port);
     probe_extract(reply, "flow_id", &flow_id);
     probe_extract(reply, "ttl", &ttl_reply);
-    char *saddress[16];
+    char * saddress[16];
     address_to_string(&reply_from_address, saddress);
 
     fprintf(f_json, "{");
@@ -492,13 +512,28 @@ void stars_to_json(const map_t * stars_by_hop, FILE * f_json) {
     }
 }
 
+void mda_infos_to_json(const user_data_t * user_data, FILE * f_json){
+    char * src_ip_address[16];
+    address_to_string(&user_data->source, src_ip_address);
+    
+    fprintf(f_json, "\"from\":\"%s\",", src_ip_address[0]);
+    fprintf(f_json, "\"to\":\"%s\",", user_data->destination);
+    fprintf(f_json, "\"protocol\":\"%s\",", user_data->protocol);
+}
+
+
 void replies_to_json_dump(const map_t * replies_by_hop) {
     replies_to_json(replies_by_hop, stdout);
     fflush(stdout);
 }
 
-void starts_to_json_dump(const map_t * stars_by_hop){
+void stars_to_json_dump(const map_t * stars_by_hop){
     stars_to_json(stars_by_hop, stdout);
+    fflush(stdout);
+}
+
+void mda_infos_dump(const user_data_t * user_data){
+    mda_infos_to_json(user_data, stdout);
     fflush(stdout);
 }
 
@@ -541,15 +576,21 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                     case FORMAT_JSON:
                         if (sorted_print) {
                             printf("{");
-                            replies_to_json_dump(user_data->replies_by_hop);
-
+                            mda_infos_dump(user_data);
+                            if(map_size(user_data->replies_by_hop) > 0){
+                                replies_to_json_dump(user_data->replies_by_hop);
+                            }else{
+                                printf("\"results\":[]");
+                            }
+                            printf(",");
                             if(map_size(user_data->stars_by_hop) > 0){
-                                printf(",");
-                                starts_to_json_dump(user_data->stars_by_hop);
+                                stars_to_json_dump(user_data->stars_by_hop);
+                            }else{
+                                printf("\"stars\":[]");
                             }
                             printf("}\n");
                         } else {
-                            printf("]\n");
+                            printf("]}\n");
                         }
                         break;
                 }
@@ -792,6 +833,10 @@ int main(int argc, char **argv) {
                        !strcmp("xml", format_name)  ? FORMAT_XML :
                        FORMAT_DEFAULT;
     user_data.replies_by_hop = NULL;
+    user_data.is_first_probe_star = true;
+    //Fill this field later when we receive a probe
+    user_data.destination = dst_ip; 
+    user_data.protocol = protocol_name;
 
     // Create a dummy object with no elements, just put the callbacks.
     if (user_data.format == FORMAT_JSON) {
