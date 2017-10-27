@@ -17,15 +17,18 @@
 #include "address.h"                 // address_to_string
 #include "algorithm.h"               // algorithm_instance_t
 #include "algorithms/mda.h"          // mda_*_t
+#include "algorithms/mda/json.h"     
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "common.h"                  // ELEMENT_DUMP
 #include "containers/map.h"          // map_t
 #include "containers/vector.h"       // vector_t
+#include "format.h"                  // format_t
 #include "int.h"                     // uint8_compare, uint8_dup
 #include "options.h"                 // options_*
 #include "optparse.h"                // opt_*()
 #include "probe.h"                   // probe_t
 #include "pt_loop.h"                 // pt_loop_t
+#include "user_data.h"               // user_data_t
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -63,19 +66,6 @@ const char * algorithm_names[] = {
     NULL
 };
 
-typedef enum format_t {
-    FORMAT_DEFAULT,
-    FORMAT_JSON,
-    FORMAT_XML
-} format_t;
-
-const char * format_names[] = {
-    "default", // default value
-    "json",
-    "xml",
-    NULL
-};
-
 static bool is_ipv4      = false;
 static bool is_ipv6      = false;
 static bool is_tcp       = false;
@@ -105,7 +95,7 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
     {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
-#if defined(FORMAT_JSON) || defined(FORMAT_JSON)
+#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
     // TODO: Kevin: this option should be imported, just like those related to traceroute (see options_* functions)
     {opt_store_choice,        "F",        "--format",          "FORMAT",           TRACEROUTE_HELP_F,       format_names},
 #endif
@@ -211,354 +201,8 @@ static bool check_options(
         && check_algorithm(algorithm_name);
 }
 
-static inline double delay_probe_reply(const probe_t *probe, const probe_t * reply) {
-    double send_time = probe_get_sending_time(probe),
-           recv_time = probe_get_recv_time(reply);
-    return 1000 * (recv_time - send_time);
-}
-
-//---------------------------------------------------------------------------
-// User data (passed from main() to *_handler() functions.
-//---------------------------------------------------------------------------
-
-/**
- * @brief Structure used to pass some user data to loop handler.
- */
-
-typedef struct {
-    format_t     format;                /**< FORMAT_XML|FORMAT_JSON|FORMAT_DEFAULT */
-    map_t      * replies_by_ttl;
-    map_t      * stars_by_ttl;
-    bool         is_first_probe_star;   /**< Akward variable for first probe or star recieved for json compliance. */
-    address_t    source;
-    const char * destination;
-    const char * protocol;
-} user_data_t;
-
-//---------------------------------------------------------------------------
-// JSON output
-//---------------------------------------------------------------------------
-
-// TODO: Kevin: move json stuff into algorithms/mda/json.{h.c}. Do not forget to include "use.h"
 // TODO: Kevin: documentation
-// TODO: Kevin: remove static for function of json.* called from paris-traceroute.c
-// TODO: Kevin: could we improve indent?
 
-#ifdef USE_FORMAT_JSON
-
-typedef struct {
-    probe_t * reply;
-    double    delay;
-} enriched_reply_t;
-
-static enriched_reply_t * enriched_reply_shallow_copy(const enriched_reply_t * reply) {
-    enriched_reply_t * reply_dup = malloc(sizeof(enriched_reply_t));
-    reply_dup->reply = reply->reply;
-    reply_dup->delay = reply->delay;
-    return reply_dup;
-}
-
-static void vector_enriched_reply_free(vector_t * vector) {
-    for (int i = 0; i < vector->num_cells; ++i) {
-        free(vector_get_ith_element(vector, i));
-    }
-    free(vector);
-}
-
-static void map_probe_free(map_t * map){
-    for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
-        vector_t * replies_by_ttl_i = NULL;
-        if (map_find(map, &i, &replies_by_ttl_i)) {
-            //Only free the vector and not the probes
-            free(replies_by_ttl_i);
-        }
-    }
-}
-
-static void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json);
-static void star_to_json(const probe_t * star, FILE * f_json);
-static void mda_infos_dump(const user_data_t * user_data);
-
-/**
- * Json handler to ouput the traceroute output in a json format according to RIPE format.
- */
-
-// TODO: Kevin: could you factorize FORMAT_JSON cases?
-
-void traceroute_enriched_handler(
-    pt_loop_t                  * loop,
-    mda_event_t                * mda_event,
-    const traceroute_options_t * traceroute_options,
-    user_data_t                * user_data
-) {
-    probe_t * probe;
-    probe_t * reply;
-
-    map_t   * current_replies_by_ttl = user_data->replies_by_ttl;
-    map_t   * current_stars_by_ttl   = user_data->stars_by_ttl;
-
-    uint8_t ttl_probe = 0;
-
-    switch (mda_event->type) {
-        case MDA_PROBE_REPLY:
-            // Retrieve the probe and its corresponding reply
-            probe = ((const probe_reply_t *) mda_event->data)->probe;
-            reply = ((const probe_reply_t *) mda_event->data)->reply;
-
-            // Managed by the container that uses it.
-            enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
-            enriched_reply->reply = reply;
-            enriched_reply->delay = delay_probe_reply(probe, reply);
-
-            switch (user_data->format) {
-                case FORMAT_JSON:
-                    if (sorted_print) {
-                        if (probe_extract(probe, "ttl", &ttl_probe)) {
-                            if (user_data->is_first_probe_star) {
-                                // Fill the source field of mda metadata
-                                probe_extract(probe, "src_ip", &user_data->source);
-                                user_data->is_first_probe_star = false;
-                            }
-                            vector_t * replies_ttl;
-
-                            // Check if we already have this ttl in the map.
-                            if (map_find(current_replies_by_ttl, &ttl_probe, &replies_ttl)) {
-                                // We already have the element, just push this new reply related to this probe.
-                                vector_push_element(replies_ttl, enriched_reply);
-                            } else {
-                                replies_ttl = vector_create(sizeof(enriched_reply_t), enriched_reply_shallow_copy, free, NULL);
-                                vector_push_element(replies_ttl, enriched_reply);
-
-                                // map_update duplicates the value and the key passed in arg,
-                                // so free the vector after the call to map_update
-                                map_update(current_replies_by_ttl, &ttl_probe, replies_ttl);
-                                free(replies_ttl);
-                            }
-                            free(enriched_reply);
-                        }
-                    } else {
-                        if (user_data->is_first_probe_star) {
-                            fprintf(stdout, "{");
-                            probe_extract(probe, "src_ip", &user_data->source);
-                            mda_infos_dump(user_data);
-                            fprintf(stdout, "\"results\": [");
-                            user_data->is_first_probe_star = false;
-                        } else {
-                            fprintf(stdout, ",");
-                        }
-                        reply_to_json(enriched_reply, stdout);
-                        fflush(stdout);
-                    }
-                    break;
-                case FORMAT_XML:
-                    fprintf(stderr, "Not yet implemented\n");
-                    break;
-                case FORMAT_DEFAULT: break;
-            }
-            break;
-
-        case MDA_PROBE_TIMEOUT:
-            probe = (probe_t *) mda_event->data;
-
-            switch (user_data->format) {
-                case FORMAT_JSON:
-                    if (sorted_print) {
-                        if (probe_extract(probe, "ttl", &ttl_probe)) {
-                            if (user_data->is_first_probe_star){
-                                // Fill the source field of mda metadata
-                                probe_extract(probe, "src_ip", &user_data->source);
-                                user_data->is_first_probe_star = false;
-                            }
-                            vector_t * stars_ttl;
-                            // Check if we already have this ttl in the map.
-                            if (map_find(current_stars_by_ttl, &ttl_probe, &stars_ttl)) {
-                                // We already have the element, just push this new reply related to this probe.
-                                vector_push_element(stars_ttl, probe);
-                            } else {
-                                stars_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
-                                vector_push_element(stars_ttl, probe);
-                                // map_update duplicates the value and the key passed in arg,
-                                // so free the vector after the call to map_update
-                                map_update(current_stars_by_ttl, &ttl_probe, stars_ttl);
-                                free(stars_ttl);
-                            }
-                        }
-                    } else {
-                        if (user_data->is_first_probe_star) {
-                            fprintf(stdout, "{");
-                            probe_extract(probe, "src_ip", &user_data->source);
-                            mda_infos_dump(user_data);
-                            fprintf(stdout, "\"results\": [");
-                            user_data->is_first_probe_star = false;
-                        } else {
-                            fprintf(stdout, ",");
-                        }
-                        star_to_json(probe, stdout);
-                        fflush(stdout);
-                    }
-                    break;
-                case FORMAT_XML:
-                    fprintf(stderr, "Not yet implemented\n");
-                    break;
-                case FORMAT_DEFAULT: break;
-            }
-            break;
-        default:
-            break;
-    }
-}
-
-/**
- * @brief Print a reply to JSON format.
- * @param enriched_reply The MDA reply with the information for the JSON output.
- * @param f_json A valid file descriptor used to write the reply.
- */
-
-static void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json){
-    address_t reply_from_address;
-    uint16_t  src_port  = 0,
-              dst_port  = 0,
-              flow_id   = 0;
-    uint8_t   ttl_reply = 0;
-    probe_t * reply     = enriched_reply->reply;
-    char *    addr_str  = NULL;
-
-    probe_extract(reply, "src_ip",   &reply_from_address);
-    probe_extract(reply, "src_port", &src_port);
-    probe_extract(reply, "dst_port", &dst_port);
-    probe_extract(reply, "flow_id",  &flow_id);
-    probe_extract(reply, "ttl",      &ttl_reply);
-    address_to_string(&reply_from_address, &addr_str);
-
-    fprintf(f_json, "{");
-    fprintf(f_json, "\"type\":\"reply\",");
-    if (addr_str) {
-        fprintf(f_json, "\"from\":\"%s\",", addr_str);
-    } else {
-        fprintf(f_json, "\"from\":\"%s\",", addr_str);
-    }
-    fprintf(f_json, "\"src_port\":%-10hu,", src_port);
-    fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
-    fprintf(f_json, "\"flow_id\":%-10hu,", flow_id);
-    fprintf(f_json, "\"ttl\":%-10hhu,", ttl_reply);
-    fprintf(f_json, "\"rtt\":%5.3lf", enriched_reply->delay);
-    fprintf(f_json, "}\n");
-
-    if (addr_str) free(addr_str);
-}
-
-/**
- * @brief Print the output of MDA to JSON.
- * @param replies_by_ttl A map which associates for each TTL the corresponding replies.
- * @param f_json The output file descriptor (e.g. stdout).
- */
-
-static void replies_to_json(const map_t * replies_by_ttl, FILE * f_json) {
-    fprintf(f_json, "\"results\":[");
-    for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
-        vector_t * replies_by_ttl_i = NULL;
-
-        if (map_find(replies_by_ttl, &i, &replies_by_ttl_i)) {
-            fprintf(f_json, "{\"hop\":");
-            fprintf(f_json, "%zu,", i);
-            fprintf(f_json, "\"result\":[");
-            for (size_t j = 0; j < replies_by_ttl_i->num_cells; ++j) {
-
-                enriched_reply_t * enriched_reply = vector_get_ith_element(replies_by_ttl_i, j);
-                reply_to_json(enriched_reply, f_json);
-
-                // Check if its the last response for this hop.
-                if (j != replies_by_ttl_i->num_cells - 1) {
-                    fprintf(f_json, ",");
-                }
-            }
-            fprintf(f_json, "]}");
-            if (i < map_size(replies_by_ttl)) {
-                fprintf(f_json, ",");
-            } else {
-                //Ensure that the result is flushed, even in debug mode.
-                fprintf(f_json,"]\n");
-                break;
-            }
-        }
-    }
-}
-
-static void star_to_json(const probe_t * star, FILE * f_json) {
-    uint8_t  ttl = 0;
-    uint16_t src_port = 0;
-    uint16_t dst_port = 0;
-    uint16_t flow_id  = 0;
-
-    probe_extract(star, "ttl",      &ttl);
-    probe_extract(star, "src_port", &src_port);
-    probe_extract(star, "dst_port", &dst_port);
-    probe_extract(star, "flow_id",  &flow_id);
-
-    fprintf(f_json, "{");
-    fprintf(f_json, "\"type\":\"star\",");
-    fprintf(f_json, "\"ttl\":%-10hhu,", ttl);
-    fprintf(f_json, "\"src_port\":%-10hu,", src_port);
-    fprintf(f_json, "\"dst_port\":%-10hu,", dst_port);
-    fprintf(f_json, "\"flow_id\":%-10hu", flow_id);
-    fprintf(f_json, "}\n");
-}
-
-static void stars_to_json(const map_t * stars_by_ttl, FILE * f_json) {
-    fprintf(f_json, "\"stars\":[");
-    for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
-        vector_t * starts_by_hop_i = NULL;
-
-        if (map_find(stars_by_ttl, &i, &starts_by_hop_i)) {
-            fprintf(f_json, "{\"hop\":");
-            fprintf(f_json, "%zu,", i);
-            fprintf(f_json, "\"result\":[");
-            for (size_t j = 0; j < starts_by_hop_i->num_cells; ++j) {
-
-                probe_t * star = vector_get_ith_element(starts_by_hop_i, j);
-                star_to_json(star, f_json);
-                // Check if its the last response for this hop.
-                if (j != starts_by_hop_i->num_cells - 1) {
-                    fprintf(f_json, ",");
-                }
-            }
-            fprintf(f_json, "]}");
-            if (i < map_size(stars_by_ttl)) {
-                fprintf(f_json, ",");
-            } else {
-                //Ensure that the result is flushed, even in debug mode.
-                fprintf(f_json,"]\n");
-                break;
-            }
-        }
-    }
-}
-
-void mda_infos_to_json(const user_data_t * user_data, FILE * f_json){
-    char * src_ip_address[16];
-    address_to_string(&user_data->source, src_ip_address);
-
-    fprintf(f_json, "\"from\":\"%s\",", src_ip_address[0]);
-    fprintf(f_json, "\"to\":\"%s\",", user_data->destination);
-    fprintf(f_json, "\"protocol\":\"%s\",", user_data->protocol);
-}
-
-void replies_to_json_dump(const map_t * replies_by_ttl) {
-    replies_to_json(replies_by_ttl, stdout);
-    fflush(stdout);
-}
-
-void stars_to_json_dump(const map_t * stars_by_ttl){
-    stars_to_json(stars_by_ttl, stdout);
-    fflush(stdout);
-}
-
-void mda_infos_dump(const user_data_t * user_data){
-    mda_infos_to_json(user_data, stdout);
-    fflush(stdout);
-}
-
-#endif // USE_FORMAT_JSON
 
 //---------------------------------------------------------------------------
 // Command-line / libparistraceroute translation
@@ -657,7 +301,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                                 // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
                                 // Here you could directly move the content of traceroute_enriched_handler here
                                 // as you did in ALGORITHM_HAS_TERMINATED
-                                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data);
+                                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
                                 break;
 #  endif
                             default:
@@ -665,14 +309,13 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         }
                         break;
                     case MDA_PROBE_TIMEOUT:
-                        printf("loop_handler: format = %d\n", user_data->format);
                         switch (user_data->format){
                             case FORMAT_XML:
                             case FORMAT_JSON:
                                 // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
                                 // Here you could directly move the content of traceroute_enriched_handler here
                                 // as you did in ALGORITHM_HAS_TERMINATED
-                                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data);
+                                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
                                 break;
                             default:
                                 break;

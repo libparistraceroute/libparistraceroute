@@ -1107,4 +1107,10 @@ probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply) {
     return probe_reply->reply;
 }
 
+double delay_probe_reply(const probe_t * probe, const probe_t * reply) {
+    double send_time = probe_get_sending_time(probe),
+           recv_time = probe_get_recv_time(reply);
+    return 1000 * (recv_time - send_time);
+}
+
 

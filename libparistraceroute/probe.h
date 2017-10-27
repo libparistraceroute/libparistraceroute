@@ -379,4 +379,7 @@ probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
 void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
 probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
 
+double delay_probe_reply(const probe_t * probe, const probe_t * reply);
+
+
 #endif

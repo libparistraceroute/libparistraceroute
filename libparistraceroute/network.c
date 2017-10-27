@@ -282,7 +282,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     size_t     i, num_flying_probes;
 
     // XXX
-    /*
+    
     // Fetch the tag from the reply. Its the 3rd checksum field.
     if (!(reply_extract_tag(reply, &tag_reply))) {
         // This is not an IP / ICMP / IP / * reply :(
@@ -300,20 +300,20 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
             if (tag_reply == tag_probe) break;
         }
     }
-    */
+    
 
     // XXX BEGIN Harcoded ICMP response (JA 17/07/2014)
-    tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++;
-
-    num_flying_probes = dynarray_get_size(network->probes);
-    for (i = 0; i < num_flying_probes; i++) {
-        probe = dynarray_get_ith_element(network->probes, i);
-
-        // Reply / probe comparison. In our probe packet, the probe ID
-        // is stored in the checksum of the (first) IP layer.
-        if (probe_match((const struct probe_s *)probe, (const struct probe_s *)reply))
-            break;
-    }
+//     tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++;
+// 
+//     num_flying_probes = dynarray_get_size(network->probes);
+//     for (i = 0; i < num_flying_probes; i++) {
+//         probe = dynarray_get_ith_element(network->probes, i);
+// 
+//         // Reply / probe comparison. In our probe packet, the probe ID
+//         // is stored in the checksum of the (first) IP layer.
+//         if (probe_match((const struct probe_s *)probe, (const struct probe_s *)reply))
+//             break;
+//     }
     // XXX END Hardcoded ICMP response
 
     // No match found if we reached the end of the array

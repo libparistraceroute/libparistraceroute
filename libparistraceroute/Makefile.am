@@ -32,6 +32,7 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         algorithms/mda/interface.h \
                         algorithms/mda/ttl_flow.h \
                         algorithms/mda.h \
+                        algorithms/mda/json.h \
                         algorithms/ping.h \
                         algorithms/traceroute.h \
                         bitfield.h \
@@ -46,6 +47,7 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         dynarray.h \
                         event.h \
                         field.h \
+                        format.h\
                         group.h \
                         generator.h \
                         int.h\
@@ -83,6 +85,7 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         socketpool.h \
                         tree.h \
                         use.h \
+                        user_data.h \
                         whois.h
 
 nodist_nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS = \
@@ -109,6 +112,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         algorithms/mda/data.c \
                         algorithms/mda/flow.c \
                         algorithms/mda/interface.c \
+                        algorithms/mda/json.c \
                         algorithms/mda/ttl_flow.c \
                         algorithms/ping.c \
                         algorithms/traceroute.c \
