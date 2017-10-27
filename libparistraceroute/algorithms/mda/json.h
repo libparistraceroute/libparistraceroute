@@ -6,7 +6,7 @@
 #include "../../containers/vector.h"
 #include "../../containers/map.h"
 #include "../mda.h"
-#include "../../user_data.h"
+#include "mda_enriched_data.h"
 
 //---------------------------------------------------------------------------
 // JSON output

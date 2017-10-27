@@ -17,18 +17,17 @@
 #include "address.h"                 // address_to_string
 #include "algorithm.h"               // algorithm_instance_t
 #include "algorithms/mda.h"          // mda_*_t
-#include "algorithms/mda/json.h"     
+#include "algorithms/mda/json.h" 
+#include "algorithms/mda/mda_enriched_data.h"
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "common.h"                  // ELEMENT_DUMP
 #include "containers/map.h"          // map_t
 #include "containers/vector.h"       // vector_t
-#include "format.h"                  // format_t
 #include "int.h"                     // uint8_compare, uint8_dup
 #include "options.h"                 // options_*
 #include "optparse.h"                // opt_*()
 #include "probe.h"                   // probe_t
 #include "pt_loop.h"                 // pt_loop_t
-#include "user_data.h"               // user_data_t
 
 //---------------------------------------------------------------------------
 // Command line stuff
@@ -200,9 +199,6 @@ static bool check_options(
         && check_ports(is_icmp, dst_port_enabled, src_port_enabled)
         && check_algorithm(algorithm_name);
 }
-
-// TODO: Kevin: documentation
-
 
 //---------------------------------------------------------------------------
 // Command-line / libparistraceroute translation
