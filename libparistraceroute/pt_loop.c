@@ -9,6 +9,7 @@
 #include <errno.h>              // perror
 #include <unistd.h>             // close
 #include <signal.h>             // SIGINT, SIGQUIT
+#include <time.h>               // time_t, time()
 #include "os/sys/epoll.h"       // epoll_ctl
 #include "os/sys/eventfd.h"     // eventfd
 #include "os/sys/signalfd.h"    // signalfd
@@ -407,8 +408,21 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     int network_group_timerfd = network_get_group_timerfd(loop->network);
     ssize_t s;
     struct signalfd_siginfo fdsi;
-
+    
+    bool time_expired         = false;
+    
+    //Take the time for the timeout of the algorithm.
+    time_t starting_time_algorithm = time(&starting_time_algorithm);
     do {
+        //Case where the algorithm timeout, send a terminating event to the algorithm
+        double elapsed_time = difftime(time(NULL), starting_time_algorithm);
+        if(elapsed_time > timeout && !time_expired){
+            pt_instance_iter(loop, pt_process_algorithms_terminate);
+            fprintf(stdout, "Algorithm terminated because of a time expiry\n");
+            //Bool so we dont have a double terminate
+            time_expired = true;
+        }
+        
         /* Wait for events */
         n = epoll_wait(loop->efd, loop->epoll_events, MAXEVENTS, -1);
 
