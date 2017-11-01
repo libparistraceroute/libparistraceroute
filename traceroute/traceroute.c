@@ -162,7 +162,7 @@ int main(int argc, char ** argv)
     }
 
     // Wait for events. They will be catched by handler_user()
-    if (pt_loop(loop, 0) < 0) {
+    if (pt_loop(loop) < 0) {
         fprintf(stderr, "Main loop interrupted");
         goto ERR_IN_PT_LOOP;
     }

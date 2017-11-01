@@ -119,6 +119,7 @@ static options_t * init_options(char * version) {
     options_add_optspecs(options, runnable_options);
     options_add_optspecs(options, ping_get_options());
     options_add_optspecs(options, network_get_options());
+    options_add_optspecs(options, pt_loop_get_options());
     options_add_common  (options, version);
     return options;
 
@@ -477,6 +478,7 @@ int main(int argc, char ** argv)
 
     // Set network options (network and verbose)
     options_network_init(loop->network, false);
+    options_pt_loop_init(loop);
 
     printf("paris-ping to %s (", dst_ip);
     address_dump(&dst_addr);
@@ -489,7 +491,7 @@ int main(int argc, char ** argv)
     }
 
     // Wait for events. They will be catched by handler_user()
-    if (pt_loop(loop, 0) < 0) {
+    if (pt_loop(loop) < 0) {
         fprintf(stderr, "E: Main loop interrupted");
         goto ERR_PT_LOOP;
     }

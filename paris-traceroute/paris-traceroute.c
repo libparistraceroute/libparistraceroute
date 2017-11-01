@@ -33,7 +33,6 @@
 #define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
 #define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
 #define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
-#define TRACEROUTE_HELP_t  "Set the timeout in seconds of paris-traceroute (default is 180 seconds)"
 #define TRACEROUTE_HELP_I  "Use ICMPv4/ICMPv6 for tracerouting."
 #define TRACEROUTE_HELP_P  "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
 #define TRACEROUTE_HELP_T  "Use TCP for tracerouting."
@@ -77,7 +76,6 @@ const char * protocol_names[] = {
 static int    dst_port[4]    = {33457,  0,   UINT16_MAX, 0};
 static int    src_port[4]    = {33456,  0,   UINT16_MAX, 0};
 static double send_time[4]   = {1,      1,   DBL_MAX,    0};
-static int    timeout[4]     = {180,    0,   UINT16_MAX, 1};
 
 struct opt_spec runnable_options[] = {
     // action                 sf          lf                   metavar             help                     data
@@ -89,7 +87,6 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
     {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             TRACEROUTE_HELP_p,       dst_port},
     {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             TRACEROUTE_HELP_s,       src_port},
-    {opt_store_int_lim_en,    "t",        "--timeout",         "TIMEOUT",          TRACEROUTE_HELP_t,       timeout},    
     {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             TRACEROUTE_HELP_z,       send_time},
     {opt_store_1,             "I",        "--icmp",            OPT_NO_METAVAR,     TRACEROUTE_HELP_I,       &is_icmp},
     {opt_store_choice,        "P",        "--protocol",        "PROTOCOL",         TRACEROUTE_HELP_P,       protocol_names},
@@ -115,6 +112,7 @@ static options_t * init_options(char * version) {
     options_add_optspecs(options, traceroute_get_options());
     options_add_optspecs(options, mda_get_options());
     options_add_optspecs(options, network_get_options());
+    options_add_optspecs(options, pt_loop_get_options());
     options_add_common  (options, version);
     return options;
 
@@ -317,7 +315,7 @@ int main(int argc, char ** argv)
     const char              * algorithm_name;
     const char              * protocol_name;
     bool                      use_icmp, use_udp, use_tcp;
-    uint32_t                  pt_timeout;
+
     // Prepare the commande line options
     if (!(options = init_options(version))) {
         fprintf(stderr, "E: Can't initialize options\n");
@@ -334,10 +332,7 @@ int main(int argc, char ** argv)
     dst_ip         = argv[argc - 1];
     algorithm_name = algorithm_names[0];
     protocol_name  = protocol_names[0];
-    
-    //Setup the timeout of paris-traceroute
-    pt_timeout     = timeout[0];
-    
+
     // Checking if there is any conflicts between options passed in the commandline
     if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
         goto ERR_CHECK_OPTIONS;
@@ -442,6 +437,7 @@ int main(int argc, char ** argv)
 
     // Set network options (network and verbose)
     options_network_init(loop->network, is_debug);
+    options_pt_loop_init(loop);
 
     printf("%s to %s (", algorithm_name, dst_ip);
     address_dump(&dst_addr);
@@ -456,9 +452,8 @@ int main(int argc, char ** argv)
         goto ERR_INSTANCE;
     }
 
-    
     // Wait for events. They will be catched by handler_user()
-    if (pt_loop(loop, pt_timeout) < 0) {
+    if (pt_loop(loop) < 0) {
         fprintf(stderr, "E: Main loop interrupted");
         goto ERR_PT_LOOP;
     }

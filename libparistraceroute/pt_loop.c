@@ -10,11 +10,11 @@
 #include <unistd.h>             // close
 #include <signal.h>             // SIGINT, SIGQUIT
 #include <time.h>               // time_t, time()
+
 #include "os/sys/epoll.h"       // epoll_ctl
 #include "os/sys/eventfd.h"     // eventfd
 #include "os/sys/signalfd.h"    // signalfd
 #include "os/netinet/in.h"      // IPPROTO_ICMP, IPPROTO_ICMPV6
-
 #include "probe.h"              // probe_t
 #include "pt_loop.h"            // pt_loop.h
 #include "algorithm.h"
@@ -22,6 +22,35 @@
 #define MAXEVENTS 100
 
 static pt_loop_t * s_loop = NULL; // Needed while we use twalk.
+
+//---------------------------------------------------------------------------
+// pt_loop options
+//---------------------------------------------------------------------------
+
+//static int    timeout[4]     = {180,    0,   UINT16_MAX, 1};
+static double timeout[3] = OPTIONS_PT_LOOP_TIMEOUT;
+
+static option_t pt_loop_options[] = {
+    // action              short long          metavar    help    variable
+    {opt_store_double_lim, "t",  "--timeout",  "TIMEOUT", HELP_t, timeout},
+    END_OPT_SPECS
+};
+
+const option_t * pt_loop_get_options() {
+    return pt_loop_options;
+}
+
+double options_pt_loop_get_timeout() {
+    return timeout[0];
+}
+
+void options_pt_loop_init(pt_loop_t * loop) {
+    pt_loop_set_timeout(loop, options_pt_loop_get_timeout());
+}
+
+void pt_loop_set_timeout(pt_loop_t * loop, double new_timeout) {
+    loop->timeout = new_timeout;
+}
 
 //----------------------------------------------------------------
 // Static functions
@@ -389,8 +418,7 @@ void pt_free_instance(
     algorithm_instance_free(instance); // No notification
 }
 
-int pt_loop(pt_loop_t *loop, unsigned int timeout)
-{
+int pt_loop(pt_loop_t * loop) {
     int n, i, cur_fd;
 
     // TODO set a flag to avoid issues due to several threads
@@ -408,22 +436,24 @@ int pt_loop(pt_loop_t *loop, unsigned int timeout)
     int network_group_timerfd = network_get_group_timerfd(loop->network);
     ssize_t s;
     struct signalfd_siginfo fdsi;
-    
-    bool time_expired         = false;
-    
-    //Take the time for the timeout of the algorithm.
+
+    // This boolean is used to avoid to terminate twice when --timeout is used.
+    bool max_time_has_expired = false;
+    double max_time = loop->timeout;
+
+    // Take the time for the timeout of the algorithm.
     time_t starting_time_algorithm = time(&starting_time_algorithm);
+
     do {
-        //Case where the algorithm timeout, send a terminating event to the algorithm
+        // Case where the algorithm timeout, send a terminating event to the algorithm.
         double elapsed_time = difftime(time(NULL), starting_time_algorithm);
-        if(elapsed_time > timeout && !time_expired){
+        if (max_time && elapsed_time > max_time && !max_time_has_expired) {
             pt_instance_iter(loop, pt_process_algorithms_terminate);
             fprintf(stdout, "Algorithm terminated because of a time expiry\n");
-            //Bool so we dont have a double terminate
-            time_expired = true;
+            max_time_has_expired = true;
         }
-        
-        /* Wait for events */
+
+        // Wait for events.
         n = epoll_wait(loop->efd, loop->epoll_events, MAXEVENTS, -1);
 
         /* XXX What kind of events do we have
