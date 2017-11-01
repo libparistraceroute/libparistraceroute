@@ -35,11 +35,6 @@ static option_t network_options[] = {
     END_OPT_SPECS
 };
 
-/**
- * \brief return the commandline options related to network
- * \return A pointer to an opt_spec structure
- */
-
 const option_t * network_get_options() {
     return network_options;
 }
@@ -52,8 +47,7 @@ void network_set_is_verbose(network_t * network, bool verbose) {
      network->is_verbose = verbose;
 }
 
-void options_network_init(network_t * network, bool verbose)
-{
+void options_network_init(network_t * network, bool verbose) {
     network_set_is_verbose(network, verbose);
     network_set_timeout(network, options_network_get_timeout());
 }

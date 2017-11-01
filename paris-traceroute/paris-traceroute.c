@@ -78,9 +78,9 @@ static int    src_port[4]    = {33456,  0,   UINT16_MAX, 0};
 static double send_time[4]   = {1,      1,   DBL_MAX,    0};
 
 struct opt_spec runnable_options[] = {
-    // action                 sf          lf                   metavar             help          data
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,         OPT_NO_DATA},
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
+    // action                 sf          lf                   metavar             help                     data
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,                    OPT_NO_DATA},
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS,            OPT_NO_DATA},
     {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_4,       &is_ipv4},
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
@@ -112,6 +112,7 @@ static options_t * init_options(char * version) {
     options_add_optspecs(options, traceroute_get_options());
     options_add_optspecs(options, mda_get_options());
     options_add_optspecs(options, network_get_options());
+    options_add_optspecs(options, pt_loop_get_options());
     options_add_common  (options, version);
     return options;
 
@@ -436,6 +437,7 @@ int main(int argc, char ** argv)
 
     // Set network options (network and verbose)
     options_network_init(loop->network, is_debug);
+    options_pt_loop_init(loop);
 
     printf("%s to %s (", algorithm_name, dst_ip);
     address_dump(&dst_addr);
@@ -451,7 +453,7 @@ int main(int argc, char ** argv)
     }
 
     // Wait for events. They will be catched by handler_user()
-    if (pt_loop(loop, 0) < 0) {
+    if (pt_loop(loop) < 0) {
         fprintf(stderr, "E: Main loop interrupted");
         goto ERR_PT_LOOP;
     }
