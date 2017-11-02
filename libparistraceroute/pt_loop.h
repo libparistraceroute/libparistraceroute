@@ -30,7 +30,7 @@
 // Maximum time spent inside the pt_loop
 #define PT_LOOP_DEFAULT_TIMEOUT 180
 
-#define OPTIONS_PT_LOOP_TIMEOUT {NETWORK_DEFAULT_TIMEOUT, 0, INT_MAX}
+#define OPTIONS_PT_LOOP_TIMEOUT {PT_LOOP_DEFAULT_TIMEOUT, 0, INT_MAX}
 #define HELP_t "Set the timeout in seconds of the measurement (default is 180 seconds, pass 0 to set it to infinity)."
 
 /**
