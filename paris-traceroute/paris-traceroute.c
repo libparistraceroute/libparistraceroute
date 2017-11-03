@@ -14,10 +14,10 @@
 #include <sys/types.h>               // gai_strerror
 #include <sys/socket.h>              // gai_strerror, AF_INET, AF_INET6
 
-#include "address.h"                 // address_to_string
+#include "address.h"                 // address_t
 #include "algorithm.h"               // algorithm_instance_t
 #include "algorithms/mda.h"          // mda_*_t
-#include "algorithms/mda/json.h" 
+#include "algorithms/mda/json.h"
 #include "algorithms/mda/mda_enriched_data.h"
 #include "algorithms/traceroute.h"   // traceroute_options_t
 #include "common.h"                  // ELEMENT_DUMP
@@ -87,9 +87,9 @@ static int    src_port[4]    = {33456,  0,   UINT16_MAX, 0};
 static double send_time[4]   = {1,      1,   DBL_MAX,    0};
 
 struct opt_spec runnable_options[] = {
-    // action                 sf          lf                   metavar             help          data
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,         OPT_NO_DATA},
-    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS, OPT_NO_DATA},
+    // action                 sf          lf                   metavar             help                     data
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT,                    OPT_NO_DATA},
+    {opt_text,                OPT_NO_SF,  OPT_NO_LF,           OPT_NO_METAVAR,     TEXT_OPTIONS,            OPT_NO_DATA},
     {opt_store_1,             "4",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_4,       &is_ipv4},
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
@@ -240,23 +240,26 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
 #endif
 #ifdef USE_FORMAT_JSON
                     case FORMAT_JSON:
-                        if (sorted_print) {
-                            printf("{");
-                            mda_infos_dump(user_data);
-                            if (map_size(user_data->replies_by_ttl) > 0) {
-                                replies_to_json_dump(user_data->replies_by_ttl);
+                        {
+                            FILE * f_json = stdout;
+                            if (sorted_print) {
+                                printf("{");
+                                // mda_infos_dump(user_data);
+                                if (map_size(user_data->replies_by_ttl) > 0) {
+                                    replies_to_json_dump(user_data->replies_by_ttl);
+                                } else {
+                                    fprintf(f_json, "\"results\" : []");
+                                }
+                                printf(",");
+                                if (map_size(user_data->stars_by_ttl) > 0) {
+                                    stars_to_json_dump(user_data->stars_by_ttl);
+                                } else {
+                                    fprintf(f_json, "\"stars\" : []");
+                                }
+                                fprintf(f_json, "}\n");
                             } else {
-                                printf("\"results\":[]");
+                                fprintf(f_json, "]}\n");
                             }
-                            printf(",");
-                            if (map_size(user_data->stars_by_ttl) > 0) {
-                                stars_to_json_dump(user_data->stars_by_ttl);
-                            } else {
-                                printf("\"stars\":[]");
-                            }
-                            printf("}\n");
-                        } else {
-                            printf("]}\n");
                         }
                         break;
 #endif
@@ -290,24 +293,27 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         switch (user_data->format){
 #  ifdef USE_FORMAT_XML
                             case FORMAT_XML:
-                                break;
 #  endif
 #  ifdef USE_FORMAT_JSON
                             case FORMAT_JSON:
+#  endif
                                 // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
                                 // Here you could directly move the content of traceroute_enriched_handler here
                                 // as you did in ALGORITHM_HAS_TERMINATED
                                 traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
                                 break;
-#  endif
                             default:
                                 break;
                         }
                         break;
                     case MDA_PROBE_TIMEOUT:
                         switch (user_data->format){
+#  ifdef USE_FORMAT_XML
                             case FORMAT_XML:
+#  endif
+#  ifdef USE_FORMAT_JSON
                             case FORMAT_JSON:
+#  endif
                                 // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
                                 // Here you could directly move the content of traceroute_enriched_handler here
                                 // as you did in ALGORITHM_HAS_TERMINATED
@@ -526,7 +532,7 @@ int main(int argc, char **argv) {
         case FORMAT_XML:
 #  endif
             user_data.replies_by_ttl = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, vector_enriched_reply_free, NULL);
-            user_data.stars_by_ttl = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, free, NULL);
+            user_data.stars_by_ttl   = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, free, NULL);
             break;
         default: break;
     }

@@ -12,6 +12,8 @@
 // JSON output
 //---------------------------------------------------------------------------
 
+// TODO: Kevin: comments
+
 typedef struct {
     probe_t * reply;
     double    delay;
@@ -28,16 +30,18 @@ void json_handler(
     probe_t          * probe,
     enriched_reply_t * enriched_reply,
     user_data_t      * user_data,
-    bool               sorted_print);
+    bool               sorted_print
+);
+
 /**
  * @brief Handler for enriched output (json, xml, ... ).
- * 
- * @param loop loop of events.
- * @param mda_event event raised
- * @param traceroute_options options passed to traceroute command
- * @param user_data custom metadata/structure to compute json /xml serialization
+ * @param loop Loop of events.
+ * @param mda_event The MDA event raised.
+ * @param traceroute_options Options passed to traceroute algorithm.
+ * @param user_data Custom metadata/structure to produce JSON / XML outputs.
  */
-void traceroute_enriched_handler( 
+
+void traceroute_enriched_handler(
     pt_loop_t                  * loop,
     mda_event_t                * mda_event,
     const traceroute_options_t * traceroute_options,
@@ -64,37 +68,38 @@ void replies_to_json(const map_t * replies_by_ttl, FILE * f_json);
 /**
  * @brief Print a star to JSON format.
  * @param star MDA probe that did not get a reply and for what we got a star.
- * @param f_json A valid file descriptor used to write the reply.
+ * @param f_json The output file descriptor (e.g. stdout).
  */
-void star_to_json(const probe_t * star, FILE * f_json);
 
+void star_to_json(const probe_t * star, FILE * f_json);
 
 /**
  * @brief Print the output of MDA replies to JSON.
  * @param stars_by_ttl A map which associates for each TTL the corresponding stars.
  * @param f_json The output file descriptor (e.g. stdout).
  */
-void stars_to_json(const map_t * stars_by_ttl, FILE * f_json); 
+
+void stars_to_json(const map_t * stars_by_ttl, FILE * f_json);
 
 /**
  * @brief Print the output of MDA replies to JSON on the standard output.
- * 
  * @param replies_by_ttl A map which associates for each TTL the corresponding replies.
  */
+
 void replies_to_json_dump(const map_t * replies_by_ttl);
 
 /**
  * @brief Print the output of MDA stars to JSON on the standard output
- * 
  * @param stars_by_ttl A map which associates for each TTL the corresponding replies.
  */
+
 void stars_to_json_dump(const map_t * stars_by_ttl);
 
 /**
  * @brief Print some metadata of the MDA to JSON.
- * 
- * @param user_data data used to transport some relevant metadata.
+ * @param user_data Data used to transport some relevant metadata.
  */
-void mda_infos_dump(const user_data_t * user_data);
 
-#endif 
+//void mda_infos_dump(const user_data_t * user_data);
+
+#endif

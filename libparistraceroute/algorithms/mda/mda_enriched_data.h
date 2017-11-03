@@ -8,30 +8,47 @@
 //---------------------------------------------------------------------------
 
 /**
- * @brief Structure used to pass some user data to loop handler.
+ * @brief Enumeration indicating how to the MDA outputs must be formatted.
  */
+
 typedef enum mda_output_format_t {
-    FORMAT_DEFAULT,
-    FORMAT_JSON,
-    FORMAT_XML
+    FORMAT_DEFAULT, /**< Default traceroute text outputs. */
+    FORMAT_JSON,    /**< JSON outputs, based on RIPE outputs. */
+    FORMAT_XML      /**< XML outputs. */
 } mda_output_format_t;
 
+/**
+ * @brief Format option passed to MDA application corresponding.
+ * @sa mda_output_format_t enumeration.
+ */
+
 const char * format_names[] = {
-    "default", // default value
-    "json",
-    "xml",
+    "default", // --format=default : default outputs.
+    "json",    // --format=json    : JSON outputs.
+    "xml",     // --format=xml     : XML outputs.
     NULL
 };
 
+/**
+ * The following data structure is passed to json_handler() and
+ * xml_handler() to produced extended MDA ouputs.
+ * @sa mda/json.h
+ * @sa mda/xml.h
+ */
+
+// TODO: Kevin: rename this data structure, user_data is a generic name. Here it should be mda_enriched_user_data_t.
+
 typedef struct {
     mda_output_format_t     format;                /**< FORMAT_XML|FORMAT_JSON|FORMAT_DEFAULT */
-    map_t                 * replies_by_ttl;
-    map_t                 * stars_by_ttl;
+    map_t                 * replies_by_ttl;        /**< Maps each TTL with the corresponding vector of replies. */
+    map_t                 * stars_by_ttl;          /**< Maps each TTL with the corresponding vector of stars. */
     bool                    is_first_probe_star;   /**< Akward variable for first probe or star recieved for json compliance. */
-    address_t               source;
-    const char            * destination;
-    const char            * protocol;
-} user_data_t; 
+    // TODO: Kevin: the following fields seems to be unused?
+    address_t               source;                /**< Source address. */
+    const char            * destination;           /**< MDA target address. */
+    const char            * protocol;              /**< Protocol. */
+} user_data_t;
 
+// TODO: Kevin: add options, like for algorithms
 
-#endif 
+#endif
