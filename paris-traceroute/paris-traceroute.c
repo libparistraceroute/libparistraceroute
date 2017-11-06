@@ -17,9 +17,7 @@
 #include "address.h"                 // address_t
 #include "algorithm.h"               // algorithm_instance_t
 #include "algorithms/mda.h"          // mda_*_t
-#include "algorithms/mda/json.h"
-#include "algorithms/mda/mda_enriched_data.h"
-#include "algorithms/traceroute.h"   // traceroute_options_t
+#include "algorithms/traceroute.h"   // traceroute_get_options
 #include "common.h"                  // ELEMENT_DUMP
 #include "containers/map.h"          // map_t
 #include "containers/vector.h"       // vector_t
@@ -29,6 +27,11 @@
 #include "probe.h"                   // probe_t
 #include "pt_loop.h"                 // pt_loop_t
 
+
+#include "algorithms/outputs/traceroute_enriched_data.h"    //
+#include "algorithms/outputs/traceroute_output_format.h"    // traceroute_format_get_options
+#include "algorithms/outputs/json.h"                        // json_*
+
 //---------------------------------------------------------------------------
 // Command line stuff
 //---------------------------------------------------------------------------
@@ -36,7 +39,6 @@
 #define TRACEROUTE_HELP_4  "Use IPv4."
 #define TRACEROUTE_HELP_6  "Use IPv6."
 #define TRACEROUTE_HELP_a  "Set the traceroute algorithm (default: 'paris-traceroute'). Valid values are 'paris-traceroute' and 'mda'."
-#define TRACEROUTE_HELP_F  "Set the output format of paris-traceroute (default: 'default'). Valid values are 'default', 'json', 'xml'"
 #define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
 #define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
 #define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
@@ -80,6 +82,14 @@ const char * protocol_names[] = {
     NULL
 };
 
+const char * format_names[] = {
+    "default", // default value
+    "json",
+    "xml",
+    NULL
+};
+
+
 // Bounded integer parameters
 //                              def     min  max         option_enabled
 static int    dst_port[4]    = {33457,  0,   UINT16_MAX, 0};
@@ -94,10 +104,6 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
     {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
-#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
-    // TODO: Kevin: this option should be imported, just like those related to traceroute (see options_* functions)
-    {opt_store_choice,        "F",        "--format",          "FORMAT",           TRACEROUTE_HELP_F,       format_names},
-#endif
     {opt_store_1,             "S",        "--sorted-print",    OPT_NO_METAVAR,     TRACEROUTE_HELP_S,       &sorted_print},
     {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             TRACEROUTE_HELP_p,       dst_port},
     {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             TRACEROUTE_HELP_s,       src_port},
@@ -126,7 +132,9 @@ static options_t * init_options(char * version) {
     options_add_optspecs(options, traceroute_get_options());
     options_add_optspecs(options, mda_get_options());
     options_add_optspecs(options, network_get_options());
-    // TODO: options_add_optspecs(options, ...);
+#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
+    options_add_optspecs(options, traceroute_format_get_options());
+#endif
     options_add_common  (options, version);
     return options;
 
@@ -219,7 +227,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
     mda_event_t                 * mda_event;
     mda_data_t                  * mda_data;
     const char                  * algorithm_name;
-    user_data_t                 * user_data = (user_data_t *) _user_data;
+    traceroute_enriched_user_data_t * user_data = (traceroute_enriched_user_data_t *) _user_data;
     FILE * f_json = stdout;
 
     switch (event->type) {
@@ -229,18 +237,18 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                 mda_data = event->issuer->data;
 
                 switch (user_data->format) {
-                    case FORMAT_DEFAULT:
+                    case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
                         printf("Lattice:\n");
                         lattice_dump(mda_data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump);
                         printf("\n");
                         break;
 #ifdef USE_FORMAT_XML
-                    case FORMAT_XML:
+                    case TRACEROUTE_OUTPUT_FORMAT_XML:
                         fprintf(stderr, "loop_handler: Format XML not yet implemented\n");
                         break;
 #endif
 #ifdef USE_FORMAT_JSON
-                    case FORMAT_JSON:
+                    case TRACEROUTE_OUTPUT_FORMAT_JSON:
                         /* TODO
                         {
                             FILE * f_json = stdout;
@@ -288,7 +296,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                 traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
                 switch (mda_event->type) {
                     case MDA_NEW_LINK:
-                        if (user_data->format == FORMAT_DEFAULT) {
+                        if (user_data->format == TRACEROUTE_OUTPUT_FORMAT_DEFAULT) {
                             mda_link_dump(mda_event->data, traceroute_options->do_resolv);
                         }
                         break;
@@ -296,10 +304,10 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                     case MDA_PROBE_REPLY:
                         switch (user_data->format){
 #  ifdef USE_FORMAT_XML
-                            case FORMAT_XML:
+                            case TRACEROUTE_OUTPUT_FORMAT_XML:
 #  endif
 #  ifdef USE_FORMAT_JSON
-                            case FORMAT_JSON:
+                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
 #  endif
                                 // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
                                 // Here you could directly move the content of traceroute_enriched_handler here
@@ -313,10 +321,10 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                     case MDA_PROBE_TIMEOUT:
                         switch (user_data->format){
 #  ifdef USE_FORMAT_XML
-                            case FORMAT_XML:
+                            case TRACEROUTE_OUTPUT_FORMAT_XML:
 #  endif
 #  ifdef USE_FORMAT_JSON
-                            case FORMAT_JSON:
+                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
 #  endif
                                 // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
                                 // Here you could directly move the content of traceroute_enriched_handler here
@@ -519,10 +527,8 @@ int main(int argc, char **argv) {
 
     // Prepare structures for JSON and XML outputs.
 #if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
-    user_data_t user_data;
-    user_data.format = !strcmp("json", format_name) ? FORMAT_JSON :
-                       !strcmp("xml", format_name)  ? FORMAT_XML :
-                       FORMAT_DEFAULT;
+    traceroute_enriched_user_data_t user_data;
+    user_data.format = traceroute_output_format_from_string(format_name);
     user_data.replies_by_ttl = NULL;
     user_data.is_first_result = true;
     user_data.destination = dst_ip;
@@ -531,10 +537,10 @@ int main(int argc, char **argv) {
 
     switch (user_data.format) {
 #  ifdef USE_FORMAT_JSON
-        case FORMAT_JSON:
+        case TRACEROUTE_OUTPUT_FORMAT_JSON:
 #  endif
 #  ifdef USE_FORMAT_XML
-        case FORMAT_XML:
+        case TRACEROUTE_OUTPUT_FORMAT_XML:
 #  endif
             user_data.replies_by_ttl = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, vector_enriched_reply_free, NULL);
             user_data.stars_by_ttl   = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, free, NULL);
@@ -576,10 +582,10 @@ int main(int argc, char **argv) {
 #if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
     switch (user_data.format) {
 #  ifdef USE_FORMAT_JSON
-        case FORMAT_JSON:
+        case TRACEROUTE_OUTPUT_FORMAT_JSON:
 #  endif
 #  ifdef USE_FORMAT_XML
-        case FORMAT_XML:
+        case TRACEROUTE_OUTPUT_FORMAT_XML:
 #  endif
             map_probe_free(user_data.replies_by_ttl);
             map_probe_free(user_data.stars_by_ttl);

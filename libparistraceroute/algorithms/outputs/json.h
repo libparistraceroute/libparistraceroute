@@ -1,53 +1,17 @@
 #ifndef ALGORITHMS_MDA_JSON
 #define ALGORITHMS_MDA_JSON
-#include <stdio.h>
 
-#include "../../probe.h"
-#include "../../containers/vector.h"
-#include "../../containers/map.h"
-#include "../mda.h"
-#include "mda_enriched_data.h"
+#include <stdio.h>                      // FILE *
+
+#include "../../probe.h"                // probe_t
+#include "../../containers/map.h"       // map_t
+#include "traceroute_enriched_data.h"   // enriched_reply_t
 
 //---------------------------------------------------------------------------
 // JSON output
 //---------------------------------------------------------------------------
 
 // TODO: Kevin: comments
-
-typedef struct {
-    probe_t * reply;
-    double    delay;
-} enriched_reply_t;
-
-enriched_reply_t * enriched_reply_shallow_copy(const enriched_reply_t * reply);
-
-void vector_enriched_reply_free(vector_t * vector);
-
-void map_probe_free(map_t * map);
-
-void json_handler(
-    mda_event_type_t   mda_event_type,
-    probe_t          * probe,
-    enriched_reply_t * enriched_reply,
-    user_data_t      * user_data,
-    bool               sorted_print
-);
-
-/**
- * @brief Handler for enriched output (json, xml, ... ).
- * @param loop Loop of events.
- * @param mda_event The MDA event raised.
- * @param traceroute_options Options passed to traceroute algorithm.
- * @param user_data Custom metadata/structure to produce JSON / XML outputs.
- */
-
-void traceroute_enriched_handler(
-    pt_loop_t                  * loop,
-    mda_event_t                * mda_event,
-    const traceroute_options_t * traceroute_options,
-    user_data_t                * user_data,
-    bool                         sorted_print
-);
 
 /**
  * @brief Print a reply to JSON format.

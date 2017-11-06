@@ -19,30 +19,6 @@
 #define FORMAT_JSON_TTL      "\"ttl\""
 #define FORMAT_JSON_RTT      "\"rtt\""
 
-enriched_reply_t * enriched_reply_shallow_copy(const enriched_reply_t * reply) {
-    enriched_reply_t * reply_dup = malloc(sizeof(enriched_reply_t));
-    reply_dup->reply = reply->reply;
-    reply_dup->delay = reply->delay;
-    return reply_dup;
-}
-
-void vector_enriched_reply_free(vector_t * vector) {
-    for (int i = 0; i < vector->num_cells; ++i) {
-        free(vector_get_ith_element(vector, i));
-    }
-    free(vector);
-}
-
-void map_probe_free(map_t * map){
-    for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
-        vector_t * replies_by_ttl_i = NULL;
-        if (map_find(map, &i, &replies_by_ttl_i)) {
-            // Only free the vector, not the probes.
-            free(replies_by_ttl_i);
-        }
-    }
-}
-
 void json_print_header(FILE * f_json, const char * source, const char * destination, const char * protocol) {
     fprintf(
         f_json,
@@ -62,6 +38,7 @@ void json_print_header(FILE * f_json, const char * source, const char * destinat
 void json_print_footer(FILE * f_json) {
     fprintf(
         f_json,
+        "\n"
         "  ]\n"
         "}\n"
     );
@@ -143,79 +120,6 @@ void json_handler(
     }
 }
 */
-
-/**
- * @brief Handler for enriched output (json, xml, ... ).
- * @param loop loop of events.
- * @param mda_event event raised
- * @param traceroute_options options passed to traceroute command
- * @param user_data custom metadata/structure to compute json /xml serialization
- */
-
-void traceroute_enriched_handler(
-    pt_loop_t                  * loop,
-    mda_event_t                * mda_event,
-    const traceroute_options_t * traceroute_options,
-    user_data_t                * user_data,
-    bool                         sorted_print
-) {
-    probe_t * probe;
-    probe_t * reply;
-    FILE * f_json = stdout;
-
-    switch (mda_event->type) {
-        case MDA_PROBE_REPLY:
-            // Retrieve the probe and its corresponding reply
-            probe = ((const probe_reply_t *) mda_event->data)->probe;
-            reply = ((const probe_reply_t *) mda_event->data)->reply;
-
-            // Managed by the container that uses it.
-            enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
-            enriched_reply->reply = reply;
-            enriched_reply->delay = delay_probe_reply(probe, reply);
-
-            switch (user_data->format) {
-                case FORMAT_JSON:
-                    if (user_data->is_first_result) {
-                        user_data->is_first_result= false;
-                    } else {
-                        fprintf(f_json, ", ");
-                    }
-                    reply_to_json(enriched_reply, f_json);
-                    break;
-                case FORMAT_XML:
-                    fprintf(stderr, "Not yet implemented\n");
-                    break;
-                case FORMAT_DEFAULT: break;
-            }
-
-            free(enriched_reply);
-            break;
-
-        case MDA_PROBE_TIMEOUT:
-            probe = (probe_t *) mda_event->data;
-
-            switch (user_data->format) {
-                case FORMAT_JSON:
-                    if (user_data->is_first_result) {
-                        user_data->is_first_result = false;
-                    } else {
-                        fprintf(f_json, ", ");
-                    }
-                    star_to_json(probe, f_json);
-                    break;
-                case FORMAT_XML:
-                    fprintf(stderr, "Not yet implemented\n");
-                    break;
-                case FORMAT_DEFAULT: break;
-            }
-            break;
-        default:
-            printf("traceroute_enriched_handler: Unhandled event %d\n",
-                    mda_event->type);
-            break;
-    }
-}
 
 /**
  * @brief Print a reply to JSON format.

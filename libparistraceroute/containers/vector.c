@@ -1,10 +1,9 @@
 #include "config.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
 #include "vector.h"
+
+#include <stdint.h> // uin8_t
+#include <stdlib.h> // malloc
+#include <string.h> // memset
 
 #define VECTOR_SIZE_INIT  5
 #define VECTOR_SIZE_INC   5
@@ -22,7 +21,7 @@ static void vector_initialize(vector_t * vector) {
 
 vector_t * vector_create_impl(
     size_t size,
-    void * (*callback_dup)(const void *), 
+    void * (*callback_dup)(const void *),
     void   (*callback_free)(void *),
     void   (*callback_dump)(const void *)
 ) {
@@ -102,7 +101,7 @@ bool vector_del_ith_element(vector_t * vector, size_t i)
 void vector_clear(vector_t * vector, void (*element_free)(void * element))
 {
     size_t i;
-    void * element;    
+    void * element;
 
     if (vector) {
         if (element_free) {
@@ -128,7 +127,7 @@ size_t vector_get_cell_size(const vector_t * vector) {
 void * vector_get_ith_element(const vector_t * vector, size_t i) {
     return (i >= vector->num_cells) ?
         NULL :
-        vector_get_ith_element_impl(vector, i); 
+        vector_get_ith_element_impl(vector, i);
 }
 
 bool vector_set_ith_element(vector_t * vector, size_t i, void * element)

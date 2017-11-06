@@ -32,14 +32,16 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         algorithms/mda/interface.h \
                         algorithms/mda/ttl_flow.h \
                         algorithms/mda.h \
-                        algorithms/mda/json.h \
-                        algorithms/mda/mda_enriched_data.h \
+                        algorithms/outputs/json.h \
+                        algorithms/outputs/traceroute_enriched_data.h \
+                        algorithms/outputs/traceroute_output_format.h \
                         algorithms/ping.h \
                         algorithms/traceroute.h \
                         bitfield.h \
                         bits.h \
                         buffer.h \
                         common.h \
+                        containers/list.h \
                         containers/object.h \
                         containers/map.h \
                         containers/pair.h \
@@ -53,7 +55,6 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         int.h\
                         layer.h \
                         lattice.h \
-                        list.h \
                         metafield.h \
                         network.h \
                         optparse.h \
@@ -111,14 +112,17 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         algorithms/mda/data.c \
                         algorithms/mda/flow.c \
                         algorithms/mda/interface.c \
-                        algorithms/mda/json.c \
                         algorithms/mda/ttl_flow.c \
+                        algorithms/outputs/json.c \
+                        algorithms/outputs/traceroute_enriched_data.c \
+                        algorithms/outputs/traceroute_output_format.c \
                         algorithms/ping.c \
                         algorithms/traceroute.c \
                         bitfield.c \
                         bits.c \
                         buffer.c \
                         common.c \
+                        containers/list.c \
                         containers/object.c \
                         containers/map.c \
                         containers/pair.c \
@@ -133,7 +137,6 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         int.c\
                         lattice.c \
                         layer.c \
-                        list.c \
                         metafield.c \
                         network.c \
                         optparse.c \

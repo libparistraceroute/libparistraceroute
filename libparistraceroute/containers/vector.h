@@ -1,9 +1,9 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "common.h"  // ELEMENT_FREE, ELEMENT_DUMP
+#include <stdbool.h>    // bool
+#include <stddef.h>     // size_t
+#include "common.h"     // ELEMENT_FREE, ELEMENT_DUMP
 
 /**
  * \file vector.h
