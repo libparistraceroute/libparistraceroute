@@ -303,10 +303,10 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
 
                         switch (user_data->format){
 #  ifdef USE_FORMAT_XML
-                            case FORMAT_XML:
+                            case TRACEROUTE_OUTPUT_FORMAT_XML:
 #  endif
 #  ifdef USE_FORMAT_JSON
-                            case FORMAT_JSON:
+                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
                                 json_print_header(stdout, user_data->source, user_data->destination, user_data->protocol);
 #  endif
                                 break;
@@ -361,10 +361,10 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                     case MDA_ENDS:
                         switch (user_data->format){
 #  ifdef USE_FORMAT_XML
-                            case FORMAT_XML:
+                            case TRACEROUTE_OUTPUT_FORMAT_XML:
 #  endif
 #  ifdef USE_FORMAT_JSON
-                            case FORMAT_JSON:
+                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
                                 json_print_footer(stdout);
 #  endif
                                 break;
@@ -462,7 +462,7 @@ int main(int argc, char **argv) {
     dst_ip         = argv[argc - 1];
     algorithm_name = algorithm_names[0];
     protocol_name  = protocol_names[0];
-    format_name    = format_names[0];
+    format_name    = "json"; // TODO: Kévin: //format_names[0];
 
     // Checking if there is any conflicts between options passed in the commandline
     if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {
