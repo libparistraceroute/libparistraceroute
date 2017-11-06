@@ -13,8 +13,6 @@
  * xml_handler() to produced extended MDA ouputs.
  */
 
-// TODO: Kevin: rename this data structure, user_data is a generic name. Here it should be mda_enriched_user_data_t.
-
 typedef struct {
     traceroute_output_format_t   format;           /**< FORMAT_XML|FORMAT_JSON|FORMAT_DEFAULT */
     map_t                      * replies_by_ttl;   /**< Maps each TTL with the corresponding vector of replies. */
@@ -25,18 +23,22 @@ typedef struct {
     const char                 * protocol;         /**< Protocol. */
 } traceroute_enriched_user_data_t;
 
+// TODO: Kévin: comments
+
+traceroute_enriched_user_data_t * traceroute_enriched_user_data_create(const char * protocol_name, const char * dst_ip, const char * format_name);
+void traceroute_enriched_user_data_free(traceroute_enriched_user_data_t * user_data);
+
 typedef struct {
     const probe_t * reply;
     double          delay;
 } enriched_reply_t;
 
 
-enriched_reply_t * enriched_reply_shallow_copy(const enriched_reply_t * reply);
 
-void vector_enriched_reply_free(vector_t * vector);
-
-// TODO: Kevin: to make static once paris-traceroute.c is clean.
+// TODO: Kevin: these function become static once paris-traceroute.c is clean.
 void map_probe_free(map_t * map);
+enriched_reply_t * enriched_reply_shallow_copy(const enriched_reply_t * reply);
+void vector_enriched_reply_free(vector_t * vector);
 
 /**
  * @brief Handler for enriched output (json, xml, ... ).

@@ -238,9 +238,9 @@ void stars_to_json(const map_t * stars_by_ttl, FILE * f_json) {
     // Print the dictionnaries related to stars.
     fprintf(f_json, "\"stars\" : [");
     for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
-        vector_t * starts_by_hop_i = NULL;
+        vector_t * stars_by_hop_i = NULL;
 
-        if (map_find(stars_by_ttl, &i, &starts_by_hop_i)) {
+        if (map_find(stars_by_ttl, &i, &stars_by_hop_i)) {
             fprintf(
                 f_json,
                 "{"
@@ -250,12 +250,12 @@ void stars_to_json(const map_t * stars_by_ttl, FILE * f_json) {
                 FORMAT_JSON_RESULT
             );
 
-            for (size_t j = 0; j < starts_by_hop_i->num_cells; ++j) {
-                probe_t * star = vector_get_ith_element(starts_by_hop_i, j);
+            for (size_t j = 0; j < stars_by_hop_i->num_cells; ++j) {
+                probe_t * star = vector_get_ith_element(stars_by_hop_i, j);
                 star_to_json(star, f_json);
 
                 // Check if its the last response for this hop.
-                if (j != starts_by_hop_i->num_cells - 1) {
+                if (j != stars_by_hop_i->num_cells - 1) {
                     fprintf(f_json, ", ");
                 }
             }

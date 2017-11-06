@@ -28,7 +28,7 @@
 #include "pt_loop.h"                 // pt_loop_t
 
 
-#include "algorithms/outputs/traceroute_enriched_data.h"    //
+#include "algorithms/outputs/traceroute_enriched_data.h"
 #include "algorithms/outputs/traceroute_output_format.h"    // traceroute_format_get_options
 #include "algorithms/outputs/json.h"                        // json_*
 
@@ -237,12 +237,14 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
     const traceroute_options_t  * traceroute_options;
     const traceroute_data_t     * traceroute_data;
     mda_event_t                 * mda_event;
-    mda_data_t                  * mda_data;
+    //mda_data_t                  * mda_data;
     const char                  * algorithm_name;
     traceroute_enriched_user_data_t * user_data = (traceroute_enriched_user_data_t *) _user_data;
 
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
+            // TODO: Kevin: pass event->issuer to mda_handler
+            /*
             algorithm_name = event->issuer->algorithm->name;
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_data = event->issuer->data;
@@ -253,42 +255,12 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                         lattice_dump(mda_data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump);
                         printf("\n");
                         break;
-#ifdef USE_FORMAT_XML
-                    case TRACEROUTE_OUTPUT_FORMAT_XML:
-                        fprintf(stderr, "loop_handler: Format XML not yet implemented\n");
-                        break;
-#endif
-#ifdef USE_FORMAT_JSON
-                    case TRACEROUTE_OUTPUT_FORMAT_JSON:
-                        /* TODO
-                        {
-                            FILE * f_json = stdout;
-                            if (sorted_print) {
-                                printf("{");
-                                mda_infos_dump(user_data);
-                                if (map_size(user_data->replies_by_ttl) > 0) {
-                                    replies_to_json_dump(user_data->replies_by_ttl);
-                                } else {
-                                    fprintf(f_json, "\"results\" : []");
-                                }
-                                printf(",");
-                                if (map_size(user_data->stars_by_ttl) > 0) {
-                                    stars_to_json_dump(user_data->stars_by_ttl);
-                                } else {
-                                    fprintf(f_json, "\"stars\" : []");
-                                }
-                                fprintf(f_json, "}\n");
-                            } else {
-                                fprintf(f_json, "]}\n");
-                            }
-                        }
-                        */
-                        break;
-#endif
+                    default: break;
                 }
 
                 mda_data_free(mda_data);
             }
+            */
 
             // Tell to the algorithm it can free its data
             pt_stop_instance(loop, event->issuer);
@@ -304,68 +276,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_event = event->data;
                 traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
-                switch (mda_event->type) {
-                    case MDA_BEGINS:
-                        traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
-                        break;
-                    case MDA_NEW_LINK:
-                        if (user_data->format == TRACEROUTE_OUTPUT_FORMAT_DEFAULT) {
-                            mda_link_dump(mda_event->data, traceroute_options->do_resolv);
-                        }
-                        break;
-#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
-                    case MDA_PROBE_REPLY:
-                        switch (user_data->format){
-#  ifdef USE_FORMAT_XML
-                            case TRACEROUTE_OUTPUT_FORMAT_XML:
-#  endif
-#  ifdef USE_FORMAT_JSON
-                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
-#  endif
-                                // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
-                                // Here you could directly move the content of traceroute_enriched_handler here
-                                // as you did in ALGORITHM_HAS_TERMINATED
-                                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
-                                break;
-                            default:
-                                break;
-                        }
-                        break;
-                    case MDA_PROBE_TIMEOUT:
-                        switch (user_data->format){
-#  ifdef USE_FORMAT_XML
-                            case TRACEROUTE_OUTPUT_FORMAT_XML:
-#  endif
-#  ifdef USE_FORMAT_JSON
-                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
-#  endif
-                                // TODO: Kevin: If you define a custom handler, it should be in place of loop_handler
-                                // Here you could directly move the content of traceroute_enriched_handler here
-                                // as you did in ALGORITHM_HAS_TERMINATED
-                                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
-                                break;
-                            default:
-                                break;
-                        }
-                        break;
-#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
-                    case MDA_ENDS:
-                        switch (user_data->format){
-#  ifdef USE_FORMAT_XML
-                            case TRACEROUTE_OUTPUT_FORMAT_XML:
-#  endif
-#  ifdef USE_FORMAT_JSON
-                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
-                                json_print_footer(stdout);
-#  endif
-                                break;
-#endif
-
-#endif // USE_FORMAT_JSON || USE_FORMAT_XML
-                            default:
-                                break;
-                        }
-                }
+                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
             } else if (strcmp(algorithm_name, "traceroute") == 0) {
                 traceroute_event   = event->data;
                 traceroute_options = event->issuer->options;
@@ -554,31 +465,15 @@ int main(int argc, char **argv) {
 
     // Prepare structures for JSON and XML outputs.
 #if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
-    traceroute_enriched_user_data_t user_data;
-    user_data.format = traceroute_output_format_from_string(format_name);
-    user_data.replies_by_ttl = NULL;
-    user_data.is_first_result = true;
-    user_data.destination = dst_ip;
-    // Maximum length for an IP address (either v4 or v6). (See IP max length in string representation)
-    user_data.source = malloc(MAX_SIZE_STRING_ADDRESS_REPRESENTATION);
-    user_data.protocol = protocol_name;
-
-    switch (user_data.format) {
-#  ifdef USE_FORMAT_JSON
-        case TRACEROUTE_OUTPUT_FORMAT_JSON:
-#  endif
-#  ifdef USE_FORMAT_XML
-        case TRACEROUTE_OUTPUT_FORMAT_XML:
-#  endif
-            user_data.replies_by_ttl = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, vector_enriched_reply_free, NULL);
-            user_data.stars_by_ttl   = map_create(uint8_dup, free, NULL, uint8_compare, vector_dup, free, NULL);
-            break;
-        default: break;
-    }
+    // TODO improve signature
+    // TODO only if format_name == "json" || format_name == "xml"
+    traceroute_enriched_user_data_t * user_data = traceroute_enriched_user_data_create(protocol_name, dst_ip, format_name);
+#else
+    void * user_data = NULL;
 #endif // USE_FORMAT_JSON || USE_FORMAT_XML
 
     // Create libparistraceroute loop
-    if (!(loop = pt_loop_create(loop_handler, &user_data))) {
+    if (!(loop = pt_loop_create(loop_handler, user_data))) {
         fprintf(stderr, "E: Cannot create libparistraceroute loop");
         goto ERR_LOOP_CREATE;
     }
@@ -608,18 +503,7 @@ int main(int argc, char **argv) {
 
     // Free the allocated memory used for output
 #if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
-    switch (user_data.format) {
-#  ifdef USE_FORMAT_JSON
-        case TRACEROUTE_OUTPUT_FORMAT_JSON:
-#  endif
-#  ifdef USE_FORMAT_XML
-        case TRACEROUTE_OUTPUT_FORMAT_XML:
-#  endif
-            map_probe_free(user_data.replies_by_ttl);
-            map_probe_free(user_data.stars_by_ttl);
-            break;
-        default: break;
-    }
+    traceroute_enriched_user_data_free(user_data);
 #endif // USE_FORMAT_JSON || USE_FORMAT_XML
 
     // Leave the program
