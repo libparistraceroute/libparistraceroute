@@ -39,69 +39,77 @@ void traceroute_enriched_handler(
     traceroute_enriched_user_data_t * user_data,
     bool                              sorted_print
 ) {
-    probe_t * probe;
-    probe_t * reply;
     FILE * f_json = stdout;
 
     switch (mda_event->type) {
+        //-------------------------------------------------------------------
         case MDA_PROBE_REPLY:
-            // Retrieve the probe and its corresponding reply
-            probe = ((const probe_reply_t *) mda_event->data)->probe;
-            reply = ((const probe_reply_t *) mda_event->data)->reply;
+        //-------------------------------------------------------------------
+            {
+                // Retrieve the probe and its corresponding reply
+                const probe_t * probe = ((const probe_reply_t *) mda_event->data)->probe;
+                const probe_t * reply = ((const probe_reply_t *) mda_event->data)->reply;
 
-            // Managed by the container that uses it.
-            enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
-            enriched_reply->reply = reply;
-            enriched_reply->delay = delay_probe_reply(probe, reply);
+                // Managed by the container that uses it.
+                enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
+                enriched_reply->reply = reply;
+                enriched_reply->delay = delay_probe_reply(probe, reply);
 
-            switch (user_data->format) {
-                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
-                    break;
+                switch (user_data->format) {
+                    case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
+                        break;
 #ifdef USE_FORMAT_JSON
-                case TRACEROUTE_OUTPUT_FORMAT_JSON:
-                    if (user_data->is_first_result) {
-                        user_data->is_first_result = false;
-                    } else {
-                        fprintf(f_json, ", ");
-                    }
-                    reply_to_json(enriched_reply, f_json);
-                    break;
+                    case TRACEROUTE_OUTPUT_FORMAT_JSON:
+                        if (user_data->is_first_result) {
+                            user_data->is_first_result = false;
+                        } else {
+                            fprintf(f_json, ", ");
+                        }
+                        reply_to_json(enriched_reply, f_json);
+                        break;
 #endif
 #ifdef USE_FORMAT_XML
-                case TRACEROUTE_OUTPUT_FORMAT_XML:
-                    fprintf(stderr, "Not yet implemented\n");
-                    break;
+                    case TRACEROUTE_OUTPUT_FORMAT_XML:
+                        fprintf(stderr, "Not yet implemented\n");
+                        break;
 #endif
-            }
+                }
 
-            free(enriched_reply);
+                free(enriched_reply);
+            }
             break;
 
+        //-------------------------------------------------------------------
         case MDA_PROBE_TIMEOUT:
-            probe = (probe_t *) mda_event->data;
+        //-------------------------------------------------------------------
+            {
+                const probe_t * probe = (probe_t *) mda_event->data;
 
-            switch (user_data->format) {
-                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
-                    break;
+                switch (user_data->format) {
+                    case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
+                        break;
 #ifdef USE_FORMAT_JSON
-                case TRACEROUTE_OUTPUT_FORMAT_JSON:
-                    if (user_data->is_first_result) {
-                        user_data->is_first_result = false;
-                    } else {
-                        fprintf(f_json, ", ");
-                    }
-                    star_to_json(probe, f_json);
-                    break;
+                    case TRACEROUTE_OUTPUT_FORMAT_JSON:
+                        if (user_data->is_first_result) {
+                            user_data->is_first_result = false;
+                        } else {
+                            fprintf(f_json, ", ");
+                        }
+                        star_to_json(probe, f_json);
+                        break;
 #endif
 #ifdef USE_FORMAT_XML
-                case TRACEROUTE_OUTPUT_FORMAT_XML:
-                    fprintf(stderr, "Not yet implemented\n");
-                    break;
+                    case TRACEROUTE_OUTPUT_FORMAT_XML:
+                        fprintf(stderr, "Not yet implemented\n");
+                        break;
 #endif
+                }
             }
             break;
 
+        //-------------------------------------------------------------------
         case MDA_ENDS:
+        //-------------------------------------------------------------------
 
             switch (user_data->format){
 #ifdef USE_FORMAT_XML
@@ -111,7 +119,30 @@ void traceroute_enriched_handler(
 #endif
 #ifdef USE_FORMAT_JSON
                 case TRACEROUTE_OUTPUT_FORMAT_JSON:
-                    json_print_footer(stdout);
+                    {
+                        size_t max_ttl_hops  = map_size(user_data->replies_by_ttl);
+                        size_t max_ttl_stars = map_size(user_data->replies_by_ttl);
+                        size_t n = max_ttl_hops > max_ttl_hops ? max_ttl_hops : max_ttl_hops;
+
+                        if (sorted_print && n) {
+                            for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
+                                // Print each reply at TTL = i
+                                for (size_t j = 0; j < max_ttl_hops; ++j) {
+
+                                    enriched_reply_t * enriched_reply = vector_get_ith_element(replies_by_ttl_i, j);
+                                    reply_to_json(enriched_reply, f_json);
+
+                                    // If it is not the last reply, append a ','
+                                    if (j != replies_by_ttl_i->num_cells - 1) {
+                                        fprintf(f_json, ",\n");
+                                    }
+                                }
+
+                                // Print each star at TTL = i
+                            }
+                        }
+                    }
+                    json_print_footer(f_json);
                     break;
 #endif
                 default:
