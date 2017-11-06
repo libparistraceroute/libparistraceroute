@@ -86,6 +86,7 @@ void stars_to_json(const map_t * stars_by_ttl, FILE * f_json);
  * @param replies_by_ttl A map which associates for each TTL the corresponding replies.
  */
 
+// TODO static
 void replies_to_json_dump(const map_t * replies_by_ttl);
 
 /**
@@ -93,6 +94,7 @@ void replies_to_json_dump(const map_t * replies_by_ttl);
  * @param stars_by_ttl A map which associates for each TTL the corresponding replies.
  */
 
+// TODO static
 void stars_to_json_dump(const map_t * stars_by_ttl);
 
 /**
@@ -102,4 +104,8 @@ void stars_to_json_dump(const map_t * stars_by_ttl);
 
 //void mda_infos_dump(const user_data_t * user_data);
 
+
+// TODO: Kévin: comments
+void json_print_header(FILE * f_json, const char * source, const char * destination, const char * protocol);
+void json_print_footer(FILE * f_json);
 #endif

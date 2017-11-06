@@ -220,6 +220,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
     mda_data_t                  * mda_data;
     const char                  * algorithm_name;
     user_data_t                 * user_data = (user_data_t *) _user_data;
+    FILE * f_json = stdout;
 
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
@@ -240,11 +241,12 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
 #endif
 #ifdef USE_FORMAT_JSON
                     case FORMAT_JSON:
+                        /* TODO
                         {
                             FILE * f_json = stdout;
                             if (sorted_print) {
                                 printf("{");
-                                // mda_infos_dump(user_data);
+                                mda_infos_dump(user_data);
                                 if (map_size(user_data->replies_by_ttl) > 0) {
                                     replies_to_json_dump(user_data->replies_by_ttl);
                                 } else {
@@ -261,6 +263,8 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                                 fprintf(f_json, "]}\n");
                             }
                         }
+                        */
+                        json_print_footer(f_json);
                         break;
 #endif
                 }
@@ -520,8 +524,9 @@ int main(int argc, char **argv) {
                        !strcmp("xml", format_name)  ? FORMAT_XML :
                        FORMAT_DEFAULT;
     user_data.replies_by_ttl = NULL;
-    user_data.is_first_probe_star = true;
+    user_data.is_first_result = true;
     user_data.destination = dst_ip;
+    user_data.source = "NOT YET IMPLEMENTED";
     user_data.protocol = protocol_name;
 
     switch (user_data.format) {

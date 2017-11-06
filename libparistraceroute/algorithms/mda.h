@@ -22,8 +22,9 @@ typedef struct {
 } mda_options_t;
 
 typedef enum {
+    MDA_INIT,
     MDA_NEW_LINK,
-    MDA_PROBE_REPLY, 
+    MDA_PROBE_REPLY,
     MDA_PROBE_TIMEOUT
 } mda_event_type_t;
 

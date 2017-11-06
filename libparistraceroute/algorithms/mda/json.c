@@ -43,7 +43,33 @@ void map_probe_free(map_t * map){
     }
 }
 
+void json_print_header(FILE * f_json, const char * source, const char * destination, const char * protocol) {
+    fprintf(
+        f_json,
+        "{\n"
+        "  %-10s : \"%s\",\n"
+        "  %-10s : \"%s\",\n"
+        "  %-10s : \"%s\",\n"
+        "  %-10s : [\n",
+        FORMAT_JSON_FROM,     source,
+        FORMAT_JSON_TO,       destination,
+        FORMAT_JSON_PROTOCOL, protocol,
+        FORMAT_JSON_RESULT
+    );
+    fflush(f_json);
+}
+
+void json_print_footer(FILE * f_json) {
+    fprintf(
+        f_json,
+        "  ]\n"
+        "}\n"
+    );
+    fflush(f_json);
+}
+
 // Move to enriched handler?
+/*
 void json_handler(
     mda_event_type_t   mda_event_type,
     probe_t          * probe,
@@ -54,17 +80,17 @@ void json_handler(
     // Elements can be either replies or stars
     map_t * elements_by_ttl = NULL;
     uint8_t ttl_probe       = 0;
-    const char * json_key   = NULL;
+    //const char * json_key   = NULL;
     FILE * f_json           = stdout;
 
     switch (mda_event_type) {
         case MDA_PROBE_REPLY:
             elements_by_ttl = user_data->replies_by_ttl;
-            json_key        = "results";
+            //json_key        = "results";
             break;
         case MDA_PROBE_TIMEOUT:
             elements_by_ttl = user_data->stars_by_ttl;
-            json_key        = "stars";
+            //json_key        = "stars";
             break;
         default:
             break;
@@ -72,10 +98,10 @@ void json_handler(
 
     if (sorted_print) {
         if (probe_extract(probe, "ttl", &ttl_probe)) {
-            if (user_data->is_first_probe_star) {
+            if (user_data->is_first_result) {
                 // Fill the source field of MDA metadata
                 probe_extract(probe, "src_ip", &user_data->source);
-                user_data->is_first_probe_star = false;
+                user_data->is_first_result = false;
             }
 
             // Check if we already have this TTL in the map.
@@ -103,30 +129,7 @@ void json_handler(
             }
         }
     } else {
-        if (user_data->is_first_probe_star) {
-            // TODO: ALGORITHM_INIT
-            char * src_ip_address = NULL;
-            address_to_string(&user_data->source, &src_ip_address);
-
-            // mda_infos_dump
-            fprintf(
-                f_json,
-                "{\n"
-                "  %-10s : \"%s\",\n"
-                "  %-10s : \"%s\",\n"
-                "  %-10s : \"%s\",\n"
-                "  \"%s\" : [\n",
-                FORMAT_JSON_FROM,     src_ip_address,
-                FORMAT_JSON_TO,       user_data->destination,
-                FORMAT_JSON_PROTOCOL, user_data->protocol,
-
-            );
-            fflush(f_json);
-
-            if (src_ip_address) free(src_ip_address);
-
-            user_data->is_first_probe_star = false;
-        } else {
+        if (!user_data->is_first_result) {
             fprintf(f_json, ", ");
         }
 
@@ -139,6 +142,7 @@ void json_handler(
         fflush(f_json);
     }
 }
+*/
 
 /**
  * @brief Handler for enriched output (json, xml, ... ).
@@ -157,6 +161,7 @@ void traceroute_enriched_handler(
 ) {
     probe_t * probe;
     probe_t * reply;
+    FILE * f_json = stdout;
 
     switch (mda_event->type) {
         case MDA_PROBE_REPLY:
@@ -171,7 +176,12 @@ void traceroute_enriched_handler(
 
             switch (user_data->format) {
                 case FORMAT_JSON:
-                    json_handler(MDA_PROBE_REPLY, probe, enriched_reply, user_data, sorted_print);
+                    if (user_data->is_first_result) {
+                        user_data->is_first_result= false;
+                    } else {
+                        fprintf(f_json, ", ");
+                    }
+                    reply_to_json(enriched_reply, f_json);
                     break;
                 case FORMAT_XML:
                     fprintf(stderr, "Not yet implemented\n");
@@ -187,7 +197,12 @@ void traceroute_enriched_handler(
 
             switch (user_data->format) {
                 case FORMAT_JSON:
-                    json_handler(MDA_PROBE_TIMEOUT, probe, NULL, user_data, sorted_print);
+                    if (user_data->is_first_result) {
+                        user_data->is_first_result = false;
+                    } else {
+                        fprintf(f_json, ", ");
+                    }
+                    star_to_json(probe, f_json);
                     break;
                 case FORMAT_XML:
                     fprintf(stderr, "Not yet implemented\n");
@@ -196,6 +211,8 @@ void traceroute_enriched_handler(
             }
             break;
         default:
+            printf("traceroute_enriched_handler: Unhandled event %d\n",
+                    mda_event->type);
             break;
     }
 }
@@ -206,7 +223,7 @@ void traceroute_enriched_handler(
  * @param f_json A valid file descriptor used to write the reply.
  */
 
-void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json){
+void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json) {
     address_t reply_from_address;
     uint16_t  src_port  = 0,
               dst_port  = 0,
@@ -224,15 +241,15 @@ void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json){
 
     fprintf(
         f_json,
-        "  {\n"
-        "    %-10s : \"%s\",\n"
-        "    %-10s : \"%s\",\n"
-        "    %-10s : %hu,\n"
-        "    %-10s : %hu,\n"
-        "    %-10s : %hu,\n"
-        "    %-10s : %hhu,\n"
-        "    %-10s : %5.3lf\n"
-        "  }",
+        "    {\n"
+        "      %-10s : \"%s\",\n"
+        "      %-10s : \"%s\",\n"
+        "      %-10s : %hu,\n"
+        "      %-10s : %hu,\n"
+        "      %-10s : %hu,\n"
+        "      %-10s : %hhu,\n"
+        "      %-10s : %5.3lf\n"
+        "    }",
         FORMAT_JSON_TYPE,     "reply",
         FORMAT_JSON_FROM,     addr_str ? addr_str : "*",
         FORMAT_JSON_SRC_PORT, src_port,
@@ -252,6 +269,7 @@ void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json){
  */
 
 void replies_to_json(const map_t * replies_by_ttl, FILE * f_json) {
+    /*
     fprintf(f_json, "\"results\" : [");
     for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
         vector_t * replies_by_ttl_i = NULL;
@@ -280,6 +298,7 @@ void replies_to_json(const map_t * replies_by_ttl, FILE * f_json) {
             }
         }
     }
+    */
 }
 
 void star_to_json(const probe_t * star, FILE * f_json) {
@@ -295,13 +314,13 @@ void star_to_json(const probe_t * star, FILE * f_json) {
 
     fprintf(
         f_json,
-        "  {\n"
-        "    %-10s : \"%s\",\n"
-        "    %-10s : %hhu,\n"
-        "    %-10s : %hu,\n"
-        "    %-10s : %hu,\n"
-        "    %-10s : %hu\n"
-        "  }",
+        "    {\n"
+        "      %-10s : \"%s\",\n"
+        "      %-10s : %hhu,\n"
+        "      %-10s : %hu,\n"
+        "      %-10s : %hu,\n"
+        "      %-10s : %hu\n"
+        "    }",
         FORMAT_JSON_TYPE,     "stars",
         FORMAT_JSON_TTL,      ttl,
         FORMAT_JSON_SRC_PORT, src_port,
@@ -311,6 +330,7 @@ void star_to_json(const probe_t * star, FILE * f_json) {
 }
 
 void stars_to_json(const map_t * stars_by_ttl, FILE * f_json) {
+    /*
     // Print the dictionnaries related to stars.
     fprintf(f_json, "\"stars\" : [");
     for (size_t i = 1; i < options_traceroute_get_max_ttl(); ++i) {
@@ -347,6 +367,7 @@ void stars_to_json(const map_t * stars_by_ttl, FILE * f_json) {
             }
         }
     }
+    */
 }
 
 /*
@@ -362,15 +383,19 @@ void mda_infos_to_json(const user_data_t * user_data, FILE * f_json){
 }
 */
 
+/*
+// --sorted-print
 void replies_to_json_dump(const map_t * replies_by_ttl) {
     replies_to_json(replies_by_ttl, stdout);
     fflush(stdout);
 }
 
+// --sorted-print
 void stars_to_json_dump(const map_t * stars_by_ttl){
     stars_to_json(stars_by_ttl, stdout);
     fflush(stdout);
 }
+*/
 
 /*
 void mda_infos_dump(const user_data_t * user_data){
