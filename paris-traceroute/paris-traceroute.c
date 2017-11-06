@@ -228,7 +228,6 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
     mda_data_t                  * mda_data;
     const char                  * algorithm_name;
     traceroute_enriched_user_data_t * user_data = (traceroute_enriched_user_data_t *) _user_data;
-    FILE * f_json = stdout;
 
     switch (event->type) {
         case ALGORITHM_HAS_TERMINATED:
@@ -272,7 +271,6 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                             }
                         }
                         */
-                        json_print_footer(f_json);
                         break;
 #endif
                 }
@@ -295,6 +293,30 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                 mda_event = event->data;
                 traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
                 switch (mda_event->type) {
+                    case MDA_BEGINS:;
+                        //Get the src_ip
+                        probe_t * skel = mda_event->data;
+                        address_t source;
+                        probe_extract(skel, "src_ip", &source);
+                        address_to_string(&source, &user_data->source);
+#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
+
+                        switch (user_data->format){
+#  ifdef USE_FORMAT_XML
+                            case FORMAT_XML:
+#  endif
+#  ifdef USE_FORMAT_JSON
+                            case FORMAT_JSON:
+                                json_print_header(stdout, user_data->source, user_data->destination, user_data->protocol);
+#  endif
+                                break;
+                            default:
+                                break;
+                        }
+
+
+                        break;
+#endif
                     case MDA_NEW_LINK:
                         if (user_data->format == TRACEROUTE_OUTPUT_FORMAT_DEFAULT) {
                             mda_link_dump(mda_event->data, traceroute_options->do_resolv);
@@ -335,9 +357,23 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                                 break;
                         }
                         break;
+#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
+                    case MDA_ENDS:
+                        switch (user_data->format){
+#  ifdef USE_FORMAT_XML
+                            case FORMAT_XML:
+#  endif
+#  ifdef USE_FORMAT_JSON
+                            case FORMAT_JSON:
+                                json_print_footer(stdout);
+#  endif
+                                break;
+#endif
+
 #endif // USE_FORMAT_JSON || USE_FORMAT_XML
-                    default:
-                        break;
+                            default:
+                                break;
+                        }
                 }
             } else if (strcmp(algorithm_name, "traceroute") == 0) {
                 traceroute_event   = event->data;
@@ -532,7 +568,8 @@ int main(int argc, char **argv) {
     user_data.replies_by_ttl = NULL;
     user_data.is_first_result = true;
     user_data.destination = dst_ip;
-    user_data.source = "NOT YET IMPLEMENTED";
+    // Maximum length for an IP address (either v4 or v6). (See IP max length in string representation)
+    user_data.source = malloc(MAX_SIZE_STRING_ADDRESS_REPRESENTATION);
     user_data.protocol = protocol_name;
 
     switch (user_data.format) {
