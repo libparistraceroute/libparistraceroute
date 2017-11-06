@@ -43,9 +43,8 @@ typedef struct {
     map_t                 * replies_by_ttl;        /**< Maps each TTL with the corresponding vector of replies. */
     map_t                 * stars_by_ttl;          /**< Maps each TTL with the corresponding vector of stars. */
     bool                    is_first_result;       /**< Akward variable for first probe or star recieved for json compliance. */
-    // TODO: Kevin: the following fields seems to be unused?
-    //address_t               source;                /**< Source address. */
-    const char            * source;                /**< Source address. */
+    
+    char                  * source;                /**< Source address. */
     const char            * destination;           /**< MDA target address. */
     const char            * protocol;              /**< Protocol. */
 } user_data_t;

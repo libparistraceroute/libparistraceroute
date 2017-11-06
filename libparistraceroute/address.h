@@ -12,10 +12,16 @@
 
 #ifdef USE_IPV4
 typedef struct in_addr  ipv4_t;
+#ifndef MAX_SIZE_STRING_ADDRESS_REPRESENTATION
+#define MAX_SIZE_STRING_ADDRESS_REPRESENTATION 15
+#endif
 #endif
 
 #ifdef USE_IPV6
 typedef struct in6_addr ipv6_t;
+#ifndef MAX_SIZE_STRING_ADDRESS_REPRESENTATION
+#define MAX_SIZE_STRING_ADDRESS_REPRESENTATION 45
+#endif
 #endif
 
 typedef union {

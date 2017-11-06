@@ -526,6 +526,9 @@ static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pd
     if (!lattice_add_element(data->lattice, NULL, mda_interface_create(NULL))) {
         goto ERR_LATTICE_ADD_ELEMENT;
     }
+    
+    // Here we should pass an outputer to determine how the mda should print
+    pt_raise_event(loop, event_create(MDA_BEGINS, skel, NULL, NULL));
 
     return;
 
@@ -789,6 +792,12 @@ ERR_EXTRACT_TTL:
     return;
 }
 
+
+static void mda_handler_terminate(pt_loop_t *loop, event_t *event, mda_data_t * data, probe_t *skel, const mda_options_t * options){
+    // Here we should pass an outputer to determine how the mda should print
+    pt_raise_event(loop, event_create(MDA_ENDS, NULL, NULL, NULL));
+}
+
 /* Very similar to a set of fields + command line flags... */
 /* algorithm_set_options just like probe_set_fields */
 
@@ -839,7 +848,7 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
         case LATTICE_DONE:  break;
         default:            return 0;
     }
-
+    mda_handler_terminate(loop, event, data, skel, options);
     pt_raise_terminated(loop);
     return 0;
 }
