@@ -1,8 +1,12 @@
+#include "../../use.h"
 #include "traceroute_enriched_data.h"
 
 #include <stddef.h>                 // size_t
 #include <stdlib.h>                 // malloc, free
-#include "json.h"                   // json_*
+
+#ifdef USE_FORMAT_JSON
+#  include "json.h"                 // json_*
+#endif
 
 enriched_reply_t * enriched_reply_shallow_copy(const enriched_reply_t * reply) {
     enriched_reply_t * reply_dup = malloc(sizeof(enriched_reply_t));
@@ -51,19 +55,23 @@ void traceroute_enriched_handler(
             enriched_reply->delay = delay_probe_reply(probe, reply);
 
             switch (user_data->format) {
+                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
+                    break;
+#ifdef USE_FORMAT_JSON
                 case TRACEROUTE_OUTPUT_FORMAT_JSON:
                     if (user_data->is_first_result) {
-                        json_print_header(f_json, user_data->source, user_data->destination, user_data->protocol);
                         user_data->is_first_result = false;
                     } else {
                         fprintf(f_json, ", ");
                     }
                     reply_to_json(enriched_reply, f_json);
                     break;
+#endif
+#ifdef USE_FORMAT_XML
                 case TRACEROUTE_OUTPUT_FORMAT_XML:
                     fprintf(stderr, "Not yet implemented\n");
                     break;
-                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT: break;
+#endif
             }
 
             free(enriched_reply);
@@ -73,24 +81,44 @@ void traceroute_enriched_handler(
             probe = (probe_t *) mda_event->data;
 
             switch (user_data->format) {
+                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
+                    break;
+#ifdef USE_FORMAT_JSON
                 case TRACEROUTE_OUTPUT_FORMAT_JSON:
                     if (user_data->is_first_result) {
-                        json_print_header(f_json, user_data->source, user_data->destination, user_data->protocol);
                         user_data->is_first_result = false;
                     } else {
                         fprintf(f_json, ", ");
                     }
                     star_to_json(probe, f_json);
                     break;
+#endif
+#ifdef USE_FORMAT_XML
                 case TRACEROUTE_OUTPUT_FORMAT_XML:
                     fprintf(stderr, "Not yet implemented\n");
                     break;
-                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT: break;
+#endif
             }
             break;
+
+        case MDA_ENDS:
+
+            switch (user_data->format){
+#ifdef USE_FORMAT_XML
+                case TRACEROUTE_OUTPUT_FORMAT_XML:
+                    fprintf(stderr, "Not yet implemented\n");
+                    break;
+#endif
+#ifdef USE_FORMAT_JSON
+                case TRACEROUTE_OUTPUT_FORMAT_JSON:
+                    json_print_footer(stdout);
+                    break;
+#endif
+                default:
+                    break;
+            }
         default:
-            printf("traceroute_enriched_handler: Unhandled event %d\n",
-                    mda_event->type);
+            printf("traceroute_enriched_handler: Unhandled event %d\n", mda_event->type);
             break;
     }
 }

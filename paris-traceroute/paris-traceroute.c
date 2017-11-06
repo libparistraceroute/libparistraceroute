@@ -293,30 +293,9 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
                 mda_event = event->data;
                 traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
                 switch (mda_event->type) {
-                    case MDA_BEGINS:;
-                        //Get the src_ip
-                        probe_t * skel = mda_event->data;
-                        address_t source;
-                        probe_extract(skel, "src_ip", &source);
-                        address_to_string(&source, &user_data->source);
-#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
-
-                        switch (user_data->format){
-#  ifdef USE_FORMAT_XML
-                            case TRACEROUTE_OUTPUT_FORMAT_XML:
-#  endif
-#  ifdef USE_FORMAT_JSON
-                            case TRACEROUTE_OUTPUT_FORMAT_JSON:
-                                json_print_header(stdout, user_data->source, user_data->destination, user_data->protocol);
-#  endif
-                                break;
-                            default:
-                                break;
-                        }
-
-
+                    case MDA_BEGINS:
+                        traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
                         break;
-#endif
                     case MDA_NEW_LINK:
                         if (user_data->format == TRACEROUTE_OUTPUT_FORMAT_DEFAULT) {
                             mda_link_dump(mda_event->data, traceroute_options->do_resolv);

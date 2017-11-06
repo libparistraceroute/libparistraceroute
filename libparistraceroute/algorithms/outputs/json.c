@@ -128,13 +128,13 @@ void json_handler(
  */
 
 void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json) {
-    address_t reply_from_address;
-    uint16_t  src_port  = 0,
-              dst_port  = 0,
-              flow_id   = 0;
-    uint8_t   ttl_reply = 0;
-    probe_t * reply     = enriched_reply->reply;
-    char *    addr_str  = NULL;
+    address_t       reply_from_address;
+    uint16_t        src_port  = 0,
+                    dst_port  = 0,
+                    flow_id   = 0;
+    uint8_t         ttl_reply = 0;
+    const probe_t * reply     = enriched_reply->reply;
+    char          * addr_str  = NULL;
 
     probe_extract(reply, "src_ip",   &reply_from_address);
     probe_extract(reply, "src_port", &src_port);

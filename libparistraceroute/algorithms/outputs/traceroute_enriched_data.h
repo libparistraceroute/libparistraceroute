@@ -26,8 +26,8 @@ typedef struct {
 } traceroute_enriched_user_data_t;
 
 typedef struct {
-    probe_t * reply;
-    double    delay;
+    const probe_t * reply;
+    double          delay;
 } enriched_reply_t;
 
 
