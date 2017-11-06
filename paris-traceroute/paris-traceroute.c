@@ -42,6 +42,7 @@
 #define TRACEROUTE_HELP_d  "Print libparistraceroute debug information."
 #define TRACEROUTE_HELP_p  "Set PORT as destination port (default: 33457)."
 #define TRACEROUTE_HELP_s  "Set PORT as source port (default: 33456)."
+#define TRACEROUTE_HELP_F  "Set the output format of paris-traceroute (default: 'default'). Valid values are 'default', 'json', 'xml'"
 #define TRACEROUTE_HELP_S  "Print discovered IP by increasing TTL (enabled by default)."
 #define TRACEROUTE_HELP_I  "Use ICMPv4/ICMPv6 for tracerouting."
 #define TRACEROUTE_HELP_P  "Use raw packet of protocol PROTOCOL for tracerouting (default: 'udp'). Valid values are 'udp' and 'icmp'."
@@ -89,6 +90,17 @@ const char * format_names[] = {
     NULL
 };
 
+/**
+ * @brief Format option passed to MDA application corresponding.
+ */
+
+static option_t traceroute_format_options[] = {
+    {opt_store_choice, "F", "--format", "FORMAT", TRACEROUTE_HELP_F, format_names},
+};
+
+const option_t * traceroute_format_get_options() {
+    return traceroute_format_options;
+}
 
 // Bounded integer parameters
 //                              def     min  max         option_enabled
@@ -441,7 +453,7 @@ int main(int argc, char **argv) {
     dst_ip         = argv[argc - 1];
     algorithm_name = algorithm_names[0];
     protocol_name  = protocol_names[0];
-    format_name    = "json"; // TODO: Kévin: //format_names[0];
+    format_name    = format_names[0];
 
     // Checking if there is any conflicts between options passed in the commandline
     if (!check_options(is_icmp, is_tcp, is_udp, is_ipv4, is_ipv6, dst_port[3], src_port[3], protocol_name, algorithm_name)) {

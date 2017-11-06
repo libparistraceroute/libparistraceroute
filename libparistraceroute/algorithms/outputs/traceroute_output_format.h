@@ -14,12 +14,6 @@ typedef enum traceroute_output_format_t {
 } traceroute_output_format_t;
 
 /**
- * @return Retrieve the options related to the output format of traceroute-like tools.
- */
-
-const option_t * traceroute_format_get_options();
-
-/**
  * @brief Parse a string to get the corresponding traceroute_output_format_t.
  * @param format_name A string among "xml", "json", "default".
  * @returns The corresponding traceroute_output_format_t.
