@@ -20,12 +20,13 @@ typedef struct {
     bool                         is_first_result;  /**< Akward variable for first probe or star recieved for json compliance. */
     char                       * source;           /**< Source address. */
     const char                 * destination;      /**< MDA target address. */
+    char                       * destination_ip;   /**< MDA IP target address */
     const char                 * protocol;         /**< Protocol. */
 } traceroute_enriched_user_data_t;
 
 // TODO: Kévin: comments
 
-traceroute_enriched_user_data_t * traceroute_enriched_user_data_create(const char * protocol_name, const char * dst_ip, const char * format_name);
+traceroute_enriched_user_data_t * traceroute_enriched_user_data_create(int family, const char * protocol_name, const char * dst_ip, const char * format_name);
 void traceroute_enriched_user_data_free(traceroute_enriched_user_data_t * user_data);
 
 typedef struct {

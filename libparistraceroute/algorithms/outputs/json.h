@@ -70,6 +70,6 @@ void stars_to_json_dump(const map_t * stars_by_ttl);
 
 
 // TODO: Kévin: comments
-void json_print_header(FILE * f_json, const char * source, const char * destination, const char * protocol);
+void json_print_header(FILE * f_json, const char * source, const char * destination, const char * destination_ip, const char * protocol);
 void json_print_footer(FILE * f_json);
 #endif

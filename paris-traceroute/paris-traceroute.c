@@ -467,7 +467,7 @@ int main(int argc, char **argv) {
 #if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML) || defined(USE_FORMAT_RIPE)
     // TODO improve signature
     // TODO only if format_name == "json" || format_name == "xml"
-    traceroute_enriched_user_data_t * user_data = traceroute_enriched_user_data_create(protocol_name, dst_ip, format_name);
+    traceroute_enriched_user_data_t * user_data = traceroute_enriched_user_data_create(family, protocol_name, dst_ip, format_name);
 #else
     void * user_data = NULL;
 #endif // USE_FORMAT_JSON || USE_FORMAT_XML

@@ -11,7 +11,8 @@
 #define FORMAT_JSON_HOP      "\"hop\""
 #define FORMAT_JSON_RESULT   "\"result\""
 #define FORMAT_JSON_FROM     "\"from\""
-#define FORMAT_JSON_TO       "\"dst_addr\""
+#define FORMAT_JSON_TO       "\"dst_name\""
+#define FORMAT_JSON_TO_IP    "\"dst_addr\""
 #define FORMAT_JSON_PROTOCOL "\"proto\""
 #define FORMAT_JSON_SRC_PORT "\"src_port\""
 #define FORMAT_JSON_DST_PORT "\"dst_port\""
@@ -19,16 +20,18 @@
 #define FORMAT_JSON_TTL      "\"ttl\""
 #define FORMAT_JSON_RTT      "\"rtt\""
 
-void json_print_header(FILE * f_json, const char * source, const char * destination, const char * protocol) {
+void json_print_header(FILE * f_json, const char * source, const char * destination, const char * destination_ip, const char * protocol) {
     fprintf(
         f_json,
         "{\n"
         "  %-10s : \"%s\",\n"
         "  %-10s : \"%s\",\n"
         "  %-10s : \"%s\",\n"
+        "  %-10s : \"%s\",\n"
         "  %-10s : [\n",
         FORMAT_JSON_FROM,     source,
         FORMAT_JSON_TO,       destination,
+        FORMAT_JSON_TO_IP,    destination_ip,
         FORMAT_JSON_PROTOCOL, protocol,
         FORMAT_JSON_RESULT
     );

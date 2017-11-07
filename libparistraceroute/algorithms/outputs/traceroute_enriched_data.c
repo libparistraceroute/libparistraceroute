@@ -15,7 +15,9 @@
 #  include "../../int.h"
 #endif
 
-traceroute_enriched_user_data_t * traceroute_enriched_user_data_create(const char * protocol_name, const char * dst_ip, const char * format_name) {
+traceroute_enriched_user_data_t *traceroute_enriched_user_data_create(int family, const char *protocol_name, const char *dst_ip, const char *format_name) {
+    address_t destination;
+    
     traceroute_enriched_user_data_t * user_data = NULL;
 
     if (!(user_data = malloc(sizeof(traceroute_enriched_user_data_t)))) goto ERR_MALLOC;
@@ -24,6 +26,9 @@ traceroute_enriched_user_data_t * traceroute_enriched_user_data_create(const cha
     user_data->replies_by_ttl = NULL;
     user_data->is_first_result = true;
     user_data->destination = dst_ip;
+    address_from_string(family, dst_ip, &destination);
+    address_to_string(&destination, &user_data->destination_ip);
+    
     // Maximum length for an IP address (either v4 or v6). (See IP max length in string representation)
     user_data->source = malloc(MAX_SIZE_STRING_ADDRESS_REPRESENTATION); // TODO: Kévin: use appropriate constants, remove them from address.h
     user_data->protocol = protocol_name;
@@ -173,7 +178,7 @@ void traceroute_enriched_handler(
                         address_t source;
                         probe_extract(skel, "src_ip", &source);
                         address_to_string(&source, &user_data->source);
-                        json_print_header(f_json, user_data->source, user_data->destination, user_data->protocol);
+                        json_print_header(f_json, user_data->source, user_data->destination, user_data->destination_ip,  user_data->protocol);
                     }
                     break;
 #endif
@@ -183,7 +188,7 @@ void traceroute_enriched_handler(
                         address_t source;
                         probe_extract(skel, "src_ip", &source);
                         address_to_string(&source, &user_data->source);
-                        json_print_header(f_json, user_data->source, user_data->destination, user_data->protocol);
+                        json_print_header(f_json, user_data->source, user_data->destination, user_data->destination_ip,  user_data->protocol);
                     }
                     break;
 #endif
