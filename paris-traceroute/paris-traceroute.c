@@ -146,6 +146,7 @@ static options_t * init_options(char * version) {
 #if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
     options_add_optspecs(options, traceroute_format_get_options());
 #endif
+    options_add_optspecs(options, pt_loop_get_options());
     options_add_common  (options, version);
     return options;
 
@@ -487,6 +488,7 @@ int main(int argc, char **argv) {
             (unsigned int) packet_get_size(probe->packet)
         );
     }
+    options_pt_loop_init(loop);
 
     // Add an algorithm instance in the main loop
     if (!pt_add_instance(loop, algorithm_name, algorithm_options, probe)) {
@@ -495,7 +497,7 @@ int main(int argc, char **argv) {
     }
 
     // Wait for events. They will be catched by handler_user()
-    if (pt_loop(loop, 0) < 0) {
+    if (pt_loop(loop) < 0) {
         fprintf(stderr, "E: Main loop interrupted");
         goto ERR_PT_LOOP;
     }

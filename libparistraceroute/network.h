@@ -19,6 +19,8 @@
  * place where a packet scheduler might be implemented (rate limits, etc.).
  */
 
+#include <limits.h>      // INT_MAX
+
 #include "queue.h"       // queue_t
 #include "socketpool.h"  // socketpool_t
 #include "sniffer.h"     // sniffer_t
@@ -123,14 +125,14 @@ typedef struct network_s {
 /**
  * \brief Retrieve the timeout defined in the network layer for
  *    probe timeout management.
- * \return The value set in the network layer (in seconds)
+ * \return The value set in the network layer (in seconds).
  */
 
 double options_network_get_timeout();
 
 /**
- * \brief Get the commandline options related to the layer network
- * \returna pointer to a tructure containing the options
+ * \brief Get the command-line options related to the layer network.
+ * \return A pointer to a structure containing the options.
  */
 
 const option_t * network_get_options();

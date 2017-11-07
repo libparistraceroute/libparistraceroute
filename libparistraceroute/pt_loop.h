@@ -15,10 +15,41 @@
  *      see libparistraceroute/algorithms/
  */
 
+#include <limits.h>      // INT_MAX
+
 // Do not include "algorithm.h" to avoid mutual inclusion
+#include "options.h"
 #include "probe.h"
 #include "network.h"
 #include "event.h"
+
+//---------------------------------------------------------------------------
+// pt_loop options
+//---------------------------------------------------------------------------
+
+// Maximum time spent inside the pt_loop
+#define PT_LOOP_DEFAULT_TIMEOUT 180
+
+#define OPTIONS_PT_LOOP_TIMEOUT {PT_LOOP_DEFAULT_TIMEOUT, 0, INT_MAX}
+#define HELP_t "Set the timeout in seconds of the measurement (default is 180 seconds, pass 0 to set it to infinity)."
+
+/**
+ * \brief Retrieve the timeout defined for the pt_loop.
+ * \return The value set in the network layer (in seconds)
+ */
+
+double options_pt_loop_get_timeout();
+
+/**
+ * \brief Get the command-line options related to the pt_loop.
+ * \return A pointer to a structure containing the options.
+ */
+
+const option_t * pt_loop_get_options();
+
+//---------------------------------------------------------------------------
+// pt_loop
+//---------------------------------------------------------------------------
 
 typedef enum pt_loop_status_e {
     PT_LOOP_CONTINUE,    /**< Process and wait for next events */
@@ -49,6 +80,7 @@ typedef struct pt_loop_s {
     void                        * user_data;                /**< Data shared by the all algorithms running thanks to this pt_loop. */
 
     pt_loop_status_t              status;                   /**< State of the loop. See pt_loop_status_t for further details. */
+    double                        timeout;                  /**< Lifetime of the pt-loop. 0 means infinite lifetime. */
 
     // Signal data
     int                           sfd;                      // signalfd
@@ -57,6 +89,7 @@ typedef struct pt_loop_s {
     int                           efd;
     struct epoll_event          * epoll_events;
     struct algorithm_instance_s * cur_instance;
+
 } pt_loop_t;
 
 /**
@@ -96,8 +129,7 @@ void pt_loop_free(pt_loop_t * loop);
  *
  * Example: See libparistraceroute/paris-traceroute/paris-traceroute.c.
  *
- * \param loop The libparistraceroute loop
- * \param timeout The interval of time during
+ * \param loop The libparistraceroute loop.
  * \return The loop status. This is the min value among the values returned
  *    by the handlers called during the interval.
  *
@@ -106,7 +138,22 @@ void pt_loop_free(pt_loop_t * loop);
  *  - >0: the algorithm has not yet ended, the user has to continue the main loop.
  */
 
-int pt_loop(pt_loop_t * loop, unsigned int timeout);
+int pt_loop(pt_loop_t * loop);
+
+/**
+ * \brief Init the options related to pt_loop.
+ * \param loop The libparistraceroute loop.
+ */
+
+void options_pt_loop_init(pt_loop_t * loop);
+
+/**
+ * \brief Set a new timeout for the libparistraceroute loop.
+ * \param loop The libparistraceroute loop.
+ * \param new_timeout The new timeout.
+ */
+
+void pt_loop_set_timeout(pt_loop_t * loop, double new_timeout);
 
 /**
  * \brief Retrieve the user events stored in the user queue.

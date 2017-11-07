@@ -35,11 +35,6 @@ static option_t network_options[] = {
     END_OPT_SPECS
 };
 
-/**
- * \brief return the commandline options related to network
- * \return A pointer to an opt_spec structure
- */
-
 const option_t * network_get_options() {
     return network_options;
 }
@@ -52,8 +47,7 @@ void network_set_is_verbose(network_t * network, bool verbose) {
      network->is_verbose = verbose;
 }
 
-void options_network_init(network_t * network, bool verbose)
-{
+void options_network_init(network_t * network, bool verbose) {
     network_set_is_verbose(network, verbose);
     network_set_timeout(network, options_network_get_timeout());
 }
@@ -282,7 +276,6 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     size_t     i, num_flying_probes;
 
     // XXX
-
     // Fetch the tag from the reply. Its the 3rd checksum field.
     if (!(reply_extract_tag(reply, &tag_reply))) {
         // This is not an IP / ICMP / IP / * reply :(
@@ -300,7 +293,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
             if (tag_reply == tag_probe) break;
         }
     }
-
+    
 
     // XXX BEGIN Harcoded ICMP response (JA 17/07/2014)
 //     tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++;
@@ -315,7 +308,6 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
 //             break;
 //     }
     // XXX END Hardcoded ICMP response
-
     // No match found if we reached the end of the array
     if (i == num_flying_probes) {
         if (network->is_verbose) {
