@@ -20,6 +20,9 @@
 
 traceroute_output_format_t traceroute_output_format_from_string(const char * format_name) {
     return
+#ifdef USE_FORMAT_RIPE
+        !strcmp("ripe", format_name) ? TRACEROUTE_OUTPUT_FORMAT_RIPE :
+#endif
 #ifdef USE_FORMAT_JSON
         !strcmp("json", format_name) ? TRACEROUTE_OUTPUT_FORMAT_JSON :
 #endif

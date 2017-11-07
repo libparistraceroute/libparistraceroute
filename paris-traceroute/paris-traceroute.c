@@ -74,7 +74,6 @@ static bool is_tcp       = false;
 static bool is_udp       = false;
 static bool is_icmp      = false;
 static bool is_debug     = false;
-static bool sorted_print = false;
 
 const char * protocol_names[] = {
     "udp", // default value
@@ -85,6 +84,7 @@ const char * protocol_names[] = {
 
 const char * format_names[] = {
     "default", // default value
+    "ripe",
     "json",
     "xml",
     NULL
@@ -116,7 +116,6 @@ struct opt_spec runnable_options[] = {
     {opt_store_1,             "6",        OPT_NO_LF,           OPT_NO_METAVAR,     TRACEROUTE_HELP_6,       &is_ipv6},
     {opt_store_choice,        "a",        "--algorithm",       "ALGORITHM",        TRACEROUTE_HELP_a,       algorithm_names},
     {opt_store_1,             "d",        "--debug",           OPT_NO_METAVAR,     TRACEROUTE_HELP_d,       &is_debug},
-    {opt_store_1,             "S",        "--sorted-print",    OPT_NO_METAVAR,     TRACEROUTE_HELP_S,       &sorted_print},
     {opt_store_int_lim_en,    "p",        "--dst-port",        "PORT",             TRACEROUTE_HELP_p,       dst_port},
     {opt_store_int_lim_en,    "s",        "--src-port",        "PORT",             TRACEROUTE_HELP_s,       src_port},
     {opt_store_double_lim_en, "z",        OPT_NO_LF,           "WAIT",             TRACEROUTE_HELP_z,       send_time},
@@ -276,7 +275,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * _user_data) {
             if (strcmp(algorithm_name, "mda") == 0) {
                 mda_event = event->data;
                 traceroute_options = event->issuer->options; // mda_options inherits traceroute_options
-                traceroute_enriched_handler(loop, mda_event, traceroute_options, user_data, sorted_print);
+                traceroute_enriched_handler(loop, mda_event, event->issuer, traceroute_options, user_data);
             } else if (strcmp(algorithm_name, "traceroute") == 0) {
                 traceroute_event   = event->data;
                 traceroute_options = event->issuer->options;
@@ -464,7 +463,7 @@ int main(int argc, char **argv) {
 
 
     // Prepare structures for JSON and XML outputs.
-#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
+#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML) || defined(USE_FORMAT_RIPE)
     // TODO improve signature
     // TODO only if format_name == "json" || format_name == "xml"
     traceroute_enriched_user_data_t * user_data = traceroute_enriched_user_data_create(protocol_name, dst_ip, format_name);
@@ -480,13 +479,14 @@ int main(int argc, char **argv) {
 
     // Set network options (network and verbose)
     options_network_init(loop->network, is_debug);
-
-    printf("%s to %s (", algorithm_name, dst_ip);
-    address_dump(&dst_addr);
-    printf("), %u hops max, %u bytes packets\n",
-        ptraceroute_options->max_ttl,
-        (unsigned int) packet_get_size(probe->packet)
-    );
+    if (strcmp(format_name, "default") == 0 ) {
+        printf("%s to %s (", algorithm_name, dst_ip);
+        address_dump(&dst_addr);
+        printf("), %u hops max, %u bytes packets\n",
+            ptraceroute_options->max_ttl,
+            (unsigned int) packet_get_size(probe->packet)
+        );
+    }
 
     // Add an algorithm instance in the main loop
     if (!pt_add_instance(loop, algorithm_name, algorithm_options, probe)) {

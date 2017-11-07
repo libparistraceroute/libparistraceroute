@@ -30,6 +30,7 @@ void traceroute_enriched_user_data_free(traceroute_enriched_user_data_t * user_d
 
 typedef struct {
     const probe_t * reply;
+    uint8_t         hop;
     double          delay;
 } enriched_reply_t;
 
@@ -51,9 +52,9 @@ void vector_enriched_reply_free(vector_t * vector);
 void traceroute_enriched_handler(
     pt_loop_t                       * loop,
     mda_event_t                     * mda_event,
+    struct algorithm_instance_s     * issuer,
     const traceroute_options_t      * traceroute_options,
-    traceroute_enriched_user_data_t * user_data,
-    bool                              sorted_print
+    traceroute_enriched_user_data_t * user_data
 );
 
 // TODO: Kevin: add options, like for algorithms

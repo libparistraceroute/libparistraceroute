@@ -3,6 +3,10 @@
 
 #include <stddef.h>                 // size_t
 #include <stdlib.h>                 // malloc, free
+#include <string.h>                 // strcmp
+
+
+#include "algorithm.h"
 
 #ifdef USE_FORMAT_JSON
 #  include "json.h"                 // json_*
@@ -24,8 +28,11 @@ traceroute_enriched_user_data_t * traceroute_enriched_user_data_create(const cha
     user_data->source = malloc(MAX_SIZE_STRING_ADDRESS_REPRESENTATION); // TODO: Kévin: use appropriate constants, remove them from address.h
     user_data->protocol = protocol_name;
 
-#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
+#if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML) || defined(USE_FORMAT_RIPE)
     switch (user_data->format) {
+#  ifdef USE_FORMAT_RIPE
+        case TRACEROUTE_OUTPUT_FORMAT_RIPE:
+#  endif        
 #  ifdef USE_FORMAT_JSON
         case TRACEROUTE_OUTPUT_FORMAT_JSON:
 #  endif
@@ -46,6 +53,9 @@ void traceroute_enriched_user_data_free(traceroute_enriched_user_data_t * user_d
     if (user_data) {
 #if defined(USE_FORMAT_JSON) || defined(USE_FORMAT_XML)
         switch (user_data->format) {
+#  ifdef USE_FORMAT_RIPE
+            case TRACEROUTE_OUTPUT_FORMAT_RIPE:
+#  endif  
 #  ifdef USE_FORMAT_JSON
             case TRACEROUTE_OUTPUT_FORMAT_JSON:
 #  endif
@@ -86,34 +96,93 @@ void map_probe_free(map_t * map){
     }
 }
 
+
+void traceroute_sorted_handler(
+    mda_event_type_t                       mda_event_type,
+    probe_t                              * probe,
+    enriched_reply_t                     * enriched_reply,
+    traceroute_enriched_user_data_t      * user_data
+){
+    // Elements can be either replies or stars
+    map_t * elements_by_ttl = NULL;
+    uint8_t ttl_probe       = 0;
+    
+    switch (mda_event_type) {
+        case MDA_PROBE_REPLY:
+            elements_by_ttl = user_data->replies_by_ttl;
+            //json_key        = "results";
+            break;
+        case MDA_PROBE_TIMEOUT:
+            elements_by_ttl = user_data->stars_by_ttl;
+            //json_key        = "stars";
+            break;
+        default:
+            break;
+    }
+
+    if (probe_extract(probe, "ttl", &ttl_probe)) {
+        // Check if we already have this TTL in the map.
+        vector_t * elements_ttl;
+        if (map_find(elements_by_ttl, &ttl_probe, &elements_ttl)) {
+            // We already have the element, just push this new reply related to this probe.
+            if (mda_event_type == MDA_PROBE_REPLY){
+                vector_push_element(elements_ttl, enriched_reply);
+            } else if (mda_event_type == MDA_PROBE_TIMEOUT){
+                vector_push_element(elements_ttl, probe);
+            }
+        } else {
+            if (mda_event_type == MDA_PROBE_REPLY){
+                elements_ttl = vector_create(sizeof(enriched_reply_t), enriched_reply_shallow_copy, free, NULL);
+                vector_push_element(elements_ttl, enriched_reply);
+            } else if (mda_event_type == MDA_PROBE_TIMEOUT){
+                elements_ttl = vector_create(sizeof(probe_t), probe_dup, probe_free, NULL);
+                vector_push_element(elements_ttl, probe);
+            }
+
+            // map_update duplicates the value and the key passed in arg,
+            // so free the vector after the call to map_update
+            map_update(elements_by_ttl, &ttl_probe, elements_ttl);
+            free(elements_ttl); // TODO: vector_free(elements_ttl);
+        }
+    }
+}
+
 void traceroute_enriched_handler(
     pt_loop_t                       * loop,
     mda_event_t                     * mda_event,
-    // TODO: Kévin add issuer
+    struct algorithm_instance_s     * issuer,
     const traceroute_options_t      * traceroute_options,
-    traceroute_enriched_user_data_t * user_data,
-    bool                              sorted_print
+    traceroute_enriched_user_data_t * user_data
 ) {
     FILE * f_json = stdout;
-
+    mda_data_t * mda_data;
     switch (mda_event->type) {
         //-------------------------------------------------------------------
-        case MDA_BEGINS:
+        case MDA_BEGINS:;
         //-------------------------------------------------------------------
+            probe_t * skel = mda_event->data;
             switch (user_data->format) {
                 case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
                     // TODO move print for paris-traceroute.c here.
+                   
+            
                     break;
-#ifdef USE_FORMAT_JSON
-                case TRACEROUTE_OUTPUT_FORMAT_JSON:
+#ifdef USE_FORMAT_RIPE
+                case TRACEROUTE_OUTPUT_FORMAT_RIPE:                    
                     {
-                        /* TODO: Kévin: get skel from issuer
                         address_t source;
                         probe_extract(skel, "src_ip", &source);
                         address_to_string(&source, &user_data->source);
-                        */
-                        user_data->source = "NOT YET IMPLEMENTED";
-                        ///
+                        json_print_header(f_json, user_data->source, user_data->destination, user_data->protocol);
+                    }
+                    break;
+#endif
+#ifdef USE_FORMAT_JSON
+                case TRACEROUTE_OUTPUT_FORMAT_JSON:                    
+                    {
+                        address_t source;
+                        probe_extract(skel, "src_ip", &source);
+                        address_to_string(&source, &user_data->source);
                         json_print_header(f_json, user_data->source, user_data->destination, user_data->protocol);
                     }
                     break;
@@ -131,17 +200,24 @@ void traceroute_enriched_handler(
         //-------------------------------------------------------------------
             {
                 // Retrieve the probe and its corresponding reply
-                const probe_t * probe = ((const probe_reply_t *) mda_event->data)->probe;
+                // Not const probe for sorted handler
+                probe_t * probe = ((const probe_reply_t *) mda_event->data)->probe;
                 const probe_t * reply = ((const probe_reply_t *) mda_event->data)->reply;
 
                 // Managed by the container that uses it.
                 enriched_reply_t * enriched_reply = malloc(sizeof(enriched_reply_t));
                 enriched_reply->reply = reply;
                 enriched_reply->delay = delay_probe_reply(probe, reply);
-
+                // Get the TTL related to the reply
+                probe_extract(probe, "ttl", &enriched_reply->hop);
                 switch (user_data->format) {
                     case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
                         break;
+#ifdef USE_FORMAT_RIPE
+                    case TRACEROUTE_OUTPUT_FORMAT_RIPE:
+                        traceroute_sorted_handler(mda_event->type, probe, enriched_reply, user_data);
+                        break;
+#endif                        
 #ifdef USE_FORMAT_JSON
                     case TRACEROUTE_OUTPUT_FORMAT_JSON:
                         if (user_data->is_first_result) {
@@ -167,11 +243,16 @@ void traceroute_enriched_handler(
         case MDA_PROBE_TIMEOUT:
         //-------------------------------------------------------------------
             {
-                const probe_t * probe = (probe_t *) mda_event->data;
+                probe_t * probe = (probe_t *) mda_event->data;
 
                 switch (user_data->format) {
                     case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
                         break;
+#ifdef USE_FORMAT_RIPE
+                    case TRACEROUTE_OUTPUT_FORMAT_RIPE:
+                        traceroute_sorted_handler(mda_event->type, probe, NULL, user_data);
+                        break;
+#endif                        
 #ifdef USE_FORMAT_JSON
                     case TRACEROUTE_OUTPUT_FORMAT_JSON:
                         if (user_data->is_first_result) {
@@ -196,41 +277,49 @@ void traceroute_enriched_handler(
         //-------------------------------------------------------------------
 
             switch (user_data->format){
-                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
-                    // TODO: Kévin
-                    /*
+                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:                    
                     mda_data = issuer->data;
                     printf("Lattice:\n");
                     lattice_dump(mda_data->lattice, (ELEMENT_DUMP) mda_lattice_elt_dump);
                     printf("\n");
-                    */
                     break;
-#ifdef USE_FORMAT_XML
-                case TRACEROUTE_OUTPUT_FORMAT_XML:
-                    fprintf(stderr, "Not yet implemented\n");
-                    break;
-#endif
-#ifdef USE_FORMAT_JSON
-                case TRACEROUTE_OUTPUT_FORMAT_JSON:
+#ifdef USE_FORMAT_RIPE
+                case TRACEROUTE_OUTPUT_FORMAT_RIPE:
                     {
                         map_t * replies_by_ttl = user_data->replies_by_ttl,
                               * stars_by_ttl   = user_data->stars_by_ttl;
-                        size_t max_ttl_hops    = map_size(user_data->replies_by_ttl);
-                        size_t max_ttl_stars   = map_size(user_data->stars_by_ttl);
-                        size_t n = max_ttl_hops > max_ttl_stars ? max_ttl_hops : max_ttl_stars;
-
-                        if (sorted_print && n) {
+                        size_t n               = traceroute_options->max_ttl;
+                        if (n) {
+                            bool is_first_hop = true;
                             for (size_t i = 1; i < n; ++i) {
-
                                 bool is_first_result = true;
-
                                 // Print each reply at TTL = i
                                 vector_t * replies_by_ttl_i = NULL;
-                                if (map_find(replies_by_ttl, &i, &replies_by_ttl_i)) {
-                                    for (size_t j = 0; j < max_ttl_hops; ++j) {
+                                bool found_reply = map_find(replies_by_ttl, &i, &replies_by_ttl_i);
+                                // Print each star at TTL = i
+                                vector_t * stars_by_ttl_i = NULL;
+                                bool found_star  = map_find(stars_by_ttl, &i, &stars_by_ttl_i);
+                                
+                                if(found_reply || found_star){
+                                    if(is_first_hop){
+                                        is_first_hop = false;
+                                    }
+                                    else{
+                                        fprintf(f_json, ",\n");
+                                    }
+                                    fprintf(f_json,
+                                        "{\n"             
+                                        "\"hop\":%zu,\n"
+                                        "\"result\":[\n"
+                                    ,i);
+                                }
+                                
+                                if (found_reply) {
+                                    for (size_t j = 0; j < vector_get_num_cells(replies_by_ttl_i); ++j) {
                                         if (is_first_result) {
-                                            fprintf(f_json, ",\n");
                                             is_first_result = false;
+                                        } else {
+                                            fprintf(f_json, ",\n");
                                         }
                                         reply_to_json(
                                             vector_get_ith_element(replies_by_ttl_i, j),
@@ -238,14 +327,13 @@ void traceroute_enriched_handler(
                                         );
                                     }
                                 }
-
-                                // Print each star at TTL = i
-                                vector_t * stars_by_ttl_i = NULL;
-                                if (map_find(stars_by_ttl, &i, &stars_by_ttl_i)) {
-                                    for (size_t j = 0; j < max_ttl_hops; ++j) {
+                                
+                                if (found_star) {
+                                    for (size_t j = 0; j < vector_get_num_cells(stars_by_ttl_i); ++j) {
                                         if (is_first_result) {
-                                            fprintf(f_json, ",\n");
                                             is_first_result = false;
+                                        } else {
+                                            fprintf(f_json, ",\n");
                                         }
                                         star_to_json(
                                             vector_get_ith_element(stars_by_ttl_i, j),
@@ -253,19 +341,52 @@ void traceroute_enriched_handler(
                                         );
                                     }
                                 }
+                                if(found_reply || found_star){
+                                    fprintf(f_json,
+                                            "]\n"
+                                            "}");
+                                }
                             }
+                            
                         }
+
                     }
+                    json_print_footer(f_json);
+                    break;
+#endif                     
+#ifdef USE_FORMAT_XML
+                case TRACEROUTE_OUTPUT_FORMAT_XML:
+                    fprintf(stderr, "Not yet implemented\n");
+                    break;
+#endif
+#ifdef USE_FORMAT_JSON
+                case TRACEROUTE_OUTPUT_FORMAT_JSON:
                     json_print_footer(f_json);
                     break;
 #endif
                 default:
                     break;
             }
+        break;
         case MDA_NEW_LINK:
-            // TODO Kévin
-            // mda_link_dump(mda_event->data, traceroute_options->do_resolv);
-            printf("TODO: Fix mda_link_dump\n");
+            switch (user_data->format){
+                case TRACEROUTE_OUTPUT_FORMAT_DEFAULT:
+                    
+                    mda_link_dump(mda_event->data, traceroute_options->do_resolv);
+                    break;
+#ifdef USE_FORMAT_RIPE
+                case TRACEROUTE_OUTPUT_FORMAT_RIPE:
+                    
+#endif                    
+#ifdef USE_FORMAT_JSON                    
+                case TRACEROUTE_OUTPUT_FORMAT_JSON:
+#endif                
+#ifdef USE_FORMAT_XML                
+                case TRACEROUTE_OUTPUT_FORMAT_XML:
+#endif                
+                default:    
+                    break;
+            }        
             break;
         default:
             printf("traceroute_enriched_handler: Unhandled event %d\n", mda_event->type);

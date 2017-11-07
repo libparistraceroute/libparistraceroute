@@ -16,7 +16,8 @@
 // Enable scheduling of probes
 #define USE_SCHEDULING
 
-// Enable JSON/XML format
+// Enable RIPE/JSON/XML format
+#define USE_FORMAT_RIPE
 #define USE_FORMAT_JSON
 #define USE_FORMAT_XML
 

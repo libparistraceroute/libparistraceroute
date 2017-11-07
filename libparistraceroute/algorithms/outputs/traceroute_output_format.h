@@ -9,6 +9,7 @@
 
 typedef enum traceroute_output_format_t {
     TRACEROUTE_OUTPUT_FORMAT_DEFAULT, /**< Default traceroute text outputs. */
+    TRACEROUTE_OUTPUT_FORMAT_RIPE,
     TRACEROUTE_OUTPUT_FORMAT_JSON,    /**< JSON outputs, based on RIPE outputs. */
     TRACEROUTE_OUTPUT_FORMAT_XML      /**< XML outputs. */
 } traceroute_output_format_t;

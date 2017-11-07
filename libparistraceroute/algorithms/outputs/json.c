@@ -11,8 +11,8 @@
 #define FORMAT_JSON_HOP      "\"hop\""
 #define FORMAT_JSON_RESULT   "\"result\""
 #define FORMAT_JSON_FROM     "\"from\""
-#define FORMAT_JSON_TO       "\"to\""
-#define FORMAT_JSON_PROTOCOL "\"protocol\""
+#define FORMAT_JSON_TO       "\"dst_addr\""
+#define FORMAT_JSON_PROTOCOL "\"proto\""
 #define FORMAT_JSON_SRC_PORT "\"src_port\""
 #define FORMAT_JSON_DST_PORT "\"dst_port\""
 #define FORMAT_JSON_FLOW_ID  "\"flow_id\""
@@ -135,7 +135,7 @@ void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json) {
     uint8_t         ttl_reply = 0;
     const probe_t * reply     = enriched_reply->reply;
     char          * addr_str  = NULL;
-
+    
     probe_extract(reply, "src_ip",   &reply_from_address);
     probe_extract(reply, "src_port", &src_port);
     probe_extract(reply, "dst_port", &dst_port);
@@ -147,6 +147,7 @@ void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json) {
         f_json,
         "    {\n"
         "      %-10s : \"%s\",\n"
+        "      %-10s : %hhu,\n"
         "      %-10s : \"%s\",\n"
         "      %-10s : %hu,\n"
         "      %-10s : %hu,\n"
@@ -155,6 +156,7 @@ void reply_to_json(const enriched_reply_t * enriched_reply, FILE * f_json) {
         "      %-10s : %5.3lf\n"
         "    }",
         FORMAT_JSON_TYPE,     "reply",
+        FORMAT_JSON_HOP,      enriched_reply->hop,
         FORMAT_JSON_FROM,     addr_str ? addr_str : "*",
         FORMAT_JSON_SRC_PORT, src_port,
         FORMAT_JSON_DST_PORT, dst_port,
@@ -210,7 +212,7 @@ void star_to_json(const probe_t * star, FILE * f_json) {
     uint16_t src_port = 0;
     uint16_t dst_port = 0;
     uint16_t flow_id  = 0;
-
+    
     probe_extract(star, "ttl",      &ttl);
     probe_extract(star, "src_port", &src_port);
     probe_extract(star, "dst_port", &dst_port);
@@ -221,11 +223,15 @@ void star_to_json(const probe_t * star, FILE * f_json) {
         "    {\n"
         "      %-10s : \"%s\",\n"
         "      %-10s : %hhu,\n"
+        "      %-10s : \"%s\",\n"        
+        "      %-10s : %hhu,\n"
         "      %-10s : %hu,\n"
         "      %-10s : %hu,\n"
         "      %-10s : %hu\n"
         "    }",
         FORMAT_JSON_TYPE,     "stars",
+        FORMAT_JSON_HOP,      ttl,
+        FORMAT_JSON_FROM,     "*",
         FORMAT_JSON_TTL,      ttl,
         FORMAT_JSON_SRC_PORT, src_port,
         FORMAT_JSON_DST_PORT, dst_port,
