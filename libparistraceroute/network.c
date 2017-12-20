@@ -27,6 +27,8 @@
 // Network options
 //---------------------------------------------------------------------------
 
+static pid_t  pid        = 0;
+
 static double timeout[3] = OPTIONS_NETWORK_WAIT;
 
 static option_t network_options[] = {
@@ -79,6 +81,16 @@ static inline bool reply_extract_tag(const probe_t * reply, uint16_t * ptag_repl
 }
 
 /**
+ * \brief Extract the probe pid from a reply
+ * \param reply The queried reply
+ * \param ppid_reply Address of the uint16_t in which the tag is written
+ * \return true iif successful
+ */
+static bool reply_extract_pid(const probe_t * reply, uint16_t * ppid_reply){
+    return probe_extract_ext(reply, "identification", 2, ppid_reply);
+}
+
+/**
  * \brief Set the probe ID (tag) from a probe
  * \param probe The probe we want to update
  * \param tag_probe The tag we're assigning to the probe (host-side endianness)
@@ -91,6 +103,29 @@ static bool probe_set_tag(probe_t * probe, uint16_t tag_probe) {
 
     if ((field = I16("checksum", tag_probe))) {
         ret = probe_set_field_ext(probe, 1, field);
+        field_free(field);
+    }
+
+    return ret;
+}
+
+/**
+ * \brief Set the probe PID from a probe
+ * \param probe The probe we want to update
+ * \return true iif successful
+ */
+
+static bool probe_set_pid(probe_t * probe) {
+    bool      ret = false;
+    field_t * field;
+
+    // Compute pid only once
+    if(pid == 0){
+        pid = getpid();
+    }
+    
+    if ((field = I16("identification", pid))) {
+        ret = probe_set_field(probe, field);
         field_free(field);
     }
 
@@ -526,6 +561,11 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_PROBE_SET_TAG;
     }
 
+    if (!(probe_set_pid(probe))){
+        fprintf(stderr, "Can't set pid\n");
+        goto ERR_PROBE_SET_PID;
+    }
+    
     // Write the tag using the network-side endianness in the payload
     checksum = htons(checksum);
     if (tag_in_body) {
@@ -545,6 +585,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
 ERR_PROBE_SET_FIELD:
 ERR_BUFFER_WRITE_BYTES2:
 ERR_PROBE_SET_TAG:
+ERR_PROBE_SET_PID:
 ERR_PROBE_EXTRACT_CHECKSUM:
 ERR_PROBE_UPDATE_FIELDS:
 ERR_PROBE_WRITE_PAYLOAD:
@@ -664,7 +705,16 @@ bool network_process_recvq(network_t * network)
         printf("Got reply:\n");
         probe_dump(reply);
     }
-
+    
+    uint16_t pid_reply = 0;
+    // Find if the probe has been issued by our process
+    if (!reply_extract_pid(reply, &pid_reply)){
+        goto ERR_NO_PID_FROM_REPLY;
+    } else if (pid != pid_reply){
+        // Just let the packet go, not from our pid.
+        return true;
+    }
+    
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes
     if (!(probe = network_get_matching_probe(network, reply))) {
@@ -691,6 +741,7 @@ bool network_process_recvq(network_t * network)
 
 ERR_PROBE_REPLY_CREATE:
 ERR_PROBE_DISCARDED:
+ERR_NO_PID_FROM_REPLY:
     probe_free(reply);
 ERR_PROBE_WRAP_PACKET:
     //packet_free(packet); TODO provoke segfault in case of stars
