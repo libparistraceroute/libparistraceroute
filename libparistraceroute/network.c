@@ -27,8 +27,6 @@
 // Network options
 //---------------------------------------------------------------------------
 
-static pid_t  pid        = 0;
-
 static double timeout[3] = OPTIONS_NETWORK_WAIT;
 
 static option_t network_options[] = {
@@ -115,14 +113,9 @@ static bool probe_set_tag(probe_t * probe, uint16_t tag_probe) {
  * \return true iif successful
  */
 
-static bool probe_set_pid(probe_t * probe) {
+static bool probe_set_pid(probe_t * probe, pid_t pid) {
     bool      ret = false;
     field_t * field;
-
-    // Compute pid only once
-    if(pid == 0){
-        pid = getpid();
-    }
     
     if ((field = I16("identification", pid))) {
         ret = probe_set_field(probe, field);
@@ -406,6 +399,7 @@ network_t * network_create()
     network->last_tag = 0;
     network->timeout = NETWORK_DEFAULT_TIMEOUT;
     network->is_verbose = false;
+    network->pid = getpid();
     return network;
 
 ERR_PROBES:
@@ -452,6 +446,10 @@ void network_set_timeout(network_t * network, double new_timeout) {
 
 double network_get_timeout(const network_t * network) {
     return network->timeout;
+}
+
+pid_t network_get_pid(const network_t * network){
+    return network->pid;
 }
 
 inline int network_get_sendq_fd(network_t * network) {
@@ -561,7 +559,7 @@ bool network_tag_probe(network_t * network, probe_t * probe)
         goto ERR_PROBE_SET_TAG;
     }
 
-    if (!(probe_set_pid(probe))){
+    if (!(probe_set_pid(probe, network_get_pid(network)))) {
         fprintf(stderr, "Can't set pid\n");
         goto ERR_PROBE_SET_PID;
     }
@@ -699,22 +697,28 @@ bool network_process_recvq(network_t * network)
     if(!(reply = probe_wrap_packet(packet))) {
         goto ERR_PROBE_WRAP_PACKET;
     }
+    
+    
+    
     probe_set_recv_time(reply, get_timestamp());
-
+    
+    uint16_t pid_reply = 0;
+    // Find if the probe has been issued by our process
+    if (!reply_extract_pid(reply, &pid_reply)){
+        
+        goto ERR_NO_PID_FROM_REPLY;
+    } else if (network_get_pid(network) != pid_reply){
+        // Just let the packet go, not from our pid.
+        probe_free(reply);
+        return false;
+    }
+    
     if (network->is_verbose) {
         printf("Got reply:\n");
         probe_dump(reply);
     }
     
-    uint16_t pid_reply = 0;
-    // Find if the probe has been issued by our process
-    if (!reply_extract_pid(reply, &pid_reply)){
-        goto ERR_NO_PID_FROM_REPLY;
-    } else if (pid != pid_reply){
-        // Just let the packet go, not from our pid.
-        return true;
-    }
-    
+   
     // Find the probe corresponding to this reply
     // The corresponding pointer (if any) is removed from network->probes
     if (!(probe = network_get_matching_probe(network, reply))) {
@@ -752,6 +756,7 @@ ERR_PACKET_POP:
 void network_process_sniffer(network_t * network, uint8_t protocol_id) {
     sniffer_process_packets(network->sniffer, protocol_id);
 }
+
 
 bool network_drop_expired_flying_probe(network_t * network)
 {
