@@ -120,6 +120,7 @@ typedef struct network_s {
     probe_group_t * scheduled_probes;  /**< Scheduled probes */
 #endif
     bool            is_verbose;        /**< Print debug messages*/
+    pid_t           pid;               /**< PID of the process running the pt_loop. Used to allow several pt_loop to exist. */
 } network_t;
 
 /**
