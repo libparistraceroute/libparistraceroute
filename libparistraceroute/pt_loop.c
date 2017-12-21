@@ -454,7 +454,7 @@ int pt_loop(pt_loop_t * loop) {
         }
 
         // Wait for events.
-        n = epoll_wait(loop->efd, loop->epoll_events, MAXEVENTS, -1);
+        n = epoll_wait(loop->efd, loop->epoll_events, MAXEVENTS, 5000);
 
         /* XXX What kind of events do we have
          * - sockets (packets received, timeouts, etc.)
