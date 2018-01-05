@@ -30,8 +30,9 @@ typedef enum {
 
     // Events handled the algorithm layer
     ALGORITHM_INIT,            /**< An algorithm can start             */
+    ALGORITHM_TIMEOUT,         /**< An algorithm has timed out         */
     ALGORITHM_TERM,            /**< An algorithm must terminate        */
-
+    
     // Events raised by the algorithm layer
     ALGORITHM_EVENT,           /**< An algorithm has raised an event   */
     ALGORITHM_HAS_TERMINATED,  /**< An algorithm must terminate        */

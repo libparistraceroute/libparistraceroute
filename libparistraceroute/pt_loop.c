@@ -242,6 +242,21 @@ static void pt_process_algorithms_terminate(const void * node, VISIT visit, int 
     pt_throw(NULL, instance, event_create(ALGORITHM_TERM, NULL, NULL, NULL));
 }
 
+/**
+ * \brief Called when pt_loop handles a time expiry to notify algorithms
+ *   they must terminate. Sends a ALGORITHM_TIMEOUT event to each running instance.
+ * \param node The current algorithm_instance_t.
+ * \param visit (unused).
+ * \param level (unused).
+ */
+
+static void pt_process_algorithms_timeout(const void * node, VISIT visit, int level) {
+    algorithm_instance_t * instance = *((algorithm_instance_t * const *) node);
+
+    // The pt_loop_t must send a TERM event to the current instance
+    pt_throw(NULL, instance, event_create(ALGORITHM_TIMEOUT, NULL, NULL, NULL));
+}
+
 //----------------------------------------------------------------
 // Non static functions
 //----------------------------------------------------------------
@@ -448,8 +463,7 @@ int pt_loop(pt_loop_t * loop) {
         // Case where the algorithm timeout, send a terminating event to the algorithm.
         double elapsed_time = difftime(time(NULL), starting_time_algorithm);
         if (max_time && elapsed_time > max_time && !max_time_has_expired) {
-            pt_instance_iter(loop, pt_process_algorithms_terminate);
-            fprintf(stdout, "Algorithm terminated because of a time expiry\n");
+            pt_instance_iter(loop, pt_process_algorithms_timeout);
             max_time_has_expired = true;
         }
 

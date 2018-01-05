@@ -835,6 +835,10 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
             // We should release the memory here
             pt_raise_terminated(loop);
             break;
+        case ALGORITHM_TIMEOUT:
+            mda_handler_terminate(loop, event, data, skel, options);
+            pt_raise_terminated(loop);
+            break;
         default:
             fprintf(stderr, "mda_handler: ignoring unhandled event (type = %d)\n", event->type);
             return 0;
