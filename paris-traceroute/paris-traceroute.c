@@ -514,7 +514,8 @@ ERR_INSTANCE:
     // pt_loop_free() automatically removes algorithms instances,
     // probe_replies and events from the memory.
     // Options and probe must be manually removed.
-    pt_loop_free(loop);
+    // Here we do not free the memory we have allocated because when it has expired, it seems that it tries to free some uninitialized memory.
+    // pt_loop_free(loop);
 ERR_LOOP_CREATE:
 ERR_UNKNOWN_ALGORITHM:
     probe_free(probe);
