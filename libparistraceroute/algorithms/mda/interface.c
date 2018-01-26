@@ -52,7 +52,7 @@ bool mda_interface_add_flow_id(mda_interface_t * interface, uint8_t ttl, uintmax
     mda_flow_t     * mda_flow;
     mda_ttl_flow_t * mda_ttl_flow;
 
-    if (!(mda_flow = mda_flow_create(flow_id, state))) {
+    if (!(mda_flow = mda_flow_create(flow_id, state, MDA_FLOW_HYPOTHETIC))) {
         goto ERR_MDA_FLOW_CREATE;
     }
 

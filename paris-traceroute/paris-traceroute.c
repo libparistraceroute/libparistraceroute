@@ -65,6 +65,7 @@
 const char * algorithm_names[] = {
     "paris-traceroute", // default value
     "mda",
+    "mda-check",
     NULL
 };
 

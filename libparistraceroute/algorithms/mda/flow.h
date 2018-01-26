@@ -11,23 +11,30 @@ typedef enum {
     MDA_FLOW_TIMEOUT
 } mda_flow_state_t;
 
+typedef enum {
+    MDA_FLOW_REAL,
+    MDA_FLOW_HYPOTHETIC
+} mda_flow_certainty_t;
+
 /**
  * A structure containing flow information, to be used within MDA link discovery
  */
 
 typedef struct {
-    uintmax_t        flow_id; /**< Flow identifier            */
-    mda_flow_state_t state;   /**< Current state of this flow */
+    uintmax_t            flow_id;   /**< Flow identifier            */
+    mda_flow_state_t     state;     /**< Current state of this flow */
+    mda_flow_certainty_t certainty; /**< Certainty whether or not it has passed through the interface*/
 } mda_flow_t;
 
 /**
  * \brief Allocate a mda_data_t structure
  * \param flow_id Flow identifier related to this flow
  * \param state Current state of this flow
+ * \param certainty Whether we are sure that this flow has passed through an interface
  * \return A pointer to the mda_data_t structure, NULL otherwise
  */
 
-mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state);
+mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state, mda_flow_certainty_t certainty);
 
 /**
  * \brief Release a mda_data_t structure from the memory

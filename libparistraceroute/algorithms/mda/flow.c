@@ -2,13 +2,14 @@
 
 #include <stdlib.h>
 
-mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state)
+mda_flow_t * mda_flow_create(uintmax_t flow_id, mda_flow_state_t state, mda_flow_certainty_t certainty)
 {
     mda_flow_t * mda_flow;
 
     if ((mda_flow = malloc(sizeof(mda_flow_t)))) {
-        mda_flow->flow_id = flow_id;
-        mda_flow->state = state;
+        mda_flow->flow_id   = flow_id;
+        mda_flow->state     = state;
+        mda_flow->certainty = certainty;
     }
 
     return mda_flow;

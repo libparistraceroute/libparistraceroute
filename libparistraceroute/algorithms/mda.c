@@ -27,6 +27,12 @@ typedef struct {
     lattice_elt_t * result;
 } mda_search_data_t;
 
+typedef struct {
+    uint8_t         ttl;
+    dynarray_t    * ttl_flows;
+    lattice_elt_t * result;
+} mda_search_predecessor_t;
+
 //---------------------------------------------------------------------------
 // Options supported by mda.
 // mda also supports options supported by traceroute.
@@ -374,6 +380,47 @@ ERR_CLASSIFY:
     return LATTICE_ERROR;
 }
 
+static lattice_return_t mda_exist_source(lattice_elt_t * elt, void * data)
+{
+    mda_interface_t   * interface = lattice_elt_get_data(elt);
+    mda_search_data_t * search    = data;
+    mda_flow_t        * mda_flow;
+    mda_ttl_flow_t    * mda_ttl_flow;
+    size_t              i, j, size;
+    uint8_t             ttl;
+
+    for (i = 0; i < interface->num_ttls; ++i) {
+        ttl = interface->ttl_set[i];
+        if (ttl == search->ttl) {
+            size = dynarray_get_size(interface->ttl_flows);
+            for (j = 0; j < size; j++) {
+                mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, j);
+                mda_flow = mda_ttl_flow->mda_flow;
+                if ((mda_flow->flow_id == search->flow_id)
+                && (mda_ttl_flow->ttl == search->ttl)
+                && (mda_flow->state != MDA_FLOW_TESTING)
+                && (mda_flow->certainty == MDA_FLOW_REAL)) {
+                    search->result = elt;
+                    return LATTICE_INTERRUPT_ALL;
+                }
+            }
+
+            /**
+             * Note: Awkward check is needed because in the case of nodes with
+             * multiple ttl_set, it is possible for a pair of nodes to have the
+             * same ttl while simultaneously being in a parent/child
+             * relationship. Thus, if the parent is searched unsuccessfuly at
+             * the correct ttl, we still must search the child as it could
+             * have both the correct ttl and the correct flow_id. - T.D.
+             */
+            if (interface->num_ttls == 1) {
+                return LATTICE_INTERRUPT_NEXT; // don't process children
+            }
+        }
+    }
+    return LATTICE_CONTINUE; // continue until we reach the right ttl
+}
+
 static lattice_return_t mda_search_source(lattice_elt_t * elt, void * data)
 {
     mda_interface_t   * interface = lattice_elt_get_data(elt);
@@ -607,6 +654,30 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
 
         dest_interface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it:
                                        // create technically makes first ttl 0, this overwrites).
+        // In the case where there is not at least one predecessor for the interface found in the reply, we need to backward probe in order
+        // to reconnect it with the rest of the lattice
+        //Check if there is already one predecessor for this interface.
+        mda_search_data_t predecessor;
+        predecessor.ttl = ttl - 1;
+        predecessor.flow_id = flow_id_u16;
+        predecessor.result = NULL;
+        if (addr.ip.ipv4.s_addr == 1768720525){
+            printf("Flows ttl\n");
+        }
+        ret = lattice_walk(data->lattice, mda_exist_source, &predecessor, LATTICE_WALK_DFS);
+        // Do not try to find real predecessor for ttl 1, we know it is the source 
+        if (ttl != 1){
+            if (ret == LATTICE_CONTINUE){
+                    if (predecessor.result == NULL) {
+                    probe_t* backward_probe = probe_dup(skel);
+                    probe_set_fields(backward_probe, I8("ttl", ttl-1), I16("flow_id",flow_id_u16), NULL);
+                    uint8_t b_ttl;
+                    probe_extract(backward_probe, "ttl", &b_ttl);
+                    pt_send_probe(data->loop, backward_probe);
+                } 
+            }                               
+        }
+                                       
     }
 
     search_ttl_flow.ttl = ttl - 1;
@@ -670,10 +741,11 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                 goto ERR_MDA_EVENT_NEW_LINK;
             }
         }
-    }
+    }  
+    
 
     // Insert flow in the right interface
-    if (!(mda_flow = mda_flow_create(flow_id_u16, MDA_FLOW_AVAILABLE))) {
+    if (!(mda_flow = mda_flow_create(flow_id_u16, MDA_FLOW_AVAILABLE, MDA_FLOW_REAL))) {
         goto ERR_MDA_FLOW_CREATE;
     }
 
