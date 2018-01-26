@@ -27,12 +27,6 @@ typedef struct {
     lattice_elt_t * result;
 } mda_search_data_t;
 
-typedef struct {
-    uint8_t         ttl;
-    dynarray_t    * ttl_flows;
-    lattice_elt_t * result;
-} mda_search_predecessor_t;
-
 //---------------------------------------------------------------------------
 // Options supported by mda.
 // mda also supports options supported by traceroute.
@@ -661,9 +655,6 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
         predecessor.ttl = ttl - 1;
         predecessor.flow_id = flow_id_u16;
         predecessor.result = NULL;
-        if (addr.ip.ipv4.s_addr == 1768720525){
-            printf("Flows ttl\n");
-        }
         ret = lattice_walk(data->lattice, mda_exist_source, &predecessor, LATTICE_WALK_DFS);
         // Do not try to find real predecessor for ttl 1, we know it is the source 
         if (ttl != 1){
