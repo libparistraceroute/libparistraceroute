@@ -1,12 +1,14 @@
 #ifndef SET_H
 #define SET_H
 
-#include <stdbool.h>
+#include <stdbool.h>                // bool
+#include <stddef.h>                 // size_t
 #include "containers/object.h"
 
 typedef struct {
     void     * root;          /**< tree of element   */
     object_t * dummy_element; /**< object_t<element> */
+    size_t     size;          /** Current number of elements in the set */
 } set_t;
 
 /**
@@ -17,7 +19,7 @@ typedef struct {
  * \param element_free Callback used to free element (may be set to NULL).
  *    If NULL, the set does not release references that it contains.
  * \param element_dump Callback used to dump element (may be set to NULL).
- *    If NULL, the set cannot be printed using set_dump. 
+ *    If NULL, the set cannot be printed using set_dump.
  * \param element_compare Callback used to compare elements (mandatory).
  */
 
@@ -56,6 +58,14 @@ set_t * set_dup(const set_t * set);
  */
 
 void set_free(set_t * set);
+
+
+/**
+ * @brief Give the current number of elements of the set
+ * @param set
+ * @return long unsigned int
+ */
+size_t set_size(set_t * set);
 
 /**
  * \brief Print a set_t instance in the standard output.

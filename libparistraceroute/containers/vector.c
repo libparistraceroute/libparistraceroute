@@ -1,10 +1,9 @@
 #include "config.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
 #include "vector.h"
+
+#include <stdint.h> // uin8_t
+#include <stdlib.h> // malloc
+#include <string.h> // memset
 
 #define VECTOR_SIZE_INIT  5
 #define VECTOR_SIZE_INC   5
@@ -20,19 +19,25 @@ static void vector_initialize(vector_t * vector) {
     vector->max_cells = VECTOR_SIZE_INIT;
 }
 
-vector_t * vector_create_impl(size_t size, void (* callback_free)(void *), void (* callback_dump)(const void *)) {
-    vector_t * vector = malloc(size);
+vector_t * vector_create_impl(
+    size_t size,
+    void * (*callback_dup)(const void *),
+    void   (*callback_free)(void *),
+    void   (*callback_dump)(const void *)
+) {
+    vector_t * vector = malloc(sizeof(vector_t));
     if (vector) {
         vector->cell_size = size;
         vector->cells = calloc(VECTOR_SIZE_INIT, vector->cell_size);
         vector->cells_free = callback_free;
         vector->cells_dump = callback_dump;
+        vector->cells_dup = callback_dup;
         vector_initialize(vector);
     }
     return vector;
 }
 
-void vector_free(vector_t * vector, void (* element_free)(void * element)) {
+void vector_free(vector_t * vector, void (*element_free)(void * element)) {
     size_t i;
     void * element;
 
@@ -96,7 +101,7 @@ bool vector_del_ith_element(vector_t * vector, size_t i)
 void vector_clear(vector_t * vector, void (*element_free)(void * element))
 {
     size_t i;
-    void * element;    
+    void * element;
 
     if (vector) {
         if (element_free) {
@@ -122,7 +127,7 @@ size_t vector_get_cell_size(const vector_t * vector) {
 void * vector_get_ith_element(const vector_t * vector, size_t i) {
     return (i >= vector->num_cells) ?
         NULL :
-        vector_get_ith_element_impl(vector, i); 
+        vector_get_ith_element_impl(vector, i);
 }
 
 bool vector_set_ith_element(vector_t * vector, size_t i, void * element)
@@ -140,4 +145,22 @@ void vector_dump(vector_t * vector) {
     for(i = 0; i < vector_get_num_cells(vector); i++) {
         vector->cells_dump(vector_get_ith_element_impl(vector, i));
     }
+}
+
+vector_t * vector_deep_dup(const vector_t* vector){
+    vector_t* copy = vector_create(vector->cell_size,vector->cells_dup, vector->cells_free, vector->cells_dump);
+    size_t i;
+    for(i = 0; i < vector->num_cells; ++i){
+        vector_push_element(copy, vector->cells_dup(vector_get_ith_element(vector, i)));
+    }
+    return copy;
+}
+
+vector_t * vector_dup(const vector_t* vector){
+    vector_t* copy = vector_create(vector->cell_size,vector->cells_dup, vector->cells_free, vector->cells_dump);
+    size_t i;
+    for(i = 0; i < vector->num_cells; ++i){
+        vector_push_element(copy, vector_get_ith_element(vector, i));
+    }
+    return copy;
 }

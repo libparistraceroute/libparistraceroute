@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "list.h"
+#include "containers/list.h"
 
 typedef struct {
     list_t * elements; /**< Elements stored in the queue */

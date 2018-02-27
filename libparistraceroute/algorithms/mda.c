@@ -266,7 +266,7 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
             address_dump(interface->address);
             break;
         }
-        
+
         flow_id = mda_ttl_flow->mda_flow->flow_id;
         ttl     = mda_ttl_flow->ttl;
         // Send corresponding probe with ttl + 1
@@ -390,7 +390,7 @@ static lattice_return_t mda_search_source(lattice_elt_t * elt, void * data)
             for (j = 0; j < size; j++) {
                 mda_ttl_flow = dynarray_get_ith_element(interface->ttl_flows, j);
                 mda_flow = mda_ttl_flow->mda_flow;
-                if ((mda_flow->flow_id == search->flow_id) 
+                if ((mda_flow->flow_id == search->flow_id)
                 && (mda_ttl_flow->ttl == search->ttl)
                 &&  (mda_flow->state != MDA_FLOW_TESTING)) {
                     search->result = elt;
@@ -526,6 +526,9 @@ static void mda_handler_init(pt_loop_t * loop, event_t * event, mda_data_t ** pd
     if (!lattice_add_element(data->lattice, NULL, mda_interface_create(NULL))) {
         goto ERR_LATTICE_ADD_ELEMENT;
     }
+    
+    // Here we should pass an outputer to determine how the mda should print
+    pt_raise_event(loop, event_create(MDA_BEGINS, skel, NULL, NULL));
 
     return;
 
@@ -549,6 +552,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     // manage this XXX
     const probe_t    * probe,
                      * reply;
+    probe_reply_t    * probe_reply;     // (Probe, Reply) pair
     lattice_elt_t    * source_elt,
                      * dest_elt;
     mda_interface_t  * source_interface,
@@ -569,6 +573,11 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     if (!(probe_extract(probe, "ttl",     &ttl)))         goto ERR_EXTRACT_TTL;
     if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
     if (!(probe_extract(reply, "src_ip",  &addr)))        goto ERR_EXTRACT_SRC_IP;
+
+
+    // Raise an event to save which header tuple has matched which interface.
+    probe_reply = (probe_reply_t *) event->data;
+    pt_raise_event(loop, event_create(MDA_PROBE_REPLY, probe_reply, NULL, (ELEMENT_FREE) probe_reply_free));
 
     //printf("Probe reply received: %hhu %s [%ju]\n", ttl, addr, flow_id_u16);
 
@@ -595,7 +604,8 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
     } else {
         dest_elt = NULL;
         dest_interface = mda_interface_create(&addr);
-        dest_interface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it: 
+
+        dest_interface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it:
                                        // create technically makes first ttl 0, this overwrites).
     }
 
@@ -622,12 +632,12 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                 src_ttl = source_interface->ttl_set[i];
                 bool contains = false;
                 for (j = 0; j < dest_interface->num_ttls; ++j) {
-                    if (src_ttl + 1 == dest_interface->ttl_set[j]) { 
+                    if (src_ttl + 1 == dest_interface->ttl_set[j]) {
                         contains = true;
                         break;
                     }
                 }
-                
+
                 if (!contains) {
                     if (dest_interface->num_ttls == MAX_TTLS){
                         fprintf(stderr, "Too many ttl_set! Increase MAX_TTLS\n");
@@ -636,7 +646,7 @@ static void mda_handler_reply(pt_loop_t * loop, event_t * event, mda_data_t * da
                         dest_interface->num_ttls++;
                     }
                 }
-            }    
+            }
 
             /* dest_interface->num_stars = 0;
              *
@@ -708,9 +718,11 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
     size_t                  i, num_next;
 
     probe = event->data;
-
     if (!(probe_extract(probe, "ttl",     &ttl)))     goto ERR_EXTRACT_TTL;
     if (!(probe_extract(probe, "flow_id", &flow_id_u16))) goto ERR_EXTRACT_FLOW_ID;
+
+    // Raise an event to save which header tuple has timedout.
+    pt_raise_event(loop, event_create(MDA_PROBE_TIMEOUT, probe, NULL, NULL));
 
     search_ttl_flow.ttl = ttl - 1;
     search_ttl_flow.flow_id = flow_id_u16;
@@ -734,7 +746,7 @@ static void mda_handler_timeout(pt_loop_t *loop, event_t *event, mda_data_t * da
             // one interface...
             if (source_interface->num_stars < options->traceroute_options.max_undiscovered) {
                 mda_interface_t * new_iface = mda_interface_create(NULL);
-                new_iface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it: 
+                new_iface->ttl_set[0] = ttl; // This interface's first ttl (messy way of doing it:
                                           // create technically makes first ttl 0, this overwrites).
 
                 new_iface->num_stars = source_interface->num_stars + 1;
@@ -778,6 +790,12 @@ ERROR:
 ERR_EXTRACT_FLOW_ID:
 ERR_EXTRACT_TTL:
     return;
+}
+
+
+static void mda_handler_terminate(pt_loop_t *loop, event_t *event, mda_data_t * data, probe_t *skel, const mda_options_t * options){
+    // Here we should pass an outputer to determine how the mda should print
+    pt_raise_event(loop, event_create(MDA_ENDS, NULL, NULL, NULL));
 }
 
 /* Very similar to a set of fields + command line flags... */
@@ -830,7 +848,7 @@ int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel
         case LATTICE_DONE:  break;
         default:            return 0;
     }
-
+    mda_handler_terminate(loop, event, data, skel, options);
     pt_raise_terminated(loop);
     return 0;
 }

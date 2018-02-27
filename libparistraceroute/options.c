@@ -107,6 +107,7 @@ options_t * options_create(bool (* collision_callback)(option_t * option1, const
 
     if (!(options->optspecs = vector_create(
         sizeof(option_t),
+        option_dup,
         (ELEMENT_FREE) option_free,
         (ELEMENT_DUMP) option_dump
     ))) {

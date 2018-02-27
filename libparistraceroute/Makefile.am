@@ -32,24 +32,29 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         algorithms/mda/interface.h \
                         algorithms/mda/ttl_flow.h \
                         algorithms/mda.h \
+                        algorithms/outputs/json.h \
+                        algorithms/outputs/traceroute_enriched_data.h \
+                        algorithms/outputs/traceroute_output_format.h \
                         algorithms/ping.h \
                         algorithms/traceroute.h \
                         bitfield.h \
                         bits.h \
                         buffer.h \
                         common.h \
+                        containers/list.h \
                         containers/object.h \
                         containers/map.h \
                         containers/pair.h \
                         containers/set.h \
+                        containers/vector.h \
                         dynarray.h \
                         event.h \
                         field.h \
                         group.h \
                         generator.h \
+                        int.h\
                         layer.h \
                         lattice.h \
-                        list.h \
                         metafield.h \
                         network.h \
                         optparse.h \
@@ -81,7 +86,6 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         socketpool.h \
                         tree.h \
                         use.h \
-                        vector.h \
                         whois.h
 
 nodist_nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS = \
@@ -109,25 +113,30 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         algorithms/mda/flow.c \
                         algorithms/mda/interface.c \
                         algorithms/mda/ttl_flow.c \
+                        algorithms/outputs/json.c \
+                        algorithms/outputs/traceroute_enriched_data.c \
+                        algorithms/outputs/traceroute_output_format.c \
                         algorithms/ping.c \
                         algorithms/traceroute.c \
                         bitfield.c \
                         bits.c \
                         buffer.c \
                         common.c \
+                        containers/list.c \
                         containers/object.c \
                         containers/map.c \
                         containers/pair.c \
                         containers/set.c \
+                        containers/vector.c \
                         dynarray.c \
                         event.c \
                         field.c \
                         group.c \
                         generator.c \
                         generators/uniform.c \
+                        int.c\
                         lattice.c \
                         layer.c \
-                        list.c \
                         metafield.c \
                         network.c \
                         optparse.c \
@@ -155,7 +164,6 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         sniffer.c \
                         socketpool.c \
                         tree.c \
-                        vector.c \
                         whois.c
 
 ## Instruct libtool to include ABI version information in the generated shared
