@@ -100,11 +100,13 @@ void * list_pop_element(list_t * list, void (*element_free)(void * element)) {
 
 void list_fprintf(FILE * out, const list_t * list) {
     if (list->element_fprintf) {
-        list_cell_t * cur = list->head,
-                    * end = list->tail;
-        for (; cur != end; cur = cur->next) {
+        list_cell_t * cur = list->head;
+        fprintf(out, "[");
+        for (; cur; cur = cur->next) {
+            fprintf(out, " ");
             list->element_fprintf(out, cur->element);
         }
+        fprintf(out, " ]");
     }
 }
 
