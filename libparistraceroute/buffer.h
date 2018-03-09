@@ -3,7 +3,8 @@
 
 #include <stddef.h>  // size_t
 #include <stdbool.h> // bool
-#include <stdint.h>
+#include <stdint.h>  // uint8_t
+#include <stdio.h>   // FILE *
 
 /**
  * \struct buffer_t
@@ -90,7 +91,7 @@ bool buffer_write_bytes(buffer_t * buffer, const void * bytes, size_t num_bytes)
 /**
  * \brief Alter the size declared in the buffer structure.
  * It does not reallocate anything.
- * \param buffer The address of the buffer
+ * \param buffer The address of the buffer.
  */
 
 void buffer_set_size(buffer_t * buffer, size_t size);
@@ -98,10 +99,18 @@ void buffer_set_size(buffer_t * buffer, size_t size);
 //-----------------------------------------------------------------
 
 /**
- * \brief Print the buffer content on the standard output
- * \param buffer The address of the buffer
+ * \brief Print the buffer content on the standard output.
+ * \param buffer The address of the buffer.
  */
 
 void buffer_dump(const buffer_t * buffer);
+
+/**
+ * \brief Print the buffer content.
+ * \param out The file descriptor of the output file.
+ * \param buffer The address of the buffer.
+ */
+
+void buffer_fprintf(FILE * out, const buffer_t * buffer);
 
 #endif

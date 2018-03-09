@@ -103,6 +103,10 @@ void packet_set_buffer(packet_t * packet, buffer_t * buffer) {
     packet->buffer = buffer;
 }
 
+void packet_fprintf(FILE * out, const packet_t * packet) {
+    buffer_fprintf(out, packet->buffer);
+}
+
 void packet_dump(const packet_t * packet) {
-    buffer_dump(packet->buffer);
+    packet_fprintf(stdout, packet);
 }

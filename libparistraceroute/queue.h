@@ -3,7 +3,8 @@
 
 #include <stdbool.h>
 
-#include "list.h"
+#include "common.h"
+#include "containers/list.h"
 
 typedef struct {
     list_t * elements; /**< Elements stored in the queue */
@@ -12,17 +13,26 @@ typedef struct {
 
 /**
  * \brief Create a new queue
+ * \param element_free Callback used to free elements.
  * \return A pointer to the newly created queue, NULL otherwise.
  */
 
-queue_t * queue_create();
+queue_t * queue_create_impl(
+    void   (*element_free)(void * element),
+    void   (*element_fprintf)(FILE * out, const void * element)
+);
+
+#define queue_create(element_free, element_fprintf) queue_create_impl(\
+    (ELEMENT_FREE)    element_free, \
+    (ELEMENT_FPRINTF) element_fprintf \
+)
 
 /**
  * \brief Delete a queue structure.
  * \param queue Points to the queue structure to delete.
  */
 
-void queue_free(queue_t * queue, void (*element_free) (void * element));
+void queue_free(queue_t * queue);
 
 /**
  * \brief Push an element in the queue

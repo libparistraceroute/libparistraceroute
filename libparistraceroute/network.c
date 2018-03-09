@@ -276,7 +276,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
     size_t     i, num_flying_probes;
 
     // XXX
-    
+
     // Fetch the tag from the reply. Its the 3rd checksum field.
     if (!(reply_extract_tag(reply, &tag_reply))) {
         // This is not an IP / ICMP / IP / * reply :(
@@ -294,7 +294,7 @@ static probe_t * network_get_matching_probe(network_t * network, const probe_t *
             if (tag_reply == tag_probe) break;
         }
     }
-    
+
 /*
     // XXX BEGIN Harcoded ICMP response (JA 17/07/2014)
     tag_reply = 0; tag_probe = 0; tag_probe++; tag_reply++;
@@ -349,8 +349,8 @@ network_t * network_create()
 
     if (!(network = malloc(sizeof(network_t))))          goto ERR_NETWORK;
     if (!(network->socketpool   = socketpool_create()))  goto ERR_SOCKETPOOL;
-    if (!(network->sendq        = queue_create()))       goto ERR_SENDQ;
-    if (!(network->recvq        = queue_create()))       goto ERR_RECVQ;
+    if (!(network->sendq = queue_create(probe_free,  probe_fprintf)))  goto ERR_SENDQ;
+    if (!(network->recvq = queue_create(packet_free, packet_fprintf))) goto ERR_RECVQ;
 
     if ((network->timerfd = timerfd_create(CLOCK_REALTIME, 0)) == -1) {
         goto ERR_TIMERFD;
@@ -386,9 +386,11 @@ ERR_GROUP_TIMERFD :
 #endif
     close(network->timerfd);
 ERR_TIMERFD:
-    queue_free(network->recvq, (ELEMENT_FREE) packet_free);
+    //queue_free(network->recvq, (ELEMENT_FREE) packet_free);
+    queue_free(network->recvq);
 ERR_RECVQ:
-    queue_free(network->sendq, (ELEMENT_FREE) probe_free);
+    //queue_free(network->sendq, (ELEMENT_FREE) probe_free);
+    queue_free(network->sendq);
 ERR_SENDQ:
     socketpool_free(network->socketpool);
 ERR_SOCKETPOOL:
@@ -403,8 +405,8 @@ void network_free(network_t * network)
         dynarray_free(network->probes, (ELEMENT_FREE) probe_free);
         close(network->timerfd);
         sniffer_free(network->sniffer);
-        queue_free(network->sendq, (ELEMENT_FREE) probe_free);
-        queue_free(network->recvq, (ELEMENT_FREE) probe_free);
+        queue_free(network->sendq);// , (ELEMENT_FREE) probe_free);
+        queue_free(network->recvq),//, (ELEMENT_FREE) probe_free);
         socketpool_free(network->socketpool);
 #ifdef USE_SCHEDULING
         probe_group_free(network->scheduled_probes);

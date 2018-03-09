@@ -74,17 +74,25 @@ size_t probe_get_size(const probe_t * probe);
  * \brief Create a probe_t according to a packet_t instance.
  *   The previous value of probe->packet (if any) is not freed.
  * \return A pointer to a newly allocated probe_t instance if
- *   if successful, NULL otherwise
+ *   if successful, NULL otherwise.
  */
 
 probe_t * probe_wrap_packet(packet_t * packet);
 
 /**
- * \brief Print probe contents
- * \param probe The probe_t instance to print
+ * \brief Print probe contents.
+ * \param probe The probe_t instance to print.
  */
 
 void probe_dump(const probe_t * probe);
+
+/**
+ * \brief Print probe contents.
+ * \param out The output file.
+ * \param probe The probe_t instance to print.
+ */
+
+void probe_fprintf(FILE * out, const probe_t * probe);
 
 /**
  * \brief Print probe contents and their corresponding expected value
@@ -123,7 +131,7 @@ bool probe_write_field(probe_t * probe, const char * name, void * bytes, size_t 
 
 /**
  * \brief Update for each layer of a probe its 'checksum' field
- *   (if any) in order to have a packet well-formed. 
+ *   (if any) in order to have a packet well-formed.
  * \param probe The probe we're updating
  * \return true iif successfull
  */
@@ -133,7 +141,7 @@ bool probe_update_checksum(probe_t * probe);
 /**
  * \brief Update 'length', 'checksum' and 'protocol' fields for each
  *   network protocol layer making the probe.
- * \return true iif successful
+ * \return true iif successful.
  */
 
 bool probe_update_fields(probe_t * probe);
@@ -143,7 +151,7 @@ bool probe_update_fields(probe_t * probe);
  * \param probe A pointer to a probe_t structure representing the probe
  * \param field1 The first of a list of pointers to a field_t structure
  *    representing a field to add. Each field is freed from the memory.
- * \return true iif successful,
+ * \return true iif successful.
  */
 
 bool probe_set_fields(probe_t * probe, field_t * field1, ...);
@@ -156,24 +164,24 @@ bool probe_set_fields(probe_t * probe, field_t * field1, ...);
  *    probe_get_num_layers(probe) - 1.
  * \param field1 The first of a list of pointers to a field_t structure
  *    representing a field to add. Each field is freed from the memory.
- * \return true iif successful,
+ * \return true iif successful.
  */
 
 //bool probe_set_fields_ext(probe_t * probe, size_t depth, field_t * field1, ...);
 
 /**
- * \brief Iterates through the fields in a probe, passing them as the argument to a callback function
- * \param probe A pointer to a probe_t structure representing the probe
+ * \brief Iterates through the fields in a probe, passing them as the argument to a callback function.
+ * \param probe A pointer to a probe_t structure representing the probe.
  * \param data A pointer to hold the returned data from the callback (?)
- * \param callback A function pointer to a callback function
+ * \param callback A function pointer to a callback function.
  */
 
 void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *field, void *data));
 
 /**
- * \brief Extract a value from a probe
- * \param probe The probe from which we're retrieving a field
- * \param name The name of the queried field
+ * \brief Extract a value from a probe.
+ * \param probe The probe from which we're retrieving a field.
+ * \param name The name of the queried field.
  * \param dst The place where probe_extract_ext writes. Acts as scanf.
  * \return true iif successful
  */
@@ -181,13 +189,13 @@ void probe_iter_fields(probe_t *probe, void *data, void (*callback)(field_t *fie
 bool probe_extract(const probe_t * probe, const char * name, void * dst);
 
 /**
- * \brief Extract a value from a probe
- * \param probe The probe from which we're retrieving a field
- * \param name The name of the queried field
+ * \brief Extract a value from a probe.
+ * \param probe The probe from which we're retrieving a field.
+ * \param name The name of the queried field.
  * \param depth The index of the first layer from which the field
  *    can be extracted. 0 corresponds to the first layer.
  * \param dst The place where probe_extract_ext writes. Acts as scanf.
- * \return true iif successful
+ * \return true iif successful.
  */
 
 // TODO depth should be 2nd parameter
@@ -195,39 +203,39 @@ bool probe_extract_ext(const probe_t * probe, const char * name, size_t depth, v
 
 /**
  * \brief Allocate a field based on probe contents according to a given field name.
- * \param probe The probe from which we're retrieving a field
- * \param name The name of the queried field
- * \return A pointer to the corresponding field, NULL if not found
+ * \param probe The probe from which we're retrieving a field.
+ * \param name The name of the queried field.
+ * \return A pointer to the corresponding field, NULL if not found.
  */
 
 field_t * probe_create_field(const probe_t * probe, const char * name);
 
 /**
  * \brief Allocate a field according to a given field name.
- * \param probe The probe from which we're retrieving a field
- * \param name The name of the queried field
+ * \param probe The probe from which we're retrieving a field.
+ * \param name The name of the queried field.
  * \param depth The index of the first layer from which the field
  *    can be extracted. 0 corresponds to the first layer.
- * \return A pointer to the corresponding field, NULL if not found
+ * \return A pointer to the corresponding field, NULL if not found.
  */
 
 // TODO depth should be 2nd parameter
 field_t * probe_create_field_ext(const probe_t * probe, const char * name, size_t depth);
 
 /**
- * \brief Get the payload from a probe
- * \param probe Pointer to a probe_t structure to get the payload from
- * \return The corresponding pointer, NULL in case of failure
+ * \brief Get the payload from a probe.
+ * \param probe Pointer to a probe_t structure to get the payload from.
+ * \return The corresponding pointer, NULL in case of failure.
  */
 
 uint8_t * probe_get_payload(const probe_t * probe);
 
 /**
- * \brief Resize the probe's payload
+ * \brief Resize the probe's payload.
  * \param payload_size The new size of the payload. If smaller,
  *    previous data is trunked.  If greater the additionnal
  *    bytes are set to 0.
- * \return true iif successfull
+ * \return true iif successfull.
  */
 
 bool probe_payload_resize(probe_t * probe, size_t payload_size);
@@ -235,9 +243,9 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size);
 /**
  * \brief Write data in the probe's payload. The packet_t instance
  *   is automatically resized if required.
- * \param bytes Bytes copied in the probe's payload/
- * \param num_bytes Number of bytes copied from bytes in the payload. 
- * \return true iif successfull
+ * \param bytes Bytes to copy into the probe's payload.
+ * \param num_bytes Number of bytes copied from bytes in the payload.
+ * \return true iif successfull.
  */
 
 bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes);
@@ -245,9 +253,9 @@ bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes);
 /**
  * \brief Write data in the probe's payload at a given offset. The
  *    packet_t instance is automatically resized if required.
- * \param probe The update payload
+ * \param probe The probe address.
  * \param bytes Bytes copied in the probe's payload.
- * \param num_bytes Number of bytes copied from bytes in the payload. 
+ * \param num_bytes Number of bytes copied from bytes in the payload.
  * \param offset The offset (starting from the beginning of the payload)
  *    in bytes added to the payload address to write the data.
  * \return true iif successfull.
@@ -256,26 +264,26 @@ bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes);
 bool probe_write_payload_ext(probe_t * probe, const void * bytes, size_t num_bytes, size_t offset);
 
 /**
- * \brief Get the size of the payload from a probe
- * \param probe Pointer to a probe_t structure to get the payload size from
- * \return 0 (NYI - Will be Size of the probe's payload)
+ * \brief Get the size of the payload from a probe.
+ * \param probe The probe address.
+ * \return 0 (NYI - Will be Size of the probe's payload).
  */
 
 size_t probe_get_payload_size(const probe_t * probe);
 
 /**
- * \brief Get the name of protocol involved in the probe
+ * \brief Get the name of protocol involved in the probe.
  * \param i Index of the related layer
- *    (between 0 and probe_get_num_layers(probe) - 1)
+ *    (between 0 and probe_get_num_layers(probe) - 1).
  * \return The name of the corresponding network protocol,
- *    NULL in case of failure
+ *    NULL in case of failure.
  */
 
 const char * probe_get_protocol_name(const probe_t * probe, size_t i);
 
 /**
  * \brief Retrieve the i-th layer stored in a probe.
- * \param probe The queried probe
+ * \param probe The queried probe.
  * \param The index of the layer (from 0 to probe_get_num_layers(probe) - 1).
  *   The last layer is the payload.
  * \return The corresponding layer, NULL if i is invalid.
@@ -284,16 +292,16 @@ const char * probe_get_protocol_name(const probe_t * probe, size_t i);
 layer_t * probe_get_layer(const probe_t * probe, size_t i);
 
 /**
- * \brief Retrieve the number of layers (number of headers + 1 (payload))
- * \param probe The queried probe
+ * \brief Retrieve the number of layers (number of headers + 1 (payload)).
+ * \param probe The queried probe.
  * \return The number of layer stored in this probe.
  */
 
 size_t probe_get_num_layers(const probe_t * probe);
 
 /**
- * \brief Retrieve the layer related to the payload from a probe
- * \param probe The queried probe
+ * \brief Retrieve the layer related to the payload from a probe.
+ * \param probe The queried probe.
  * \return The corresponding layer, NULL if i is invalid.
  */
 

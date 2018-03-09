@@ -16,8 +16,7 @@ buffer_t * buffer_create() {
     return buffer;
 }
 
-buffer_t * buffer_dup(const buffer_t * buffer)
-{
+buffer_t * buffer_dup(const buffer_t * buffer) {
     buffer_t * ret;
 
     if (!buffer)                                goto ERR_INVALID_PARAMETER;
@@ -35,8 +34,7 @@ ERR_INVALID_PARAMETER:
     return NULL;
 }
 
-void buffer_free(buffer_t * buffer)
-{
+void buffer_free(buffer_t * buffer) {
     if (buffer) {
         if (buffer->data) {
             free(buffer->data);
@@ -45,8 +43,7 @@ void buffer_free(buffer_t * buffer)
     }
 }
 
-bool buffer_resize(buffer_t * buffer, size_t size)
-{
+bool buffer_resize(buffer_t * buffer, size_t size) {
     uint8_t * data2;
     bool      ret = true;
     size_t    old_size = buffer->size;
@@ -55,7 +52,7 @@ bool buffer_resize(buffer_t * buffer, size_t size)
         if (buffer->data) {
             data2 = realloc(buffer->data, size * sizeof(uint8_t));
             if (data2 && size > old_size) {
-                memset(data2 + old_size, 0, size - old_size); 
+                memset(data2 + old_size, 0, size - old_size);
             }
         } else {
             data2 = calloc(size, sizeof(uint8_t));
@@ -89,12 +86,16 @@ inline void buffer_set_size(buffer_t * buffer, size_t size) {
 
 // Dump
 
-void buffer_dump(const buffer_t * buffer) {
+void buffer_fprintf(FILE * out, const buffer_t * buffer) {
     size_t i, n = buffer->size;
 
     for (i = 0; i < n; i++) {
-        printf("%02x ", buffer->data[i]);
+        fprintf(out, "%02x ", buffer->data[i]);
         if (i % 16 == 15) printf("\n");
     }
+}
+
+void buffer_dump(const buffer_t * buffer) {
+    buffer_fprintf(stdout, buffer);
 }
 
