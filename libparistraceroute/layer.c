@@ -142,9 +142,9 @@ bool layer_set_field(layer_t * layer, const field_t * field) {
 
     // Copy the field value into the buffer
     // If we have a setter function, use it ; otherwise write it by using the generic function
-    if ((protocol_field->set && !protocol_field->set(layer->segment, field)) 
+    if ((protocol_field->set && !protocol_field->set(layer->segment, field))
     || (!protocol_field->set && !protocol_field_set(protocol_field, layer->segment, field))
-    ){
+    ) {
         fprintf(stderr, "layer_set_field: can't set field '%s' (layer %s)\n", field->key, layer->protocol->name);
         goto ERR_PROTOCOL_FIELD_SET;
     }
@@ -171,7 +171,7 @@ bool layer_write_field(layer_t * layer, const char * key, const void * bytes, si
 
     // TODO support bit level fields
 #ifdef USE_BITS
-    if (protocol_field->size_in_bits) {
+    if (protocol_field->type == TYPE_BITS) {
         fprintf(stderr, "layer_write_field: does not support bit-level fields\n");
         return false;
     }
@@ -193,7 +193,7 @@ ERR_LAYER_GET_PROTOCOL_FIELD:
     return false;
 }
 
-bool layer_write_payload(layer_t * layer, const void * bytes, size_t num_bytes) { 
+bool layer_write_payload(layer_t * layer, const void * bytes, size_t num_bytes) {
     return layer_write_payload_ext(layer, bytes, num_bytes, 0);
 }
 
@@ -249,6 +249,7 @@ static bool segment_extract(const uint8_t * segment, const protocol_field_t * pr
     switch (protocol_field->type) {
 #ifdef USE_BITS
         case TYPE_BITS:
+            //printf("segment_extract: @segment = %p+%zu over %zu bits\n", segment, protocol_field->offset_in_bits, protocol_field->size_in_bits);
             ret = (bits_extract(
                 segment,
                 protocol_field->offset_in_bits,
@@ -319,13 +320,32 @@ bool layer_extract(const layer_t * layer, const char * key, void * value) {
     }
 
     if (protocol_field->get) {
-        if (!(field = protocol_field->get(layer->segment))) goto ERR_PROTOCOL_FIELD_GET;
-        memcpy(value, &field->value, protocol_field_get_size(protocol_field));
-        field_free(field);
+        // TYPE_BITS fields typically rely on dedicated callbacks
+        if (!(field = protocol_field->get(layer->segment))) {
+            goto ERR_PROTOCOL_FIELD_GET;
+        }
+
+#ifdef USE_BITS
+        switch (protocol_field->type) {
+            case TYPE_BITS:
+                memcpy(
+                    value,
+                    field->value.bits.bits,
+                    (field->value.bits.size_in_bits / 8) + (field->value.bits.size_in_bits % 8 ? 1 : 0)
+                );
+                break;
+            default:
+#endif
+                memcpy(value, &field->value, protocol_field_get_size(protocol_field));
+                field_free(field);
+#ifdef USE_BITS
+                break;
+        }
+#endif
         ret = true;
     } else {
         ret  = segment_extract(layer->segment, protocol_field, value);
-        ret &= value_htons(value, protocol_field->type);         
+        ret &= value_htons(value, protocol_field->type);
     }
     return ret;
 
@@ -336,40 +356,63 @@ ERR_INVALID_LAYER:
 }
 
 static void layer_dump_value(const layer_t * layer, const protocol_field_t * protocol_field) {
-    value_t value;
+    value_t         value;
+    size_t          num_bits, offset_in_bits;
+    const uint8_t * bytes;
 
-    layer_extract(layer, protocol_field->key, &value);
+    if (!layer_extract(layer, protocol_field->key, &value)) {
+        fprintf(stderr, "layer_dump_value: cannot extract '%s'\n", protocol_field->key);
+    }
 
     // Host-side endianness
-    value_dump(&value, protocol_field->type);
+#ifdef USE_BITS
+    if (protocol_field->type != TYPE_BITS) {
+#endif
+        value_dump(&value, protocol_field->type);
+#ifdef USE_BITS
+    } else if (protocol_field->size_in_bits <= 8) {
+        value_dump(&value, TYPE_UINT8);
+    } else {
+        printf("N/A");
+    }
+#endif
 
     // Network-side endianness
-    value_htons(&value, protocol_field->type);
-    printf("\t(");
-    value_dump_hex(
-        &value,
-        protocol_field_get_size(protocol_field),
 #ifdef USE_BITS
-        protocol_field->offset_in_bits,
-#else
-        0,
+    switch (protocol_field->type) {
+        case TYPE_BITS:
+            num_bits = protocol_field->size_in_bits;
+            offset_in_bits = protocol_field->offset_in_bits;
+            bytes = layer->segment + protocol_field->offset;
+            break;
+        default:
 #endif
-        protocol_field->size_in_bits
-    );
+            // Integer value must be translated to the right endianness
+            num_bits = 8 * protocol_field_get_size(protocol_field);
+            offset_in_bits = 0;
+            value_htons(&value, protocol_field->type);
+            bytes = (const uint8_t *) &value;
+#ifdef USE_BITS
+            break;
+    }
+#endif
+
+    printf("\t(");
+    bits_fprintf(stdout, bytes, num_bits, offset_in_bits);
     printf(")");
 }
 
 void layer_dump(const layer_t * layer, unsigned int indent) {
     size_t             i, size;
     protocol_field_t * protocol_field;
-    const char       * sep = "----------\n";
+    const char       * sep = "---------------------------\n";
 
     // There is no nested layer, so data carried by this layer is the payload
     print_indent(indent);
     if (!layer->protocol) {
-        printf("PAYLOAD:\n");
+        printf("PAYLOAD: (@ = %p, size = %zu)\n", layer->segment, layer->segment_size);
     } else {
-        printf("LAYER: %s\n", layer->protocol->name);
+        printf("LAYER: %s (@ = %p, size = %zu)\n", layer->protocol->name, layer->segment, layer->segment_size);
     }
 
     print_indent(indent);
@@ -398,7 +441,7 @@ void layer_dump(const layer_t * layer, unsigned int indent) {
 
 void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent) {
     protocol_field_t * protocol_field;
-    const char       * sep = "----------\n";
+    const char       * sep = "---------------------------\n";
 
     if (!layer1->protocol) {
         layer_dump(layer1, indent);

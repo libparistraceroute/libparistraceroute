@@ -43,32 +43,70 @@
 #define IPV6_DEFAULT_FLOW_LABEL      0
 #define IPV6_DEFAULT_PAYLOAD_LENGTH  0
 #define IPV6_DEFAULT_NEXT_HEADER     IPPROTO_UDP
-#define IPV6_DEFAULT_HOP_LIMIT        64
+#define IPV6_DEFAULT_HOP_LIMIT       64
 #define IPV6_DEFAULT_SRC_IP          0, 0, 0, 0
 #define IPV6_DEFAULT_DST_IP          0, 0, 0, 0
 
 // The following offsets cannot be retrieved with offsetof() so they are hardcoded
 #ifdef USE_BITS
-#    define IPV6_OFFSET_VERSION                0
-#    define IPV6_OFFSET_IN_BITS_VERSION        0
-#    define IPV6_OFFSET_TRAFFIC_CLASS          0
-#    define IPV6_OFFSET_IN_BITS_TRAFFIC_CLASS  4
-#    define IPV6_OFFSET_FLOW_LABEL             1
-#    define IPV6_OFFSET_IN_BITS_FLOW_LABEL     4
+#    include "bits.h"
+
+#    define IPV6_OFFSET_VERSION                0  // Offset in byte of the first relevant byte.
+#    define IPV6_OFFSET_IN_BITS_VERSION        0  // Offset in bits to add to get the first relevant bit.
+#    define IPV6_NUM_BITS_VERSION              4  // Number of bits.
+
+#    define IPV6_OFFSET_TRAFFIC_CLASS          0  // Offset in byte of the first relevant byte.
+#    define IPV6_OFFSET_IN_BITS_TRAFFIC_CLASS  4  // Offset in bits to add to get the first relevant bit.
+#    define IPV6_NUM_BITS_TRAFFIC_CLASS        8  // Number of bits.
+
+#    define IPV6_OFFSET_FLOW_LABEL             1  // Offset in byte of the first relevant byte.
+#    define IPV6_OFFSET_IN_BITS_FLOW_LABEL     4  // Offset in bits to add to get the first relevant bit.
+#    define IPV6_NUM_BITS_FLOW_LABEL           20 // Number of bits.
+
 #endif
 
-
-field_t * ipv6_get_length(const uint8_t * ipv6_segment) {
+static field_t * ipv6_get_length(const uint8_t * ipv6_segment) {
     const struct ip6_hdr * ipv6_header = (const struct ip6_hdr *) ipv6_segment;
-    return I16("length", ntohs(ipv6_header->ip6_plen) + sizeof(struct ip6_hdr));
+    return I16(IPV6_FIELD_LENGTH, ntohs(ipv6_header->ip6_plen) + sizeof(struct ip6_hdr));
 }
 
-bool ipv6_set_length(uint8_t * ipv6_segment, const field_t * field) {
+static bool ipv6_set_length(uint8_t * ipv6_segment, const field_t * field) {
     struct ip6_hdr * ipv6_header = (struct ip6_hdr *) ipv6_segment;
     if (field->value.int16 <  sizeof(struct ip6_hdr)) return false;
     ipv6_header->ip6_plen = htons(field->value.int16 - sizeof(struct ip6_hdr));
     return true;
 }
+
+#ifdef USE_BITS
+
+#define IPV6_GET(NAME)\
+static field_t * IPV6_GET_##NAME(const uint8_t * ipv6_segment) {\
+    return field_create_bits(\
+        IPV6_FIELD_##NAME,\
+        ipv6_segment + IPV6_OFFSET_##NAME,\
+        IPV6_OFFSET_IN_BITS_##NAME,\
+        IPV6_NUM_BITS_##NAME\
+    );\
+}
+
+#define IPV6_SET(NAME)\
+static bool IPV6_SET_##NAME(uint8_t * ipv6_segment, const field_t * field) {\
+    return bits_write(\
+        ipv6_segment + IPV6_OFFSET_##NAME,\
+        IPV6_OFFSET_IN_BITS_##NAME,\
+        field->value.bits.bits,\
+        field->value.bits.offset_in_bits,\
+        field->value.bits.size_in_bits\
+    );\
+}
+
+IPV6_GET(VERSION)
+IPV6_SET(VERSION)
+IPV6_GET(TRAFFIC_CLASS)
+IPV6_SET(TRAFFIC_CLASS)
+IPV6_GET(FLOW_LABEL)
+IPV6_SET(FLOW_LABEL)
+#endif
 
 // IPv6 fields
 
@@ -79,19 +117,25 @@ static protocol_field_t ipv6_fields[] = {
         .type           = TYPE_BITS,
         .offset         = IPV6_OFFSET_VERSION,
         .offset_in_bits = IPV6_OFFSET_IN_BITS_VERSION,
-        .size_in_bits   = 4,
+        .size_in_bits   = IPV6_NUM_BITS_VERSION,
+        .get            = IPV6_GET_VERSION,
+        .set            = IPV6_SET_VERSION,
     }, {
         .key            = IPV6_FIELD_TRAFFIC_CLASS,
         .type           = TYPE_BITS,
         .offset         = IPV6_OFFSET_TRAFFIC_CLASS,
         .offset_in_bits = IPV6_OFFSET_IN_BITS_TRAFFIC_CLASS,
-        .size_in_bits   = 4,
+        .size_in_bits   = IPV6_NUM_BITS_TRAFFIC_CLASS,
+        .get            = IPV6_GET_TRAFFIC_CLASS,
+        .set            = IPV6_SET_TRAFFIC_CLASS,
     }, {
         .key            = IPV6_FIELD_FLOW_LABEL,
         .type           = TYPE_BITS,
         .offset         = IPV6_OFFSET_FLOW_LABEL,
         .offset_in_bits = IPV6_OFFSET_IN_BITS_FLOW_LABEL,
-        .size_in_bits   = 20,
+        .size_in_bits   = IPV6_NUM_BITS_FLOW_LABEL,
+        .get            = IPV6_GET_FLOW_LABEL,
+        .set            = IPV6_SET_FLOW_LABEL,
     }, {
 #endif
         .key            = IPV6_FIELD_PAYLOAD_LENGTH,

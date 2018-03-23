@@ -743,7 +743,7 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field)
 
     for (i = depth; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
-        if (layer_set_field(layer, field)) {
+        if (layer_set_field(layer, field)) { // TODO: replace by layer_set_field_and_free
             ret = true;
             break;
         }

@@ -5,6 +5,7 @@
 
 #include <stdbool.h> // bool
 #include <stdint.h>  // uint*_t
+#include <stdio.h>   // FILE *
 #include <stddef.h>  // size_t
 
 //---------------------------------------------------------------------------
@@ -36,13 +37,13 @@ uint8_t byte_make_mask(size_t offset_in_bits, size_t num_bits);
 uint8_t byte_extract(uint8_t byte, size_t offset_in_bits, size_t num_bits, size_t offset_in_bits_out);
 
 /**
- * \brief Write a sequence of bits in an output byte according
+ * \brief Write a sequence of bits in an output buffer according
  *    to a given input byte.
- * \param byte_out The address of the output byte.
- * \param offset_in_bits_out The offset of the first bit we
+ * \param byte_out The address of the pre-allocated output buffer.
+ * \param offset_in_bits_out The offset of the first bit to
  *    write in byte_out.
- * \param byte_in The byte we read to update byte_out.
- * \param offset_in_bits_out The offset of the first bit we
+ * \param byte_in The input bytes.
+ * \param offset_in_bits_out The offset of the first bit to
  *    read in byte_in.
  * \param size_in_bits The number of bits copied from
  *    byte_in to byte_out. This value must satisfy:
@@ -61,13 +62,13 @@ bool byte_write_bits(
 
 /**
  * \brief Write a byte in the standard output (binary format).
- * \param byte The byte we want to write. 
+ * \param byte The byte we want to write.
  */
 
 void byte_dump(uint8_t byte);
 
 //---------------------------------------------------------------------------
-// Bit-level operations on one or more bytes 
+// Bit-level operations on one or more bytes
 //---------------------------------------------------------------------------
 
 /**
@@ -80,15 +81,15 @@ void byte_dump(uint8_t byte);
  * \param offset_in_bits_out The starting bit where we write in the *pdest.
  * \param dest The uint8_t * which will store the output value. Pass NULL if
  *    bits_extract must allocate automatically this buffer. This buffer must
- *    be at least of size (offset_in_bits + num_bits % 8) 
+ *    be at least of size (offset_in_bits + num_bits % 8)
  * \return The corresponding output buffer, NULL in case of failure.
  *
  * Example:
- * 
+ *
  *   bits_extract(x = 00111010 11111010 11000000 00000000, 2, 21) = 00011101 01111101 01100000
  *   21 bits are extract from x (starting from the 2nd bit of x)
  *   They are copied and right-aligned in y.
- * 
+ *
  * This example is detailed in bits.c (see function bits_test).
  */
 
@@ -103,7 +104,7 @@ uint8_t * bits_extract(
 /**
  * \brief Write a sequence of bits according to a given sequence
  *    of input bits.
- * \param out The address of the output sequence of bits 
+ * \param out The address of the output sequence of bits
  * \param offset_in_bits_out The offset of the first bit we
  *    write in out.
  * \param in The sequence of bits we read to update out.
@@ -124,9 +125,22 @@ bool bits_write(
 
 /**
  * \brief Write a byte in the standard output (binary format).
- * \param byte The byte we want to write. 
+ * \param bits The bits to write.
+ * \param num_bits The number of bits to write.
+ * \param offset_in_bits The offset, in number of bits.
+ * \sa bits_fprintf
  */
 
-void bits_dump(const uint8_t * bytes, size_t num_bytes);
+void bits_dump(const uint8_t * bits, size_t num_bits, size_t offset_in_bits);
+
+/**
+ * \brief Write a byte in the standard output (binary format).
+ * \param out The output file.
+ * \param bits The bits to write.
+ * \param num_bits The number of bits to write.
+ * \param offset_in_bits The offset, in number of bits.
+ */
+
+void bits_fprintf(FILE * out, const uint8_t * bytes, size_t num_bits, size_t offset_in_bits);
 
 #endif

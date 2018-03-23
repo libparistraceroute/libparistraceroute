@@ -46,6 +46,7 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         dynarray.h \
                         event.h \
                         field.h \
+                        filter.h \
                         group.h \
                         generator.h \
                         layer.h \
@@ -123,6 +124,7 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         dynarray.c \
                         event.c \
                         field.c \
+                        filter.c \
                         group.c \
                         generator.c \
                         generators/uniform.c \

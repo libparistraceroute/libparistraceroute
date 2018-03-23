@@ -113,4 +113,22 @@ void buffer_dump(const buffer_t * buffer);
 
 void buffer_fprintf(FILE * out, const buffer_t * buffer);
 
+/**
+ * \brief Print bytes.
+ * \param out The file descriptor of the output file.
+ * \param bytes The bytes to print (at least num_bytes allocated).
+ * \param num_bytes The number of bytes to print.
+ */
+
+void hex_fprintf(FILE * out, const uint8_t * bytes, size_t num_bytes);
+
+/**
+ * \brief Print bytes in the standard output.
+ * \param out The file descriptor of the output file.
+ * \param bytes The bytes to print (at least num_bytes allocated).
+ * \param num_bytes The number of bytes to print.
+ */
+
+void hex_dump(const uint8_t * bytes, size_t num_bytes);
+
 #endif

@@ -86,13 +86,21 @@ inline void buffer_set_size(buffer_t * buffer, size_t size) {
 
 // Dump
 
-void buffer_fprintf(FILE * out, const buffer_t * buffer) {
-    size_t i, n = buffer->size;
+void hex_fprintf(FILE * out, const uint8_t * bytes, size_t num_bytes) {
+    size_t i;
 
-    for (i = 0; i < n; i++) {
-        fprintf(out, "%02x ", buffer->data[i]);
+    for (i = 0; i < num_bytes; i++, bytes++) {
+        fprintf(out, "%02x ", *bytes);
         if (i % 16 == 15) printf("\n");
     }
+}
+
+void hex_dump(const uint8_t * bytes, size_t num_bytes) {
+    hex_fprintf(stdout, bytes, num_bytes);
+}
+
+void buffer_fprintf(FILE * out, const buffer_t * buffer) {
+    hex_fprintf(out, buffer->data, buffer->size);
 }
 
 void buffer_dump(const buffer_t * buffer) {
