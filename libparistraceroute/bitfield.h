@@ -1,5 +1,5 @@
-#ifndef BITFIELD_H
-#define BITFIELD_H
+#ifndef LIBPT_BITFIELD_H
+#define LIBPT_BITFIELD_H
 
 #include <stdint.h>  // uint8_t
 #include <stddef.h>  // size_t
@@ -159,5 +159,4 @@ void bitfield_or(bitfield_t * tgt, const bitfield_t * src);
 
 void bitfield_not(bitfield_t * tgt);
 
-#endif
-
+#endif // LIBPT_BITFIELD_H

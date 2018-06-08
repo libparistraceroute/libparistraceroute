@@ -1,5 +1,5 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef LIBPT_COMMON_H
+#define LIBPT_COMMON_H
 
 /**
  * \brief Type related to a *_free() function
@@ -57,4 +57,4 @@ double get_timestamp();
 
 void print_indent(unsigned int indent);
 
-#endif
+#endif // LIBPT_COMMON_H

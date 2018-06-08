@@ -1,5 +1,5 @@
-#ifndef LIST_H
-#define LIST_H
+#ifndef LIBPT_LIST_H
+#define LIBPT_LIST_H
 
 /**
  * \file list.h
@@ -78,4 +78,4 @@ bool list_push_element(list_t * list, void * element);
 
 void * list_pop_element(list_t * list, void (*element_free)(void * element));
 
-#endif
+#endif // LIBPT_LIST_H

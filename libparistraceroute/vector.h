@@ -1,5 +1,5 @@
-#ifndef VECTOR_H
-#define VECTOR_H
+#ifndef LIBPT_VECTOR_H
+#define LIBPT_VECTOR_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -120,4 +120,4 @@ size_t vector_get_cell_size(const vector_t * vector);
 
 void * vector_get_ith_element(const vector_t * vector, size_t i);
 
-#endif
+#endif // LIBPT_VECTOR_H

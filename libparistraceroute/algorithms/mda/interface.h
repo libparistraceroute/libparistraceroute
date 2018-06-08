@@ -1,5 +1,5 @@
-#ifndef MDA_INTERFACE_H
-#define MDA_INTERFACE_H
+#ifndef LIBPT_ALGORITHMS_MDA_INTERFACE_H
+#define LIBPT_ALGORITHMS_MDA_INTERFACE_H
 
 #include <stdbool.h>        // bool
 #include <stddef.h>         // size_t
@@ -122,5 +122,4 @@ void mda_link_dump(const mda_interface_t ** link, bool do_resolv);
 
 void mda_lattice_elt_dump(const lattice_elt_t * elt); //, bool do_resolv);
 
-#endif // MDA_INTERFACE_H
-
+#endif // LIBPT_ALGORITHMS_MDA_INTERFACE_H

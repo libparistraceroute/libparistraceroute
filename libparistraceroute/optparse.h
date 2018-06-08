@@ -1,6 +1,5 @@
-
-#ifndef OPTPARSE_H
-#define OPTPARSE_H
+#ifndef LIBPT_OPTPARSE_H
+#define LIBPT_OPTPARSE_H
 
 #define OPT_NO_ACTION (void *)0
 #define OPT_NO_SF (void *)0
@@ -222,4 +221,4 @@ int opt_parse(const char * usage, struct opt_spec * opts, char **argv);
 
 char ***opt_remainder(void);
 
-#endif
+#endif // LIBPT_OPTPARSE_H

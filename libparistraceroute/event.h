@@ -1,5 +1,5 @@
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef LIBPT_EVENT_H
+#define LIBPT_EVENT_H
 
 // Do not include "algorithm.h" to avoid mutual inclusion
 
@@ -72,4 +72,4 @@ event_t * event_create(
 
 void event_free(event_t * event);
 
-#endif
+#endif // LIBPT_EVENT_H

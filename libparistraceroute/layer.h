@@ -1,5 +1,5 @@
-#ifndef LAYER_H
-#define LAYER_H
+#ifndef LIBPT_LAYER_H
+#define LIBPT_LAYER_H
 
 /**
  * \file layer.h
@@ -189,4 +189,4 @@ void layer_dump(const layer_t * layer, unsigned int indent);
 
 void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent);
 
-#endif
+#endif // LIBPT_LAYER_H

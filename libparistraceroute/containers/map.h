@@ -1,5 +1,5 @@
-#ifndef MAP_H
-#define MAP_H
+#ifndef LIBPT_CONTAINER_MAP_H
+#define LIBPT_CONTAINER_MAP_H
 
 #include <stdbool.h>
 #include "containers/set.h" // set_t
@@ -107,4 +107,4 @@ bool map_find_impl(const map_t * map, const void * key, const void ** pdata);
 
 #define map_find(map, key, pdata) map_find_impl(map, (const void *) key, (const void **) pdata)
 
-#endif
+#endif // LIBPT_CONTAINER_MAP_H

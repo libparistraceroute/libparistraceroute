@@ -1,5 +1,5 @@
-#ifndef DYNARRAY_H
-#define DYNARRAY_H
+#ifndef LIBPT_DYNARRAY_H
+#define LIBPT_DYNARRAY_H
 
 #include <stddef.h>  // size_t
 #include <stdbool.h> // bool
@@ -128,4 +128,4 @@ void * dynarray_get_ith_element(const dynarray_t * dynarray, unsigned int i);
 
 void dynarray_dump(const dynarray_t * dynarray, void (*element_dump)(const void *));
 
-#endif
+#endif // LIBPT_DYNARRAY_H

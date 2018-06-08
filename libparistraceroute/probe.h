@@ -1,7 +1,5 @@
-#include "use.h"
-
-#ifndef PROBE_H
-#define PROBE_H
+#ifndef LIBPT_PROBE_H
+#define LIBPT_PROBE_H
 
 /**
  * \file probe.h
@@ -16,6 +14,7 @@
 //#include "bitfield.h"
 #include "dynarray.h"  // dynarray_t
 #include "packet.h"    // packet_t
+#include "use.h"
 
 #define DELAY_BEST_EFFORT -1 // This MUST be < 0, see network_send_probe
 /**
@@ -379,4 +378,4 @@ probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
 void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
 probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
 
-#endif
+#endif // LIBPT_PROBE_H

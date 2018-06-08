@@ -1,5 +1,5 @@
-#ifndef SET_H
-#define SET_H
+#ifndef LIBPT_CONTAINER_SET_H
+#define LIBPT_CONTAINER_SET_H
 
 #include <stdbool.h>
 #include "containers/object.h"
@@ -92,5 +92,4 @@ bool set_insert(set_t * set, void * element);
 
 bool set_erase(set_t * set, const void * element);
 
-#endif
-
+#endif // LIBPT_CONTAINER_SET_H

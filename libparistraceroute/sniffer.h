@@ -1,7 +1,5 @@
-#include "use.h"
-
-#ifndef SNIFFER_H
-#define SNIFFER_H
+#ifndef LIBPT_SNIFFER_H
+#define LIBPT_SNIFFER_H
 
 /**
  * \file sniffer.h
@@ -13,6 +11,7 @@
 
 #include <stdbool.h> // bool
 #include "packet.h"  // packet_t
+#include "use.h"
 
 /**
  * \struct sniffer_t
@@ -82,4 +81,4 @@ int sniffer_get_icmpv6_sockfd(sniffer_t * sniffer);
 
 void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id);
 
-#endif
+#endif // LIBPT_SNIFFER_H

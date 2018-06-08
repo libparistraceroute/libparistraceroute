@@ -1,5 +1,5 @@
-#ifndef GROUP_H
-#define GROUP_H
+#ifndef LIBPT_GROUP_H
+#define LIBPT_GROUP_H
 
 #include <unistd.h>   // close
 #include "dynarray.h" // dynarray_t
@@ -41,4 +41,4 @@ bool group_add_n_probes(group_t * group, probe_t * probes, size_t n);
 
 bool group_set_timer(group_t * group);
 
-#endif // GROUP_H
+#endif // LIBPT_GROUP_H

@@ -1,11 +1,11 @@
-#include "use.h"
-
-#ifndef BITS_H
-#define BITS_H
+#ifndef LIBPT_BITS_H
+#define LIBPT_BITS_H
 
 #include <stdbool.h> // bool
 #include <stdint.h>  // uint*_t
 #include <stddef.h>  // size_t
+
+#include "use.h"
 
 //---------------------------------------------------------------------------
 // Bit-level operations on a single byte
@@ -129,4 +129,4 @@ bool bits_write(
 
 void bits_dump(const uint8_t * bytes, size_t num_bytes);
 
-#endif
+#endif // LIBPT_BITS_H

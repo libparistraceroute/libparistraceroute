@@ -1,18 +1,10 @@
-#ifndef METAFIELD_H
-#define METAFIELD_H
+#ifndef LIBPT_METAFIELD_H
+#define LIBPT_METAFIELD_H
 
 #include <unistd.h>
 #include "dynarray.h"
 #include "bitfield.h"
 #include "protocol_field.h"
-
-// metafield = sur champ
-// définit pour une clé par exemple flow le bon bitfield
-// abstrait un concept (par exemple flow) ce qui permet d'avoir une implem commune entre ipv4 et ipv6
-// probe_set_field("flow_id", ...)
-// probe_set_constraint("flow_id", CONSTANT)
-
-// ==, !=, pas de < ou de >
 
 /**
  * A metafield provides an abstraction of a set of bits stored in a
@@ -40,16 +32,6 @@ void metafield_register(metafield_t * metafield);
 // - prevent some fields to be used : eg. do not vary dst_port not to appear as
 //   a port scan. how to do it for flow_id and ipv6 for example ?
 // - an options to parametrize metafields 
-
-
-
-
-
-
-
-
-
-
 
 typedef long long int metafield_value_t;
 
@@ -144,5 +126,4 @@ bool metafield_not_equal(
 );
 */
 
-#endif
-
+#endif // LIBPT_METAFIELD_H

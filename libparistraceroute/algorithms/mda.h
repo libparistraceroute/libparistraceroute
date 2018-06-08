@@ -1,5 +1,5 @@
-#ifndef ALGORITHMS_MDA_H
-#define ALGORITHMS_MDA_H
+#ifndef LIBPT_ALGORITHMS_MDA_H
+#define LIBPT_ALGORITHMS_MDA_H
 
 #include "mda/data.h"
 #include "mda/flow.h"
@@ -63,4 +63,4 @@ void options_mda_init(mda_options_t * mda_options);
 
 int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * options);
 
-#endif
+#endif // LIBPT_ALGORITHMS_MDA_H

@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_FIELD_H
-#define PROTOCOL_FIELD_H
+#ifndef LIBPT_PROTOCOL_FIELD_H
+#define LIBPT_PROTOCOL_FIELD_H
 
 /**
  * \file protocol_field.h
@@ -68,5 +68,4 @@ size_t protocol_field_get_offset(const protocol_field_t * protocol_field);
 
 void protocol_field_dump(const protocol_field_t * protocol_field);
 
-#endif
-
+#endif // LIBPT_PROTOCOL_FIELD_H

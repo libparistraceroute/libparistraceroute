@@ -1,5 +1,5 @@
-#ifndef FIELD_H
-#define FIELD_H
+#ifndef LIBPT_FIELD_H
+#define LIBPT_FIELD_H
 
 /**
  * \file field.h
@@ -426,4 +426,4 @@ bool field_set_value(field_t * field, void * value);
 
 void field_dump(const field_t * field);
 
-#endif
+#endif // LIBPT_FIELD_H

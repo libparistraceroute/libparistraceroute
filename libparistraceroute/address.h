@@ -1,10 +1,10 @@
-#include "use.h"
-
-#ifndef ADDRESS_H
-#define ADDRESS_H
+#ifndef LIBPT_ADDRESS_H
+#define LIBPT_ADDRESS_H
 
 #include <stdbool.h>    // bool
 #include <netinet/in.h> // in_addr, in6_addr
+
+#include "use.h"
 
 //---------------------------------------------------------------------------
 // ip*_t
@@ -175,4 +175,4 @@ int address_to_string(const address_t * addr, char ** pbuffer);
 
 bool address_resolv(const address_t * address, char ** phostname, int mask_cache);
 
-#endif 
+#endif // LIBPT_ADDRESS_H

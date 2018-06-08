@@ -1,5 +1,5 @@
-#ifndef TREE_H
-#define TREE_H
+#ifndef LIBPT_TREE_H
+#define LIBPT_TREE_H
 
 #include <stddef.h>   // size_t
 #include "dynarray.h" // dynarray_t
@@ -60,4 +60,4 @@ tree_node_t * tree_get_root(tree_t * tree);
 
 void tree_dump(const tree_t * tree);
 
-#endif
+#endif // LIBPT_TREE_H

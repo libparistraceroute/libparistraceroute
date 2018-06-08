@@ -1,5 +1,5 @@
-#ifndef OBJECT_H
-#define OBJECT_H
+#ifndef LIBPT_CONTAINER_OBJECT_H
+#define LIBPT_CONTAINER_OBJECT_H
 
 #include "common.h"
 
@@ -47,5 +47,4 @@ int object_compare(const object_t * object1, const object_t * object2);
 
 void object_dump(const object_t * object); 
 
-
-#endif
+#endif // LIBPT_CONTAINER_OBJECT_H

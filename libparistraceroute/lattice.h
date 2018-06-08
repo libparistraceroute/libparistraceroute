@@ -1,5 +1,5 @@
-#ifndef STRUCTURE_LATTICE_H
-#define STRUCTURE_LATTICE_H
+#ifndef LIBPT_LATTICE_H
+#define LIBPT_LATTICE_H
 
 #include "dynarray.h"
 
@@ -119,4 +119,4 @@ bool lattice_add_element(lattice_t * lattice, lattice_elt_t * predecessor, void 
  */
 void lattice_dump(lattice_t * lattice, void (* element_dump)(const void *));
 
-#endif // STRUCTURE_LATTICE_H
+#endif // LIBPT_LATTICE_H

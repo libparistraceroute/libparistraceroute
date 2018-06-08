@@ -1,7 +1,5 @@
-#include "use.h"
-
-#ifndef NETWORK_H
-#define NETWORK_H
+#ifndef LIBPT_NETWORK_H
+#define LIBPT_NETWORK_H
 
 /**
  * \file network.h
@@ -27,6 +25,7 @@
 #include "dynarray.h"    // dynarray_t
 #include "options.h"     // option_t
 #include "probe_group.h" // probe_group_t
+#include "use.h"
 
 // If no matching reply has been sniffed in the next 3 sec, we
 // consider that we won't never sniff such a reply. The
@@ -341,4 +340,4 @@ int network_get_icmpv4_sockfd(network_t * network);
 int network_get_icmpv6_sockfd(network_t * network);
 #endif
 
-#endif
+#endif // LIBPT_NETWORK_H
