@@ -39,17 +39,18 @@ nobase_libparistraceroute_@LIBRARY_VERSION@_la_HEADERS =  \
                         buffer.h \
                         common.h \
                         containers/object.h \
+                        containers/list.h \
                         containers/map.h \
                         containers/pair.h \
                         containers/set.h \
                         dynarray.h \
                         event.h \
                         field.h \
+                        filter.h \
                         group.h \
                         generator.h \
                         layer.h \
                         lattice.h \
-                        list.h \
                         metafield.h \
                         network.h \
                         optparse.h \
@@ -116,18 +117,19 @@ libparistraceroute_@LIBRARY_VERSION@_la_SOURCES =    \
                         buffer.c \
                         common.c \
                         containers/object.c \
+                        containers/list.c \
                         containers/map.c \
                         containers/pair.c \
                         containers/set.c \
                         dynarray.c \
                         event.c \
                         field.c \
+                        filter.c \
                         group.c \
                         generator.c \
                         generators/uniform.c \
                         lattice.c \
                         layer.c \
-                        list.c \
                         metafield.c \
                         network.c \
                         optparse.c \

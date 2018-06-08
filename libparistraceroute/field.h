@@ -54,6 +54,12 @@ typedef enum {
 
 const char * field_type_to_string(fieldtype_t type);
 
+typedef struct __bit_value_s {
+    size_t    size_in_bits;
+    uint8_t   offset_in_bits;
+    uint8_t * bits;
+} __bit_value_t;
+
 /**
  * \union value_t
  * \brief Store a value carried by a field.
@@ -69,17 +75,18 @@ typedef union {
 #endif
 #ifdef USE_BITS
     // TODO test with uint128_t to handle bigger bit-level fields
-    uint8_t               bits;      /**< Value of data as a n<8 bit integer */
+//OLD:    uint8_t               bits;      /**< Value of data as a n<8 bit integer */
+    __bit_value_t         bits; /**< Value of bit level data (e.g. data of 4 bits, 20 bits... */
 #endif
-    uint8_t               int8;      /**< Value of data as a   8 bit integer */
-    uint16_t              int16;     /**< Value of data as a  16 bit integer */
-    uint32_t              int32;     /**< Value of data as a  32 bit integer */
-    uint64_t              int64;     /**< Value of data as a  64 bit integer */
-    uint128_t             int128;    /**< Value of data as a 128 bit integer */
-    uintmax_t             intmax;    /**< Value of data as a max integer     */
-    double                dbl;       /**< Value of data as a double          */
-    char                * string;    /**< Pointer to string data             */
-    struct generator_s  * generator; /**< Pointer to generator_t data        */
+    uint8_t               int8;      /**< Value of data as a   8 bits integer. */
+    uint16_t              int16;     /**< Value of data as a  16 bits integer. */
+    uint32_t              int32;     /**< Value of data as a  32 bits integer. */
+    uint64_t              int64;     /**< Value of data as a  64 bits integer. */
+    uint128_t             int128;    /**< Value of data as a 128 bits integer. */
+    uintmax_t             intmax;    /**< Value of data as a max integer.      */
+    double                dbl;       /**< Value of data as a double.           */
+    char                * string;    /**< Pointer to string data.              */
+    struct generator_s  * generator; /**< Pointer to generator_t data.         */
 } value_t;
 
 /**
@@ -149,7 +156,7 @@ field_t * field_create_ipv6(const char * key, ipv6_t ipv6);
 
 #ifdef USE_BITS
 /**
- * \brief Create a field structure to hold an n<8 bit integer value.
+ * \brief Create a field structure storing unaligned field or having a size != n*8bits.
  * \param key The name which identify the field to create.
  * \param value Value to store in the field.
  * \param size_in_bits

@@ -305,8 +305,7 @@ static void probe_layers_clear(probe_t * probe) {
     dynarray_clear(probe->layers, (ELEMENT_FREE) layer_free);
 }
 
-static bool probe_packet_resize(probe_t * probe, size_t size)
-{
+static bool probe_packet_resize(probe_t * probe, size_t size) {
     size_t    offset = 0, // offset between the begining of the packet and the current position
               i, num_layers = probe_get_num_layers(probe);
     layer_t * layer;
@@ -366,8 +365,7 @@ ERR_PROBE:
     return NULL;
 }
 
-probe_t * probe_dup(const probe_t * probe)
-{
+probe_t * probe_dup(const probe_t * probe) {
     probe_t  * ret;
     packet_t * packet;
 
@@ -395,8 +393,7 @@ ERR_PACKET_DUP:
     return NULL;
 }
 
-void probe_free(probe_t * probe)
-{
+void probe_free(probe_t * probe) {
     if (probe) {
 //        bitfield_free(probe->bitfield);
         probe_layers_free(probe);
@@ -407,27 +404,30 @@ void probe_free(probe_t * probe)
     }
 }
 
-void probe_dump(const probe_t * probe)
-{
+void probe_fprintf(FILE * out, const probe_t * probe) {
     size_t    i, num_layers = probe_get_num_layers(probe);
     layer_t * layer;
 
-    printf("** PROBE **\n\n");
+    fprintf(out, "** PROBE **\n\n");
 
     if (probe->delay) {
-        printf("probe delay \n\n");
+        fprintf(out, "probe delay \n\n");
         field_dump(probe->delay);
-        printf("number of probes left to send: (%d) \n\n", (int)probe->left_to_send);
-        printf("probe structure\n\n");
+        fprintf(out, "number of probes left to send: (%d) \n\n", (int)probe->left_to_send);
+        fprintf(out, "probe structure\n\n");
     }
 
     for (i = 0; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
         layer_dump(layer, i);
-        printf("\n");
+        fprintf(out, "\n");
     }
 
-    printf("\n");
+    fprintf(out, "\n");
+}
+
+void probe_dump(const probe_t * probe) {
+    probe_fprintf(stdout, probe);
 }
 
 void probe_debug(const probe_t * probe) {
@@ -743,7 +743,7 @@ bool probe_set_field_ext(probe_t * probe, size_t depth, const field_t * field)
 
     for (i = depth; i < num_layers; i++) {
         layer = probe_get_layer(probe, i);
-        if (layer_set_field(layer, field)) {
+        if (layer_set_field(layer, field)) { // TODO: replace by layer_set_field_and_free
             ret = true;
             break;
         }

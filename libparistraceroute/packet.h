@@ -24,73 +24,81 @@ typedef struct packet_s {
 } packet_t;
 
 /**
- * \brief Create a new packet
- * \return The newly allocated packet_t instance, NULL in case of failure
+ * \brief Create a new packet.
+ * \return The newly allocated packet_t instance, NULL in case of failure.
  */
 
 packet_t * packet_create();
 
 /**
- * \brief Create a new packet
- * \param bytes The bytes making the packet
- * \param num_bytes Number of considered bytes
- * \return The newly allocated packet_t instance, NULL in case of failure
+ * \brief Create a new packet.
+ * \param bytes The bytes making the packet.
+ * \param num_bytes Number of considered bytes.
+ * \return The newly allocated packet_t instance, NULL in case of failure.
  */
 
 packet_t * packet_create_from_bytes(uint8_t * bytes, size_t num_bytes);
 
 /**
- * \brief Create a new packet
- * \param bytes The bytes carried by the packet
- * \param num_bytes The packet size (in bytes)
- * \return The newly allocated packet_t instance, NULL in case of failure
+ * \brief Create a new packet.
+ * \param bytes The bytes carried by the packet.
+ * \param num_bytes The packet size (in bytes).
+ * \return The newly allocated packet_t instance, NULL in case of failure.
  */
 
 packet_t * packet_wrap_bytes(uint8_t * bytes, size_t num_bytes);
 
 /**
- * \brief Resize a packet
- * \param new_size The new packet size
- * \return true iif successful
+ * \brief Resize a packet.
+ * \param new_size The new packet size.
+ * \return true iif successful.
  */
 
 bool packet_resize(packet_t * packet, size_t new_size);
 
 /**
- * \brief Retrieve the size of a given packet
- * \param packet The queried packet
- * \return The corresponding size (in bytes)
+ * \brief Retrieve the size of a given packet.
+ * \param packet The queried packet.
+ * \return The corresponding size (in bytes).
  */
 
 size_t packet_get_size(const packet_t * packet);
 
 /**
  * \brief Retrieve a pointer to the begining of bytes managed
- *   by a packet_t instance
- * \param packet A packet_t instance
+ *   by a packet_t instance.
+ * \param packet A packet_t instance.
  * \return The corresponding pointer.
  */
 
 uint8_t * packet_get_bytes(const packet_t * packet);
 
 /**
- * \brief Duplicate a packet
- * \param packet The packet we're copying
- * \return The newly allocated packet, NULL in case of failure
+ * \brief Duplicate a packet.
+ * \param packet The packet that must be copied.
+ * \return The newly allocated packet, NULL in case of failure.
  */
 
 packet_t * packet_dup(const packet_t * packet);
 
 /**
- * \brief Delete a packet
- * \param packet Pointer to the packet structure to delete
+ * \brief Delete a packet.
+ * \param packet Pointer to the packet structure to delete.
  */
 
 void packet_free(packet_t * packet);
 
 /**
- * \brief Dump packet contents
- * \param packet The packet instance we want to print
+ * \brief Print packet contents.
+ * \param out The file descriptor of the output file.
+ * \param packet The packet instance to print.
+ */
+
+void packet_fprintf(FILE * out, const packet_t * packet);
+
+/**
+ * \brief Dump packet contents.
+ * \param packet The packet instance to dump.
  */
 
 void packet_dump(const packet_t * packet);

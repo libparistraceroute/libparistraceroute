@@ -1,12 +1,14 @@
 #include "config.h"
+#include "use.h"    // USE_*
 
 #include <string.h>
 #include <stdlib.h>
-#include <search.h>
+//#include <search.h>
 
+#include "filter.h"    // filter_t
 #include "metafield.h"
-#include "common.h"
 
+/*
 static void * metafields_root = NULL;
 
 static int metafield_compare(
@@ -35,149 +37,123 @@ void metafield_register(metafield_t * metafield)
     // Insert the metafield in the tree if the keys does not yet exist
     tsearch(metafield, &metafields_root, (ELEMENT_COMPARE) metafield_compare);
 }
+*/
 
-////--------------------------------------------------------------------------
-//// Allocation
-////--------------------------------------------------------------------------
-//
-//// alloc
-//
-//metafield_t * metafield_create(
-//    const char * key
-//) {
-//    metafield_t * metafield = calloc(1, sizeof(metafield_t));
-//    if (metafield) {
-//        metafield->key = strdup(key);
-//        if(!metafield->key) goto FAILURE;
-//    }
-//
-//    return metafield;
-//
-//FAILURE:
-//    if(metafield) {
-//        if(metafield->key) free(metafield->key);
-//        free(metafield);
-//    }
-//    return NULL;
-//}
-//
-//// free
-//
-//inline void metafield_free(metafield_t * metafield){
-//    if (metafield) free(metafield);
-//}
-//
-////--------------------------------------------------------------------------
-//// Getter / setter 
-////--------------------------------------------------------------------------
-//
-///*
-//// |bits_concept|
-//
-//inline size_t metafield_num_bits(const metafield_t * metafield) {
-//    return bitfield_get_num_1(metafield->bits_concept); 
-//}
-//
-//// internal usage : seek the next readable bit
-//
-//static inline bool metafield_find_next(
-//    const metafield_t * metafield,
-//    size_t            * poffset
-//) {
-//    return bitfield_find_next_1(metafield->bits_concept, poffset);
-//}
-//
-//// internal usage : seek the next {read/write}able bit
-//
-//static bool metafield_find_next_rw(
-//    const metafield_t * metafield,
-//    size_t            * poffset
-//) {
-//    if (!poffset || !metafield || !metafield->bits_concept) return false;
-//
-//    size_t offset = *poffset;
-//
-//    while (metafield_find_next(metafield, &offset)) {
-//        switch(bitfield_get_bit(metafield->bits_ro, offset)) {
-//            case -1: // outside bits_ro => this bit is rw
-//            case  0: // this bit is marked as rw
-//                *poffset = offset;
-//                return true;
-//            case  1: // this bit is marked as ro, continue to seek
-//                break;
-//        }
-//    }
-//
-//    return false;
-//}
-//
-//bool metafield_get(
-//    const metafield_t * metafield,
-//    unsigned char     * value
-//) {
-//    if (!metafield || !value) return false;
-//    return true;
-//}
-//
-//bool metafield_set(
-//    metafield_t         * metafield,
-//    const unsigned char * buffer_value,
-//    size_t                size_in_bits
-//) {
-//    size_t i, offset = 0;
-//    if (!metafield || !buffer_value) return false;
-//    if (size_in_bits >= metafield_num_bits_rw(metafield)) return false;
-//
-//    for(i = 0; i < size_in_bits; i++) {
-//        if(!metafield_find_next_rw(metafield, &offset)) return false;
-//
-//    }
-//    return 0;
-//}
-//*/
-//
-////--------------------------------------------------------------------------
-//// Iteration
-////--------------------------------------------------------------------------
-//
-///**
-// * \brief Set the first value in a metafield on which we will iterate.
-// * \param metafield The metafield that we set.
-// */
-//
-//bool metafield_set_first(metafield_t * metafield) {
-//    // not yet implemented
-//    return false;
-//}
-//
-///**
-// * \brief Set the previous value in a metafield on which we iterate.
-// * \param metafield The metafield that we set.
-// */
-//
-//bool metafield_set_previous(metafield_t * metafield) {
-//    // not yet implemented
-//    return false;
-//}
-//
-///**
-// * \brief Set the next value in a metafield on which we iterate.
-// * \param metafield The metafield that we set. 
-// */
-//
-//bool metafield_set_next(metafield_t * metafield) {
-//    // not yet implemented
-//    return false;
-//}
-//
-///**
-// * \brief Set the last value in a metafield on which we will iterate.
-// * \param metafield The metafield that we set.
-// */
-//
-//bool metafield_set_last(metafield_t * metafield) {
-//    // not yet implemented
-//    return false;
-//}
-//
-//
+metafield_t * metafield_create(const char * name) {
+    metafield_t * metafield = NULL;
+    if (!(metafield = malloc(sizeof(metafield_t)))) goto ERR_MALLOC;
+    if (!(metafield->filters = list_create(filter_free, filter_fprintf))) goto ERR_LIST_CREATE;
+    metafield->name = name;
+    return metafield;
+
+ERR_LIST_CREATE:
+    free(metafield);
+ERR_MALLOC:
+    return NULL;
+}
+
+void metafield_free(metafield_t * metafield) {
+    if (metafield) {
+        if (metafield->filters) list_free(metafield->filters);
+        free(metafield);
+    }
+}
+
+void metafield_fprintf(FILE * out, const metafield_t * metafield) {
+    const filter_t * filter;
+    list_cell_t    * cur;
+
+    fprintf(out, "metafield {\n\tname = %s,\n\tfilters = {\n", metafield->name);
+    for (cur = metafield->filters->head; cur; cur = cur->next) {
+        filter = cur->element;
+        fprintf(out, "\t\t");
+        filter_fprintf(out, filter);
+        fprintf(out, "\n");
+    }
+    fprintf(out, "\t}\n}");
+}
+
+void metafield_dump(const metafield_t * metafield) {
+    metafield_fprintf(stdout, metafield);
+    printf("\n");
+}
+
+bool metafield_add_filter(metafield_t * metafield, filter_t * filter) {
+    return list_push_element(metafield->filters, filter);
+}
+
+filter_t * metafield_find_filter(const metafield_t * metafield, const probe_t * probe) {
+    const filter_t * filter;
+    list_cell_t    * cur;
+
+    for (cur = metafield->filters->head; cur; cur = cur->next) {
+        filter = cur->element;
+        if (filter_matches(filter, probe)) break;
+    }
+
+    return cur ? cur->element : NULL;
+}
+
+size_t metafield_get_matching_size_in_bits(const metafield_t * metafield, const probe_t * probe) {
+    const filter_t * filter = metafield_find_filter(metafield, probe);
+    return filter ? filter_get_matching_size_in_bits(filter, probe) : 0;
+}
+
+bool metafield_read(const metafield_t * metafield, const probe_t * probe, uint8_t * buffer, size_t num_bits) {
+    const filter_t * filter = metafield_find_filter(metafield, probe);
+    return filter ? filter_read(filter, probe, buffer, num_bits) : false;
+}
+
+bool metafield_write(const metafield_t * metafield, const probe_t * probe, uint8_t * buffer, size_t num_bits) {
+    const filter_t * filter = metafield_find_filter(metafield, probe);
+    return filter ? filter_write(filter, probe, buffer, num_bits) : false;
+}
+
+
+//---------------------------------------------------------------------------
+// flow_id
+//---------------------------------------------------------------------------
+
+metafield_t * metafield_make_flow_id() {
+    metafield_t * metafield;
+    filter_t    * filter1,
+                * filter2,
+                * filter3,
+                * filter4;
+
+    if (!(metafield = metafield_create("flow_id"))) {
+        goto ERR_METAFIELD_CREATE;
+    }
+
+#ifdef USE_IPV6
+    // Flow IPv6
+    if (!(filter1 = filter_create("ipv6.flow_label", NULL))) goto ERR_FILTER_CREATE;
+    metafield_add_filter(metafield, filter1);
+
+    // TODO ICMPv6
+#endif
+
+#ifdef USE_IPV4
+    // Flow IPv4/UDP
+    if (!(filter2 = filter_create("ipv4.protocol", "ipv4.src_ip", "ipv4.dst_ip", "tcp.src_port", "tcp.dst_port", NULL))) goto ERR_FILTER_CREATE;
+    metafield_add_filter(metafield, filter2);
+
+    // Flow IPv4/TCP
+    if (!(filter3 = filter_create("ipv4.protocol", "ipv4.src_ip", "ipv4.dst_ip", "udp.src_port", "udp.dst_port", NULL))) goto ERR_FILTER_CREATE;
+    metafield_add_filter(metafield, filter3);
+
+    // Flow ICMP
+    if (!(filter4 = filter_create("ipv4.protocol", "ipv4.src_ip", "ipv4.dst_ip", "icmpv4.code", "icmpv4.checksum", NULL))) goto ERR_FILTER_CREATE;
+    metafield_add_filter(metafield, filter4);
+#endif
+
+    return metafield;
+
+ERR_FILTER_CREATE:
+    // Calling metafield_free will release filter1 ... filter4
+    metafield_free(metafield);
+ERR_METAFIELD_CREATE:
+    return NULL;
+}
+
+

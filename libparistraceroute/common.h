@@ -1,29 +1,47 @@
 #ifndef LIBPT_COMMON_H
 #define LIBPT_COMMON_H
 
+#include <stdio.h> // FILE *
+
+//---------------------------------------------------------------------------
+// Callback types.
+//---------------------------------------------------------------------------
+
 /**
- * \brief Type related to a *_free() function
+ * \brief Type related to a *_free() functions.
  */
 
 #define ELEMENT_FREE void   (*)(void *)
 
 /**
- * \brief Type related to a *_dup() function
+ * \brief Type related to a *_dup() functions.
  */
 
 #define ELEMENT_DUP  void * (*)(const void *)
 
 /**
- * \brief Type related to a *_dump() function
+ * \brief Type related to a *_dump() functions.
+ * \warning Your object should rather on *_fprintf functions.
  */
 
 #define ELEMENT_DUMP void   (*)(const void *)
+
+/**
+ * \brief Type related to a *_dump() functions.
+ */
+
+#define ELEMENT_FPRINTF void   (*)(FILE *, const void *)
+
 
 /**
  * \brief Type related to a *_compare() function
  */
 
 #define ELEMENT_COMPARE int (*)(const void *, const void *)
+
+//---------------------------------------------------------------------------
+// Misc
+//---------------------------------------------------------------------------
 
 /**
  * \brief Macro returning the minimal value of two elements

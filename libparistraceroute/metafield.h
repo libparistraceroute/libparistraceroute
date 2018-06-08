@@ -1,129 +1,116 @@
 #ifndef LIBPT_METAFIELD_H
 #define LIBPT_METAFIELD_H
 
-#include <unistd.h>
-#include "dynarray.h"
-#include "bitfield.h"
-#include "protocol_field.h"
+#include <stdbool.h>            // bool
+#include <stddef.h>             // size_t
+#include <stdint.h>             // uint*_t
+#include <stdio.h>              // FILE *
 
-/**
- * A metafield provides an abstraction of a set of bits stored in a
- * data structure. This is a convenient way to abstract a concept
- * (for example "what is a flow").
- * This extend the concept of protocol_field.
- */
+#include "containers/list.h"    // list_t
+#include "probe.h"              // probe_t
+#include "filter.h"             // filter_t
 
 typedef struct metafield_s {
-    /* Exposed fields */
-    const char  * name;
-    char       ** patterns;
-
-    /* Internal fields */
-    bitfield_t   bitfield;    /**< Bits related to the metafield    */
-
+    const char * name;    /**< Reference to the metafield's name. */
+    list_t     * filters; /**< Fields involved in the metafield. list<filter_t *>. */
 } metafield_t;
 
-metafield_t* metafield_search(const char * name);
-void metafield_register(metafield_t * metafield);
-
-// - pattern matching
-// - successor of a value
-// - bitmask of unauthorized bits ?
-// - prevent some fields to be used : eg. do not vary dst_port not to appear as
-//   a port scan. how to do it for flow_id and ipv6 for example ?
-// - an options to parametrize metafields
-
-typedef long long int metafield_value_t;
-
-//--------------------------------------------------------------------------
-// Allocation
-//--------------------------------------------------------------------------
-
 /**
- * \brief Allocate a metafield. You are then suppose to set
- * \param key Name of the metafield (for example "flow")
- * \param fields Fields related to the metafield (for example
- *   "src_ip", "dst_ip", "src_port", "dst_port", "proto" for
- *   a tcp/ip flow)
- * \return Address of the metafield if success, NULL otherwise
+ * \brief Create an empty metafield_t instance.
+ * \param The name of the metafield_t (e.g. "flow_id").
+ * \return The address of the metafield_t if successful, NULL otherwise.
  */
 
-/*
-metafield_t * metafield_create(
-    const char * key
-    // TO COMPLETE
-);
-*/
+metafield_t * metafield_create(const char * name);
 
 /**
- * \brief Delete a metafield from the memory.
- * It only releases the metafield_t instance, not the pointed structures.
+ * \brief Free a metafield_t instance from the memory.
+ * \param metafield A metafield_t instance.
  */
 
-//void metafield_free(metafield_t * metafield);
-
-//--------------------------------------------------------------------------
-// Getter / setter
-//--------------------------------------------------------------------------
+void metafield_free(metafield_t * metafield);
 
 /**
- * \brief Sum the size of every underlying fields
- * \param metafield The metafield
- * \return The number of bytes
+ * \brief Print a metafield_t instance in an output file.
+ * \param out The output file.
+ * \param metafield A metafield_t instance.
  */
 
-//size_t metafield_get_size(const metafield_t * metafield);
+void metafield_fprintf(FILE * out, const metafield_t * metafield);
 
 /**
- * \brief Retrieve the value stored in a metafield.
- * \param metafield The metafield
- * \return The integer stored in the metafield.
+ * \brief Print a metafield_t instance in the standard output.
+ * \param metafield A metafield_t instance.
  */
 
-//metafield_value_t metafield_get(const metafield_t * metafield);
+void metafield_dump(const metafield_t * metafield);
 
 /**
- * \brief Set a value stored in a buffer in a metafield.
- * \param value The value we will set in the metafield.
+ * \brief Add a filter_t instance in a metafield_t instance.
+ * \param metafield A metafield_t instance.
+ * \param filter A filter_t instance.
+ * \return true iff successful.
  */
 
-/*
-bool metafield_set(
-    metafield_t       * metafield,
-    metafield_value_t   value
-);
-*/
-
-//--------------------------------------------------------------------------
-// Operator
-//--------------------------------------------------------------------------
+bool metafield_add_filter(metafield_t * metafield, filter_t * filter);
 
 /**
- * \brief Test whether two metafields are equal
- * \param x The first metafield
- * \param y The first metafield
- * \return true iif x == y
+ * \brief Find the first filter_t instance involved in a metafield matching
+ *    a probe_t.
+ * \param metafield A metafield_t instance.
+ * \param probe A probe_t instance.
+ * \return The address of the matching filter_t (if any), NULL otherwise.
  */
 
-/*
-bool metafield_equal(
-    const metafield_t * x,
-    const metafield_t * y
-);
-*/
+filter_t * metafield_find_filter(const metafield_t * metafield, const probe_t * probe);
 
 /**
- * \brief Test whether two metafields are different
- * \param x The first metafield
- * \param y The first metafield
- * \return true iif x != y
+ * \brief Find the first filter_t instance involved in a metafield matching
+ *    a probe_t and returns the number of matching bits.
+ * \param metafield A metafield_t instance.
+ * \param probe A probe_t instance.
+ * \return The number of matching bits (if any filter matches the probe),
+ *   0 otherwise.
  */
 
-/*
-bool metafield_not_equal(
-    const metafield_t * x,
-    const metafield_t * y
-);
-*/
+size_t metafield_get_matching_size_in_bits(const metafield_t * metafield, const probe_t * probe);
+
+/**
+ * \brief Read from a packet wrapped in a probe_t the bits corresponding to
+ *   the first matching filter involved in a metafield_t instance.
+ * \param metafield_t A metafield_t instance.
+ * \param probe A probe_t instance.
+ * \param buffer The pre-allocated buffer where the bits from the packet read
+ *   are written.
+ * \param num_bits The number of bits available in output_buffer.
+ * \return true iff successful.
+ */
+
+bool metafield_read(const metafield_t * metafield, const probe_t * probe, uint8_t * buffer, size_t num_bits);
+
+/**
+ * \brief Update a packet wrapped in a probe_t instance according to the first
+ *   matching filter_t instance and an input buffer.
+ * \param filter_t A filter_t instance.
+ * \param probe A probe_t instance.
+ * \param input_buffer The buffer where the bits to write into the packet
+ *   are read.
+ * \param num_bits The number of bits to write.
+ * \return true iff successful.
+ */
+
+bool metafield_write(const metafield_t * metafield, const probe_t * probe, uint8_t * buffer, size_t num_bits);
+
+//---------------------------------------------------------------------------
+// Example: flow_id
+//---------------------------------------------------------------------------
+
+/**
+ * \brief Create an empty metafield_t instance.
+ * \param The name of the metafield_t (e.g. "flow_id").
+ * \return The address of the metafield_t if successful, NULL otherwise.
+ */
+
+metafield_t * metafield_make_flow_id();
 
 #endif // LIBPT_METAFIELD_H

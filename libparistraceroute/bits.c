@@ -1,7 +1,9 @@
 #include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <assert.h> // assert
+#include <stdlib.h> // malloc, free
+#include <stdio.h>  // FILE *
+#include <string.h> // memcpy
 
 #include "bits.h"
 #include "common.h" // MIN, MAX
@@ -72,10 +74,13 @@ uint8_t byte_make_mask(size_t offset_in_bits, size_t num_bits) {
     uint8_t mask;
 
     if (offset_in_bits == 0) {
+        // Optimization: write "num_bits" 1, then the missing 0.
         mask = make_msb_mask(num_bits);
     } else if (offset_in_bits + num_bits == 8) {
+        // Optimization: write some 0, then "num_bits" 1.
         mask = make_lsb_mask(num_bits);
     } else {
+        // Craft the mask by hand.
         mask = byte_make_mask_impl(offset_in_bits, num_bits);
     }
     return mask;
@@ -88,26 +93,42 @@ bool byte_write_bits(
     size_t    offset_in_bits_in,
     size_t    size_in_bits
 ) {
-    int offset = offset_in_bits_out - offset_in_bits_in;    
+    int offset;
 
-    if (offset_in_bits_in > 7) return false;
-    if (offset_in_bits_in + size_in_bits > 8) return false;
+    if (size_in_bits == 0) return true;
+    offset = offset_in_bits_out - offset_in_bits_in;
 
+    // Ensure that reading starts in the input byte.
+    if (offset_in_bits_in > 7) {
+        fprintf(stderr, "byte_write_bits: offset_in_bits_in = %zu > 7\n", offset_in_bits_in);
+        return false;
+    }
+
+    // Ensure that reading ends in the input byte.
+    if (offset_in_bits_in + size_in_bits > 8) {
+        fprintf(stderr, "byte_write_bits: offset_in_bits_in + size_in_bits = %zu + %zu > 8\n", offset_in_bits_in, size_in_bits);
+        return false;
+    }
+
+    // Extract the relevant bits of the input_byte, then set to 0 the
+    // corresponding bits of output_byte.
     byte_in   &=  byte_make_mask(offset_in_bits_in,  size_in_bits);
     *byte_out &= ~byte_make_mask(offset_in_bits_out, size_in_bits);
 
+    // Offset the extracted byte to conform to the output offset.
     if (offset < 0) {
         byte_in <<= -offset;
     } else if (offset > 0) {
         byte_in >>= offset;
     }
 
+    // Update the output byte.
     *byte_out |= byte_in;
     return true;
 }
 
 void byte_dump(uint8_t byte) {
-    bits_dump(&byte, 1);
+    bits_dump(&byte, 8, 0);
 }
 
 //---------------------------------------------------------------------------
@@ -162,6 +183,10 @@ ERR_CALLOC:
     return NULL;
 }
 
+#define BITS_MOVE(p, offset, num_bits) \
+  p     += (offset + num_bits) >> 3; \
+  offset = (offset + num_bits) % 8
+
 bool bits_write(
     uint8_t       * out,
     const size_t    offset_in_bits_out,
@@ -169,118 +194,171 @@ bool bits_write(
     const size_t    offset_in_bits_in,
     size_t          length_in_bits
 ) {
-    bool      ret = true, is_aligned;
-    size_t    offset_bits_in   = offset_in_bits_in  % 8, // Offset in bits in the current input byte
-              offset_bits_out  = offset_in_bits_out % 8, // Offset in bits in the current output byte
-              n, num_grabbed_bits = 0;                   // Number of input bits copied in the output
+    bool success = true;
 
-    // Points to the current input and output bytes
-    in  += offset_in_bits_in  >> 3;
-    out += offset_in_bits_out >> 3;
+    // Notations:
+    //   . bit not modified
+    //   X bit being updated (same for Y) at this step.
+    //   * bit to be update, but not in this step.
+    //   | corresponds to byte bounds in the output.
+    // Principle:
+    //   Writting .....**|********|** is achieved in three steps.
+    // Steps:
+    //   1) Write .....XX|********|**.....
+    //   2) Write .....**|XXXXXXXX|**....
+    //   3) Write .....**|********|XX....
 
-    // The first output byte is not aligned
-    // Write the first unaligned output bits
-    if (offset_bits_out) {
+    size_t num_remaining_bits = length_in_bits;
+    size_t n;
+    size_t offset_out = offset_in_bits_out;
+    size_t offset_in  = offset_in_bits_in;
 
-        // Get the part of the first output byte in the first input byte.
-        n = 8 - MAX(offset_bits_in, offset_bits_out);
-        n = MIN(n, length_in_bits);
+    if (offset_in  >= 8) {
+        fprintf(stderr, "bits_write: offset_in (%zu) must be < 8\n", offset_in);
+        return false;
+    }
+    if (offset_out  >= 8) {
+        fprintf(stderr, "bits_write: offset_out (%zu) must be < 8\n", offset_out);
+        return false;
+    }
 
-        ret &= byte_write_bits(out, offset_bits_out, *in, offset_bits_in, n);
+    // 1st output (incomplete) byte:
+    if (offset_out) {
 
-        in++;
-        offset_bits_out  += n;
-        num_grabbed_bits += n;
+        // Case 1:
+        //     in: |.....XXX|YY******|
+        //    out: |...XXXYY|********|
+        // Case 2:
+        //     in: |...XXX**|********|
+        //    out: |.....XXX|********|
+        // Case 3:
+        //     in: |XXX*****|
+        //    out: |.....XXX|
 
-        if (offset_bits_out && num_grabbed_bits < length_in_bits) {
-            // The rest of the first output byte is in begining the second input byte.
-            n = 8 - offset_bits_out;
-            ret &= byte_write_bits(out, offset_bits_out, *in, 0, n);
+        // Cases 1, 2, 3: Write XXX
+        n = MIN(8 - MAX(offset_in, offset_out), num_remaining_bits);
+        success &= byte_write_bits(out, offset_out, *in, offset_in, n);
+        num_remaining_bits -= n;
+        assert(success);
+        BITS_MOVE(out, offset_out, n);
+        BITS_MOVE(in,  offset_in,  n);
 
-            offset_bits_in    = n;
-            offset_bits_out   = 0;
-            num_grabbed_bits += n;
+        // If case 1: Write YY|
+        if (offset_out) {
+            n = MIN(8 - n - offset_out, num_remaining_bits);
+            success &= byte_write_bits(out, offset_out, *in, offset_in, n);
+            num_remaining_bits -= n;
+            assert(success);
+            BITS_MOVE(out, offset_out, n);
+            BITS_MOVE(in,  offset_in,  n);
         }
-
-        // Now we're aligned with the output bytes
-        out++;
     }
 
-    // Grab the n full output bytes
-    is_aligned = (offset_bits_in == 0);
-    for (; num_grabbed_bits + 8 < length_in_bits; num_grabbed_bits += 8) {
-        if (is_aligned) {
-            *out++ = *in++;
-        } else {
-            // MSB output part
-            ret &= byte_write_bits(out, 0, *in++, offset_bits_in, 8 - offset_bits_in);
+    // Full output bytes
+    assert(!offset_out);
+    if (!offset_in) {
+        n = num_remaining_bits >> 3;
+        memcpy(out, in, n);
+        num_remaining_bits -= n << 3;
+    } else {
+        for (; num_remaining_bits >= 8; num_remaining_bits -= 8) {
+            //  in: |***XXXXX|YYY.....
+            // out: |XXXXXYYY|
 
-            // LSB output part
-            ret &= byte_write_bits(out++, 8 - offset_bits_in, *in, 0, offset_bits_in);
+            // Write |XXXXX***|
+            n = MIN(8 - offset_in, num_remaining_bits);
+            success &= byte_write_bits(out, offset_out, *in, offset_in, n);
+            assert(success);
+            BITS_MOVE(out, offset_out, n);
+            BITS_MOVE(in,  offset_in,  n);
+
+            // Write |*****YYY|
+            n = MIN(8 - n, num_remaining_bits);
+            success &= byte_write_bits(out, offset_out, *in, offset_in, n);
+            assert(success);
+            BITS_MOVE(out, offset_out, n);
+            BITS_MOVE(in,  offset_in,  n);
         }
     }
 
-    // Grab the bits of the last truncated output byte (if any) 
-    if ((n = length_in_bits - num_grabbed_bits)) {
-        ret &= byte_write_bits(out, offset_bits_out, *in, offset_bits_in, n);
-    }
-    return ret;
-}
+    // Last byte
+    n = num_remaining_bits;
+    assert(n < 8);
+    assert(offset_out == 0);
+    if (n) {
+        // Case1:
+        //    in: |**XXX...|
+        //   out: |XXX.....|
+        // Case2:
+        //    in: |*****XXX|YY......
+        //   out: |XXXYY...|
 
-void bits_dump(const uint8_t * bytes, size_t num_bytes) {
-    uint8_t byte;
-    size_t i, j;
-    for (i = 0; i < num_bytes; ++i) {
-        byte = bytes[i];
-        for (j = 0; j < 8; ++j) {
-            printf("%d", (byte & 1 << (7 - j)) ? 1 : 0);
+        // Case 1, 2: Write XXX
+        n = MIN(8 - offset_in, num_remaining_bits);
+        success &= byte_write_bits(out, offset_out, *in, offset_in, n);
+        num_remaining_bits -= n;
+        assert(success);
+
+        // Case 2: Write YY (if any)
+        if (num_remaining_bits) {
+            n = num_remaining_bits;
+            success &= byte_write_bits(out, 0, *in, offset_in, n);
+            assert(success);
         }
-        printf(" ");
+    }
+
+    return success;
+}
+
+void bits_fprintf(FILE * out, const uint8_t * bytes, size_t num_bits, size_t offset_in_bits) {
+    size_t i, n;
+    if (offset_in_bits >= 8) {
+        fprintf(stderr, "bits_fprintf: offset_in_bits (%zu) must be < 8", offset_in_bits);
+        return;
+    }
+
+    for (i = 0; i < offset_in_bits; i++) {
+        fprintf(out, ".");
+    }
+
+    while (num_bits) {
+        // Grab the next 8, else 4, else 1 bit(s)
+        n = (num_bits >= 8 && offset_in_bits     == 0) ? 8 :
+            (num_bits >= 4 && offset_in_bits % 4 == 0) ? 4 :
+            1;
+
+        switch (n) {
+            case 8:
+                fprintf(out, "%02x", *bytes);
+                break;
+            case 4:
+                fprintf(
+                    out, "%01x",
+                    offset_in_bits >> 2 == 1 ?
+                         (*bytes & 0x0f) :
+                        ((*bytes & 0xf0) >> 4)
+                );
+                break;
+            case 1:
+                fprintf(
+                    out, "%d",
+                    *bytes & 0x1 << (8 - offset_in_bits) ? 1 : 0
+                );
+                break;
+        }
+        BITS_MOVE(bytes, offset_in_bits, n);
+        num_bits -= n;
+
+        if (offset_in_bits % 8 == 0 && num_bits) fprintf(out, " ");
+    }
+
+    for (; i % 8; ++i) {
+        fprintf(out, ".");
     }
 }
 
-/*
-// Example:
-// x = 00111010 11111010 11000000 00000000
-// y = 00011101 01111101 01100000
-
-void test_extract() {
-    uint32_t x = htonl(0x3afac000);
-    uint8_t * y;
-    size_t offset_in_bits = 2;
-    size_t length_in_bits = 21;
-    printf("x = ");
-    bits_dump((const uint8_t *) &x, sizeof(x));
-    printf("\n");
-
-    y= bits_extract(offset_in_bits, length_in_bits, (const uint8_t *) &x, NULL);
-    printf("y = ");
-    bits_dump(y, length_in_bits / 8 + (length_in_bits % 8 ? 1 : 0));
-    printf("\n");
-    if (y) free(y);
+void bits_dump(const uint8_t * bits, size_t num_bits, size_t offset_in_bits) {
+    bits_fprintf(stdout, bits, num_bits, offset_in_bits);
 }
 
-void test_write() {
-    uint32_t i = 0xffffffff,
-             o = 0x00000000;
-    uint8_t * in  = (uint8_t *) &i;
-    uint8_t * out = (uint8_t *) &o;
-    size_t  offset_in    = 3,
-            offset_out   = 2,
-            size_in_bits = 21;
 
-    printf("bits_in  = ");
-    bits_dump(in, sizeof(i));
-    printf("\n");
-
-    printf("bits_out = ");
-    bits_dump(out, sizeof(o));
-    printf("\n");
-
-    bits_write(out, offset_out, in, offset_in, size_in_bits);
-
-    printf("resultat = ");
-    bits_dump(out, sizeof(o));
-    printf("\n");
-}
-*/

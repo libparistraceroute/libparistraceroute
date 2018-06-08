@@ -1,6 +1,7 @@
 #include "use.h"
 #include "config.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,9 +11,7 @@
 #include "field.h"
 #include "generator.h"
 
-#ifdef USE_BITS
-#    include "bits.h"
-#endif
+#include "bits.h"           // bits_fprintf
 
 field_t * field_create(fieldtype_t type, const char * key, const void * value) {
     field_t * field;
@@ -29,6 +28,12 @@ field_t * field_create(fieldtype_t type, const char * key, const void * value) {
             case TYPE_GENERATOR:
                 if (!(field->value.generator = generator_dup((const generator_t *) value))) goto ERR_DUP_VALUE;
                 break;
+#ifdef USE_BITS
+            case TYPE_BITS:
+                fprintf(stderr, "field_create: invalid field type (TYPE_BITS): use field_create_bits instead.\n");
+                assert(false);
+                break;
+#endif
             default:
                 // Copy size bytes in value in the union.
                 memcpy(&field->value, value, field_get_type_size(type));
@@ -54,6 +59,11 @@ void field_free(field_t * field)
             case TYPE_GENERATOR:
                 generator_free(field->value.generator);
                 break;
+#ifdef USE_BITS
+            case TYPE_BITS:
+                free(field->value.bits.bits);
+                break;
+#endif
             default:
                 break;
         }
@@ -73,7 +83,7 @@ field_t * field_create_address(const char * key, const address_t * address) {
 #endif
 #ifdef USE_IPV6
         case AF_INET6:
-            field =  field_create(TYPE_IPV6, key, &address->ip.ipv6);
+            field = field_create(TYPE_IPV6, key, &address->ip.ipv6);
             break;
 #endif
         default:
@@ -97,23 +107,27 @@ field_t * field_create_ipv6(const char * key, ipv6_t ipv6) {
 #endif
 
 #ifdef USE_BITS
-// TODO factorize with field_create
 field_t * field_create_bits(const char * key, const void * value, size_t offset_in_bits_in, size_t size_in_bits) {
+    size_t    num_bytes;
     field_t * field;
-    size_t    offset_in_bits_out;
 
     if (!(field = malloc(sizeof(field_t)))) goto ERR_MALLOC;
     field->key  = key;
     field->type = TYPE_BITS;
-    memset(&field->value.bits, 0, sizeof(field->value.bits));
 
-    offset_in_bits_out = 8 * sizeof(field->value.bits) - size_in_bits;
-    if (!bits_write(&field->value.bits, offset_in_bits_out, value, offset_in_bits_in, size_in_bits)) {
+    num_bytes = (size_in_bits / 8) + (size_in_bits % 8 ? 1 : 0);
+    if (!(field->value.bits.bits = malloc(num_bytes))) goto ERR_MALLOC2;
+    field->value.bits.size_in_bits = size_in_bits;
+    field->value.bits.offset_in_bits = (8 * num_bytes - size_in_bits);
+    memset(field->value.bits.bits, 0, num_bytes);
+
+    if (!bits_write(field->value.bits.bits, field->value.bits.offset_in_bits, value, offset_in_bits_in, size_in_bits)) {
         goto ERR_BITS_WRITE_BITS;
     }
 
     return field;
 
+ERR_MALLOC2:
 ERR_BITS_WRITE_BITS:
     free(field);
 ERR_MALLOC:
@@ -177,8 +191,25 @@ bool field_set_value(field_t * field, void * value)
     bool ret = false;
 
     if (field && value) {
-        memcpy(&field->value, value, field_get_size(field));
-        ret = true;
+#ifdef USE_BITS
+        switch (field->type) {
+            case TYPE_BITS:
+                ret = bits_write(
+                    field->value.bits.bits,
+                    field->value.bits.offset_in_bits,
+                    value,
+                    0,
+                    field->value.bits.size_in_bits
+                );
+                break;
+            default:
+#endif
+                memcpy(&field->value, value, field_get_size(field));
+                ret = true;
+#ifdef USE_BITS
+                break;
+        }
+#endif
     }
     return ret;
 }
@@ -186,7 +217,19 @@ bool field_set_value(field_t * field, void * value)
 // Accessors
 
 size_t field_get_size(const field_t * field) {
+#ifdef USE_BITS
+    if (field->type == TYPE_BITS) {
+        fprintf(stderr, "field_get_size: invalid type TYPE_BITS: use field_get_size_in_bits instead\n");
+        assert(false);
+    }
+#endif
     return field_get_type_size(field->type);
+}
+
+size_t field_get_size_in_bits(const field_t * field) {
+    return field->type == TYPE_BITS ?
+        field->value.bits.size_in_bits :
+        8 * field_get_size(field);
 }
 
 size_t field_get_type_size(fieldtype_t type) {
@@ -199,8 +242,12 @@ size_t field_get_type_size(fieldtype_t type) {
         case TYPE_IPV6:
             return sizeof(ipv6_t);
 #endif
+#ifdef USE_BITS
         case TYPE_BITS:
-            return sizeof(uint8_t);
+            fprintf(stderr, "field_get_type_size: invalid type TYPE_BITS: use field_get_size_in_bits instead\n");
+            assert(false);
+            break;
+#endif
         case TYPE_UINT8:
             return sizeof(uint8_t);
         case TYPE_UINT16:
@@ -271,18 +318,22 @@ void value_dump(const value_t * value, fieldtype_t type) {
             ipv6_dump(&value->ipv6);
             break;
 #endif
+#ifdef USE_BITS
         case TYPE_BITS:
+            fprintf(stderr, "value_dump: type not supported (%d) (%s), use value_dump_hex instead\n", type, field_type_to_string(type));
+            break;
+#endif
         case TYPE_UINT8:
-            printf("%-10hhu", value->bits);
+            printf("%hhu", value->int8);
             break;
         case TYPE_UINT16:
-            printf("%-10hu", value->int16);
+            printf("%hu", value->int16);
             break;
         case TYPE_UINT32:
-            printf("%-10u", value->int32);
+            printf("%u", value->int32);
             break;
         case TYPE_UINT64:
-            printf("%llu", (unsigned long long)value->int64);
+            printf("%llu", (unsigned long long) value->int64);
             break;
         case TYPE_DOUBLE:
             printf("%lf", value->dbl);
@@ -293,7 +344,7 @@ void value_dump(const value_t * value, fieldtype_t type) {
         case TYPE_STRING:
             printf("%s", value->string);
             break;
-        case TYPE_GENERATOR :
+        case TYPE_GENERATOR:
             generator_dump(value->generator);
             break;
         case TYPE_UINT128:
@@ -304,36 +355,8 @@ void value_dump(const value_t * value, fieldtype_t type) {
 }
 
 void value_dump_hex(const value_t * value, size_t num_bytes, size_t offset_in_bits, size_t num_bits) {
-    size_t    i;
     const uint8_t * bytes = (const uint8_t *) value;
-
-    if (num_bytes > 1 || num_bits >= 8 || num_bits == 0) {
-        // >= 8 bits
-        printf("0x");
-        for (i = 0; i < num_bytes; ++i, ++bytes) {
-            printf("%02x", *bytes);
-            if (num_bytes % 8 == 0 && num_bytes > 1) printf(" ");
-        }
-#ifdef USE_BITS
-    } else {
-        // < 8 bits
-        if (offset_in_bits % 4 == 0 && num_bits == 4) {
-            // 4 bits right-aligned or left align
-            printf("0x%01x", offset_in_bits ? (*bytes & 0xf0) >> 4 : (*bytes & 0x0f));
-        } else {
-            // Otherwise...
-            for (i = 0; i < offset_in_bits; ++i) {
-                printf(".");
-            }
-            for (; i < offset_in_bits + num_bits; ++i) {
-                printf("%d", ((*bytes) & (1 << i)) ? 1 : 0);
-            }
-            for (; i < 8; ++i) {
-                printf(".");
-            }
-        }
-#endif
-    }
+    bits_fprintf(stdout, bytes, num_bytes << 3, offset_in_bits);
 }
 
 void field_dump(const field_t * field) {
