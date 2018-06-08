@@ -1,5 +1,5 @@
-#ifndef GROUP_H
-#define GROUP_H
+#ifndef LIBPT_GROUP_H
+#define LIBPT_GROUP_H
 
 #include <unistd.h>   // close
 #include "dynarray.h" // dynarray_t
@@ -32,7 +32,7 @@ group_t * group_create(double (*callback)(void *));
 void group_free(group_t * group);
 
 int group_get_timerfd(const group_t * group);
- 
+
 probe_t * group_get_probe(const group_t * group, size_t i);
 
 bool group_add_probe(group_t * group, probe_t * probe);
@@ -41,4 +41,4 @@ bool group_add_n_probes(group_t * group, probe_t * probes, size_t n);
 
 bool group_set_timer(group_t * group);
 
-#endif // GROUP_H
+#endif // LIBPT_GROUP_H

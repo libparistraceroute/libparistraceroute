@@ -1,5 +1,5 @@
-#ifndef FIELD_H
-#define FIELD_H
+#ifndef LIBPT_FIELD_H
+#define LIBPT_FIELD_H
 
 /**
  * \file field.h
@@ -47,7 +47,7 @@ typedef enum {
 
 /**
  * \brief Convert a field type in the corresponding human
- *    readable string. 
+ *    readable string.
  * \param type A field type.
  * \return The corresponding string.
  */
@@ -85,10 +85,10 @@ typedef union {
 /**
  * \brief Print a value_t instance in the standard output.
  * \param value The value_t instance to print.
- * \param type The value type. 
+ * \param type The value type.
  */
 
-void value_dump(const value_t * value, fieldtype_t type); 
+void value_dump(const value_t * value, fieldtype_t type);
 
 /**
  * \brief Print a value_t instance in the standard output.
@@ -96,7 +96,7 @@ void value_dump(const value_t * value, fieldtype_t type);
  *    using the network-side endianness, so you should previously
  *    do this translation using value_htons().
  * \param value The value_t instance to print.
- * \param type The value type. 
+ * \param type The value type.
  */
 
 void value_dump_hex(const value_t * value, size_t num_bytes, size_t offset_in_bits, size_t num_bits);
@@ -117,7 +117,7 @@ typedef struct {
 } field_t;
 
 /**
- * \brief Create a field structure to hold a generic address. 
+ * \brief Create a field structure to hold a generic address.
  * \param key The name which identify the field to create.
  * \param address Address to store in the field.
  * \return Structure containing the newly created field.
@@ -127,7 +127,7 @@ field_t * field_create_address(const char * key, const address_t * address);
 
 #ifdef USE_IPV4
 /**
- * \brief Create a field structure to hold an IPv4 address. 
+ * \brief Create a field structure to hold an IPv4 address.
  * \param key The name which identify the field to create.
  * \param address Address to store in the field.
  * \return Structure containing the newly created field.
@@ -138,7 +138,7 @@ field_t * field_create_ipv4(const char * key, ipv4_t ipv4);
 
 #ifdef USE_IPV6
 /**
- * \brief Create a field structure to hold an IPv6 address. 
+ * \brief Create a field structure to hold an IPv6 address.
  * \param key The name which identify the field to create.
  * \param address Address to store in the field.
  * \return Structure containing the newly created field.
@@ -387,7 +387,7 @@ field_t * field_dup(const field_t * field);
  * \return
  *    1               if type == TYPE_UINT4
  *    sizeof(void * ) if type == TYPE_STRING or TYPE_GENERATOR
- *    the size of the field value in bytes otherwise 
+ *    the size of the field value in bytes otherwise
  */
 
 size_t field_get_type_size(fieldtype_t type);
@@ -395,7 +395,7 @@ size_t field_get_type_size(fieldtype_t type);
 /**
  * \brief Return the size (in bytes) related to a field
  * \param field A field instance
- * \return See field_get_type_size 
+ * \return See field_get_type_size
  */
 
 size_t field_get_size(const field_t * field);
@@ -426,4 +426,4 @@ bool field_set_value(field_t * field, void * value);
 
 void field_dump(const field_t * field);
 
-#endif
+#endif // LIBPT_FIELD_H

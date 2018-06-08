@@ -1,5 +1,5 @@
-#ifndef ALGORITHMS_TRACEROUTE_H
-#define ALGORITHMS_TRACEROUTE_H
+#ifndef LIBPT_ALGORITHMS_TRACEROUTE_H
+#define LIBPT_ALGORITHMS_TRACEROUTE_H
 
 #include <stdbool.h>     // bool
 #include <stdint.h>      // uint*_t
@@ -137,4 +137,4 @@ void traceroute_handler(
     const traceroute_data_t    * traceroute_data
 );
 
-#endif
+#endif // LIBPT_ALGORITHMS_TRACEROUTE_H

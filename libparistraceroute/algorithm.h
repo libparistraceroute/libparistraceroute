@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_H
-#define ALGORITHM_H
+#ifndef LIBPT_ALGORITHM_H
+#define LIBPT_ALGORITHM_H
 
 /**
  * \file algorithm.h
@@ -196,4 +196,4 @@ void pt_del_instance(
     algorithm_instance_t * instance
 );
 
-#endif
+#endif // LIBPT_ALGORITHM_H

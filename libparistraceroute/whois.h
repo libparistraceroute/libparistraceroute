@@ -1,5 +1,5 @@
-#ifndef WHOIS_H
-#define WHOIS_H
+#ifndef LIBPT_WHOIS_H
+#define LIBPT_WHOIS_H
 
 #include <stdint.h>		// uint32_t
 #include <stdbool.h>	// bool
@@ -96,4 +96,4 @@ bool whois_get_asn(
 	int               mask
 );
 
-#endif
+#endif // LIBPT_WHOIS_H

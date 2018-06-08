@@ -1,5 +1,5 @@
-#ifndef LAYER_H
-#define LAYER_H
+#ifndef LIBPT_LAYER_H
+#define LIBPT_LAYER_H
 
 /**
  * \file layer.h
@@ -37,7 +37,7 @@ typedef struct layer_s {
     const protocol_t * protocol;     /**< Points to the protocol implemented in this layer. Set to NULL if this layer is the payload */
     uint8_t          * segment;      /**< Points to the begining of the segment (header + data) of this layer in the packet */
     uint8_t          * mask;         /**< TODO (not yet implemented)
-                                          Indicates which bits have been set. 
+                                          Indicates which bits have been set.
                                           Should points to probe's bitfield */
     size_t             segment_size; /**< Size of segment (e.g. header) related to this layer */
 } layer_t;
@@ -89,10 +89,10 @@ void layer_set_protocol(layer_t * layer, const protocol_t * protocol);
 
 /**
  * \brief Update the segment managed by layer according to a field
- *    passed as a parameter. 
+ *    passed as a parameter.
  * \param layer Pointer to the layer structure to update.
  * \param field Pointer to the field we assign in this layer.
- * \return true iif successfull 
+ * \return true iif successfull
  */
 
 bool layer_set_field(layer_t * layer, const field_t * field);
@@ -130,7 +130,7 @@ bool layer_write_payload_ext(layer_t * layer, const void * bytes, size_t num_byt
 /**
  * \brief Retrieve the size of the buffer stored in the layer_t structure.
  * \param layer A pointer to a layer_t instance.
- */ 
+ */
 
 size_t    layer_get_segment_size(const layer_t * layer);
 void      layer_set_segment_size(layer_t * layer, size_t segment_size);
@@ -189,4 +189,4 @@ void layer_dump(const layer_t * layer, unsigned int indent);
 
 void layer_debug(const layer_t * layer1, const layer_t * layer2, unsigned int indent);
 
-#endif
+#endif // LIBPT_LAYER_H

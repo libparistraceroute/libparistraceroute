@@ -1,5 +1,5 @@
-#ifndef OBJECT_H
-#define OBJECT_H
+#ifndef LIBPT_CONTAINER_OBJECT_H
+#define LIBPT_CONTAINER_OBJECT_H
 
 #include "common.h"
 
@@ -9,7 +9,7 @@
  */
 
 typedef struct {
-    // Methods 
+    // Methods
     void * (*dup)(const void * element);
     void   (*free)(void * element);
     void   (*dump)(const void * element);
@@ -39,13 +39,12 @@ object_t * make_object(
     const void     * element
 );
 
-object_t * object_dup(const object_t * object); 
+object_t * object_dup(const object_t * object);
 
-void object_free(object_t * object); 
+void object_free(object_t * object);
 
-int object_compare(const object_t * object1, const object_t * object2); 
+int object_compare(const object_t * object1, const object_t * object2);
 
-void object_dump(const object_t * object); 
+void object_dump(const object_t * object);
 
-
-#endif
+#endif // LIBPT_CONTAINER_OBJECT_H

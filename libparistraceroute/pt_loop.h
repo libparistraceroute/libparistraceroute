@@ -1,5 +1,5 @@
-#ifndef PT_LOOP_H
-#define PT_LOOP_H
+#ifndef LIBPT_PT_LOOP_H
+#define LIBPT_PT_LOOP_H
 
 /**
  * \file pt_loop.h
@@ -215,4 +215,4 @@ bool pt_raise_error(pt_loop_t * loop);
 
 bool pt_raise_terminated(pt_loop_t * loop);
 
-#endif
+#endif // LIBPT_PT_LOOP_H

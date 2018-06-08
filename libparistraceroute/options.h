@@ -1,5 +1,5 @@
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#ifndef LIBPT_OPTIONS_H
+#define LIBPT_OPTIONS_H
 
 #include <stdbool.h>   // bool
 #include "optparse.h"  // optspec
@@ -118,4 +118,4 @@ void options_dump(const options_t * options);
  */
 int options_parse(options_t * options, const char * usage, char ** args);
 
-#endif
+#endif // LIBPT_OPTIONS_H

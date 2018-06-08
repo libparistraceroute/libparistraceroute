@@ -1,9 +1,9 @@
-#ifndef TREE_H
-#define TREE_H
+#ifndef LIBPT_TREE_H
+#define LIBPT_TREE_H
 
 #include <stddef.h>   // size_t
 #include "dynarray.h" // dynarray_t
-#include "common.h"   // ELEMENT_FREE, ELEMENT_DUMP 
+#include "common.h"   // ELEMENT_FREE, ELEMENT_DUMP
 
 typedef struct tree_node_s {
     struct tree_node_s * parent;       /** Pointer to the parent node (if any), NULL otherwise */
@@ -60,4 +60,4 @@ tree_node_t * tree_get_root(tree_t * tree);
 
 void tree_dump(const tree_t * tree);
 
-#endif
+#endif // LIBPT_TREE_H

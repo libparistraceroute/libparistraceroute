@@ -1,7 +1,5 @@
-#include "use.h"
-
-#ifndef PROBE_H
-#define PROBE_H
+#ifndef LIBPT_PROBE_H
+#define LIBPT_PROBE_H
 
 /**
  * \file probe.h
@@ -16,6 +14,7 @@
 //#include "bitfield.h"
 #include "dynarray.h"  // dynarray_t
 #include "packet.h"    // packet_t
+#include "use.h"
 
 #define DELAY_BEST_EFFORT -1 // This MUST be < 0, see network_send_probe
 /**
@@ -123,7 +122,7 @@ bool probe_write_field(probe_t * probe, const char * name, void * bytes, size_t 
 
 /**
  * \brief Update for each layer of a probe its 'checksum' field
- *   (if any) in order to have a packet well-formed. 
+ *   (if any) in order to have a packet well-formed.
  * \param probe The probe we're updating
  * \return true iif successfull
  */
@@ -236,7 +235,7 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size);
  * \brief Write data in the probe's payload. The packet_t instance
  *   is automatically resized if required.
  * \param bytes Bytes copied in the probe's payload/
- * \param num_bytes Number of bytes copied from bytes in the payload. 
+ * \param num_bytes Number of bytes copied from bytes in the payload.
  * \return true iif successfull
  */
 
@@ -247,7 +246,7 @@ bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes);
  *    packet_t instance is automatically resized if required.
  * \param probe The update payload
  * \param bytes Bytes copied in the probe's payload.
- * \param num_bytes Number of bytes copied from bytes in the payload. 
+ * \param num_bytes Number of bytes copied from bytes in the payload.
  * \param offset The offset (starting from the beginning of the payload)
  *    in bytes added to the payload address to write the data.
  * \return true iif successfull.
@@ -379,4 +378,4 @@ probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
 void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
 probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
 
-#endif
+#endif // LIBPT_PROBE_H

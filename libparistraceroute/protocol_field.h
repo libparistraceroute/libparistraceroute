@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_FIELD_H
-#define PROTOCOL_FIELD_H
+#ifndef LIBPT_PROTOCOL_FIELD_H
+#define LIBPT_PROTOCOL_FIELD_H
 
 /**
  * \file protocol_field.h
@@ -28,7 +28,7 @@ typedef struct {
 
     // The following callbacks allows to perform specific treatment when we translate
     // field content in packet content and vice versa. Most of time there are set
-    // to NULL and we call default functions which manage endianness and so on. 
+    // to NULL and we call default functions which manage endianness and so on.
 
     field_t     * (*get)(const uint8_t * segment);                  /**< Allocate a field_t instance corresponding to this field */
     bool          (*set)(uint8_t * segment, const field_t * field); /**< Update a segment according to a field. Return true iif successful */
@@ -46,7 +46,7 @@ size_t protocol_field_get_size(const protocol_field_t * protocol_field);
  * \brief Write in a segment (a section of packet) the value stored in a field
  *   according to the size and the offset stored in a protocol_field_t instance.
  * \param protocol_field A pointer to the corresponding protocol field.
- * \param segment The segment related to the layer we're setting. 
+ * \param segment The segment related to the layer we're setting.
  * \param field The field storing the value to write in the segment.
  * \return true iif successful
  */
@@ -68,5 +68,4 @@ size_t protocol_field_get_offset(const protocol_field_t * protocol_field);
 
 void protocol_field_dump(const protocol_field_t * protocol_field);
 
-#endif
-
+#endif // LIBPT_PROTOCOL_FIELD_H

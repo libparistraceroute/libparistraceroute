@@ -1,5 +1,5 @@
-#ifndef BUFFER_H
-#define BUFFER_H
+#ifndef LIBPT_BUFFER_H
+#define LIBPT_BUFFER_H
 
 #include <stddef.h>  // size_t
 #include <stdbool.h> // bool
@@ -104,4 +104,4 @@ void buffer_set_size(buffer_t * buffer, size_t size);
 
 void buffer_dump(const buffer_t * buffer);
 
-#endif
+#endif // LIBPT_BUFFER_H

@@ -1,5 +1,5 @@
-#ifndef SET_H
-#define SET_H
+#ifndef LIBPT_CONTAINER_SET_H
+#define LIBPT_CONTAINER_SET_H
 
 #include <stdbool.h>
 #include "containers/object.h"
@@ -17,7 +17,7 @@ typedef struct {
  * \param element_free Callback used to free element (may be set to NULL).
  *    If NULL, the set does not release references that it contains.
  * \param element_dump Callback used to dump element (may be set to NULL).
- *    If NULL, the set cannot be printed using set_dump. 
+ *    If NULL, the set cannot be printed using set_dump.
  * \param element_compare Callback used to compare elements (mandatory).
  */
 
@@ -92,5 +92,4 @@ bool set_insert(set_t * set, void * element);
 
 bool set_erase(set_t * set, const void * element);
 
-#endif
-
+#endif // LIBPT_CONTAINER_SET_H

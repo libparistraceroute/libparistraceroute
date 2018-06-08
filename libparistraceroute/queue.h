@@ -1,5 +1,5 @@
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef LIBPT_QUEUE_H
+#define LIBPT_QUEUE_H
 
 #include <stdbool.h>
 
@@ -50,5 +50,4 @@ void * queue_pop_element(queue_t * queue, void (*element_free)(void * element));
 
 int queue_get_fd(const queue_t * queue);
 
-#endif
-
+#endif // LIBPT_QUEUE_H

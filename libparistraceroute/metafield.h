@@ -1,18 +1,10 @@
-#ifndef METAFIELD_H
-#define METAFIELD_H
+#ifndef LIBPT_METAFIELD_H
+#define LIBPT_METAFIELD_H
 
 #include <unistd.h>
 #include "dynarray.h"
 #include "bitfield.h"
 #include "protocol_field.h"
-
-// metafield = sur champ
-// définit pour une clé par exemple flow le bon bitfield
-// abstrait un concept (par exemple flow) ce qui permet d'avoir une implem commune entre ipv4 et ipv6
-// probe_set_field("flow_id", ...)
-// probe_set_constraint("flow_id", CONSTANT)
-
-// ==, !=, pas de < ou de >
 
 /**
  * A metafield provides an abstraction of a set of bits stored in a
@@ -39,17 +31,7 @@ void metafield_register(metafield_t * metafield);
 // - bitmask of unauthorized bits ?
 // - prevent some fields to be used : eg. do not vary dst_port not to appear as
 //   a port scan. how to do it for flow_id and ipv6 for example ?
-// - an options to parametrize metafields 
-
-
-
-
-
-
-
-
-
-
+// - an options to parametrize metafields
 
 typedef long long int metafield_value_t;
 
@@ -81,13 +63,13 @@ metafield_t * metafield_create(
 //void metafield_free(metafield_t * metafield);
 
 //--------------------------------------------------------------------------
-// Getter / setter 
+// Getter / setter
 //--------------------------------------------------------------------------
 
 /**
- * \brief Sum the size of every underlying fields 
+ * \brief Sum the size of every underlying fields
  * \param metafield The metafield
- * \return The number of bytes 
+ * \return The number of bytes
  */
 
 //size_t metafield_get_size(const metafield_t * metafield);
@@ -95,7 +77,7 @@ metafield_t * metafield_create(
 /**
  * \brief Retrieve the value stored in a metafield.
  * \param metafield The metafield
- * \return The integer stored in the metafield. 
+ * \return The integer stored in the metafield.
  */
 
 //metafield_value_t metafield_get(const metafield_t * metafield);
@@ -113,7 +95,7 @@ bool metafield_set(
 */
 
 //--------------------------------------------------------------------------
-// Operator 
+// Operator
 //--------------------------------------------------------------------------
 
 /**
@@ -126,12 +108,12 @@ bool metafield_set(
 /*
 bool metafield_equal(
     const metafield_t * x,
-    const metafield_t * y 
+    const metafield_t * y
 );
 */
 
 /**
- * \brief Test whether two metafields are different 
+ * \brief Test whether two metafields are different
  * \param x The first metafield
  * \param y The first metafield
  * \return true iif x != y
@@ -140,9 +122,8 @@ bool metafield_equal(
 /*
 bool metafield_not_equal(
     const metafield_t * x,
-    const metafield_t * y 
+    const metafield_t * y
 );
 */
 
-#endif
-
+#endif // LIBPT_METAFIELD_H
