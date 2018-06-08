@@ -21,7 +21,7 @@
 typedef struct {
     void   ** elements;  /**< Pointer to the array of elements */
     size_t    size;      /**< Size of the array (in bytes) (should be always <= to max_size) */
-    size_t    max_size;  /**< Size of the allocated buffer (in bytes) */ 
+    size_t    max_size;  /**< Size of the allocated buffer (in bytes) */
 } dynarray_t;
 
 /**
@@ -65,7 +65,7 @@ bool dynarray_push_element(dynarray_t * dynarray, void * element);
  * \param dynarray A dynarray_t instance
  * \param i The index of the element to remove.
  *    Valid values are between 0 and dynarray_get_size() - 1
- *  If i is out of range, nothing happens and return false. 
+ *  If i is out of range, nothing happens and return false.
  * \param element_free Pointer to a function used to free up element resources
  *     (can be NULL)
  * \return true iif successful
@@ -112,7 +112,7 @@ void ** dynarray_get_elements(dynarray_t * dynarray);
  * \brief Retrieve the i-th element stored in a dynarray
  * \param i The index of the element to retrieve.
  *    Valid values are between 0 and dynarray_get_size() - 1
- * \return NULL if i-th refers to an element out of range 
+ * \return NULL if i-th refers to an element out of range
  *    the address of the i-th element otherwise.
  */
 

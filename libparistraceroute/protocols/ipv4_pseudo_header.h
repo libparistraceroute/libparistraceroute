@@ -20,7 +20,7 @@ typedef struct {
 
 /**
  * \brief Create an IPv4 pseudo header
- * \param ipv4_segment Address of the IPv4 segment 
+ * \param ipv4_segment Address of the IPv4 segment
  * \return The buffer containing the corresponding pseudo header,
  *    NULL in case of failure
  */

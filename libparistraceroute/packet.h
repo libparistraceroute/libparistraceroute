@@ -25,7 +25,7 @@ typedef struct packet_s {
 
 /**
  * \brief Create a new packet
- * \return The newly allocated packet_t instance, NULL in case of failure 
+ * \return The newly allocated packet_t instance, NULL in case of failure
  */
 
 packet_t * packet_create();
@@ -33,8 +33,8 @@ packet_t * packet_create();
 /**
  * \brief Create a new packet
  * \param bytes The bytes making the packet
- * \param num_bytes Number of considered bytes 
- * \return The newly allocated packet_t instance, NULL in case of failure 
+ * \param num_bytes Number of considered bytes
+ * \return The newly allocated packet_t instance, NULL in case of failure
  */
 
 packet_t * packet_create_from_bytes(uint8_t * bytes, size_t num_bytes);
@@ -43,7 +43,7 @@ packet_t * packet_create_from_bytes(uint8_t * bytes, size_t num_bytes);
  * \brief Create a new packet
  * \param bytes The bytes carried by the packet
  * \param num_bytes The packet size (in bytes)
- * \return The newly allocated packet_t instance, NULL in case of failure 
+ * \return The newly allocated packet_t instance, NULL in case of failure
  */
 
 packet_t * packet_wrap_bytes(uint8_t * bytes, size_t num_bytes);
@@ -76,7 +76,7 @@ uint8_t * packet_get_bytes(const packet_t * packet);
 /**
  * \brief Duplicate a packet
  * \param packet The packet we're copying
- * \return The newly allocated packet, NULL in case of failure 
+ * \return The newly allocated packet, NULL in case of failure
  */
 
 packet_t * packet_dup(const packet_t * packet);

@@ -52,7 +52,7 @@ double get_timestamp();
 /**
  * \bruef Print some space characters
  * \param indent The number of space characters to print
- *   in the standard output 
+ *   in the standard output
  */
 
 void print_indent(unsigned int indent);

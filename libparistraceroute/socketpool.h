@@ -14,7 +14,7 @@ typedef struct {
 } socketpool_t;
 
 /**
- * \brief Allocate a socketpool_t instance 
+ * \brief Allocate a socketpool_t instance
  * \return The address of the newly allocated socketpool_t instance,
  *    NULL in case of failure.
  */
@@ -24,7 +24,7 @@ socketpool_t * socketpool_create(void);
 /**
  * \brief Release a socket pool from the memory.
  * \param socketpool Address of the socketpool we want to release
- *    from the memory. 
+ *    from the memory.
  */
 
 void socketpool_free(socketpool_t * socketpool);

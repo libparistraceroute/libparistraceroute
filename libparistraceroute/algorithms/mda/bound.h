@@ -23,7 +23,7 @@ typedef struct {
     probability_t * second;
 } bound_state_t;
 
-/** 
+/**
  * \struct bound_t
  * \brief Structure used to store data relevant to bound
  */

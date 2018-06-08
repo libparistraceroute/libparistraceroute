@@ -122,7 +122,7 @@ bool probe_write_field(probe_t * probe, const char * name, void * bytes, size_t 
 
 /**
  * \brief Update for each layer of a probe its 'checksum' field
- *   (if any) in order to have a packet well-formed. 
+ *   (if any) in order to have a packet well-formed.
  * \param probe The probe we're updating
  * \return true iif successfull
  */
@@ -235,7 +235,7 @@ bool probe_payload_resize(probe_t * probe, size_t payload_size);
  * \brief Write data in the probe's payload. The packet_t instance
  *   is automatically resized if required.
  * \param bytes Bytes copied in the probe's payload/
- * \param num_bytes Number of bytes copied from bytes in the payload. 
+ * \param num_bytes Number of bytes copied from bytes in the payload.
  * \return true iif successfull
  */
 
@@ -246,7 +246,7 @@ bool probe_write_payload(probe_t * probe, const void * bytes, size_t num_bytes);
  *    packet_t instance is automatically resized if required.
  * \param probe The update payload
  * \param bytes Bytes copied in the probe's payload.
- * \param num_bytes Number of bytes copied from bytes in the payload. 
+ * \param num_bytes Number of bytes copied from bytes in the payload.
  * \param offset The offset (starting from the beginning of the payload)
  *    in bytes added to the payload address to write the data.
  * \return true iif successfull.

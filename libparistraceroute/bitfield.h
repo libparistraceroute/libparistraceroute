@@ -41,7 +41,7 @@ bitfield_t * bitfield_dup(const bitfield_t * bitfield);
 void bitfield_free(bitfield_t * bitfield);
 
 //--------------------------------------------------------------------------
-// Setter/getter 
+// Setter/getter
 //--------------------------------------------------------------------------
 
 uint8_t * bitfield_get_mask(const bitfield_t *bitfield);
@@ -62,11 +62,11 @@ int bitfield_get_bit(const bitfield_t * bitfield, size_t i);
  * \brief Define whether a bit belongs to a bitfield
  * \warning This function is based on the endianess of your system.
  * \param bitfield The bitfield
- * \param value Pass 0 if this bit must be set to 0, pass any 
+ * \param value Pass 0 if this bit must be set to 0, pass any
  *     other value if this bit must be set to 1.
  * \param offset_in_bits The position of the bit in the bitfield.
  *     This value must be less than to bitfield.size_in_bits
- * \return true if everithing is fine, false otherwise 
+ * \return true if everithing is fine, false otherwise
  */
 
 bool bitfield_set_bit(
@@ -76,13 +76,13 @@ bool bitfield_set_bit(
 );
 
 /**
- * \brief Set a bloc of bits to a givent value (0 or 1) 
+ * \brief Set a bloc of bits to a givent value (0 or 1)
  * \warning This function is based on the endianess of your system.
  * \param bitfield The bitfield
- * \param value Pass 0 if each altered bit must be set to 0, pass any 
+ * \param value Pass 0 if each altered bit must be set to 0, pass any
  *     other value if they must be set to 1.
  * \param offset_in_bits The position of the block of bits in the bitfield.
- *     This value must be less than bitfield.size_in_bits - 
+ *     This value must be less than bitfield.size_in_bits -
  * \return 0 if everything is fine, another value otherwise
  */
 
@@ -94,7 +94,7 @@ int bitfield_set_bits(
 );
 
 /**
- * \brief Retrieve the size of the internal buffer (in bits) 
+ * \brief Retrieve the size of the internal buffer (in bits)
  * \param bitfield The bitfield
  * \return the size in bits of the internal buffer
  */
@@ -104,9 +104,9 @@ size_t bitfield_get_size_in_bits(const bitfield_t * bitfield);
 /**
  * \brief Compute the next offset (in bits) related to a bit set to 1
  *    (from the left to the right in the buffer).
- * 
+ *
  *  Typical usage:
- *  
+ *
  *  size_t offset = 0;
  *  while(bitfield_find_next_1(bitfield, &offset)) {
  *     // iterate on each bit set to 1 belonging to 'bitfield'
@@ -116,7 +116,7 @@ size_t bitfield_get_size_in_bits(const bitfield_t * bitfield);
  * \param pcur_offset The address of the current position in the
  *    bitfield (in bits). This value is altered with the next
  *    offset related to a bit set to 1 (if found).
- * \return true if we've found a bit, false otherwise 
+ * \return true if we've found a bit, false otherwise
  */
 
 bool bitfield_find_next_1(
@@ -127,18 +127,18 @@ bool bitfield_find_next_1(
 /**
  * \brief Count the number of bits set to 1 in a bitfield
  * \param bitfield The bitfield
- * \return the size in bits set to 1. 
+ * \return the size in bits set to 1.
  */
 
 size_t  bitfield_get_num_1(const bitfield_t * bitfield);
 
 //--------------------------------------------------------------------------
-// Operators 
+// Operators
 //--------------------------------------------------------------------------
 
 /**
  * \brief Apply &= to each byte (tgt &= src)
- * \param tgt The left operand of &= 
+ * \param tgt The left operand of &=
  * \param src The right operand of &=
  */
 
@@ -146,7 +146,7 @@ void bitfield_and(bitfield_t * tgt, const bitfield_t * src);
 
 /**
  * \brief Apply |= to each byte (tgt |= src)
- * \param tgt The left operand of |= 
+ * \param tgt The left operand of |=
  * \param src The right operand of |=
  */
 
@@ -154,7 +154,7 @@ void bitfield_or(bitfield_t * tgt, const bitfield_t * src);
 
 /**
  * \brief Apply ~ to each byte (tgt ~= tgt)
- * \param tgt The bitfield we modify 
+ * \param tgt The bitfield we modify
  */
 
 void bitfield_not(bitfield_t * tgt);

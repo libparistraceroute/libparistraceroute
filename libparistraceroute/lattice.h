@@ -17,7 +17,7 @@ typedef enum {
 } lattice_walk_t;
 
 //---------------------------------------------------------------------------
-// lattice_elt_t 
+// lattice_elt_t
 //---------------------------------------------------------------------------
 
 typedef struct {
@@ -55,7 +55,7 @@ typedef struct {
 } lattice_t;
 
 /**
- * \brief Allocate a lattice_t instance. 
+ * \brief Allocate a lattice_t instance.
  * \param data This address is stored in the newly allocated node.
  * \return The newly allocated lattice_elt_t instance if successful,
  *    NULL otherwise.

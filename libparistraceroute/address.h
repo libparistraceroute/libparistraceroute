@@ -135,7 +135,7 @@ bool address_guess_family(const char * str_ip, int * pfamily);
  * \param family Address family (AF_INET or AF_INET6)
  * \param hostname An IP address (human readable format) or a hostname)
  * \param ip A pre-allocated ip_t that we update
- * \return see getaddrinfo's returned values 
+ * \return see getaddrinfo's returned values
  */
 
 int ip_from_string(int family, const char * hostname, ip_t * ip);
@@ -148,30 +148,30 @@ int ip_from_string(int family, const char * hostname, ip_t * ip);
  * \return The value returned by getnameinfo
  */
 
-int address_to_string(const address_t * addr, char ** pbuffer); 
+int address_to_string(const address_t * addr, char ** pbuffer);
 
 /**
  * \brief Converts an IP stored in a string into its corresponding hostname.
  *    DNS lookups may be cached to improve the overall performance. This
  *    cache is shared between all running algorithm instance using
  *    libparistraceroute.
- * \param address An address_t instance 
+ * \param address An address_t instance
  * \param phostname Pass a pointer initialized to NULL.
  *    *phostname is automatically allocated if it is required.
  *    If the resolution fails, *phostname remains equal to NULL.
  *    Otherwise, *phostname points to the FQDN and must be freed once it is no more used.
  * \param mask_cache A value among:
  *    CACHE_DISABLED : do not feed nor read the cache
- *    CACHE_WRITE    : perform a DNS lookup and store the result in the cache 
+ *    CACHE_WRITE    : perform a DNS lookup and store the result in the cache
  *    CACHE_READ     : use cached DNS lookups, if not found, perform a dns lookup
  *    CACHE_ENABLED  : see IP_HOSTNAME_CACHE_WRITE and IP_HOSTNAME_CACHE_READ
- * \return true iif successfull 
+ * \return true iif successfull
  */
 
-#define CACHE_DISABLED  0 
+#define CACHE_DISABLED  0
 #define CACHE_WRITE    (1 << 0)
 #define CACHE_READ     (1 << 1)
-#define CACHE_ENABLED  (CACHE_READ | CACHE_WRITE) 
+#define CACHE_ENABLED  (CACHE_READ | CACHE_WRITE)
 
 bool address_resolv(const address_t * address, char ** phostname, int mask_cache);
 

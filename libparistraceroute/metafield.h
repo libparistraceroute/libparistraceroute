@@ -31,7 +31,7 @@ void metafield_register(metafield_t * metafield);
 // - bitmask of unauthorized bits ?
 // - prevent some fields to be used : eg. do not vary dst_port not to appear as
 //   a port scan. how to do it for flow_id and ipv6 for example ?
-// - an options to parametrize metafields 
+// - an options to parametrize metafields
 
 typedef long long int metafield_value_t;
 
@@ -63,13 +63,13 @@ metafield_t * metafield_create(
 //void metafield_free(metafield_t * metafield);
 
 //--------------------------------------------------------------------------
-// Getter / setter 
+// Getter / setter
 //--------------------------------------------------------------------------
 
 /**
- * \brief Sum the size of every underlying fields 
+ * \brief Sum the size of every underlying fields
  * \param metafield The metafield
- * \return The number of bytes 
+ * \return The number of bytes
  */
 
 //size_t metafield_get_size(const metafield_t * metafield);
@@ -77,7 +77,7 @@ metafield_t * metafield_create(
 /**
  * \brief Retrieve the value stored in a metafield.
  * \param metafield The metafield
- * \return The integer stored in the metafield. 
+ * \return The integer stored in the metafield.
  */
 
 //metafield_value_t metafield_get(const metafield_t * metafield);
@@ -95,7 +95,7 @@ bool metafield_set(
 */
 
 //--------------------------------------------------------------------------
-// Operator 
+// Operator
 //--------------------------------------------------------------------------
 
 /**
@@ -108,12 +108,12 @@ bool metafield_set(
 /*
 bool metafield_equal(
     const metafield_t * x,
-    const metafield_t * y 
+    const metafield_t * y
 );
 */
 
 /**
- * \brief Test whether two metafields are different 
+ * \brief Test whether two metafields are different
  * \param x The first metafield
  * \param y The first metafield
  * \return true iif x != y
@@ -122,7 +122,7 @@ bool metafield_equal(
 /*
 bool metafield_not_equal(
     const metafield_t * x,
-    const metafield_t * y 
+    const metafield_t * y
 );
 */
 

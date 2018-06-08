@@ -50,10 +50,10 @@ typedef struct {
     struct algorithm_instance_s * issuer;             /**< Instance which has raised the event. NULL if raised by pt_loop. */
 } event_t;
 
-/** 
+/**
  * \brief Create a new event structure
  * \param type Event type
- * \param data Data that must be carried by this event 
+ * \param data Data that must be carried by this event
  * \param issuer
  * \return Newly created event structure
  */

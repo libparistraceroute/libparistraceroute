@@ -3,7 +3,7 @@
 
 #include <stddef.h>   // size_t
 #include "dynarray.h" // dynarray_t
-#include "common.h"   // ELEMENT_FREE, ELEMENT_DUMP 
+#include "common.h"   // ELEMENT_FREE, ELEMENT_DUMP
 
 typedef struct tree_node_s {
     struct tree_node_s * parent;       /** Pointer to the parent node (if any), NULL otherwise */

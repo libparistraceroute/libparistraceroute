@@ -21,7 +21,7 @@ typedef struct {
 
 /**
  * \brief Create a map of key-value pairs. Some callbacks may be set to
- *    NULL (see set_create_impl behaviour). 
+ *    NULL (see set_create_impl behaviour).
  * \param key_dup Callback used to duplicate key (may be set to NULL).
  * \param key_free Callback used to free key (may be set to NULL).
  * \param key_dump Callback used to dump key (may be set to NULL).
@@ -59,7 +59,7 @@ map_t * map_create_impl(
  * \param dummy_key This object instance carrying the callbacks used by
  *    the map_t instance to manage its keys.
  * \param dummy_data This object instance carrying the callbacks used by
- *    the map_t instance to manage the values attached to each keys. 
+ *    the map_t instance to manage the values attached to each keys.
  * \return The newly allocated map_t instance if successful, NULL otherwise.
  */
 

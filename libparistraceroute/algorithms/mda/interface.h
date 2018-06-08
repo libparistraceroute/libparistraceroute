@@ -23,13 +23,13 @@ typedef enum {
 typedef struct {
     address_t   * address;           /**< Interface attached to this hop   */
     size_t        sent,              /**< Number of probes to discover its next hops */
-                  received,         
+                  received,
                   timeout,
                   num_stars;         /**< Number of timeout for this hop          */
     dynarray_t  * ttl_flows;         /**< ttl-flow_id tuples related to this hop  */
-    uint8_t       ttl_set[MAX_TTLS]; /**< The set of ttls that can reach this hop. 
-                                          This structure is used to improve 
-                                          efficiency later in the code.           */ 
+    uint8_t       ttl_set[MAX_TTLS]; /**< The set of ttls that can reach this hop.
+                                          This structure is used to improve
+                                          efficiency later in the code.           */
     size_t        num_ttls;          /**< Number of ttls contained in this hop    */
     bool          enumeration_done;
     mda_lb_type_t type;              /**< Type of load balancer            */
