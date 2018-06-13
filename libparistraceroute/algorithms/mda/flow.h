@@ -1,5 +1,5 @@
-#ifndef MDA_FLOW_H
-#define MDA_FLOW_H
+#ifndef LIBPT_ALGORITHMS_MDA_FLOW_H
+#define LIBPT_ALGORITHMS_MDA_FLOW_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -43,4 +43,4 @@ void mda_flow_free(mda_flow_t * mda_flow);
  */
 char mda_flow_state_to_char(const mda_flow_t * mda_flow);
 
-#endif
+#endif // LIBPT_ALGORITHMS_MDA_FLOW_H

@@ -1,9 +1,8 @@
-#include "use.h"
-
-#ifndef SOCKETPOOL_H
-#define SOCKETPOOl_H
+#ifndef LIBPT_SOCKETPOOL_H
+#define LIBPT_SOCKETPOOL_H
 
 #include "packet.h"
+#include "use.h"
 
 typedef struct {
 #ifdef USE_IPV4
@@ -15,7 +14,7 @@ typedef struct {
 } socketpool_t;
 
 /**
- * \brief Allocate a socketpool_t instance 
+ * \brief Allocate a socketpool_t instance
  * \return The address of the newly allocated socketpool_t instance,
  *    NULL in case of failure.
  */
@@ -25,7 +24,7 @@ socketpool_t * socketpool_create(void);
 /**
  * \brief Release a socket pool from the memory.
  * \param socketpool Address of the socketpool we want to release
- *    from the memory. 
+ *    from the memory.
  */
 
 void socketpool_free(socketpool_t * socketpool);
@@ -39,4 +38,4 @@ void socketpool_free(socketpool_t * socketpool);
 
 bool socketpool_send_packet(const socketpool_t * socketpool, const packet_t * packet);
 
-#endif
+#endif // LIBPT_SOCKETPOOL_H

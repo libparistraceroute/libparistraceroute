@@ -1,5 +1,5 @@
-#ifndef MDA_DATA_H
-#define MDA_DATA_H
+#ifndef LIBPT_ALGORITHMS_MDA_DATA_H
+#define LIBPT_ALGORITHMS_MDA_DATA_H
 
 #include "bound.h"          // bound_t
 #include "../../address.h"  // address_t
@@ -30,5 +30,4 @@ mda_data_t * mda_data_create();
 
 void mda_data_free(mda_data_t * data);
 
-#endif
-
+#endif // LIBPT_ALGORITHMS_MDA_DATA_H

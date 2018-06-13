@@ -1,5 +1,5 @@
-#ifndef MDA_INTERFACE_H
-#define MDA_INTERFACE_H
+#ifndef LIBPT_ALGORITHMS_MDA_INTERFACE_H
+#define LIBPT_ALGORITHMS_MDA_INTERFACE_H
 
 #include <stdbool.h>        // bool
 #include <stddef.h>         // size_t
@@ -23,13 +23,13 @@ typedef enum {
 typedef struct {
     address_t   * address;           /**< Interface attached to this hop   */
     size_t        sent,              /**< Number of probes to discover its next hops */
-                  received,         
+                  received,
                   timeout,
                   num_stars;         /**< Number of timeout for this hop          */
     dynarray_t  * ttl_flows;         /**< ttl-flow_id tuples related to this hop  */
-    uint8_t       ttl_set[MAX_TTLS]; /**< The set of ttls that can reach this hop. 
-                                          This structure is used to improve 
-                                          efficiency later in the code.           */ 
+    uint8_t       ttl_set[MAX_TTLS]; /**< The set of ttls that can reach this hop.
+                                          This structure is used to improve
+                                          efficiency later in the code.           */
     size_t        num_ttls;          /**< Number of ttls contained in this hop    */
     bool          enumeration_done;
     mda_lb_type_t type;              /**< Type of load balancer            */
@@ -122,5 +122,4 @@ void mda_link_dump(const mda_interface_t ** link, bool do_resolv);
 
 void mda_lattice_elt_dump(const lattice_elt_t * elt); //, bool do_resolv);
 
-#endif // MDA_INTERFACE_H
-
+#endif // LIBPT_ALGORITHMS_MDA_INTERFACE_H

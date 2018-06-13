@@ -1,5 +1,5 @@
-#ifndef WORKSHOP_BOUND_H
-#define WORKSHOP_BOUND_H
+#ifndef LIBPT_ALGORITHMS_MDA_BOUND_H
+#define LIBPT_ALGORITHMS_MDA_BOUND_H
 
 #include <stddef.h>
 /**
@@ -23,7 +23,7 @@ typedef struct {
     probability_t * second;
 } bound_state_t;
 
-/** 
+/**
  * \struct bound_t
  * \brief Structure used to store data relevant to bound
  */
@@ -88,4 +88,4 @@ void bound_dump(bound_t * bound);
 
 void bound_free(bound_t * bound);
 
-#endif
+#endif // LIBPT_ALGORITHMS_MDA_BOUND_H

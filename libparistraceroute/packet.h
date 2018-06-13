@@ -1,5 +1,5 @@
-#ifndef PACKET_H
-#define PACKET_H
+#ifndef LIBPT_PACKET_H
+#define LIBPT_PACKET_H
 
 /**
  * \file packet.h
@@ -119,4 +119,4 @@ buffer_t * packet_get_buffer(packet_t * packet);
 
 void packet_set_buffer(packet_t * packet, buffer_t * buffer);
 
-#endif
+#endif // LIBPT_PACKET_H
