@@ -1,5 +1,5 @@
-#ifndef ALGORITHMS_PING_H
-#define ALGORITHMS_PING_H
+#ifndef LIBPT_ALGORITHMS_PING_H
+#define LIBPT_ALGORITHMS_PING_H
 
 #include <stdbool.h>     // bool
 #include <stdint.h>      // uint*_t
@@ -126,4 +126,4 @@ void ping_handler(
     ping_data_t          * ping_data
 );
 
-#endif
+#endif // LIBPT_ALGORITHMS_PING_H

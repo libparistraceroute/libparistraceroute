@@ -1,5 +1,5 @@
-#ifndef BUFFER_H
-#define BUFFER_H
+#ifndef LIBPT_BUFFER_H
+#define LIBPT_BUFFER_H
 
 #include <stddef.h>  // size_t
 #include <stdbool.h> // bool
@@ -131,4 +131,4 @@ void hex_fprintf(FILE * out, const uint8_t * bytes, size_t num_bytes);
 
 void hex_dump(const uint8_t * bytes, size_t num_bytes);
 
-#endif
+#endif // LIBPT_BUFFER_H

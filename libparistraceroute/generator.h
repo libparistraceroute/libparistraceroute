@@ -1,5 +1,5 @@
-#ifndef GENERATOR_H
-#define GENERATOR_H
+#ifndef LIBPT_GENERATOR_H
+#define LIBPT_GENERATOR_H
 
 #include "field.h"
 
@@ -117,5 +117,4 @@ static void __init_ ## MOD (void) {    \
     generator_register(&MOD); \
 }
 
-#endif
-
+#endif // LIBPT_GENERATOR_H

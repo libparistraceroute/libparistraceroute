@@ -1,7 +1,5 @@
-#include "use.h"
-
-#ifndef SNIFFER_H
-#define SNIFFER_H
+#ifndef LIBPT_SNIFFER_H
+#define LIBPT_SNIFFER_H
 
 /**
  * \file sniffer.h
@@ -13,6 +11,7 @@
 
 #include <stdbool.h> // bool
 #include "packet.h"  // packet_t
+#include "use.h"
 
 /**
  * \struct sniffer_t
@@ -44,7 +43,7 @@ sniffer_t * sniffer_create(void * recv_param, bool (*recv_callback)(packet_t *, 
 
 /**
  * \brief Free a sniffer_t structure.
- * \param sniffer Points to a sniffer_t instance. 
+ * \param sniffer Points to a sniffer_t instance.
  */
 
 void sniffer_free(sniffer_t * sniffer);
@@ -75,11 +74,11 @@ int sniffer_get_icmpv6_sockfd(sniffer_t * sniffer);
  * \brief Fetch a packet from the listening socket. The sniffer then
  *   call recv_callback and pass to this function this packet and
  *   eventual data stored in sniffer->recv_packet. If this callback
- *   returns false, a message is printed. 
+ *   returns false, a message is printed.
  * \param sniffer Points to a sniffer_t instance.
  * \param protocol_id The family of the packet to fetch (IPPROTO_ICMP, IPPROTO_ICMPV6)
  */
 
 void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id);
 
-#endif
+#endif // LIBPT_SNIFFER_H

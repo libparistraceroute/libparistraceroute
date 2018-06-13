@@ -1,5 +1,5 @@
-#ifndef USE_H
-#define USE
+#ifndef LIBPT_USE_H
+#define LIBPT_USE_H
 
 // This header allows to enable or disable some functionnalities of libparistraceroute
 // in order to get a smaller binary.
@@ -17,4 +17,4 @@
 // Enable scheduling of probes
 #define USE_SCHEDULING
 
-#endif
+#endif // LIBPT_USE_H

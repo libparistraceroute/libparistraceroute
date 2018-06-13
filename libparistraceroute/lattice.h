@@ -1,5 +1,5 @@
-#ifndef STRUCTURE_LATTICE_H
-#define STRUCTURE_LATTICE_H
+#ifndef LIBPT_LATTICE_H
+#define LIBPT_LATTICE_H
 
 #include "dynarray.h"
 
@@ -17,7 +17,7 @@ typedef enum {
 } lattice_walk_t;
 
 //---------------------------------------------------------------------------
-// lattice_elt_t 
+// lattice_elt_t
 //---------------------------------------------------------------------------
 
 typedef struct {
@@ -55,7 +55,7 @@ typedef struct {
 } lattice_t;
 
 /**
- * \brief Allocate a lattice_t instance. 
+ * \brief Allocate a lattice_t instance.
  * \param data This address is stored in the newly allocated node.
  * \return The newly allocated lattice_elt_t instance if successful,
  *    NULL otherwise.
@@ -119,4 +119,4 @@ bool lattice_add_element(lattice_t * lattice, lattice_elt_t * predecessor, void 
  */
 void lattice_dump(lattice_t * lattice, void (* element_dump)(const void *));
 
-#endif // STRUCTURE_LATTICE_H
+#endif // LIBPT_LATTICE_H

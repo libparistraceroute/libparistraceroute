@@ -1,5 +1,5 @@
-#ifndef PAIR_H
-#define PAIR_H
+#ifndef LIBPT_CONTAINER_PAIR_H
+#define LIBPT_CONTAINER_PAIR_H
 
 #include "containers/object.h"
 
@@ -70,6 +70,4 @@ int pair_compare(const pair_t * pair1, const pair_t * pair2);
 
 void pair_dump(const pair_t * pair);
 
-#endif
-
-
+#endif // LIBPT_CONTAINER_PAIR_H

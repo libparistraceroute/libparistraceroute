@@ -1,5 +1,5 @@
-#ifndef METAFIELD_H
-#define METAFIELD_H
+#ifndef LIBPT_METAFIELD_H
+#define LIBPT_METAFIELD_H
 
 #include <stdbool.h>            // bool
 #include <stddef.h>             // size_t
@@ -113,5 +113,4 @@ bool metafield_write(const metafield_t * metafield, const probe_t * probe, uint8
 
 metafield_t * metafield_make_flow_id();
 
-#endif
-
+#endif // LIBPT_METAFIELD_H

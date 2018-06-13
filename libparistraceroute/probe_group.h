@@ -1,5 +1,5 @@
-#ifndef PROBE_GROUP_H
-#define PROBE_GROUP_H
+#ifndef LIBPT_PROBE_GROUP_H
+#define LIBPT_PROBE_GROUP_H
 
 #include <stddef.h> // size_t
 
@@ -120,4 +120,5 @@ void probe_group_update_delay(probe_group_t * probe_group, tree_node_t * node);
 double probe_group_get_last_delay(probe_group_t * probe_group);
 
 void probe_group_set_last_delay(probe_group_t * probe_group, double new_last_delay);
-#endif
+
+#endif // LIBPT_PROBE_GROUP_H

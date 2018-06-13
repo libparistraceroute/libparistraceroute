@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_H
-#define PROTOCOL_H
+#ifndef LIBPT_PROTOCOL_H
+#define LIBPT_PROTOCOL_H
 
 /**
  * \file protocol.h
@@ -198,4 +198,4 @@ static void __init_ ## MOD (void) {    \
     protocol_register(&MOD); \
 }
 
-#endif
+#endif // LIBPT_PROTOCOL_H

@@ -1,5 +1,5 @@
-#ifndef MDA_TTL_FLOW_H
-#define MDA_TTL_FLOW_H
+#ifndef LIBPT_ALGORITHMS_MDA_TTL_FLOW_H
+#define LIBPT_ALGORITHMS_MDA_TTL_FLOW_H
 
 #include "flow.h"           // mda_flow_state_t
 
@@ -27,4 +27,4 @@ mda_ttl_flow_t * mda_ttl_flow_create(uint8_t ttl, mda_flow_t * mda_flow);
 
 void mda_ttl_flow_free(mda_ttl_flow_t * mda_ttl_flow);
 
-#endif // MDA_TTL_FLOW_H
+#endif // LIBPT_ALGORITHMS_MDA_TTL_FLOW_H
