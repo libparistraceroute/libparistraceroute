@@ -138,7 +138,7 @@ static bool probe_update_protocol(probe_t * probe)
         layer = probe_get_layer(probe, i);
         if (layer->protocol && prev_layer) {
             // Update 'protocol' field (if any)
-            layer_set_field_and_free(layer, I8("protocol", prev_layer->protocol->protocol));
+            layer_set_field_and_free(prev_layer, I8("protocol", layer->protocol->protocol));
         }
     }
     return true;
