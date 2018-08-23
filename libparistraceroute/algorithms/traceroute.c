@@ -21,6 +21,7 @@ static unsigned max_ttl[3]          = OPTIONS_TRACEROUTE_MAX_TTL;
 static unsigned max_undiscovered[3] = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED;
 static unsigned num_queries[3]      = OPTIONS_TRACEROUTE_NUM_QUERIES;
 static bool     do_resolv           = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT;
+static bool     print_ttl           = OPTIONS_TRACEROUTE_PRINT_TTL_DEFAULT;
 static bool     resolv_asn          = OPTIONS_TRACEROUTE_RESOLV_ASN_DEFAULT;
 
 static option_t traceroute_options[] = {
@@ -31,6 +32,7 @@ static option_t traceroute_options[] = {
     {opt_store_0,       "n",  OPT_NO_LF,            OPT_NO_METAVAR,     TRACEROUTE_HELP_n, &do_resolv},
     {opt_store_int_lim, "q",  "--num-queries",      "NUM_QUERIES",      TRACEROUTE_HELP_q, num_queries},
     {opt_store_int_lim, "M",  "--max-undiscovered", "MAX_UNDISCOVERED", TRACEROUTE_HELP_M, max_undiscovered},
+    {opt_store_1, OPT_NO_SF,  "--print-ttl",        OPT_NO_METAVAR,     TRACEROUTE_HELP_PRINT_TTL, &print_ttl},
     END_OPT_SPECS
 };
 
@@ -54,6 +56,10 @@ bool options_traceroute_get_do_resolv() {
     return do_resolv;
 }
 
+bool options_traceroute_get_print_ttl() {
+    return print_ttl;
+}
+
 bool options_traceroute_get_resolv_asn() {
     return resolv_asn;
 }
@@ -70,6 +76,7 @@ void options_traceroute_init(traceroute_options_t * traceroute_options, address_
     traceroute_options->max_undiscovered = options_traceroute_get_max_undiscovered();
     traceroute_options->dst_addr         = address;
     traceroute_options->do_resolv        = options_traceroute_get_do_resolv();
+    traceroute_options->print_ttl        = options_traceroute_get_print_ttl();
     traceroute_options->resolv_asn       = options_traceroute_get_resolv_asn();
 }
 
@@ -81,6 +88,7 @@ inline traceroute_options_t traceroute_get_default_options() {
         .max_undiscovered = OPTIONS_TRACEROUTE_MAX_UNDISCOVERED_DEFAULT,
         .dst_addr         = NULL,
         .do_resolv        = OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT,
+        .print_ttl        = OPTIONS_TRACEROUTE_PRINT_TTL_DEFAULT,
         .resolv_asn       = OPTIONS_TRACEROUTE_RESOLV_ASN_DEFAULT,
     };
     return traceroute_options;
@@ -159,7 +167,7 @@ static inline void discovered_ip_dump(const probe_t * reply, bool do_resolv, boo
 			uint32_t asn = 0;
 			bool found = whois_get_asn(&discovered_addr, &asn, CACHE_ENABLED);
 			if (found) {
-				printf(" [AS%u]", asn);
+				printf("[AS%u] ", asn);
 			}
 		}
     }
@@ -169,6 +177,11 @@ static inline void delay_dump(const probe_t * probe, const probe_t * reply) {
     double send_time = probe_get_sending_time(probe),
            recv_time = probe_get_recv_time(reply);
     printf("  %-5.3lfms  ", 1000 * (recv_time - send_time));
+}
+
+static inline void ttl_reply_dump(const probe_t * reply) {
+    uint8_t ttl_reply;
+    if (probe_extract(reply, "ttl", &ttl_reply)) printf("[%2d] ", ttl_reply);
 }
 
 void traceroute_handler(
@@ -196,6 +209,7 @@ void traceroute_handler(
 
             // Print delay
             delay_dump(probe, reply);
+            if (traceroute_options->print_ttl) ttl_reply_dump(reply);
             fflush(stdout);
             num_probes_printed++;
             break;

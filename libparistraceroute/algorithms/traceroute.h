@@ -16,6 +16,7 @@
 #define OPTIONS_TRACEROUTE_NUM_QUERIES_DEFAULT        3
 #define OPTIONS_TRACEROUTE_DO_RESOLV_DEFAULT          true
 #define OPTIONS_TRACEROUTE_RESOLV_ASN_DEFAULT         false
+#define OPTIONS_TRACEROUTE_PRINT_TTL_DEFAULT          false
 
 #define OPTIONS_TRACEROUTE_MIN_TTL          {OPTIONS_TRACEROUTE_MIN_TTL_DEFAULT,          1, 255}
 #define OPTIONS_TRACEROUTE_MAX_TTL          {OPTIONS_TRACEROUTE_MAX_TTL_DEFAULT,          1, 255}
@@ -27,6 +28,7 @@
 #define TRACEROUTE_HELP_m "Set the max number of hops (MAX_TTL to be reached). Default is 30, MAX_TTL must be between 1 and 255."
 #define TRACEROUTE_HELP_n "Do not resolve IP addresses to their domain names"
 #define TRACEROUTE_HELP_q "Set the number of probes per hop (default: 3)."
+#define TRACEROUTE_HELP_PRINT_TTL "Print the TTL of the reply packet."
 #define TRACEROUTE_HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)."
 
 // Get the different values of traceroute options
@@ -35,6 +37,7 @@ uint8_t options_traceroute_get_max_ttl();
 uint8_t options_traceroute_get_num_queries();
 uint8_t options_traceroute_get_max_undiscovered();
 bool    options_traceroute_get_do_resolv();
+bool    options_traceroute_get_print_ttl();
 bool    options_traceroute_get_resolv_asn();
 
 /*
@@ -76,6 +79,7 @@ typedef struct {
     size_t            max_undiscovered; /**< Maximum number of consecutives undiscovered hops. */
     const address_t * dst_addr;         /**< The target IP. */
     bool              do_resolv;        /**< Resolv each discovered IP hop. */
+    bool              print_ttl;      /**< Print the TTL of the reply. */
     bool              resolv_asn;       /**< Perform AS path lookups for each discovered IP hop. */
 } traceroute_options_t;
 
