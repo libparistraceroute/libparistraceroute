@@ -7,6 +7,10 @@
 
 #define END_OPT_SPECS { .action = NULL}
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //---------------------------------------------------------------------------
 // option_t
 //---------------------------------------------------------------------------
@@ -117,5 +121,9 @@ void options_dump(const options_t * options);
  * \param args vector containing the arguments passed
  */
 int options_parse(options_t * options, const char * usage, char ** args);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_OPTIONS_H

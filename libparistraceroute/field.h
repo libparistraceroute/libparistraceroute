@@ -12,6 +12,10 @@
 
 #include "address.h" // address_t, ipv4_t, ipv6_t
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct generator_s;
 
 typedef union{
@@ -432,5 +436,9 @@ bool field_set_value(field_t * field, void * value);
  */
 
 void field_dump(const field_t * field);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_FIELD_H

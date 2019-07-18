@@ -17,6 +17,11 @@
 #include "use.h"
 
 #define DELAY_BEST_EFFORT -1 // This MUST be < 0, see network_send_probe
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \struct probe_t
  * \brief Structure representing a probe
@@ -385,5 +390,9 @@ void probe_reply_set_probe(probe_reply_t * probe_reply, probe_t * probe);
 probe_t * probe_reply_get_probe(const probe_reply_t * probe_reply);
 void probe_reply_set_reply(probe_reply_t *probe_reply, probe_t * reply);
 probe_t * probe_reply_get_reply(const probe_reply_t * probe_reply);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_PROBE_H

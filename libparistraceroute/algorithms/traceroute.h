@@ -31,6 +31,10 @@
 #define TRACEROUTE_HELP_PRINT_TTL "Print the TTL of the reply packet."
 #define TRACEROUTE_HELP_M "Set the maximum number of consecutive unresponsive hops which causes the program to abort (default 3)."
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Get the different values of traceroute options
 uint8_t options_traceroute_get_min_ttl();
 uint8_t options_traceroute_get_max_ttl();
@@ -140,5 +144,9 @@ void traceroute_handler(
     const traceroute_options_t * traceroute_options,
     const traceroute_data_t    * traceroute_data
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ALGORITHMS_TRACEROUTE_H

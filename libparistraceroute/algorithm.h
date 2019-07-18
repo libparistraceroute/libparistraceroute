@@ -14,6 +14,10 @@
 #include "pt_loop.h"    // pt_loop_t
 #include "optparse.h"   // opt_spec
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \enum status_t
  * \brief Algorithm status constants
@@ -195,5 +199,9 @@ void pt_del_instance(
     struct pt_loop_s * loop,
     algorithm_instance_t * instance
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ALGORITHM_H

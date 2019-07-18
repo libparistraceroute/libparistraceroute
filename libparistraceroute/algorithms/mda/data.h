@@ -7,6 +7,10 @@
 #include "../../pt_loop.h"  // pt_loop_t
 #include "../../probe.h"    // probe_t
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     lattice_t    * lattice;      /**< Root of the lattice storing the interfaces */
     uintmax_t      last_flow_id;
@@ -29,5 +33,9 @@ mda_data_t * mda_data_create();
  */
 
 void mda_data_free(mda_data_t * data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ALGORITHMS_MDA_DATA_H

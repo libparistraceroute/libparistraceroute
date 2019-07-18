@@ -8,6 +8,10 @@
 #define OPT_NO_HELP (void *)0
 #define OPT_NO_DATA (void *)0
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * \brief a structure describing a command line option
  * \action the function to be called to handle the data option
@@ -220,5 +224,9 @@ int opt_parse(const char * usage, struct opt_spec * opts, char **argv);
  */
 
 char ***opt_remainder(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_OPTPARSE_H

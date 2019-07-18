@@ -6,6 +6,10 @@
 #define MAX_TTLS 5 // Max ttls we assume can be associated with this interface
                    // TODO Avoid hardcoding
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     uint8_t      ttl;
     mda_flow_t * mda_flow;
@@ -26,5 +30,9 @@ mda_ttl_flow_t * mda_ttl_flow_create(uint8_t ttl, mda_flow_t * mda_flow);
  */
 
 void mda_ttl_flow_free(mda_ttl_flow_t * mda_ttl_flow);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ALGORITHMS_MDA_TTL_FLOW_H

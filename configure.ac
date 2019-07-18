@@ -44,7 +44,7 @@ AC_DEFINE([BSDSOCKET], [1], [BSD socket interface])
 #jo#trpt_others="yes"
 #jo#trpt_buggy="no"
 
-CFLAGS="$CFLAGS -Wall -Werror"
+CFLAGS="$CFLAGS -Wall"
 
 #############
 ## Options ##
@@ -158,13 +158,17 @@ AC_HEADER_TIME(, AC_MSG_ERROR("header time missing"))
 
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_MALLOC
+#AC_FUNC_MALLOC
 AC_CHECK_FUNC([inet_ntoa])
 AC_CHECK_FUNC([memset])
 AC_CHECK_FUNC([socket])
 AC_CHECK_FUNC([strdup])
 AC_CHECK_FUNC([strerror])
 
+AC_CHECK_FUNC([twalk])
+AC_CHECK_FUNC([timerfd_create])
+AC_CHECK_FUNC([timerfd_settime])
+AC_CHECK_FUNC([epoll_create1])
 #################################################################################
 #
 # Compile time options

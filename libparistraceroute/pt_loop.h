@@ -23,6 +23,10 @@
 #include "network.h"
 #include "event.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //---------------------------------------------------------------------------
 // pt_loop options
 //---------------------------------------------------------------------------
@@ -214,5 +218,9 @@ bool pt_raise_error(pt_loop_t * loop);
  */
 
 bool pt_raise_terminated(pt_loop_t * loop);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_PT_LOOP_H

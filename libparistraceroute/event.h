@@ -3,6 +3,10 @@
 
 // Do not include "algorithm.h" to avoid mutual inclusion
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \file event.h
  * \brief
@@ -71,5 +75,9 @@ event_t * event_create(
  */
 
 void event_free(event_t * event);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_EVENT_H

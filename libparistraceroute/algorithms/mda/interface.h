@@ -10,6 +10,10 @@
 #include "../../address.h"  // address_t
 #include "../../dynarray.h" // dynarray_t
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     MDA_LB_TYPE_UNKNOWN,             /**< IP hop state not yet classified  */
     MDA_LB_TYPE_IN_PROGRESS,         /**< IP hop not yet classified        */
@@ -121,5 +125,9 @@ void mda_link_dump(const mda_interface_t ** link, bool do_resolv);
  */
 
 void mda_lattice_elt_dump(const lattice_elt_t * elt); //, bool do_resolv);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ALGORITHMS_MDA_INTERFACE_H

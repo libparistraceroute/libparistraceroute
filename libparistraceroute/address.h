@@ -6,6 +6,10 @@
 
 #include "use.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //---------------------------------------------------------------------------
 // ip*_t
 //---------------------------------------------------------------------------
@@ -174,5 +178,9 @@ int address_to_string(const address_t * addr, char ** pbuffer);
 #define CACHE_ENABLED  (CACHE_READ | CACHE_WRITE)
 
 bool address_resolv(const address_t * address, char ** phostname, int mask_cache);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ADDRESS_H

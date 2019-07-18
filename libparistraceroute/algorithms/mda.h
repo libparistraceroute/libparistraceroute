@@ -8,6 +8,10 @@
 #include "../optparse.h"
 #include "../vector.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //mda command line help messages
 #define HELP_B "Multipath tracing  bound: an upper bound on the probability that multipath tracing will fail to find all of the paths (default 0.05) max_branch: the maximum number of branching points that can be encountered for the bound still to hold (default 5)"
 
@@ -62,5 +66,9 @@ void options_mda_init(mda_options_t * mda_options);
  */
 
 int mda_handler(pt_loop_t * loop, event_t * event, void ** pdata, probe_t * skel, void * options);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ALGORITHMS_MDA_H

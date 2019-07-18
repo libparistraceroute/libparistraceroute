@@ -140,7 +140,7 @@ static bool mda_event_new_link(pt_loop_t * loop, mda_interface_t * src, mda_inte
     if (!(link = malloc(2 * sizeof(mda_interface_t)))) goto ERR_LINK;
     link[0] = src;
     link[1] = dst;
-    if (!(mda_event = event_create(MDA_NEW_LINK, link, NULL, free))) goto ERR_MDA_EVENT;
+    if (!(mda_event = event_create((event_type_t)MDA_NEW_LINK, link, NULL, free))) goto ERR_MDA_EVENT;
     return pt_raise_event(loop, mda_event);
 
 ERR_MDA_EVENT:

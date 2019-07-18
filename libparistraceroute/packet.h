@@ -9,6 +9,10 @@
 #include "buffer.h"    // buffer_t
 #include "address.h"   // address_t
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \struct packet_t
  * \brief Structure describing a network packet
@@ -118,5 +122,9 @@ int packet_guess_address_family(const packet_t * packet);
 buffer_t * packet_get_buffer(packet_t * packet);
 
 void packet_set_buffer(packet_t * packet, buffer_t * buffer);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_PACKET_H

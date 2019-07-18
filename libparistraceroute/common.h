@@ -3,6 +3,10 @@
 
 #include <stdio.h> // FILE *
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+  
 //---------------------------------------------------------------------------
 // Callback types.
 //---------------------------------------------------------------------------
@@ -74,5 +78,9 @@ double get_timestamp();
  */
 
 void print_indent(unsigned int indent);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_COMMON_H

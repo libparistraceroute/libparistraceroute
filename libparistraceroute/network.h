@@ -36,6 +36,10 @@
 #define OPTIONS_NETWORK_WAIT {NETWORK_DEFAULT_TIMEOUT, 0, INT_MAX}
 #define HELP_w "Set the number of seconds to wait for response to a probe (default is 5.0)"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \struct network_t
  * \brief Structure describing a network
@@ -338,6 +342,10 @@ int network_get_icmpv4_sockfd(network_t * network);
  */
 
 int network_get_icmpv6_sockfd(network_t * network);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif // LIBPT_NETWORK_H

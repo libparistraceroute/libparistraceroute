@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     MDA_FLOW_AVAILABLE,
     MDA_FLOW_UNAVAILABLE,
@@ -42,5 +46,9 @@ void mda_flow_free(mda_flow_t * mda_flow);
  * \return The corresponding caractère, 'E' in case of failure.
  */
 char mda_flow_state_to_char(const mda_flow_t * mda_flow);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_ALGORITHMS_MDA_FLOW_H

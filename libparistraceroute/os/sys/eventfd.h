@@ -7,6 +7,10 @@
 #  include <sys/eventfd.h>
 #endif
 
+#ifdef __ANDROID__
+#define EFD_SEMAPHORE 00000001
+#endif
+
 #ifdef FREEBSD
 #  include <stdio.h>
 #  include <stdint.h>

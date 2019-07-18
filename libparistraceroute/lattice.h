@@ -3,6 +3,10 @@
 
 #include "dynarray.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     LATTICE_DONE,
     LATTICE_CONTINUE,
@@ -118,5 +122,9 @@ bool lattice_add_element(lattice_t * lattice, lattice_elt_t * predecessor, void 
  *    pass NULL if unused.
  */
 void lattice_dump(lattice_t * lattice, void (* element_dump)(const void *));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LIBPT_LATTICE_H
