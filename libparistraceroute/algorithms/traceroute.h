@@ -120,9 +120,11 @@ typedef struct {
 typedef struct {
     bool          destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
     uint8_t       ttl;                 /**< TTL currently explored                   */
+    uint8_t       attemptedTTL;        /**< The ttl as given to the client           */
     uint8_t       replyTTL;            /**< Current TTL sent back with the reply		 */
 		double				rtt;								 /**< Current rtt                   					 */
 		uint32_t			asn;								 /**< Current ASN if resolution is required		 */
+    bool          newHop;              /**< Whether it's a new hop or not. If not, it's just a new probe           */
 		char					ip[INET6_ADDRSTRLEN];/**< Current replying IP											 */
 		char				* hostName;						 /**< Current host name. Should be freed if filled by discovered_ip_dump() */
     size_t        num_replies;         /**< Total of probe sent for this instance    */

@@ -195,29 +195,34 @@ void traceroute_handler(
     const probe_t * reply;
     static size_t   num_probes_printed = 0;
 
+    if (traceroute_data->hostName) {
+        free(traceroute_data->hostName);
+        traceroute_data->hostName = NULL;
+    }
+    traceroute_data->newHop = false;
+    traceroute_data->rtt = 0;
+    traceroute_data->replyTTL = 0;
+    
     switch (traceroute_event->type) {
         case TRACEROUTE_PROBE_REPLY:
-printf("reply probe %d/%d\n", num_probes_printed + 1, traceroute_options->num_probes);
             // Retrieve the probe and its corresponding reply
             probe = ((const probe_reply_t *) traceroute_event->data)->probe;
             reply = ((const probe_reply_t *) traceroute_event->data)->reply;
-
+            
+            traceroute_data->newHop = (num_probes_printed % traceroute_options->num_probes == 0);
+            
             // Print TTL and discovered IP if this is the first probe related to this TTL
-            if (num_probes_printed % traceroute_options->num_probes == 0) {
-                if (probe_extract(probe, "ttl", &(traceroute_data->ttl))) {
+            if (traceroute_data->newHop) {
+                if (probe_extract(probe, "ttl", &(traceroute_data->attemptedTTL))) {
                     if (_doPrint)
-                        printf("%2d ", traceroute_data->ttl);
+                        printf("%2d(%2d) ", traceroute_data->attemptedTTL, traceroute_data->ttl);
                 }
                 else
-                    traceroute_data->ttl = 0;
-
-                if (traceroute_data->hostName)
-                    free(traceroute_data->hostName);
+                    traceroute_data->attemptedTTL = 0;
 
                 discovered_ip_dump(reply, traceroute_options->do_resolv,
                                   (traceroute_options->resolv_asn ? &traceroute_data->asn : NULL),
                                   traceroute_data->ip, sizeof(traceroute_data->ip), &(traceroute_data->hostName));
-printf("				reply and discovered ip %s\n", (traceroute_data->ip == NULL ? "NULL" : traceroute_data->ip));
             }
 
             // Handles delay
@@ -237,13 +242,15 @@ printf("				reply and discovered ip %s\n", (traceroute_data->ip == NULL ? "NULL"
         case TRACEROUTE_STAR:
 						// Gets the ttl
             probe = (const probe_t *) traceroute_event->data;
-            if (num_probes_printed % traceroute_options->num_probes == 0) {
-								if (probe_extract(probe, "ttl", &traceroute_data->ttl)) {
+            traceroute_data->newHop = (num_probes_printed % traceroute_options->num_probes == 0);
+
+            if (traceroute_data->newHop) {
+								if (probe_extract(probe, "ttl", &traceroute_data->attemptedTTL)) {
 									if (_doPrint)
-										printf("%2d ", traceroute_data->ttl);
+										printf("%2d(%2d) ", traceroute_data->attemptedTTL, traceroute_data->ttl);
 								}
 								else
-									traceroute_data->ttl = 0;
+									traceroute_data->attemptedTTL = 0;
             }
 						if (_doPrint)
 								printf(" *");
@@ -253,6 +260,8 @@ printf("				reply and discovered ip %s\n", (traceroute_data->ip == NULL ? "NULL"
         case TRACEROUTE_ICMP_ERROR:
 						if (_doPrint)
 								printf(" !");
+            traceroute_data->newHop = (num_probes_printed % traceroute_options->num_probes == 0);
+              
             num_probes_printed++;
             break;
 
