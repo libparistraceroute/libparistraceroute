@@ -206,7 +206,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
     traceroute_event_t         * traceroute_event;
     const traceroute_options_t * traceroute_options;
-    const traceroute_data_t    * traceroute_data;
+    traceroute_data_t    			 * traceroute_data;
     mda_event_t                * mda_event;
     mda_data_t                 * mda_data;
     const char                 * algorithm_name;
@@ -440,7 +440,7 @@ int main(int argc, char ** argv)
     options_pt_loop_init(loop);
 
     printf("%s to %s (", algorithm_name, dst_ip);
-    address_dump(&dst_addr);
+    address_dump(&dst_addr, NULL, 0);
     printf("), %u hops max, %u bytes packets\n",
         ptraceroute_options->max_ttl,
         (unsigned int)packet_get_size(probe->packet)

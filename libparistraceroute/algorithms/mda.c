@@ -263,7 +263,7 @@ static lattice_return_t mda_enumerate(lattice_elt_t * elt, mda_data_t * mda_data
         mda_ttl_flow = mda_interface_get_available_flow_id(interface, num_siblings, mda_data);
         if (!mda_ttl_flow) {
             fprintf(stderr, "Not enough flows found reaching: ");
-            address_dump(interface->address);
+            address_dump(interface->address, NULL, 0);  // \todo: if no printf is required(cf setPrintMode()), pass a buffer here
             break;
         }
         

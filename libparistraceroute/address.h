@@ -118,9 +118,11 @@ size_t address_get_size(const address_t * address);
 /**
  * \brief Print an address
  * \param address The address to print
+ * \param oIPStr if not ULL, it's a preallocated string to store a IP in string format
+ * \param iIPStrLen the length in bytes of \coIPStr
  */
 
-void address_dump(const address_t * address);
+void address_dump(const address_t * address, char * oIPStr, uint8_t iIPStrLen);
 
 /**
  * \brief Guess address family of an IP by using the

@@ -481,7 +481,7 @@ int main(int argc, char ** argv)
     options_pt_loop_init(loop);
 
     printf("paris-ping to %s (", dst_ip);
-    address_dump(&dst_addr);
+    address_dump(&dst_addr, NULL, 0);
     printf(")\n");
 
     // Add an algorithm instance in the main loop

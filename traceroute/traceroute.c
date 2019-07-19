@@ -20,7 +20,7 @@ void loop_handler(pt_loop_t * loop, event_t * event, void * user_data)
 {
     traceroute_event_t         * traceroute_event;
     const traceroute_options_t * traceroute_options;
-    const traceroute_data_t    * traceroute_data;
+    traceroute_data_t    			 * traceroute_data;
     const char                 * algorithm_name;
 
     switch (event->type) {

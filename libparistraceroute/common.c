@@ -6,6 +6,9 @@
 
 #include "common.h"
 
+// Does the library do print results. Default is yes for compatibility purpose
+bool _doPrint = true;
+
 // Note: for measuring intervals !
 //#include <time.h>
 //struct timespec ts;
@@ -25,5 +28,9 @@ void print_indent(unsigned int indent)
     for(i = 0; i < indent; i++) {
         printf("    ");
     }
+}
+
+void setPrintMode(bool iDoPrint) {
+		_doPrint = iDoPrint;
 }
 

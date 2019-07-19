@@ -2,6 +2,7 @@
 #define LIBPT_COMMON_H
 
 #include <stdio.h> // FILE *
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,12 +73,19 @@ extern "C" {
 double get_timestamp();
 
 /**
- * \bruef Print some space characters
+ * \brief Print some space characters
  * \param indent The number of space characters to print
  *   in the standard output
  */
 
 void print_indent(unsigned int indent);
+
+/*
+ * For a compatibility purpose only, since the lib shouldn't print anything but store data to be printed
+ * by its client.
+ * \param iDoPrint if true, traceroute_handler() acts as default so far, and prints everything(ttl, ip, resolved host name)
+ */
+void setPrintMode(bool iDoPrint);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,6 @@
 #include "use.h"
 #include "config.h"
+//#include "common.h"
 
 #include <stdio.h>      // perror
 #include <stdlib.h>     // malloc
@@ -15,6 +16,8 @@
 #endif
 
 #include "address.h"
+
+extern bool _doPrint;
 
 #ifdef USE_CACHE
 #    include "containers/map.h"
@@ -43,10 +46,11 @@ static void __cache_ip_hostname_free() {
 
 static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
     if (inet_ntop(family, ip, buffer, buffer_len)) {
-        printf("%s", buffer);
-    } else {
-        printf("???");
-    }
+        if (_doPrint)
+						printf("%s", buffer);
+    } else
+		if (_doPrint)
+				printf("???");
 }
 
 int ip_from_string(int family, const char * hostname, ip_t * ip) {
@@ -117,9 +121,13 @@ void ipv6_dump(const ipv6_t * ipv6) {
 }
 #endif
 
-void address_dump(const address_t * address) {
-    char buffer[INET6_ADDRSTRLEN];
-    ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
+void address_dump(const address_t * address, char * oIPStr, uint8_t iIPStrLen) {
+		if (oIPStr && iIPStrLen)
+				ip_dump(address->family, &address->ip, oIPStr, iIPStrLen);
+		else {
+				char buffer[INET6_ADDRSTRLEN];
+				ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
+		}
 }
 
 bool address_guess_family(const char * str_ip, int * pfamily) {

@@ -161,7 +161,7 @@ static void flow_dump(const mda_interface_t * interface)
 static void mda_hop_dump(const mda_interface_t * hop, char * hostname)
 {
     if (hop->address) {
-        address_dump(hop->address);
+        address_dump(hop->address, NULL, 0);  // \todo: pass a string if no printf is required(cf setPrintMode())
     } else printf("None");
     if (hostname) {
         printf(" (%s)", hostname);

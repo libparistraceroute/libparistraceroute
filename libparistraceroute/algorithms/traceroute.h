@@ -120,6 +120,11 @@ typedef struct {
 typedef struct {
     bool          destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
     uint8_t       ttl;                 /**< TTL currently explored                   */
+    uint8_t       replyTTL;            /**< Current TTL sent back with the reply		 */
+		double				rtt;								 /**< Current rtt                   					 */
+		uint32_t			asn;								 /**< Current ASN if resolution is required		 */
+		char					ip[INET6_ADDRSTRLEN];/**< Current replying IP											 */
+		char				* hostName;						 /**< Current host name. Should be freed if filled by discovered_ip_dump() */
     size_t        num_replies;         /**< Total of probe sent for this instance    */
     size_t        num_undiscovered;    /**< Number of consecutive undiscovered hops  */
     size_t        num_stars;           /**< Number of probe lost for the current hop */
@@ -142,9 +147,10 @@ void traceroute_handler(
     pt_loop_t                  * loop,
     traceroute_event_t         * traceroute_event,
     const traceroute_options_t * traceroute_options,
-    const traceroute_data_t    * traceroute_data
+    traceroute_data_t    			 * traceroute_data
 );
 
+ 
 #ifdef __cplusplus
 }
 #endif

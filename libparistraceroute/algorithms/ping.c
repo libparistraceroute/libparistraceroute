@@ -532,12 +532,12 @@ static inline void discovered_ip_dump(const probe_t * reply, bool do_resolv) {
                 printf("%s", discovered_hostname);
                 free(discovered_hostname);
             } else {
-                address_dump(&discovered_addr);
+                address_dump(&discovered_addr, NULL, 0); // \todo: pass a string if no printf is required (cf setPrintMode())
             }
             printf(" (");
         }
 
-        address_dump(&discovered_addr);
+        address_dump(&discovered_addr, NULL, 0); // \todo: pass a string if no printf is required (cf setPrintMode())
 
         if (do_resolv) {
             printf(")");
