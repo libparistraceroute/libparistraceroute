@@ -194,13 +194,13 @@ void traceroute_handler(
     const probe_t * probe;
     const probe_t * reply;
     static size_t   num_probes_printed = 0;
-
+    
     if (traceroute_data->hostName) {
         free(traceroute_data->hostName);
         traceroute_data->hostName = NULL;
     }
     traceroute_data->newHop = false;
-    traceroute_data->rtt = 0;
+    traceroute_data->rtt = -1;
     traceroute_data->replyTTL = 0;
     
     switch (traceroute_event->type) {
@@ -213,12 +213,12 @@ void traceroute_handler(
             
             // Print TTL and discovered IP if this is the first probe related to this TTL
             if (traceroute_data->newHop) {
-                if (probe_extract(probe, "ttl", &(traceroute_data->attemptedTTL))) {
+                if (probe_extract(probe, "ttl", &(traceroute_data->attemptTTL))) {
                     if (_doPrint)
-                        printf("%2d(%2d) ", traceroute_data->attemptedTTL, traceroute_data->ttl);
+                        printf("%2d(%2d) ", traceroute_data->attemptTTL, traceroute_data->ttl);
                 }
                 else
-                    traceroute_data->attemptedTTL = 0;
+                    traceroute_data->attemptTTL = 0;
 
                 discovered_ip_dump(reply, traceroute_options->do_resolv,
                                   (traceroute_options->resolv_asn ? &traceroute_data->asn : NULL),
@@ -231,9 +231,9 @@ void traceroute_handler(
 								printf("  %-5.3lfms  ", 1000 * traceroute_data->rtt);
 						
 						// Handles reply's ttl
-            if (traceroute_options->print_ttl) {
-								if (probe_extract(reply, "ttl", &traceroute_data->replyTTL) && _doPrint)
-										printf("[%2d] ", traceroute_data->replyTTL);
+            if (probe_extract(reply, "ttl", &traceroute_data->replyTTL) && _doPrint &&
+                      traceroute_options->print_ttl) {
+                printf("[%2d] ", traceroute_data->replyTTL);
 						}
             fflush(stdout);
             num_probes_printed++;
@@ -245,12 +245,12 @@ void traceroute_handler(
             traceroute_data->newHop = (num_probes_printed % traceroute_options->num_probes == 0);
 
             if (traceroute_data->newHop) {
-								if (probe_extract(probe, "ttl", &traceroute_data->attemptedTTL)) {
+								if (probe_extract(probe, "ttl", &traceroute_data->attemptTTL)) {
 									if (_doPrint)
-										printf("%2d(%2d) ", traceroute_data->attemptedTTL, traceroute_data->ttl);
+										printf("%2d(%2d) ", traceroute_data->attemptTTL, traceroute_data->ttl);
 								}
 								else
-									traceroute_data->attemptedTTL = 0;
+									traceroute_data->attemptTTL = 0;
             }
 						if (_doPrint)
 								printf(" *");

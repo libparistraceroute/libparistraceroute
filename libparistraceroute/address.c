@@ -10,6 +10,8 @@
 #include <sys/socket.h> // getnameinfo, getaddrinfo, sockaddr_*
 #include <netinet/in.h> // INET_ADDRSTRLEN, INET6_ADDRSTRLEN
 #include <arpa/inet.h>  // inet_pton
+#include <ifaddrs.h>
+#include <assert.h>  // inet_pton
 
 #ifndef AI_IDN
 #    define AI_IDN        0x0000
@@ -335,4 +337,50 @@ ERR_GETHOSTBYADDR:
 ERR_STRDUP:
 ERR_INVALID_PARAMETER:
     return false;
+}
+
+bool getLocalAddress(address_t * oAddr, char ** oIP, char ** oHostName) {
+    assert(oAddr != NULL);
+    
+    struct ifaddrs *ifaddr = NULL, *ifa = NULL;
+    
+    if (getifaddrs(&ifaddr) == -1)
+       return false;
+
+    bool ret = false;
+
+    // Seek a relevant address
+    for (ifa = ifaddr; NULL != ifa; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL)
+            continue;
+
+        if (ifa->ifa_addr->sa_family == AF_INET) {
+            // Looks for the string form of the IP address
+            char ipStr[14];
+            
+            if (inet_ntop(ifa->ifa_addr->sa_family, &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr, ipStr, sizeof(ipStr))) {
+                if (strcmp(ipStr, "127.0.0.1")) {
+                    ret = true;
+                    
+                    oAddr->family = ifa->ifa_addr->sa_family;
+                    memcpy(&oAddr->ip, &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr, sizeof(struct sockaddr_in));
+                    if (oIP)
+                        *oIP = strdup(ipStr);
+                        
+                    // Looks for the host name if needed
+                    if (oHostName) {
+                        char hostName[256];
+                        if (!getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), hostName, sizeof(hostName), NULL, 0, NI_IDN))
+                            *oHostName = strdup(hostName);
+                    }
+                    
+                    break;
+                }
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    
+    return ret;
 }

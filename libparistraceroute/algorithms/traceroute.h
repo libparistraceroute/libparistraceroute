@@ -120,7 +120,7 @@ typedef struct {
 typedef struct {
     bool          destination_reached; /**< True iif the destination has been reached at least once for the current TTL */
     uint8_t       ttl;                 /**< TTL currently explored                   */
-    uint8_t       attemptedTTL;        /**< The ttl as given to the client           */
+    uint8_t       attemptTTL;          /**< The ttl as given to the client           */
     uint8_t       replyTTL;            /**< Current TTL sent back with the reply		 */
 		double				rtt;								 /**< Current rtt                   					 */
 		uint32_t			asn;								 /**< Current ASN if resolution is required		 */

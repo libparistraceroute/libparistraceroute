@@ -181,6 +181,14 @@ int address_to_string(const address_t * addr, char ** pbuffer);
 
 bool address_resolv(const address_t * address, char ** phostname, int mask_cache);
 
+/**
+ * \brief Gets the IP of the local peer.
+ * \param oAddr the address returned, must not be null
+ * \param oIP the IP returned if provided, must be freed by the caller
+ * \param oHostName the host name returned if provided, must be freed by the caller
+ */
+bool getLocalAddress(address_t * oAddr, char ** oIP, char ** oHostName);
+
 #ifdef __cplusplus
 }
 #endif
