@@ -215,7 +215,7 @@ void traceroute_handler(
             if (traceroute_data->newHop) {
                 if (probe_extract(probe, "ttl", &(traceroute_data->attemptTTL))) {
                     if (_doPrint)
-                        printf("%2d(%2d) ", traceroute_data->attemptTTL, traceroute_data->ttl);
+                        printf("%2d ", traceroute_data->attemptTTL);
                 }
                 else
                     traceroute_data->attemptTTL = 0;
@@ -247,7 +247,7 @@ void traceroute_handler(
             if (traceroute_data->newHop) {
 								if (probe_extract(probe, "ttl", &traceroute_data->attemptTTL)) {
 									if (_doPrint)
-										printf("%2d(%2d) ", traceroute_data->attemptTTL, traceroute_data->ttl);
+										printf("%2d ", traceroute_data->attemptTTL);
 								}
 								else
 									traceroute_data->attemptTTL = 0;
