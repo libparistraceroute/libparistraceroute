@@ -41,11 +41,11 @@ static void __cache_ip_hostname_free() {
 
 #endif
 
-static void ip_dump(int family, const void * ip, char * buffer, size_t buffer_len) {
+static void ip_fprintf(FILE * out, int family, const void * ip, char * buffer, size_t buffer_len) {
     if (inet_ntop(family, ip, buffer, buffer_len)) {
-        printf("%s", buffer);
+        fprintf(out, "%s", buffer);
     } else {
-        printf("???");
+        fprintf(out, "???");
     }
 }
 
@@ -104,22 +104,34 @@ ERROR_GETADDRINFO:
 }
 
 #ifdef USE_IPV4
-void ipv4_dump(const ipv4_t * ipv4) {
+void ipv4_fprintf(FILE * out, const ipv4_t * ipv4) {
     char buffer[INET_ADDRSTRLEN];
-    ip_dump(AF_INET, ipv4, buffer, INET_ADDRSTRLEN);
+    ip_fprintf(out, AF_INET, ipv4, buffer, INET_ADDRSTRLEN);
+}
+
+void ipv4_dump(const ipv4_t * ipv4) {
+    ipv4_fprintf(stdout, ipv4);
 }
 #endif
 
 #ifdef USE_IPV6
-void ipv6_dump(const ipv6_t * ipv6) {
+void ipv6_fprintf(FILE * out, const ipv6_t * ipv6) {
     char buffer[INET6_ADDRSTRLEN];
-    ip_dump(AF_INET6, ipv6, buffer, INET6_ADDRSTRLEN);
+    ip_fprintf(out, AF_INET6, ipv6, buffer, INET6_ADDRSTRLEN);
+}
+
+void ipv6_dump(const ipv6_t * ipv6) {
+    ipv6_fprintf(stdout, ipv6);
 }
 #endif
 
-void address_dump(const address_t * address) {
+void address_fprintf(FILE * out, const address_t * address) {
     char buffer[INET6_ADDRSTRLEN];
-    ip_dump(address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
+    ip_fprintf(out, address->family, &address->ip, buffer, INET6_ADDRSTRLEN);
+}
+
+void address_dump(const address_t * address) {
+    address_fprintf(stdout, address);
 }
 
 bool address_guess_family(const char * str_ip, int * pfamily) {

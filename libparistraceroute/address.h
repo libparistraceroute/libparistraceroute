@@ -2,6 +2,7 @@
 #define LIBPT_ADDRESS_H
 
 #include <stdbool.h>    // bool
+#include <stdio.h>      // FILE *
 #include <netinet/in.h> // in_addr, in6_addr
 
 #include "use.h"
@@ -28,18 +29,36 @@ typedef union {
 } ip_t;
 
 #ifdef USE_IPV4
+
 /**
- * \brief Print an IPv4 address
- * \param ipv4 The address to print
+ * \brief Print an IPv4 address.
+ * \param out The output file.
+ * \param ipv4 The address to print.
+ */
+
+void ipv4_fprintf(FILE * out, const ipv4_t * ipv4);
+
+/**
+ * \brief Print an IPv4 address.
+ * \param ipv4 The address to print.
  */
 
 void ipv4_dump(const ipv4_t * ipv4);
 #endif
 
 #ifdef USE_IPV6
+
 /**
- * \brief Print an IPv6 address
- * \param ipv6 The address to print
+ * \brief Print an IPv6 address.
+ * \param out The output file.
+ * \param ipv6 The address to print.
+ */
+
+void ipv6_fprintf(FILE * out, const ipv6_t * ipv6);
+
+/**
+ * \brief Print an IPv6 address.
+ * \param ipv6 The address to print.
  */
 
 void ipv6_dump(const ipv6_t * ipv6);
@@ -62,6 +81,7 @@ typedef struct {
  */
 
 address_t * address_create();
+
 
 /**
  * \brief Compare two address_t instances.
@@ -110,6 +130,14 @@ address_t * address_dup(const address_t * address);
  */
 
 size_t address_get_size(const address_t * address);
+
+/**
+ * \brief Print an address
+ * \param out The output file.
+ * \param address The address to print
+ */
+
+void address_fprintf(FILE * out, const address_t * address);
 
 /**
  * \brief Print an address
