@@ -40,7 +40,7 @@
 // Default field values
 #define IPV6_DEFAULT_VERSION         6
 #define IPV6_DEFAULT_TRAFFIC_CLASS   0
-#define IPV6_DEFAULT_FLOW_LABEL      0
+#define IPV6_DEFAULT_FLOW_LABEL      1 // erlend change. default value = 0
 #define IPV6_DEFAULT_PAYLOAD_LENGTH  0
 #define IPV6_DEFAULT_NEXT_HEADER     IPPROTO_UDP
 #define IPV6_DEFAULT_HOP_LIMIT       64
@@ -290,6 +290,8 @@ static uint32_t ipv6_make_flow(uint8_t version, uint8_t traffic_class, uint32_t 
 size_t ipv6_write_default_header(uint8_t * ipv6_header) {
     size_t   size = sizeof(struct ip6_hdr);
     uint32_t ipv6_flow;
+    
+    printf("Writing default IPV6-header. The flow label value is: %d", IPV6_DEFAULT_FLOW_LABEL);
 
     if (ipv6_header) {
         // Write the default IPv6 header.
