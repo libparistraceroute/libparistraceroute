@@ -95,6 +95,9 @@ struct opt_spec runnable_options[] = {
     END_OPT_SPECS
 };
 
+extern int get_flow_label(void); // erlend - get IPV6 flow-label value
+extern void set_flow_label(int flow_label); // erlend - set IPV6 flow-label value
+
 /**
  * \brief Prepare options supported by paris-traceroute
  * \return A pointer to the corresponding options_t instance if successfull, NULL otherwise
@@ -315,6 +318,9 @@ int main(int argc, char ** argv)
     const char              * algorithm_name;
     const char              * protocol_name;
     bool                      use_icmp, use_udp, use_tcp;
+    // erlend
+    int                       flow_label;
+    int                       some_error = 1;
 
     // Prepare the commande line options
     if (!(options = init_options(version))) {
@@ -323,12 +329,27 @@ int main(int argc, char ** argv)
     }
 
     // Retrieve values passed in the command-line
+    // erlend
+    /*
     if (options_parse(options, usage, argv) != 1) {
         fprintf(stderr, "%s: destination required\n", basename(argv[0]));
         goto ERR_OPT_PARSE;
     }
+    */
 
-    // We assume that the target IP address is always the last argument
+    // added by erlend:
+    if (some_error != 1) {
+        fprintf(stderr, "%s: destination required\n", basename(argv[0]));
+        goto ERR_OPT_PARSE;
+    }
+
+    options_parse(options, usage, argv);
+    // erlend - We assume that the flow-label is always the second-to-last argument
+    flow_label = atoi(argv[argc - 2]);
+    // flow_label = atoi(argv[1]);
+    set_flow_label(flow_label);
+
+    // We assume that the target IP address is always the last argument    
     dst_ip         = argv[argc - 1];
     algorithm_name = algorithm_names[0];
     protocol_name  = protocol_names[0];
@@ -452,6 +473,8 @@ int main(int argc, char ** argv)
         goto ERR_INSTANCE;
     }
 
+    printf("The IPV6 flow-label is: %d\n", get_flow_label()); // erlend
+
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop) < 0) {
         fprintf(stderr, "E: Main loop interrupted");
@@ -479,4 +502,3 @@ ERR_INIT_OPTIONS:
     free(version);
     exit(exit_code);
 }
-
