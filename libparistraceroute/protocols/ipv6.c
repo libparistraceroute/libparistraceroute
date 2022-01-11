@@ -40,7 +40,7 @@
 // Default field values
 #define IPV6_DEFAULT_VERSION         6
 #define IPV6_DEFAULT_TRAFFIC_CLASS   0
-#define IPV6_DEFAULT_FLOW_LABEL      1 // erlend change. default value = 0
+#define IPV6_DEFAULT_FLOW_LABEL      203 // erlend
 #define IPV6_DEFAULT_PAYLOAD_LENGTH  0
 #define IPV6_DEFAULT_NEXT_HEADER     IPPROTO_UDP
 #define IPV6_DEFAULT_HOP_LIMIT       64
@@ -64,6 +64,11 @@
 #    define IPV6_NUM_BITS_FLOW_LABEL           20 // Number of bits.
 
 #endif
+
+int get_flow_label(void); // erlend
+void set_flow_label(int flow_label); // erlend
+
+static int non_default_flow_label = IPV6_DEFAULT_FLOW_LABEL;
 
 static field_t * ipv6_get_length(const uint8_t * ipv6_segment) {
     const struct ip6_hdr * ipv6_header = (const struct ip6_hdr *) ipv6_segment;
@@ -290,8 +295,6 @@ static uint32_t ipv6_make_flow(uint8_t version, uint8_t traffic_class, uint32_t 
 size_t ipv6_write_default_header(uint8_t * ipv6_header) {
     size_t   size = sizeof(struct ip6_hdr);
     uint32_t ipv6_flow;
-    
-    printf("Writing default IPV6-header. The flow label value is: %d", IPV6_DEFAULT_FLOW_LABEL);
 
     if (ipv6_header) {
         // Write the default IPv6 header.
@@ -302,7 +305,7 @@ size_t ipv6_write_default_header(uint8_t * ipv6_header) {
         ipv6_flow = ipv6_make_flow(
             IPV6_DEFAULT_VERSION,
             IPV6_DEFAULT_TRAFFIC_CLASS,
-            IPV6_DEFAULT_FLOW_LABEL
+            non_default_flow_label //IPV6_DEFAULT_FLOW_LABEL
         );
 
         // Write this tuple in the header.
@@ -379,5 +382,30 @@ static protocol_t ipv6 = {
 
 PROTOCOL_REGISTER(ipv6);
 
-#endif // USE_IPV6
+/**
+ * \brief Gets the IPV6 flow-label
+ * \return The IPV6 flow-label
+ */
 
+int get_flow_label(void)
+{
+    return IPV6_DEFAULT_FLOW_LABEL;
+}
+
+/**
+ * \brief Sets the IPV6 flow-label
+ * \param flow_label The IPV6 flow-label
+ */
+
+void set_flow_label(int flow_label)
+{
+    if ( flow_label > 0 && flow_label < 0xFFFFF)
+    {
+        non_default_flow_label = flow_label;
+        printf("Flow label = %d\n", non_default_flow_label);
+    } else {
+        printf("Flow label must be a value between %d and %x", 0, 0xFFFFF);
+    }
+}
+
+#endif // USE_IPV6
