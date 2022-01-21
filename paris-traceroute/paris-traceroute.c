@@ -473,8 +473,6 @@ int main(int argc, char ** argv)
         goto ERR_INSTANCE;
     }
 
-    printf("The IPV6 flow-label is: %d\n", get_flow_label()); // erlend
-
     // Wait for events. They will be catched by handler_user()
     if (pt_loop(loop) < 0) {
         fprintf(stderr, "E: Main loop interrupted");
