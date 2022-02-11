@@ -375,6 +375,7 @@ void sniffer_process_packets(sniffer_t * sniffer, uint8_t protocol_id)
 		if (sniffer->recv_callback != NULL) {
             packet = packet_create_from_bytes(recv_bytes, num_bytes);
             packet_dump(packet);
+            puts("");
 
 			if (!(sniffer->recv_callback(packet, sniffer->recv_param))) {
                 fprintf(stderr, "Error in sniffer's callback\n");

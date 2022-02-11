@@ -399,7 +399,7 @@ int get_flow_label(void)
 
 void set_flow_label(int flow_label)
 {
-    if ( flow_label > 0 && flow_label < 0xFFFFF)
+    if ( flow_label > 0 && flow_label <= 0xFFFFF)
     {
         non_default_flow_label = flow_label;
         printf("Flow label = %d\n", non_default_flow_label);
