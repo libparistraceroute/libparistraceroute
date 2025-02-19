@@ -91,7 +91,7 @@ bool whois_query(
     int    family = server_address->family;
     size_t len = 0;
 
-    buffer[BUFFER_SIZE] = '\0';
+    buffer[BUFFER_SIZE - 1] = '\0';
 
     if (queried_address->family != AF_INET && queried_address->family != AF_INET6) {
         fprintf(stderr, "whois_query: queried address family not supported (family = %d)\n", queried_address->family);
