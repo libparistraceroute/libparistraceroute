@@ -111,7 +111,7 @@ void mda_flow_dump(const mda_interface_t * interface);
  *    the corresponding FQDN.
  */
 
-void mda_link_dump(const mda_interface_t ** link, bool do_resolv);
+void mda_link_dump(const mda_interface_t * link[2], bool do_resolv);
 
 /**
  * \brief Callback used by lattice_dump
