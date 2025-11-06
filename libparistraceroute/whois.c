@@ -173,7 +173,7 @@ bool whois_query(
                 // Truncated line, copy at the beginning of the buffer.
                 // This line will be completed during the next recv() iteration.
                 offset = buffer_end - line_begin;
-                memcpy(buffer, line_begin, offset);
+                memmove(buffer, line_begin, offset);
                 break;
             }
 
