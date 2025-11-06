@@ -33,7 +33,7 @@ static int protocol_id_compare(
     return protocol1->protocol - protocol2->protocol;
 }
 
-static void nothing_to_free() {}
+static void nothing_to_free(void * nodep __attribute__((__unused__))) {}
 
 const protocol_t * protocol_search(const char * name) {
     protocol_t ** protocol, search;

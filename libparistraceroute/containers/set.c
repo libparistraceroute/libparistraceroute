@@ -7,7 +7,7 @@
 
 #include "set.h"    // set_t
 
-static void nothing_to_free() {}
+static void nothing_to_free(void * nodep __attribute__((__unused__))) {}
 
 set_t * set_create_impl(
     void * (*element_dup)(const void * element),
