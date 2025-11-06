@@ -1,19 +1,19 @@
 # libparistraceroute
 
-libparistraceroute is a library written in C dedicated to active network measurements.
-Some example are also provided, such as paris-ping and the new implementation of paris-traceroute.
+`libparistraceroute` is a C library dedicated to active network measurements.
+
+This project also provides two tools built on top of `libparistraceroute`:
+
+- the latest implementation of `paris-traceroute`, a `traceroute`-like tool resilient to per-flow load balancing.
+- `paris-ping`, a `ping`-like tool resilient to per-flow load balancing.
+
 
 ## Installation 
 
-Installation steps are detailed here:
+Please follow [the installation steps](https://github.com/libparistraceroute/libparistraceroute/wiki/Installation).
 
-    https://github.com/libparistraceroute/libparistraceroute/wiki/Installation
-
-We recommend that you use the installation with git to use the last version of libparistraceroute.
+We recommend the installation using `git` to that you install the last version of `libparistraceroute`.
 
 ## Documentation
 
-For further details about libparistraceroute, we refer the reader to the wiki:
-
-    https://github.com/libparistraceroute/libparistraceroute/wiki/
-
+For further details, we refer the reader to the [wiki](https://github.com/libparistraceroute/libparistraceroute/wiki/).
